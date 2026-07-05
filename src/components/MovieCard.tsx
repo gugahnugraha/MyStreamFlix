@@ -13,9 +13,10 @@ interface MovieCardProps {
   progress?: { progress: number; duration: number }; // optional continue watching state
   onSelect: (movie: Movie) => void;
   onPlay: (movie: Movie) => void;
+  t?: any;
 }
 
-export default function MovieCard({ movie, progress, onSelect, onPlay }: MovieCardProps) {
+export default function MovieCard({ movie, progress, onSelect, onPlay, t }: MovieCardProps) {
   // Calculate percentage progress if applicable
   const progressPercent = progress 
     ? Math.min(100, Math.round((progress.progress / progress.duration) * 100))
@@ -56,6 +57,20 @@ export default function MovieCard({ movie, progress, onSelect, onPlay }: MovieCa
 
         {/* Top Floating Badge Row */}
         <div className="absolute top-2 left-2 flex items-center gap-1.5">
+          {movie.contentType === "series" && (
+            <span className="px-1.5 py-0.5 text-[9px] font-black bg-red-600/20 text-red-400 rounded border border-red-500/20 uppercase tracking-wider">
+              {t?.tvSeries || "Series"}
+            </span>
+          )}
+          {movie.tier && movie.tier !== "free" && (
+            <span className={`px-1.5 py-0.5 text-[9px] font-black rounded flex items-center gap-0.5 ${
+              movie.tier === "premium" 
+                ? "bg-amber-500 text-black shadow-xs font-black" 
+                : "bg-red-600 text-white shadow-xs"
+            }`}>
+              {movie.tier.toUpperCase()}
+            </span>
+          )}
           <span className="px-1.5 py-0.5 text-[9px] font-black bg-black/60 backdrop-blur-md text-red-500 rounded border border-red-500/20">
             {movie.quality}
           </span>
@@ -67,7 +82,11 @@ export default function MovieCard({ movie, progress, onSelect, onPlay }: MovieCa
         {/* Duration Floating Badge */}
         <div className="absolute bottom-2 right-2 flex items-center gap-1 px-1.5 py-0.5 text-[9px] font-medium bg-black/70 backdrop-blur-md text-zinc-300 rounded">
           <Clock className="w-2.5 h-2.5 text-zinc-400" />
-          <span>{movie.duration}m</span>
+          <span>
+            {movie.contentType === "series"
+              ? `${movie.seasons?.length || 0} ${movie.seasons?.length === 1 ? (t?.season || "Season") : (t?.seasons || "Seasons")}`
+              : `${movie.duration}m`}
+          </span>
         </div>
 
         {/* Continue Watching Progress Overlay */}
@@ -107,8 +126,8 @@ export default function MovieCard({ movie, progress, onSelect, onPlay }: MovieCa
 
         {progress && (
           <div className="mt-2.5 flex items-center justify-between text-[10px] text-zinc-500 font-mono">
-            <span>Progress: {progressPercent}%</span>
-            <span>{Math.round(progress.progress / 60)}m left</span>
+            <span>{t?.resume || "Progress"}: {progressPercent}%</span>
+            <span>{Math.round(progress.progress / 60)}m {t?.noneOff === "Mati" ? "tersisa" : t?.noneOff === "Desactivado" ? "restante" : "left"}</span>
           </div>
         )}
       </div>

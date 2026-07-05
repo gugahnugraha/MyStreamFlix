@@ -11,20 +11,50 @@ interface MediaPlayerProps {
   movie: Movie;
   initialProgress?: number; // resume from previous progress in seconds
   onClose: () => void;
+  t?: any;
 }
 
-export default function MediaPlayer({ movie, initialProgress = 0, onClose }: MediaPlayerProps) {
+export default function MediaPlayer({ movie, initialProgress = 0, onClose, t }: MediaPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // TV Series active episode and season tracking states
+  const [activeSeason, setActiveSeason] = useState(() => {
+    if (movie.contentType === "series" && movie.seasons && movie.seasons.length > 0) {
+      return movie.seasons[0];
+    }
+    return null;
+  });
+
+  const [activeEpisode, setActiveEpisode] = useState(() => {
+    if (movie.contentType === "series" && movie.seasons && movie.seasons.length > 0) {
+      return movie.seasons[0].episodes[0] || null;
+    }
+    return null;
+  });
 
   // Playback state
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(initialProgress);
-  const [duration, setDuration] = useState(movie.duration * 60 || 600);
+  const [duration, setDuration] = useState(() => {
+    if (movie.contentType === "series" && movie.seasons && movie.seasons.length > 0) {
+      return (movie.seasons[0].episodes[0]?.duration || 10) * 60;
+    }
+    return movie.duration * 60 || 600;
+  });
   const [volume, setVolume] = useState(0.8);
   const [isMuted, setIsMuted] = useState(false);
   const [playbackRate, setPlaybackRate] = useState(1);
   const [activeSubtitle, setActiveSubtitle] = useState<string>("off");
+
+  // Keep duration in sync with active episode changes
+  useEffect(() => {
+    if (activeEpisode) {
+      setDuration(activeEpisode.duration * 60);
+    } else {
+      setDuration(movie.duration * 60 || 600);
+    }
+  }, [activeEpisode, movie.duration]);
   
   // UI control states
   const [showControls, setShowControls] = useState(true);
@@ -102,7 +132,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose }: Med
       setIsSimulating(true);
       setIsPlaying(true);
     }
-  }, [movie.id]);
+  }, [movie.id, activeEpisode?.id]);
 
   // Simulation player timeline progression
   useEffect(() => {
@@ -174,6 +204,13 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose }: Med
         10: "N'hésitez pas à naviguer pour tester la reprise de lecture.",
         15: "FlixSphere offre un rendu de contenu digne du marché.",
         25: "Profitez de l'expérience cinématographique haute fidélité."
+      },
+      id: {
+        2: "Ini adalah demonstrasi dari FlixSphere HLS Player.",
+        6: "Menampilkan kompresi video murni & pencampuran suara yang luar biasa.",
+        10: "Silakan geser waktu (scrub) untuk mencoba fitur resume instan.",
+        15: "FlixSphere menyajikan rendering konten berkualitas pasar premium.",
+        25: "Nikmati pengalaman sinematik dengan fidelitas tinggi."
       }
     };
 
@@ -305,14 +342,16 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose }: Med
   return (
     <div 
       ref={containerRef}
-      className="fixed inset-0 z-50 bg-black flex items-center justify-center select-none overflow-hidden"
+      className="fixed inset-0 z-50 bg-black flex flex-col md:flex-row select-none overflow-hidden"
       id="media-player-container"
     >
-      {/* HTML5 Video Layer */}
-      {!isSimulating ? (
-        <video
-          ref={videoRef}
-          src={movie.videoUrl}
+      {/* Primary Video Screen Area */}
+      <div className="relative flex-1 h-full bg-black flex items-center justify-center overflow-hidden">
+        {/* HTML5 Video Layer */}
+        {!isSimulating ? (
+          <video
+            ref={videoRef}
+            src={activeEpisode ? activeEpisode.videoUrl : movie.videoUrl}
           className="w-full h-full max-h-screen object-contain"
           onClick={handlePlayPause}
           onTimeUpdate={() => {
@@ -372,10 +411,10 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose }: Med
                 Interactive Cinema Stream
               </span>
               <h2 className="text-2xl md:text-3xl font-extrabold text-white tracking-tight">
-                {movie.title}
+                {movie.title} {activeEpisode ? ` - S${activeSeason?.seasonNumber}E${activeEpisode.episodeNumber}` : ""}
               </h2>
               <p className="text-xs text-zinc-400 max-w-sm leading-relaxed mt-1">
-                Direct raw link loading is limited by sandboxed container headers. Playing simulated high-fidelity HLS timeline.
+                {activeEpisode?.description || movie.description || "Direct raw link loading is limited by sandboxed container headers. Playing simulated high-fidelity HLS timeline."}
               </p>
               {isPlaying ? (
                 <div className="flex items-center justify-center gap-1.5 mt-4 text-emerald-500 text-xs font-mono font-semibold bg-emerald-500/10 px-3 py-1.5 rounded-full border border-emerald-500/20 shadow-xs animate-pulse">
@@ -414,7 +453,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose }: Med
               NOW STREAMING • {movie.quality}
             </p>
             <h1 className="text-white text-base md:text-xl font-extrabold truncate max-w-md mt-0.5">
-              {movie.title}
+              {movie.title} {activeEpisode ? ` • S${activeSeason?.seasonNumber}E${activeEpisode.episodeNumber}: ${activeEpisode.title}` : ""}
             </h1>
           </div>
 
@@ -593,6 +632,78 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose }: Med
           </div>
         </div>
       </div>
+    </div>
+
+      {/* Seasons / Episodes sidebar for TV Series */}
+      {movie.contentType === "series" && movie.seasons && movie.seasons.length > 0 && (
+        <div className="w-full md:w-80 shrink-0 border-t md:border-t-0 md:border-l border-zinc-900 bg-zinc-950/95 flex flex-col h-1/3 md:h-full z-10 text-white select-none relative" id="episodes-sidebar">
+          {/* Header */}
+          <div className="p-4 border-b border-zinc-900 bg-black/40">
+            <h3 className="text-sm font-extrabold tracking-wide uppercase text-zinc-400 mb-2">
+              Seasons & Episodes
+            </h3>
+            {/* Season dropdown selector */}
+            <select
+              value={activeSeason?.id}
+              onChange={(e) => {
+                const season = movie.seasons?.find(s => s.id === e.target.value);
+                if (season) {
+                  setActiveSeason(season);
+                  if (season.episodes.length > 0) {
+                    setActiveEpisode(season.episodes[0]);
+                    setCurrentTime(0);
+                  }
+                }
+              }}
+              className="w-full bg-zinc-900 border border-zinc-800 text-xs font-bold rounded-md px-3 py-2 text-white focus:outline-hidden focus:border-red-500"
+            >
+              {movie.seasons.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.title} ({s.episodes.length} Episodes)
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Episode List */}
+          <div className="flex-1 overflow-y-auto p-3 space-y-2 scrollbar-thin scrollbar-thumb-zinc-900 scrollbar-track-transparent">
+            {activeSeason?.episodes.map((ep) => {
+              const isCurrent = activeEpisode?.id === ep.id;
+              return (
+                <button
+                  key={ep.id}
+                  onClick={() => {
+                    setActiveEpisode(ep);
+                    setCurrentTime(0);
+                  }}
+                  className={`w-full text-left p-3 rounded-lg border transition-all flex flex-col gap-1 cursor-pointer ${
+                    isCurrent
+                      ? "bg-red-600/10 border-red-600 shadow-[0_0_15px_rgba(220,38,38,0.15)]"
+                      : "bg-zinc-900/40 border-zinc-900 hover:bg-zinc-900 hover:border-zinc-800"
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-bold text-red-500">
+                      EPISODE {ep.episodeNumber}
+                    </span>
+                    <span className="text-[10px] text-zinc-500 font-mono">
+                      {ep.duration}m
+                    </span>
+                  </div>
+                  <h4 className={`text-xs font-bold transition-colors ${isCurrent ? "text-red-400" : "text-white"}`}>
+                    {ep.title}
+                  </h4>
+                  {ep.description && (
+                    <p className="text-[11px] text-zinc-400 line-clamp-2 leading-normal mt-0.5">
+                      {ep.description}
+                    </p>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

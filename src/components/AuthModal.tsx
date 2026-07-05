@@ -9,9 +9,10 @@ import { X, LogIn, UserPlus, HelpCircle, KeyRound, AlertTriangle } from "lucide-
 interface AuthModalProps {
   onClose: () => void;
   onSuccess: (user: any) => void;
+  t?: any;
 }
 
-export default function AuthModal({ onClose, onSuccess }: AuthModalProps) {
+export default function AuthModal({ onClose, onSuccess, t }: AuthModalProps) {
   const [mode, setMode] = useState<"login" | "register" | "forgot">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -82,13 +83,13 @@ export default function AuthModal({ onClose, onSuccess }: AuthModalProps) {
         {/* Form Title Headline */}
         <div className="text-center pt-2">
           <h2 className="text-xl font-extrabold text-white tracking-tight">
-            {mode === "login" && "Sign In"}
-            {mode === "register" && "Create SaaS Profile"}
+            {mode === "login" && (t?.signIn || "Sign In")}
+            {mode === "register" && (t?.signUpBtn || "Create SaaS Profile")}
             {mode === "forgot" && "Recover Passcode"}
           </h2>
           <p className="text-[11px] text-zinc-500 mt-1">
-            {mode === "login" && "Authenticate to access continuous watching and favorite list storage."}
-            {mode === "register" && "Gain exclusive access to pristine 4K video feeds immediately."}
+            {mode === "login" && (t?.authDesc || "Authenticate to access continuous watching and favorite list storage.")}
+            {mode === "register" && (t?.authDesc || "Gain exclusive access to pristine 4K video feeds immediately.")}
             {mode === "forgot" && "Submit your email address to receive password reset tokens."}
           </p>
         </div>
@@ -113,7 +114,7 @@ export default function AuthModal({ onClose, onSuccess }: AuthModalProps) {
         <form onSubmit={handleSubmit} className="space-y-3.5 pt-2">
           {mode === "register" && (
             <div className="space-y-1">
-              <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Full Name *</label>
+              <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">{t?.nameLabel || "Full Name"} *</label>
               <input
                 type="text"
                 required
@@ -127,7 +128,7 @@ export default function AuthModal({ onClose, onSuccess }: AuthModalProps) {
           )}
 
           <div className="space-y-1">
-            <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Email Address *</label>
+            <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">{t?.emailLabel || "Email Address"} *</label>
             <input
               type="email"
               required
@@ -142,7 +143,7 @@ export default function AuthModal({ onClose, onSuccess }: AuthModalProps) {
           {mode !== "forgot" && (
             <div className="space-y-1">
               <div className="flex items-center justify-between">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Password *</label>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">{t?.passwordLabel || "Password"} *</label>
                 {mode === "login" && (
                   <button
                     type="button"
@@ -179,7 +180,9 @@ export default function AuthModal({ onClose, onSuccess }: AuthModalProps) {
                 {mode === "login" && <LogIn className="w-3.5 h-3.5" />}
                 {mode === "register" && <UserPlus className="w-3.5 h-3.5" />}
                 {mode === "forgot" && <KeyRound className="w-3.5 h-3.5" />}
-                <span className="capitalize">{mode === "forgot" ? "Dispatch Recover Link" : mode}</span>
+                <span className="capitalize">
+                  {mode === "forgot" ? "Dispatch Recover Link" : mode === "login" ? (t?.signIn || "Sign In") : (t?.signUpBtn || "Sign Up")}
+                </span>
               </>
             )}
           </button>
@@ -189,26 +192,26 @@ export default function AuthModal({ onClose, onSuccess }: AuthModalProps) {
         <div className="border-t border-zinc-900 pt-3 text-center text-xs text-zinc-500">
           {mode === "login" && (
             <p>
-              New to our marketplace?{" "}
+              {t?.needAccount || "New to our marketplace?"}{" "}
               <button
                 onClick={() => { setMode("register"); setErrorMsg(""); }}
                 className="text-red-500 hover:underline font-semibold cursor-pointer"
                 id="toggle-register-btn"
               >
-                Sign Up Now
+                {t?.signUpBtn || "Sign Up Now"}
               </button>
             </p>
           )}
 
           {mode === "register" && (
             <p>
-              Already have an account?{" "}
+              {t?.haveAccount || "Already have an account?"}{" "}
               <button
                 onClick={() => { setMode("login"); setErrorMsg(""); }}
                 className="text-red-500 hover:underline font-semibold cursor-pointer"
                 id="toggle-login-btn"
               >
-                Sign In
+                {t?.signIn || "Sign In"}
               </button>
             </p>
           )}

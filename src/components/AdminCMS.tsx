@@ -8,7 +8,7 @@ import {
   BarChart3, Film, Settings, Plus, Edit, Trash2, Save, 
   Tv, Eye, Play, ShieldAlert, CheckCircle, TrendingUp, Users, RefreshCw, X 
 } from "lucide-react";
-import { Movie, DashboardStats, CMSSettings, Subtitle, User } from "../types";
+import { Movie, DashboardStats, CMSSettings, Subtitle, User, Season, Episode } from "../types";
 
 interface AdminCMSProps {
   onRefreshMovies: () => void;
@@ -46,6 +46,126 @@ export default function AdminCMS({ onRefreshMovies, movies }: AdminCMSProps) {
   const [language, setLanguage] = useState("English");
   const [isFeatured, setIsFeatured] = useState(false);
   const [isBanner, setIsBanner] = useState(false);
+
+  // Content type and series configurations states
+  const [contentType, setContentType] = useState<"movie" | "series">("movie");
+  const [seasonsCount, setSeasonsCount] = useState(1);
+  const [episodesPerSeason, setEpisodesPerSeason] = useState(5);
+  const [seasons, setSeasons] = useState<Season[]>([]);
+
+  // Helpers to manage seasons and episodes
+  const handleAddSeason = () => {
+    const nextSeasonNum = seasons.length + 1;
+    const newSeason: Season = {
+      id: `sea-${Date.now()}`,
+      seasonNumber: nextSeasonNum,
+      title: `Season ${nextSeasonNum}`,
+      episodes: [
+        {
+          id: `ep-${Date.now()}-1`,
+          episodeNumber: 1,
+          title: "Episode 1: Pilot",
+          duration: 45,
+          videoUrl: videoUrl || "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+          description: "An exciting introduction to the characters and the plot."
+        }
+      ]
+    };
+    setSeasons([...seasons, newSeason]);
+  };
+
+  const handleRemoveSeason = (seasonId: string) => {
+    setSeasons(seasons.filter(s => s.id !== seasonId).map((s, idx) => ({
+      ...s,
+      seasonNumber: idx + 1,
+      title: `Season ${idx + 1}`
+    })));
+  };
+
+  const handleUpdateSeasonTitle = (seasonId: string, title: string) => {
+    setSeasons(seasons.map(s => s.id === seasonId ? { ...s, title } : s));
+  };
+
+  const handleAddEpisode = (seasonId: string) => {
+    setSeasons(seasons.map(s => {
+      if (s.id !== seasonId) return s;
+      const nextEpNum = s.episodes.length + 1;
+      return {
+        ...s,
+        episodes: [
+          ...s.episodes,
+          {
+            id: `ep-${Date.now()}-${nextEpNum}`,
+            episodeNumber: nextEpNum,
+            title: `Episode ${nextEpNum}: The Journey Continues`,
+            duration: 45,
+            videoUrl: videoUrl || "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+            description: "A continuation of the epic adventures with new challenges."
+          }
+        ]
+      };
+    }));
+  };
+
+  const handleRemoveEpisode = (seasonId: string, episodeId: string) => {
+    setSeasons(seasons.map(s => {
+      if (s.id !== seasonId) return s;
+      return {
+        ...s,
+        episodes: s.episodes.filter(e => e.id !== episodeId).map((e, idx) => ({
+          ...e,
+          episodeNumber: idx + 1
+        }))
+      };
+    }));
+  };
+
+  const handleUpdateEpisode = (seasonId: string, episodeId: string, field: keyof Episode, value: any) => {
+    setSeasons(seasons.map(s => {
+      if (s.id !== seasonId) return s;
+      return {
+        ...s,
+        episodes: s.episodes.map(e => {
+          if (e.id !== episodeId) return e;
+          return {
+            ...e,
+            [field]: value
+          };
+        })
+      };
+    }));
+  };
+
+  // Populate default seasons/episodes when changing to series
+  useEffect(() => {
+    if (contentType === "series" && seasons.length === 0) {
+      setSeasons([
+        {
+          id: `sea-${Date.now()}-1`,
+          seasonNumber: 1,
+          title: "Season 1",
+          episodes: [
+            {
+              id: `ep-${Date.now()}-1-1`,
+              episodeNumber: 1,
+              title: "Episode 1: Pilot",
+              duration: 45,
+              videoUrl: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+              description: "The pilot episode introduces our characters and sets off the grand adventure."
+            },
+            {
+              id: `ep-${Date.now()}-1-2`,
+              episodeNumber: 2,
+              title: "Episode 2: The Journey Begins",
+              duration: 43,
+              videoUrl: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4",
+              description: "Our characters set out on their quest, facing their first unexpected challenge."
+            }
+          ]
+        }
+      ]);
+    }
+  }, [contentType]);
 
   // Status banners
   const [successMsg, setSuccessMsg] = useState("");
@@ -103,6 +223,10 @@ export default function AdminCMS({ onRefreshMovies, movies }: AdminCMSProps) {
     setLanguage("English");
     setIsFeatured(false);
     setIsBanner(false);
+    setContentType("movie");
+    setSeasonsCount(1);
+    setEpisodesPerSeason(5);
+    setSeasons([]);
     setShowForm(true);
   };
 
@@ -126,6 +250,10 @@ export default function AdminCMS({ onRefreshMovies, movies }: AdminCMSProps) {
     setLanguage(movie.language);
     setIsFeatured(movie.isFeatured);
     setIsBanner(movie.isBanner);
+    setContentType(movie.contentType || "movie");
+    setSeasonsCount(movie.seasons?.length || 1);
+    setEpisodesPerSeason(movie.seasons?.[0]?.episodes?.length || 5);
+    setSeasons(movie.seasons || []);
     setShowForm(true);
   };
 
@@ -150,6 +278,8 @@ export default function AdminCMS({ onRefreshMovies, movies }: AdminCMSProps) {
       return;
     }
 
+    const seasonsPayload = contentType === "series" ? seasons : [];
+
     const payload = {
       title,
       description,
@@ -167,7 +297,9 @@ export default function AdminCMS({ onRefreshMovies, movies }: AdminCMSProps) {
       country,
       language,
       isFeatured,
-      isBanner
+      isBanner,
+      contentType,
+      seasons: seasonsPayload
     };
 
     try {
@@ -511,14 +643,25 @@ export default function AdminCMS({ onRefreshMovies, movies }: AdminCMSProps) {
                             referrerPolicy="no-referrer"
                           />
                           <div>
-                            <p className="font-bold text-zinc-200 text-xs">{m.title}</p>
+                            <div className="flex items-center gap-1.5">
+                              <p className="font-bold text-zinc-200 text-xs">{m.title}</p>
+                              <span className={`px-1 rounded-sm text-[8px] font-black uppercase tracking-wider ${
+                                m.contentType === "series" ? "bg-red-600/10 text-red-500 border border-red-500/20" : "bg-blue-600/10 text-blue-500 border border-blue-500/20"
+                              }`}>
+                                {m.contentType === "series" ? "Series" : "Movie"}
+                              </span>
+                            </div>
                             <p className="text-[10px] text-zinc-500 font-mono mt-0.5">{m.quality} • {m.ageRating}</p>
                           </div>
                         </div>
                       </td>
                       <td className="p-4 font-semibold text-zinc-400">
                         {m.releaseYear}
-                        <span className="block text-[10px] text-zinc-600 mt-0.5">{m.duration} minutes</span>
+                        <span className="block text-[10px] text-zinc-600 mt-0.5">
+                          {m.contentType === "series"
+                            ? `${m.seasons?.length || 0} Seasons`
+                            : `${m.duration} minutes`}
+                        </span>
                       </td>
                       <td className="p-4">
                         <div className="flex flex-wrap gap-1 max-w-44">
@@ -608,6 +751,49 @@ export default function AdminCMS({ onRefreshMovies, movies }: AdminCMSProps) {
                       className="w-full bg-zinc-900 border border-zinc-850 p-2.5 rounded text-xs focus:outline-hidden focus:border-red-500/50"
                       id="form-input-title"
                     />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4 border-b border-zinc-900/60 pb-4">
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold uppercase text-zinc-500">Content Classification</label>
+                      <select
+                        value={contentType}
+                        onChange={(e) => setContentType(e.target.value as any)}
+                        className="w-full bg-zinc-900 border border-zinc-850 p-2.5 rounded text-xs focus:outline-hidden text-zinc-300 font-bold"
+                      >
+                        <option value="movie">🍿 Single Movie</option>
+                        <option value="series">📺 TV Series Show</option>
+                      </select>
+                    </div>
+                    {contentType === "series" ? (
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold uppercase text-zinc-500">Seasons & Episodes (Est)</label>
+                        <div className="grid grid-cols-2 gap-2">
+                          <input
+                            type="number"
+                            min={1}
+                            max={20}
+                            placeholder="Seasons"
+                            value={seasonsCount}
+                            onChange={(e) => setSeasonsCount(Number(e.target.value))}
+                            className="w-full bg-zinc-900 border border-zinc-850 p-2.5 rounded text-xs focus:outline-hidden font-mono font-bold text-center"
+                          />
+                          <input
+                            type="number"
+                            min={1}
+                            max={50}
+                            placeholder="Episodes"
+                            value={episodesPerSeason}
+                            onChange={(e) => setEpisodesPerSeason(Number(e.target.value))}
+                            className="w-full bg-zinc-900 border border-zinc-850 p-2.5 rounded text-xs focus:outline-hidden font-mono font-bold text-center"
+                          />
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-1 flex items-end">
+                        <p className="text-[10px] text-zinc-500 leading-normal pb-1">Features full subtitle captions support in player.</p>
+                      </div>
+                    )}
                   </div>
 
                   <div className="space-y-1">
@@ -743,6 +929,145 @@ export default function AdminCMS({ onRefreshMovies, movies }: AdminCMSProps) {
                       className="w-full bg-zinc-900 border border-zinc-850 p-2.5 rounded text-xs focus:outline-hidden"
                     />
                   </div>
+
+                  {/* Seasons & Episodes Builder */}
+                  {contentType === "series" && (
+                    <div className="border-t border-zinc-900/80 pt-4 space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h4 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
+                            <Tv className="w-4 h-4 text-red-500" />
+                            Seasons & Episodes Builder
+                          </h4>
+                          <p className="text-[10px] text-zinc-500">
+                            Add seasons and configure individual episode titles, video URLs, and descriptions.
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={handleAddSeason}
+                          className="px-2.5 py-1.5 bg-red-600/10 hover:bg-red-600/20 text-red-500 hover:text-red-400 border border-red-500/20 rounded text-[10px] font-bold flex items-center gap-1 transition-all cursor-pointer"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                          Add Season
+                        </button>
+                      </div>
+
+                      {seasons.length === 0 ? (
+                        <div className="text-center py-6 border border-dashed border-zinc-800 rounded-lg bg-zinc-950/20">
+                          <Tv className="w-8 h-8 text-zinc-700 mx-auto mb-2" />
+                          <p className="text-xs text-zinc-500 font-bold">No Seasons Added Yet</p>
+                          <p className="text-[10px] text-zinc-600 mt-1">Click "Add Season" above to start adding content episodes.</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-4">
+                          {seasons.map((season) => (
+                            <div key={season.id} className="border border-zinc-900 bg-zinc-950/40 rounded-lg p-3 space-y-3">
+                              <div className="flex items-center justify-between border-b border-zinc-900/60 pb-2">
+                                <div className="flex items-center gap-2 flex-1">
+                                  <span className="text-xs font-black text-red-500 font-mono">S{season.seasonNumber}</span>
+                                  <input
+                                    type="text"
+                                    value={season.title}
+                                    onChange={(e) => handleUpdateSeasonTitle(season.id, e.target.value)}
+                                    placeholder={`Season ${season.seasonNumber} Title`}
+                                    className="bg-transparent border-b border-transparent hover:border-zinc-850 focus:border-red-500/50 text-xs font-bold text-zinc-200 focus:outline-hidden py-0.5 px-1 max-w-sm"
+                                  />
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleAddEpisode(season.id)}
+                                    className="px-2 py-1 bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white rounded text-[10px] font-bold flex items-center gap-1 cursor-pointer"
+                                  >
+                                    <Plus className="w-3 h-3" /> Add Episode
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleRemoveSeason(season.id)}
+                                    className="p-1 text-zinc-600 hover:text-red-500 transition-colors cursor-pointer"
+                                    title="Remove Season"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              </div>
+
+                              {/* Episodes List in Season */}
+                              <div className="space-y-3 pl-3 border-l border-zinc-900">
+                                {season.episodes.map((ep) => (
+                                  <div key={ep.id} className="bg-zinc-900/30 border border-zinc-900 rounded p-2.5 space-y-2 relative group/ep">
+                                    <div className="flex items-center justify-between">
+                                      <span className="text-[9px] font-black text-zinc-500 font-mono uppercase">
+                                        Episode {ep.episodeNumber}
+                                      </span>
+                                      <button
+                                        type="button"
+                                        onClick={() => handleRemoveEpisode(season.id, ep.id)}
+                                        className="p-1 text-zinc-700 hover:text-red-500 transition-colors cursor-pointer"
+                                        title="Remove Episode"
+                                      >
+                                        <Trash2 className="w-3 h-3" />
+                                      </button>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                      <div className="space-y-0.5">
+                                        <label className="text-[9px] font-bold uppercase text-zinc-600">Episode Title *</label>
+                                        <input
+                                          type="text"
+                                          required
+                                          value={ep.title}
+                                          onChange={(e) => handleUpdateEpisode(season.id, ep.id, "title", e.target.value)}
+                                          placeholder={`Episode ${ep.episodeNumber} Title`}
+                                          className="w-full bg-zinc-950 border border-zinc-900 p-1.5 rounded text-[11px] text-zinc-300 focus:outline-hidden focus:border-red-500/30"
+                                        />
+                                      </div>
+                                      <div className="space-y-0.5">
+                                        <label className="text-[9px] font-bold uppercase text-zinc-600">Duration (Minutes) *</label>
+                                        <input
+                                          type="number"
+                                          required
+                                          min={1}
+                                          value={ep.duration}
+                                          onChange={(e) => handleUpdateEpisode(season.id, ep.id, "duration", Number(e.target.value))}
+                                          placeholder="e.g. 45"
+                                          className="w-full bg-zinc-950 border border-zinc-900 p-1.5 rounded text-[11px] text-zinc-300 focus:outline-hidden focus:border-red-500/30"
+                                        />
+                                      </div>
+                                    </div>
+
+                                    <div className="space-y-0.5">
+                                      <label className="text-[9px] font-bold uppercase text-zinc-600">Episode Video URL *</label>
+                                      <input
+                                        type="url"
+                                        required
+                                        value={ep.videoUrl}
+                                        onChange={(e) => handleUpdateEpisode(season.id, ep.id, "videoUrl", e.target.value)}
+                                        placeholder="https://commondatastorage.googleapis.com/...mp4"
+                                        className="w-full bg-zinc-950 border border-zinc-900 p-1.5 rounded text-[11px] text-zinc-300 focus:outline-hidden focus:border-red-500/30 font-mono"
+                                      />
+                                    </div>
+
+                                    <div className="space-y-0.5">
+                                      <label className="text-[9px] font-bold uppercase text-zinc-600">Short Synopsis</label>
+                                      <textarea
+                                        value={ep.description || ""}
+                                        onChange={(e) => handleUpdateEpisode(season.id, ep.id, "description", e.target.value)}
+                                        placeholder="Brief description of the episode's plot..."
+                                        rows={1.5}
+                                        className="w-full bg-zinc-950 border border-zinc-900 p-1.5 rounded text-[11px] text-zinc-300 focus:outline-hidden focus:border-red-500/30 leading-snug"
+                                      />
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   <div className="grid grid-cols-2 gap-4 border-t border-zinc-900 pt-3">
                     <div className="flex items-center gap-2 py-1">

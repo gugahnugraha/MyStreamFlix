@@ -8,14 +8,17 @@ CineManiac adalah portal streaming film berkinerja tinggi yang dirancang dengan 
 
 ### 🎥 Pengalaman Sinematik Pengguna (Front-End)
 *   **Hero Spotlight & Carousel**: Slide otomatis yang berjalan mulus dengan animasi CSS bawaan yang dipercepat perangkat keras (`fadeInScale` dan `slideUpText`).
+*   **Dukungan Ganda Jenis Konten (Film & Serial TV / TV Series)**: Berpindah dengan mudah antara mode Film dan Serial TV, menampilkan daftar pilihan Season dan episode terstruktur layaknya platform streaming besar seperti Prime Video.
 *   **Pencarian & Filter Instan**: Cari judul film favorit secara instan atau jelajahi berdasarkan kategori genre.
 *   **Pemutar Media Sinematik Premium**:
     *   Mendukung pemutaran langsung file MP4/HLS.
     *   **Fitur Simulasi Sinematik Interaktif (Fallback)**: Jika URL stream video rusak atau terblokir, pemutar media akan otomatis beralih ke mode simulasi premium lengkap dengan subtitle berjalan, kontrol kecepatan, status resolusi, overlay detail film, dan toleransi error untuk mencegah layar mati yang merusak kenyamanan pengguna.
 *   **Rekomendasi Pintar**: Rekomendasi film "More Like This" yang dihitung secara dinamis berdasarkan kecocokan genre film.
 *   **Ulasan & Rating**: Fitur pengiriman ulasan (skala rating 1-10) disertai kolom komentar interaktif.
+*   **Lokalisasi Multi-Bahasa Premium**: Sistem lokalisasi dinamis terintegrasi penuh yang mendukung bahasa **Inggris (EN)**, **Indonesia (ID)**, dan **Spanyol (ES)** dengan retensi pilihan pengguna menggunakan `localStorage`.
 
 ### 🔐 Manajemen Pengguna & Keamanan Multi-Role
+*   **Multi-Profil & Mode Anak (Kids Mode)**: Buat profil pengguna yang berbeda untuk setiap anggota keluarga termasuk profil khusus **Mode Anak** dengan penyaringan konten ramah anak dan batasan usia ketat, mirip dengan Disney+ Hotstar dan Prime Video.
 *   **Sistem Autentikasi Lengkap**: Fitur masuk (*login*), pendaftaran akun (*sign-up*), serta halaman profil pengguna.
 *   **Pusat Kontrol Admin CMS**:
     *   **Manajemen Basis Pengguna**: Administrator utama dapat mengubah tingkat otorisasi pengguna (mempromosikan/mendemosikan Admin) atau menghapus akun pengguna secara permanen.
@@ -61,6 +64,7 @@ Secara bawaan (*default*), templat proyek ini menggunakan **mesin penyimpanan st
     ├── App.tsx            # Pengatur rute & tampilan halaman utama
     ├── index.css          # Gaya global, integrasi tailwind, & animasi kustom
     ├── types.ts           # Antarmuka (Interface) & tipe data TypeScript
+    ├── translations.ts    # Kamus kamus terjemahan multi-bahasa terpadu
     └── components/
         ├── Header.tsx     # Menu navigasi & Status profil pengguna
         ├── MovieCard.tsx  # Kartu film interaktif dengan efek transisi melayang

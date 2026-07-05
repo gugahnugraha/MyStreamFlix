@@ -8,14 +8,17 @@ CineManiac is a high-performance, beautiful, full-stack streaming portal designe
 
 ### 🎥 Front-End Cinematic Experience
 *   **Hero Spotlights & Carousels**: Fluid automatic slide-switching, complete with custom hardware-accelerated CSS animations (`fadeInScale` and `slideUpText`).
+*   **Dual Content-Type support (Movies & TV Series)**: Seamlessly toggle between Movies and TV Series modes, showcasing season-specific dropdown lists and sequential episodic selection resembling major platforms like Prime Video.
 *   **Intuitive Search & Filtering**: Instant title searching and interactive genre-based catalog exploration.
 *   **High-Fidelity Media Player**:
     *   Direct HLS/MP4 stream support.
     *   **Interactive Cinema Simulator fallback**: If a video stream becomes invalid, the player automatically falls back to an atmospheric high-fidelity mock playback simulator complete with customizable subtitles, speed modifiers, overlay details, and visual error tolerances to prevent dead screens.
 *   **Smart Recommendations**: Real-time "More Like This" recommendations generated based on shared genre tags.
 *   **Review & Rating Core**: User rating system out of 10 with direct comment boards.
+*   **Premium Multi-Language Localization**: A fully integrated dynamic localization engine supporting **English (EN)**, **Indonesian (ID)**, and **Spanish (ES)**, with automatic user preference persistence via `localStorage`.
 
 ### 🔐 Multi-Role User Authentication & Security
+*   **Multi-Profile Space & Kids Mode**: Create multiple user profiles including a dedicated **Kids Mode** profile tailored with children-friendly visual flags and strict maturity safety filters, reminiscent of Disney+ Hotstar and Prime Video.
 *   **Secure Authentication Suite**: Clean login, sign-up, and account profile controls.
 *   **Admin CMS & Command Center**:
     *   **User Base Control**: System administrators can promote/demote administrative accounts or permanently delete user accounts with a single click.
@@ -61,6 +64,7 @@ By default, the template runs on a highly-optimized, **zero-config in-memory sta
     ├── App.tsx            # Orchestrator & View manager
     ├── index.css          # Global styles, tailwind integrations, custom animations
     ├── types.ts           # Unified static interfaces & types
+    ├── translations.ts    # Unified multi-language translation dictionary and helper
     └── components/
         ├── Header.tsx     # Modern navigation bar & Profile status
         ├── MovieCard.tsx  # Dynamic grid card with hover detail layers

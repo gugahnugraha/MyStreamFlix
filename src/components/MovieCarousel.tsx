@@ -13,6 +13,7 @@ interface MovieCarouselProps {
   onToggleFavorite: (id: string) => void;
   onSelect: (movie: Movie) => void;
   onPlay: (movie: Movie) => void;
+  t?: any;
 }
 
 export default function MovieCarousel({
@@ -21,6 +22,7 @@ export default function MovieCarousel({
   onToggleFavorite,
   onSelect,
   onPlay,
+  t,
 }: MovieCarouselProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
 
@@ -78,8 +80,17 @@ export default function MovieCarousel({
       >
         {/* Spotlight Badge */}
         <div className="flex items-center gap-2 mb-2 md:mb-4">
+          {activeMovie.tier && activeMovie.tier !== "free" && (
+            <span className={`text-[9px] md:text-[10px] font-black tracking-widest px-2.5 py-1 rounded ${
+              activeMovie.tier === "premium" 
+                ? "bg-amber-500 text-black font-black" 
+                : "bg-red-600 text-white"
+            }`}>
+              {activeMovie.tier.toUpperCase()}
+            </span>
+          )}
           <span className="bg-red-600 text-white text-[9px] md:text-[10px] font-black tracking-widest px-2.5 py-1 rounded">
-            SPOTLIGHT
+            {t?.trendingTag || "SPOTLIGHT"}
           </span>
           <div className="flex items-center gap-1 text-amber-500 bg-black/40 backdrop-blur-md px-2 py-0.5 rounded text-xs">
             <Star className="w-3.5 h-3.5 fill-amber-500" />
@@ -105,10 +116,10 @@ export default function MovieCarousel({
 
         {/* Metadata Badges */}
         <div className="flex flex-wrap items-center gap-2 mt-4 text-xs font-medium text-zinc-400">
-          <span className="text-zinc-300">Genres:</span>
-          <span className="text-zinc-100">{activeMovie.genres.join(", ")}</span>
+          <span className="text-zinc-300">{t?.genres || "Genres"}:</span>
+          <span className="text-zinc-100">{activeMovie.genres.map(g => t?.[g] || g).join(", ")}</span>
           <span className="text-zinc-600">•</span>
-          <span className="text-zinc-300">Director:</span>
+          <span className="text-zinc-300">{t?.director || "Director"}:</span>
           <span className="text-zinc-100">{activeMovie.directors.join(", ")}</span>
         </div>
 
@@ -120,7 +131,7 @@ export default function MovieCarousel({
             id="carousel-play-now"
           >
             <Play className="w-4 h-4 fill-black" />
-            Play Now
+            {t?.play || "Play Now"}
           </button>
 
           <button
@@ -129,7 +140,7 @@ export default function MovieCarousel({
             id="carousel-more-info"
           >
             <Info className="w-4 h-4 text-zinc-400" />
-            More Info
+            {t?.moreInfo || "More Info"}
           </button>
 
           <button
@@ -139,7 +150,7 @@ export default function MovieCarousel({
                 ? "bg-red-600/10 border-red-500/50 text-red-500 hover:bg-red-600/20"
                 : "bg-zinc-950/60 border-zinc-800 text-zinc-400 hover:text-white hover:border-zinc-700"
             }`}
-            title="Add to My List"
+            title={isFavorite(activeMovie.id) ? (t?.removeFromList || "Remove List") : (t?.addToList || "Add List")}
             id="carousel-favorite"
           >
             <Heart className={`w-5 h-5 ${isFavorite(activeMovie.id) ? "fill-red-500" : ""}`} />

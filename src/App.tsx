@@ -15,9 +15,25 @@ import MovieDetailModal from "./components/MovieDetailModal";
 import MediaPlayer from "./components/MediaPlayer";
 import AdminCMS from "./components/AdminCMS";
 import AuthModal from "./components/AuthModal";
+import SubscriptionModal from "./components/SubscriptionModal";
+import ProfileModal from "./components/ProfileModal";
 import { Movie, User, WatchHistoryItem, CMSSettings } from "./types";
+import { getTranslation, LanguageCode } from "./translations";
 
 export default function App() {
+  // Language Localization State
+  const [currentLanguage, setCurrentLanguage] = useState<LanguageCode>(() => {
+    const saved = localStorage.getItem("app_lang");
+    if (saved === "en" || saved === "id" || saved === "es") return saved as LanguageCode;
+    return "en";
+  });
+  const t = getTranslation(currentLanguage);
+
+  const handleLanguageChange = (lang: LanguageCode) => {
+    setCurrentLanguage(lang);
+    localStorage.setItem("app_lang", lang);
+  };
+
   // Authentication & Configuration State
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [settings, setSettings] = useState<CMSSettings>({
@@ -37,11 +53,14 @@ export default function App() {
   const [showAuth, setShowAuth] = useState(false);
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
   const [activeStream, setActiveStream] = useState<Movie | null>(null);
+  const [showSubscription, setShowSubscription] = useState(false);
+  const [showProfileSwitcher, setShowProfileSwitcher] = useState(false);
 
   // Catalog, Search, Filters
   const [movies, setMovies] = useState<Movie[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedGenre, setSelectedGenre] = useState("All");
+  const [selectedContentType, setSelectedContentType] = useState<"all" | "movie" | "series">("all");
   const [sortBy, setSortBy] = useState("recent");
   
   // User Personalization Lists
@@ -86,6 +105,7 @@ export default function App() {
       setError("");
       
       const queryParams = new URLSearchParams();
+      if (selectedContentType && selectedContentType !== "all") queryParams.append("contentType", selectedContentType);
       if (selectedGenre && selectedGenre !== "All") queryParams.append("genre", selectedGenre);
       if (searchQuery) queryParams.append("search", searchQuery);
       if (sortBy) queryParams.append("sortBy", sortBy);
@@ -137,7 +157,7 @@ export default function App() {
   // Sync catalog whenever filtering/sorting shifts
   useEffect(() => {
     fetchCatalogMovies();
-  }, [selectedGenre, searchQuery, sortBy]);
+  }, [selectedGenre, searchQuery, sortBy, selectedContentType]);
 
   // Sync user watchlist whenever user logs in, logs out, or views refresh
   useEffect(() => {
@@ -223,6 +243,16 @@ export default function App() {
   };
 
   const handleLaunchStream = (movie: Movie) => {
+    if (!currentUser) {
+      setShowAuth(true);
+      return;
+    }
+
+    if (movie.tier && movie.tier !== "free" && !currentUser.isPremium) {
+      setShowSubscription(true);
+      return;
+    }
+
     setSelectedMovie(null); // close details modal
     setActiveStream(movie); // open player
   };
@@ -244,8 +274,23 @@ export default function App() {
     return undefined;
   };
 
-  const bannerMovies = movies.filter((m) => m.isBanner);
-  const featuredMovies = movies.filter((m) => m.isFeatured);
+  // Kids Mode content filters matching active profile rating
+  const activeProfile = currentUser?.profiles?.find((p) => p.id === currentUser.activeProfileId);
+  const isKidsMode = activeProfile?.isKids === true;
+
+  const isKidsFriendly = (m: Movie) => {
+    const isSafeRating = m.ageRating === "G" || m.ageRating === "PG" || m.ageRating === "Kids";
+    const isSafeGenre = m.genres.some((g) => ["Animation", "Family", "Comedy"].includes(g));
+    return isSafeRating || isSafeGenre;
+  };
+
+  const displayedMovies = isKidsMode ? movies.filter(isKidsFriendly) : movies;
+  const bannerMovies = displayedMovies.filter((m) => m.isBanner);
+  const featuredMovies = displayedMovies.filter((m) => m.isFeatured);
+  const displayedFavorites = isKidsMode ? favorites.filter(isKidsFriendly) : favorites;
+  const displayedWatchHistory = isKidsMode 
+    ? watchHistory.filter((h) => isKidsFriendly(h.movie)) 
+    : watchHistory;
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col font-sans selection:bg-red-600 selection:text-white relative overflow-x-hidden" id="app-root">
@@ -260,6 +305,11 @@ export default function App() {
         onToggleRole={handleToggleTestingRole}
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
+        onOpenSubscription={() => setShowSubscription(true)}
+        onOpenProfileSwitcher={() => setShowProfileSwitcher(true)}
+        currentLanguage={currentLanguage}
+        onLanguageChange={handleLanguageChange}
+        t={t}
       />
 
       {/* Main Container Viewport switch */}
@@ -268,16 +318,16 @@ export default function App() {
           /* System Maintenance Gate Screen */
           <div className="max-w-md mx-auto text-center py-24 px-6 space-y-4" id="maintenance-gate-viewport">
             <AlertTriangle className="w-16 h-16 text-amber-500 mx-auto animate-bounce" />
-            <h2 className="text-2xl font-black text-white uppercase tracking-wider">FlixSphere is Offline</h2>
+            <h2 className="text-2xl font-black text-white uppercase tracking-wider">{t.offlineGateTitle}</h2>
             <p className="text-zinc-400 text-xs leading-relaxed">
-              We are currently carrying out system upgrades on databases. Only administrators are allowed inside the console dashboard.
+              {t.offlineGateDesc}
             </p>
             <div className="pt-4">
               <button 
                 onClick={() => setShowAuth(true)}
                 className="bg-red-600 hover:bg-red-700 text-white font-bold text-xs px-5 py-2.5 rounded shadow-lg shadow-red-600/10 cursor-pointer"
               >
-                Sign In as Admin
+                {t.signInAsAdmin}
               </button>
             </div>
           </div>
@@ -293,32 +343,33 @@ export default function App() {
             <div>
               <h2 className="text-xl font-extrabold text-white flex items-center gap-2">
                 <Heart className="w-5 h-5 text-red-500 fill-red-500" />
-                My Watchlist ({favorites.length})
+                {t.myWatchlistTitle} ({displayedFavorites.length})
               </h2>
               <p className="text-xs text-zinc-500 mt-1">
-                Your pinned catalog list. Click details to check cast, post ratings or resume saved streams.
+                {t.myWatchlistDesc}
               </p>
             </div>
 
-            {favorites.length === 0 ? (
+            {displayedFavorites.length === 0 ? (
               <div className="py-20 text-center border border-dashed border-zinc-900 rounded-xl space-y-3 bg-zinc-950/30">
-                <p className="text-xs text-zinc-500">Your Watchlist is currently empty.</p>
+                <p className="text-xs text-zinc-500">{t.watchlistEmpty}</p>
                 <button
                   onClick={() => setActiveTab("home")}
                   className="bg-red-600/10 text-red-500 border border-red-500/20 text-xs font-semibold px-4 py-2 rounded-md hover:bg-red-600/20 transition-all cursor-pointer"
                 >
-                  Explore Spotlight Gallery
+                  {t.exploreSpotlight}
                 </button>
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                {favorites.map((movie) => (
+                {displayedFavorites.map((movie) => (
                   <MovieCard
                     key={movie.id}
                     movie={movie}
                     progress={getProgressOfMovie(movie.id)}
                     onSelect={setSelectedMovie}
                     onPlay={handleLaunchStream}
+                    t={t}
                   />
                 ))}
               </div>
@@ -335,8 +386,37 @@ export default function App() {
                 onToggleFavorite={handleToggleFavorite}
                 onSelect={setSelectedMovie}
                 onPlay={handleLaunchStream}
+                t={t}
               />
             )}
+
+            {/* Content Type Filter Tabs: All Content, Movies, TV Series */}
+            <div className="px-4 md:px-8 max-w-7xl mx-auto flex items-center border-b border-zinc-900/40 gap-8" id="content-type-filter-bar">
+              {[
+                { id: "all", label: t.allContent, icon: "🍿" },
+                { id: "movie", label: t.movies, icon: "🎬" },
+                { id: "series", label: t.tvSeries, icon: "📺" }
+              ].map((item) => {
+                const isActive = selectedContentType === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => {
+                      setSelectedContentType(item.id as any);
+                    }}
+                    className={`pb-3 text-sm font-extrabold tracking-wide flex items-center gap-2 relative transition-all cursor-pointer ${
+                      isActive ? "text-red-500 font-black" : "text-zinc-500 hover:text-zinc-350"
+                    }`}
+                  >
+                    <span>{item.icon}</span>
+                    <span>{item.label}</span>
+                    {isActive && (
+                      <div className="absolute bottom-0 left-0 right-0 h-[3px] bg-red-600 rounded-full shadow-[0_0_12px_rgba(220,38,38,0.8)]" />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
 
             {/* Quick Filter Tag categories Row */}
             <div className="px-4 md:px-8 max-w-7xl mx-auto flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 py-3 bg-zinc-950 rounded-xl border border-zinc-900/60 shadow-lg">
@@ -353,7 +433,7 @@ export default function App() {
                         : "bg-zinc-900 hover:bg-zinc-850 text-zinc-400 hover:text-zinc-200"
                     }`}
                   >
-                    {genre}
+                    {t[genre as keyof typeof t] || genre}
                   </button>
                 ))}
               </div>
@@ -362,7 +442,7 @@ export default function App() {
               <div className="flex items-center gap-3 shrink-0 w-full sm:w-auto justify-between sm:justify-end">
                 <div className="flex items-center gap-1.5 text-zinc-500 text-xs">
                   <ArrowUpDown className="w-3.5 h-3.5" />
-                  <span>Sort By:</span>
+                  <span>{t.sortBy}</span>
                 </div>
                 <select
                   value={sortBy}
@@ -370,10 +450,10 @@ export default function App() {
                   className="bg-zinc-900 border border-zinc-800 text-xs font-semibold text-zinc-300 px-3 py-1.5 rounded-md focus:outline-hidden focus:border-red-500/50"
                   id="sort-select"
                 >
-                  <option value="recent">Recently Published</option>
-                  <option value="rating">Audience Score</option>
-                  <option value="year">Release Calendar</option>
-                  <option value="views">Total Views</option>
+                  <option value="recent">{t.recentlyPublished}</option>
+                  <option value="rating">{t.audienceScore}</option>
+                  <option value="year">{t.releaseCalendar}</option>
+                  <option value="views">{t.totalViewsLabel}</option>
                 </select>
               </div>
             </div>
@@ -381,20 +461,21 @@ export default function App() {
             {/* CURATED MAIN PANELS */}
             <div className="px-4 md:px-8 max-w-7xl mx-auto space-y-10">
               {/* 1. Continue Watching Reel (Personalized watch history) */}
-              {currentUser && watchHistory.length > 0 && !searchQuery && (
+              {currentUser && displayedWatchHistory.length > 0 && !searchQuery && (
                 <div className="space-y-4" id="continue-watching-section">
                   <div className="flex items-center gap-2">
                     <ListVideo className="w-5 h-5 text-red-500" />
-                    <h2 className="text-lg font-extrabold text-white">Continue Watching</h2>
+                    <h2 className="text-lg font-extrabold text-white">{t.continueWatching}</h2>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                    {watchHistory.map((hist) => (
+                    {displayedWatchHistory.map((hist) => (
                       <MovieCard
                         key={hist.movieId}
                         movie={hist.movie}
                         progress={{ progress: hist.progress, duration: hist.duration }}
                         onSelect={setSelectedMovie}
                         onPlay={() => handleLaunchStream(hist.movie)}
+                        t={t}
                       />
                     ))}
                   </div>
@@ -407,11 +488,11 @@ export default function App() {
                   <div className="flex items-center gap-2">
                     <Flame className="w-5 h-5 text-red-500 animate-pulse" />
                     <h2 className="text-lg font-extrabold text-white">
-                      {selectedGenre === "All" ? "Trending Cinema Catalog" : `${selectedGenre} Spotlight`}
+                      {selectedGenre === "All" ? t.trendingSpotlight : `${t[selectedGenre as keyof typeof t] || selectedGenre} Spotlight`}
                     </h2>
                   </div>
                   <span className="text-[10px] text-zinc-500 font-mono font-bold uppercase">
-                    {movies.length} Results
+                    {displayedMovies.length} {selectedContentType === "movie" ? t.movies : selectedContentType === "series" ? t.tvSeries : t.allContent}
                   </span>
                 </div>
 
@@ -425,31 +506,31 @@ export default function App() {
                     <AlertTriangle className="w-8 h-8 mx-auto mb-2 text-red-500" />
                     {error}
                   </div>
-                ) : movies.length === 0 ? (
+                ) : displayedMovies.length === 0 ? (
                   <div className="py-16 text-center text-zinc-500 text-xs border border-dashed border-zinc-900 rounded-xl bg-zinc-950/20">
-                    No cinematic titles match the active criteria. Try choosing another filter tag.
+                    {t.noMatchingContentDesc}
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                    {movies.map((movie) => (
+                    {displayedMovies.map((movie) => (
                       <MovieCard
                         key={movie.id}
                         movie={movie}
                         progress={getProgressOfMovie(movie.id)}
                         onSelect={setSelectedMovie}
                         onPlay={handleLaunchStream}
+                        t={t}
                       />
                     ))}
                   </div>
                 )}
               </div>
-
-              {/* 3. Featured Row (Only if no active filter tag/search query) */}
+                            {/* 3. Featured Row (Only if no active filter tag/search query) */}
               {!searchQuery && selectedGenre === "All" && featuredMovies.length > 0 && (
                 <div className="space-y-4 border-t border-zinc-900/60 pt-8" id="featured-curations-section">
                   <div className="flex items-center gap-1.5">
                     <Sparkles className="w-5 h-5 text-amber-500" />
-                    <h2 className="text-lg font-extrabold text-white">Featured Selections</h2>
+                    <h2 className="text-lg font-extrabold text-white">{t.recommendedContent}</h2>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                     {featuredMovies.map((movie) => (
@@ -459,6 +540,7 @@ export default function App() {
                         progress={getProgressOfMovie(movie.id)}
                         onSelect={setSelectedMovie}
                         onPlay={handleLaunchStream}
+                        t={t}
                       />
                     ))}
                   </div>
@@ -474,6 +556,7 @@ export default function App() {
         <AuthModal 
           onClose={() => setShowAuth(false)} 
           onSuccess={handleAuthSuccess} 
+          t={t}
         />
       )}
 
@@ -486,6 +569,7 @@ export default function App() {
           onToggleFavorite={handleToggleFavorite}
           onClose={() => setSelectedMovie(null)}
           onPlay={handleLaunchStream}
+          t={t}
         />
       )}
 
@@ -495,6 +579,36 @@ export default function App() {
           movie={activeStream}
           initialProgress={getProgressOfMovie(activeStream.id)?.progress || 0}
           onClose={handleCloseStream}
+          t={t}
+        />
+      )}
+
+      {/* OVERLAY: 4. VIP Subscription Checkout Paywall */}
+      {showSubscription && (
+        <SubscriptionModal
+          currentUser={currentUser}
+          onClose={() => setShowSubscription(false)}
+          onSuccess={(updatedUser) => {
+            setCurrentUser(updatedUser);
+            setShowSubscription(false);
+          }}
+          t={t}
+        />
+      )}
+
+      {/* OVERLAY: 5. Profiles Switcher & Creation Drawer */}
+      {showProfileSwitcher && currentUser && (
+        <ProfileModal
+          currentUser={currentUser}
+          onClose={() => setShowProfileSwitcher(false)}
+          onSuccess={(updatedUser) => {
+            setCurrentUser(updatedUser);
+            setShowProfileSwitcher(false);
+            // Refresh list contents and filters contextually
+            fetchCatalogMovies();
+            fetchUserPersonalization();
+          }}
+          t={t}
         />
       )}
 

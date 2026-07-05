@@ -27,7 +27,13 @@ async function startServer() {
       email: "admin@streamcms.com",
       role: "admin",
       profileImage: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
+      isPremium: true,
+      profiles: [
+        { id: "prof-1", name: "Admin (Adult)", avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80", isKids: false },
+        { id: "prof-2", name: "Junior (Kids)", avatar: "https://images.unsplash.com/photo-1607990283143-e81e7a2c93ab?w=150&auto=format&fit=crop&q=80", isKids: true }
+      ],
+      activeProfileId: "prof-1"
     },
     {
       id: "usr-2",
@@ -35,7 +41,13 @@ async function startServer() {
       email: "demo@viewer.com",
       role: "user",
       profileImage: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80",
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
+      isPremium: false,
+      profiles: [
+        { id: "prof-3", name: "Demo (Adult)", avatar: "https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=150&auto=format&fit=crop&q=80", isKids: false },
+        { id: "prof-4", name: "Kids Mode", avatar: "https://images.unsplash.com/photo-1501196354995-cbb51c65aaea?w=150&auto=format&fit=crop&q=80", isKids: true }
+      ],
+      activeProfileId: "prof-3"
     }
   ];
 
@@ -73,7 +85,8 @@ async function startServer() {
   const sampleSubtitles: Subtitle[] = [
     { id: "sub-1", language: "en", label: "English", fileUrl: "" },
     { id: "sub-2", language: "es", label: "Español", fileUrl: "" },
-    { id: "sub-3", language: "fr", label: "Français", fileUrl: "" }
+    { id: "sub-3", language: "fr", label: "Français", fileUrl: "" },
+    { id: "sub-4", language: "id", label: "Bahasa Indonesia", fileUrl: "" }
   ];
 
   let movies: Movie[] = [
@@ -99,7 +112,9 @@ async function startServer() {
       likes: 3940,
       isFeatured: true,
       isBanner: true,
-      createdAt: new Date(Date.now() - 100000000).toISOString()
+      createdAt: new Date(Date.now() - 100000000).toISOString(),
+      tier: "free",
+      contentType: "movie"
     },
     {
       id: "mov-2",
@@ -123,7 +138,9 @@ async function startServer() {
       likes: 6200,
       isFeatured: true,
       isBanner: true,
-      createdAt: new Date(Date.now() - 200000000).toISOString()
+      createdAt: new Date(Date.now() - 200000000).toISOString(),
+      tier: "premium",
+      contentType: "movie"
     },
     {
       id: "mov-3",
@@ -147,7 +164,9 @@ async function startServer() {
       likes: 2150,
       isFeatured: false,
       isBanner: true,
-      createdAt: new Date(Date.now() - 300000000).toISOString()
+      createdAt: new Date(Date.now() - 300000000).toISOString(),
+      tier: "vip",
+      contentType: "movie"
     },
     {
       id: "mov-4",
@@ -171,7 +190,9 @@ async function startServer() {
       likes: 1280,
       isFeatured: false,
       isBanner: false,
-      createdAt: new Date(Date.now() - 400000000).toISOString()
+      createdAt: new Date(Date.now() - 400000000).toISOString(),
+      tier: "free",
+      contentType: "movie"
     },
     {
       id: "mov-5",
@@ -195,7 +216,126 @@ async function startServer() {
       likes: 9810,
       isFeatured: true,
       isBanner: false,
-      createdAt: new Date(Date.now() - 50000000).toISOString()
+      createdAt: new Date(Date.now() - 50000000).toISOString(),
+      tier: "premium",
+      contentType: "movie"
+    },
+    {
+      id: "mov-6",
+      title: "The Blender Cosmic Saga",
+      description: "Explore the depths of standard 3D generated sci-fi universes. Follow Emo, Sintel, and Tears of Steel characters as they unite in a multi-season cosmic crossover to prevent the robot uprising.",
+      posterUrl: "https://images.unsplash.com/photo-1578301978693-85fa9c0320b9?w=500&auto=format&fit=crop&q=80",
+      backdropUrl: "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=1200&auto=format&fit=crop&q=80",
+      videoUrl: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4",
+      duration: 45,
+      releaseYear: 2025,
+      rating: 9.3,
+      ageRating: "PG-13",
+      quality: "4K",
+      genres: ["Sci-Fi", "Action", "Animation"],
+      cast: ["Derek de Lint", "Sintel", "Emo"],
+      directors: ["Colin Levy", "Ian Hubert"],
+      subtitles: sampleSubtitles,
+      country: "Netherlands",
+      language: "English",
+      views: 45200,
+      likes: 15900,
+      isFeatured: true,
+      isBanner: false,
+      createdAt: new Date(Date.now() - 40000000).toISOString(),
+      tier: "free",
+      contentType: "series",
+      seasons: [
+        {
+          id: "tv-1-s1",
+          seasonNumber: 1,
+          title: "Season 1: Cyber Heist",
+          episodes: [
+            {
+              id: "tv-1-s1-e1",
+              episodeNumber: 1,
+              title: "A World of Steel",
+              duration: 12,
+              videoUrl: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4",
+              description: "Scientists discover a temporal rift in Amsterdam containing giant robot blueprints from a broken past relationship."
+            },
+            {
+              id: "tv-1-s1-e2",
+              episodeNumber: 2,
+              title: "Dreaming of Elephants",
+              duration: 11,
+              videoUrl: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4",
+              description: "Emo and Proog travel inside the machine world core to recover the decryption keys."
+            }
+          ]
+        },
+        {
+          id: "tv-1-s2",
+          seasonNumber: 2,
+          title: "Season 2: Dragon's Legacy",
+          episodes: [
+            {
+              id: "tv-1-s2-e1",
+              episodeNumber: 1,
+              title: "Sintel's Rescue Mission",
+              duration: 15,
+              videoUrl: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4",
+              description: "Sintel scales the dangerous ancient mountain peak to rescue her stolen companion Scales."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      id: "mov-7",
+      title: "Wilderness Chronicles",
+      description: "Immerse yourself in stunning portraits of nature, majestic forest creatures, and natural speed tracks around the globe.",
+      posterUrl: "https://images.unsplash.com/photo-1546182990-dffeafbe841d?w=500&auto=format&fit=crop&q=80",
+      backdropUrl: "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=1200&auto=format&fit=crop&q=80",
+      videoUrl: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+      duration: 30,
+      releaseYear: 2026,
+      rating: 8.8,
+      ageRating: "G",
+      quality: "Ultra HD",
+      genres: ["Documentary", "Family", "Animation"],
+      cast: ["David Attenborough Style Narrator"],
+      directors: ["Earth Documentaries"],
+      subtitles: sampleSubtitles,
+      country: "United Kingdom",
+      language: "English",
+      views: 22300,
+      likes: 4800,
+      isFeatured: false,
+      isBanner: false,
+      createdAt: new Date(Date.now() - 30000000).toISOString(),
+      tier: "vip",
+      contentType: "series",
+      seasons: [
+        {
+          id: "tv-2-s1",
+          seasonNumber: 1,
+          title: "Season 1: Forest Dynasties",
+          episodes: [
+            {
+              id: "tv-2-s1-e1",
+              episodeNumber: 1,
+              title: "Rise of the Bunny",
+              duration: 10,
+              videoUrl: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+              description: "Explore the life of the big rabbit and the complex traps he crafts in the heart of the forest."
+            },
+            {
+              id: "tv-2-s1-e2",
+              episodeNumber: 2,
+              title: "The High Octane Rally",
+              duration: 5,
+              videoUrl: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
+              description: "A close-up look at how modern vehicles test high rally curves inside forest and mountain terrains."
+            }
+          ]
+        }
+      ]
     }
   ];
 
@@ -249,7 +389,13 @@ async function startServer() {
       name: email.split("@")[0],
       email: email,
       role: "user",
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
+      isPremium: false,
+      profiles: [
+        { id: `prof-${Date.now()}-1`, name: email.split("@")[0], avatar: "https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=150&auto=format&fit=crop&q=80", isKids: false },
+        { id: `prof-${Date.now()}-2`, name: "Kids Zone", avatar: "https://images.unsplash.com/photo-1501196354995-cbb51c65aaea?w=150&auto=format&fit=crop&q=80", isKids: true }
+      ],
+      activeProfileId: `prof-${Date.now()}-1`
     };
     users.push(newUser);
     currentSessionUser = newUser;
@@ -267,7 +413,13 @@ async function startServer() {
       name,
       email,
       role: "user",
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
+      isPremium: false,
+      profiles: [
+        { id: `prof-${Date.now()}-1`, name: name, avatar: "https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=150&auto=format&fit=crop&q=80", isKids: false },
+        { id: `prof-${Date.now()}-2`, name: "Kids Zone", avatar: "https://images.unsplash.com/photo-1501196354995-cbb51c65aaea?w=150&auto=format&fit=crop&q=80", isKids: true }
+      ],
+      activeProfileId: `prof-${Date.now()}-1`
     };
     users.push(newUser);
     currentSessionUser = newUser;
@@ -281,6 +433,91 @@ async function startServer() {
   app.post("/api/auth/logout", (req, res) => {
     currentSessionUser = null;
     res.json({ success: true });
+  });
+
+  // Upgrade user to Premium (simulating Hotstar/Prime paywall unlock)
+  app.post("/api/auth/subscribe", requireAuth, (req, res) => {
+    if (currentSessionUser) {
+      currentSessionUser.isPremium = true;
+      const uIdx = users.findIndex(u => u.id === currentSessionUser!.id);
+      if (uIdx !== -1) users[uIdx].isPremium = true;
+      return res.json({ success: true, user: currentSessionUser });
+    }
+    res.status(400).json({ error: "No active user logged in." });
+  });
+
+  // Switch active profile
+  app.post("/api/auth/profile/switch", requireAuth, (req, res) => {
+    const { profileId } = req.body;
+    if (currentSessionUser) {
+      const profileExists = currentSessionUser.profiles?.some(p => p.id === profileId);
+      if (!profileExists) {
+        return res.status(404).json({ error: "Profile not found for this user." });
+      }
+      currentSessionUser.activeProfileId = profileId;
+      const uIdx = users.findIndex(u => u.id === currentSessionUser!.id);
+      if (uIdx !== -1) users[uIdx].activeProfileId = profileId;
+      return res.json({ success: true, user: currentSessionUser });
+    }
+    res.status(400).json({ error: "No active user logged in." });
+  });
+
+  // Create profile
+  app.post("/api/auth/profile/create", requireAuth, (req, res) => {
+    const { name, avatar, isKids } = req.body;
+    if (!name) return res.status(400).json({ error: "Profile name is required." });
+
+    if (currentSessionUser) {
+      if (!currentSessionUser.profiles) currentSessionUser.profiles = [];
+      if (currentSessionUser.profiles.length >= 5) {
+        return res.status(400).json({ error: "Maximum limit of 5 profiles reached." });
+      }
+
+      const newProfile = {
+        id: `prof-${Date.now()}`,
+        name,
+        avatar: avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80",
+        isKids: !!isKids
+      };
+
+      currentSessionUser.profiles.push(newProfile);
+      const uIdx = users.findIndex(u => u.id === currentSessionUser!.id);
+      if (uIdx !== -1) users[uIdx].profiles = currentSessionUser.profiles;
+
+      return res.json({ success: true, user: currentSessionUser });
+    }
+    res.status(400).json({ error: "No active user logged in." });
+  });
+
+  // Delete profile
+  app.delete("/api/auth/profile/:profileId", requireAuth, (req, res) => {
+    const { profileId } = req.params;
+    if (currentSessionUser) {
+      if (!currentSessionUser.profiles) return res.status(404).json({ error: "No profiles found." });
+      
+      const filtered = currentSessionUser.profiles.filter(p => p.id !== profileId);
+      if (filtered.length === currentSessionUser.profiles.length) {
+        return res.status(404).json({ error: "Profile not found." });
+      }
+      if (filtered.length === 0) {
+        return res.status(400).json({ error: "Must keep at least one profile active." });
+      }
+
+      currentSessionUser.profiles = filtered;
+      // If deleted profile was active, auto-select the first one
+      if (currentSessionUser.activeProfileId === profileId) {
+        currentSessionUser.activeProfileId = filtered[0].id;
+      }
+
+      const uIdx = users.findIndex(u => u.id === currentSessionUser!.id);
+      if (uIdx !== -1) {
+        users[uIdx].profiles = filtered;
+        users[uIdx].activeProfileId = currentSessionUser.activeProfileId;
+      }
+
+      return res.json({ success: true, user: currentSessionUser });
+    }
+    res.status(400).json({ error: "No active user logged in." });
   });
 
   // Toggle quick user roles for testing convenience in preview
@@ -345,8 +582,12 @@ async function startServer() {
   // ==========================================
 
   app.get("/api/movies", (req, res) => {
-    const { genre, search, sortBy } = req.query;
+    const { genre, search, sortBy, contentType } = req.query;
     let filteredMovies = [...movies];
+
+    if (contentType && contentType !== "all") {
+      filteredMovies = filteredMovies.filter(m => m.contentType === contentType);
+    }
 
     if (genre && genre !== "All") {
       filteredMovies = filteredMovies.filter(m => 
@@ -417,6 +658,9 @@ async function startServer() {
       likes: 0,
       isFeatured: movieData.isFeatured || false,
       isBanner: movieData.isBanner || false,
+      tier: movieData.tier || "free",
+      contentType: movieData.contentType || "movie",
+      seasons: movieData.seasons || [],
       createdAt: new Date().toISOString()
     };
 
@@ -442,6 +686,8 @@ async function startServer() {
       duration: updateData.duration !== undefined ? Number(updateData.duration) : original.duration,
       releaseYear: updateData.releaseYear !== undefined ? Number(updateData.releaseYear) : original.releaseYear,
       rating: updateData.rating !== undefined ? Number(updateData.rating) : original.rating,
+      contentType: updateData.contentType || original.contentType,
+      seasons: updateData.seasons || original.seasons,
     };
 
     res.json(movies[mIdx]);

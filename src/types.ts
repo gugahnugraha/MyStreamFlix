@@ -18,6 +18,22 @@ export interface Review {
   date: string;
 }
 
+export interface Episode {
+  id: string;
+  episodeNumber: number;
+  title: string;
+  duration: number; // in minutes
+  videoUrl: string;
+  description?: string;
+}
+
+export interface Season {
+  id: string;
+  seasonNumber: number;
+  title: string;
+  episodes: Episode[];
+}
+
 export interface Movie {
   id: string;
   title: string;
@@ -41,6 +57,16 @@ export interface Movie {
   isFeatured: boolean;
   isBanner: boolean; // Homepage banner carousel
   createdAt: string;
+  tier?: "free" | "vip" | "premium"; // content classification like Hotstar/Prime
+  contentType?: "movie" | "series";
+  seasons?: Season[];
+}
+
+export interface UserProfile {
+  id: string;
+  name: string;
+  avatar: string;
+  isKids: boolean;
 }
 
 export interface User {
@@ -50,6 +76,9 @@ export interface User {
   role: "admin" | "user";
   profileImage?: string;
   createdAt: string;
+  isPremium?: boolean; // subscription status flag
+  profiles?: UserProfile[];
+  activeProfileId?: string;
 }
 
 export interface WatchHistoryItem {

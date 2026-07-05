@@ -14,6 +14,7 @@ interface MovieDetailModalProps {
   onToggleFavorite: (id: string) => void;
   onClose: () => void;
   onPlay: (movie: Movie) => void;
+  t?: any;
 }
 
 export default function MovieDetailModal({
@@ -23,6 +24,7 @@ export default function MovieDetailModal({
   onToggleFavorite,
   onClose,
   onPlay,
+  t,
 }: MovieDetailModalProps) {
   const [activeId, setActiveId] = useState(movieId);
   const [movie, setMovie] = useState<Movie | null>(null);
@@ -30,6 +32,18 @@ export default function MovieDetailModal({
   const [similarMovies, setSimilarMovies] = useState<Movie[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  // Season and episode state inside the details dialog
+  const [activeModalSeason, setActiveModalSeason] = useState<any>(null);
+
+  // Sync activeModalSeason when movie loaded
+  useEffect(() => {
+    if (movie && movie.contentType === "series" && movie.seasons && movie.seasons.length > 0) {
+      setActiveModalSeason(movie.seasons[0]);
+    } else {
+      setActiveModalSeason(null);
+    }
+  }, [movie]);
 
   // Sync activeId when prop changes
   useEffect(() => {
@@ -183,6 +197,15 @@ export default function MovieDetailModal({
           <div className="absolute inset-0 bg-linear-to-t from-zinc-900 via-zinc-900/30 to-transparent" />
           <div className="absolute inset-x-0 bottom-0 p-6 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
             <div>
+              {movie.tier && movie.tier !== "free" && (
+                <span className={`px-2 py-0.5 text-[10px] font-black rounded mr-2 uppercase ${
+                  movie.tier === "premium" 
+                    ? "bg-amber-500 text-black font-black" 
+                    : "bg-red-600 text-white"
+                }`}>
+                  {movie.tier.toUpperCase()} VIP
+                </span>
+              )}
               <span className="px-2.5 py-0.5 text-[10px] font-black bg-red-600 text-white rounded mr-2">
                 {movie.quality}
               </span>
@@ -241,6 +264,74 @@ export default function MovieDetailModal({
                     >
                       CC: {sub.label}
                     </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Episodes Explorer for TV Series */}
+            {movie.contentType === "series" && movie.seasons && movie.seasons.length > 0 && (
+              <div className="border-t border-zinc-800/80 pt-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+                  <h3 className="text-white text-sm font-black flex items-center gap-2">
+                    <Film className="w-4 h-4 text-red-500" />
+                    Browse Episodes
+                  </h3>
+                  
+                  {/* Season selector pills */}
+                  <div className="flex gap-1.5 overflow-x-auto max-w-full sm:max-w-md scrollbar-none pb-1 sm:pb-0">
+                    {movie.seasons.map((s) => (
+                      <button
+                        key={s.id}
+                        onClick={() => setActiveModalSeason(s)}
+                        className={`px-3 py-1 rounded-full text-xs font-bold shrink-0 cursor-pointer transition-all ${
+                          activeModalSeason?.id === s.id
+                            ? "bg-red-600 text-white shadow-md shadow-red-600/15"
+                            : "bg-zinc-950 hover:bg-zinc-800 text-zinc-400 border border-zinc-850"
+                        }`}
+                      >
+                        {s.title}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Episodes list */}
+                <div className="space-y-3 max-h-80 overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-zinc-950 scrollbar-track-transparent">
+                  {activeModalSeason?.episodes.map((ep: any) => (
+                    <div 
+                      key={ep.id}
+                      className="bg-zinc-950/40 border border-zinc-900/80 p-3 rounded-lg flex gap-4 hover:border-zinc-800 transition-all group"
+                    >
+                      {/* Episode action play trigger */}
+                      <div className="relative w-28 aspect-video shrink-0 bg-zinc-900 rounded-md overflow-hidden">
+                        <img 
+                          src={movie.backdropUrl || movie.posterUrl} 
+                          alt={ep.title} 
+                          className="w-full h-full object-cover opacity-60 group-hover:scale-105 transition-transform duration-500"
+                          referrerPolicy="no-referrer"
+                        />
+                        <button 
+                          onClick={() => onPlay(movie)}
+                          className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                        >
+                          <Play className="w-6 h-6 text-white fill-white" />
+                        </button>
+                        <span className="absolute bottom-1 right-1 text-[9px] font-mono bg-black/80 px-1 py-0.5 rounded text-zinc-400">
+                          {ep.duration}m
+                        </span>
+                      </div>
+                      
+                      <div className="flex-1 flex flex-col justify-center">
+                        <div className="flex items-center gap-2 mb-0.5">
+                          <span className="text-[10px] font-bold text-red-500 font-mono">EP {ep.episodeNumber}</span>
+                          <span className="text-xs font-bold text-zinc-200 group-hover:text-red-500 transition-colors">{ep.title}</span>
+                        </div>
+                        {ep.description && (
+                          <p className="text-[11px] text-zinc-400 line-clamp-2 leading-relaxed">{ep.description}</p>
+                        )}
+                      </div>
+                    </div>
                   ))}
                 </div>
               </div>
@@ -345,8 +436,12 @@ export default function MovieDetailModal({
               </div>
 
               <div className="border-t border-zinc-900/60 pt-3 flex items-center justify-between text-xs">
-                <span className="text-zinc-500">Runtime</span>
-                <span className="font-bold text-zinc-200">{movie.duration} minutes</span>
+                <span className="text-zinc-500">{movie.contentType === "series" ? "Total Seasons" : "Runtime"}</span>
+                <span className="font-bold text-zinc-200">
+                  {movie.contentType === "series"
+                    ? `${movie.seasons?.length || 0} ${movie.seasons?.length === 1 ? "Season" : "Seasons"}`
+                    : `${movie.duration} minutes`}
+                </span>
               </div>
 
               <div className="border-t border-zinc-900/60 pt-3 flex items-center justify-between text-xs">
