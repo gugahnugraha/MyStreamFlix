@@ -29,8 +29,22 @@ CineManiac adalah portal streaming film berkinerja tinggi yang dirancang dengan 
 
 *   **Frontend**: React 18, Vite (pemrosesan aset dan rendering kilat), Tailwind CSS, Lucide React (ikon vektor modern).
 *   **Backend**: Node.js, Express (sistem API RESTful yang cepat, modular, dan hemat memori).
-*   **Database**: Mesin penyimpanan data persisten dalam memori (*in-memory state*) yang mendukung multi-user, ulasan, serta pelacakan metrik. Sangat portabel—langsung berjalan mulus tanpa memerlukan instalasi database eksternal yang rumit saat pertama kali dijalankan.
 *   **Animasi**: Kustomisasi animasi CSS terakselerasi untuk transisi visual yang halus dan estetik.
+
+### 📦 Dukungan Penyimpanan Berkas Film & Video
+CineManiac dirancang agar **bebas dari ketergantungan media penyimpanan tertentu (*storage-agnostic*)**. Alih-alih memaksa Anda menggunakan sistem penyimpanan khusus yang mahal, Pemutar Media kami mendukung **streaming URL langsung**:
+*   **Jenis Berkas yang Didukung**: Berkas video yang sudah siap diputar seperti format `.mp4`, `.webm`, atau protokol streaming HLS `.m3u8`.
+*   **Cara Kerjanya**: Anda dapat meng-host berkas video film Anda di mana saja—seperti **Amazon S3, Cloudflare R2, Google Cloud Storage, Backblaze B2, BunnyCDN**, atau drive cloud apa pun yang mendukung tautan unduhan langsung—lalu cukup tempelkan (*paste*) URL tersebut ke kolom "Video Stream URL" di halaman Admin CMS.
+*   **Simulasi Fallback Sinematik**: Jika URL film kosong, rusak, atau terblokir, pemutar media akan otomatis menjalankan simulator sinematik interaktif dengan subtitle berjalan untuk memastikan halaman visual frontend Anda tidak pernah terlihat rusak atau mati di mata pengunjung.
+
+### 🗄️ Database Penyimpanan Metadata, Ulasan, & Pengguna
+Secara bawaan (*default*), templat proyek ini menggunakan **mesin penyimpanan status dalam memori (*in-memory state persistent*)** yang dioptimalkan:
+*   **Struktur Saat Ini**: Semua metadata film (judul, kategori, rating, subtitle), komentar/ulasan pengguna, log data analitik statistik, dan akun pengguna terdaftar disimpan di dalam objek status RAM server di file `server.ts`.
+*   **Mengapa Ini Sempurna untuk Dijual di Gumroad**: Sistem ini **sama sekali tidak memerlukan instalasi aplikasi database tambahan** (seperti PostgreSQL, MySQL, atau MongoDB) bagi pembeli Anda. Aplikasi langsung siap berjalan setelah mengetik `npm install`, dan sangat ringan untuk dideploy pada VPS murah sekalipun.
+*   **Cara Menghubungkan Database Permanen**: Jika Anda ingin menggunakan CineManiac untuk skala produksi komersial jangka panjang dan ingin data tersimpan secara permanen, arsitektur API di Express dirancang sangat bersih dan terpisah. Anda bisa dengan mudah mengganti array penyimpanan memori di `server.ts` menggunakan ORM/driver database pilihan Anda:
+    *   *Prisma / Drizzle ORM* yang dihubungkan ke PostgreSQL/MySQL.
+    *   *Mongoose* untuk database MongoDB.
+    *   *Firebase Firestore* untuk solusi serverless yang cepat dan mudah dikonfigurasi.
 
 ---
 

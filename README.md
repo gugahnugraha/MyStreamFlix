@@ -29,8 +29,22 @@ CineManiac is a high-performance, beautiful, full-stack streaming portal designe
 
 *   **Frontend**: React 18, Vite (superfast compilation and asset processing), Tailwind CSS, Lucide React (vector-perfect icons).
 *   **Backend**: Node.js, Express (efficient RESTful API routing, modular sessions).
-*   **Database**: In-memory state persistent engine supporting multiple active users, media items, reviews, and tracking metrics. Highly portable—runs immediately with zero complex SQL server installations out of the box.
 *   **Animations**: Built-in CSS hardware-accelerated animations for native, buttery-smooth cinematic transitions.
+
+### 📦 Movie & Video File Storage Support
+CineManiac is designed to be **storage-agnostic**. Instead of forcing you to use a specific, expensive storage system, the integrated Media Player supports **direct URL streaming**:
+*   **Supported File Types**: Pre-encoded `.mp4`, `.webm`, or HLS `.m3u8` streams.
+*   **How it Works**: You can host your movie files anywhere—such as **Amazon S3, Cloudflare R2, Google Cloud Storage, Backblaze B2, BunnyCDN**, or even direct-link cloud drivers—and simply paste the video stream URL into the Admin CMS "Video Stream URL" field.
+*   **Adaptive Fallback Simulation**: If a movie URL is empty, broken, or blocked, the player automatically triggers a realistic high-fidelity cinematic simulator with customizable running subtitles so your front-end presentation never looks broken to visitors.
+
+### 🗄️ Metadata, Reviews, & User Base Database
+By default, the template runs on a highly-optimized, **zero-config in-memory state persistent engine**:
+*   **Current Setup**: All metadata (movie titles, categories, ratings, subtitles), comments/reviews, real-time analytics tracker logs, and active registered accounts are stored inside server-side RAM state objects defined in `server.ts`. 
+*   **Why this is perfect for Selling on Gumroad**: It requires **absolutely zero database software installations** (such as Docker, Postgres, or MongoDB setups) for your buyers to run the app. It works immediately out of the box with `npm install` and can be easily hosted on any free or low-cost virtual private server (VPS).
+*   **How to Connect a Permanent Database**: If you are deploying CineManiac as a production platform and wish to persist metadata permanently, the Express API routing is completely clean and decoupled. You can easily replace the in-memory arrays in `server.ts` with your favorite database driver/ORM:
+    *   *Prisma / Drizzle ORM* with PostgreSQL/MySQL.
+    *   *Mongoose* with MongoDB.
+    *   *Firebase Firestore* for quick, serverless setup.
 
 ---
 
