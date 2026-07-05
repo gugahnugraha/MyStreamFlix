@@ -1,11 +1,119 @@
-<div align="center">
+# 🎬 CineManiac - Full-Stack Premium Cinematic Streaming & CMS Web App
 
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
+CineManiac is a high-performance, beautiful, full-stack streaming portal designed with a premium, sleek dark user interface. Built for developers looking to launch their own streaming site, video library, or portfolio, it combines a gorgeous cinematic player simulator, active review/ratings, real-time analytics, and a comprehensive Admin CMS dashboard (including active user base management).
 
-  <h1>Built with AI Studio</h2>
+---
 
-  <p>The fastest path from prompt to production with Gemini.</p>
+## ✨ Features Highlight
 
-  <a href="https://aistudio.google.com/apps">Start building</a>
+### 🎥 Front-End Cinematic Experience
+*   **Hero Spotlights & Carousels**: Fluid automatic slide-switching, complete with custom hardware-accelerated CSS animations (`fadeInScale` and `slideUpText`).
+*   **Intuitive Search & Filtering**: Instant title searching and interactive genre-based catalog exploration.
+*   **High-Fidelity Media Player**:
+    *   Direct HLS/MP4 stream support.
+    *   **Interactive Cinema Simulator fallback**: If a video stream becomes invalid, the player automatically falls back to an atmospheric high-fidelity mock playback simulator complete with customizable subtitles, speed modifiers, overlay details, and visual error tolerances to prevent dead screens.
+*   **Smart Recommendations**: Real-time "More Like This" recommendations generated based on shared genre tags.
+*   **Review & Rating Core**: User rating system out of 10 with direct comment boards.
 
-</div>
+### 🔐 Multi-Role User Authentication & Security
+*   **Secure Authentication Suite**: Clean login, sign-up, and account profile controls.
+*   **Admin CMS & Command Center**:
+    *   **User Base Control**: System administrators can promote/demote administrative accounts or permanently delete user accounts with a single click.
+    *   **Catalog Customization**: Add, edit, or delete movies from the catalog directly with image references, subtitle tracks, ratings, and categories.
+    *   **Real-time Analytics**: Displays live metrics (Active Users, Total Content Views, Streaming Hours) with visual dynamic graph grids.
+    *   **SEO & Global Controls**: Customize metadata tags, toggles for streaming simulator defaults, and primary search descriptions directly from the UI.
+
+---
+
+## 🛠️ Technical Architecture
+
+*   **Frontend**: React 18, Vite (superfast compilation and asset processing), Tailwind CSS, Lucide React (vector-perfect icons).
+*   **Backend**: Node.js, Express (efficient RESTful API routing, modular sessions).
+*   **Database**: In-memory state persistent engine supporting multiple active users, media items, reviews, and tracking metrics. Highly portable—runs immediately with zero complex SQL server installations out of the box.
+*   **Animations**: Built-in CSS hardware-accelerated animations for native, buttery-smooth cinematic transitions.
+
+---
+
+## 📂 Folder Structure
+
+```text
+├── server.ts              # Express API endpoints & session logic
+├── index.html             # Main HTML document entry point
+├── package.json           # Dynamic script commands & library dependencies
+├── tsconfig.json          # Strict TypeScript compiler options
+├── vite.config.ts         # Vite bundler configurations
+└── src/
+    ├── main.tsx           # React mounting entry point
+    ├── App.tsx            # Orchestrator & View manager
+    ├── index.css          # Global styles, tailwind integrations, custom animations
+    ├── types.ts           # Unified static interfaces & types
+    └── components/
+        ├── Header.tsx     # Modern navigation bar & Profile status
+        ├── MovieCard.tsx  # Dynamic grid card with hover detail layers
+        ├── MovieCarousel.tsx # Fluid automatic spotlight slider
+        ├── MovieDetailModal.tsx # Detailed summary, ratings, and similar recommendations
+        ├── MediaPlayer.tsx # High-fidelity cinematic stream player
+        ├── AuthModal.tsx  # Register & Login dialog
+        └── AdminCMS.tsx   # Admin dashboard, User & Catalog Management, Analytics
+```
+
+---
+
+## 🚀 Easy Installation Guide
+
+### Prerequisites
+Ensure you have the following installed on your machine:
+*   [Node.js](https://nodejs.org/) (Version 18.x or above is highly recommended)
+*   [npm](https://www.npmjs.com/) (usually packaged with Node.js)
+
+### Step 1: Clone or Extract the Project
+Unzip the project file or pull it into your local directory.
+```bash
+cd cinemaniac-app
+```
+
+### Step 2: Install Dependencies
+Install all the required runtime and development dependencies:
+```bash
+npm install
+```
+
+### Step 3: Run the Development Server
+Launch the development server. This runs both the Vite asset pipeline and the Express backend simultaneously using `tsx`:
+```bash
+npm run dev
+```
+Open your browser and navigate to **`http://localhost:3000`** to see your app running!
+
+### Step 4: Build for Production
+To bundle and compile the application for production optimization:
+```bash
+npm run build
+```
+This performs a two-stage compilation:
+1.  Compiles the front-end React SPA into high-performance static files in `dist/`.
+2.  Bundles the Node/Express server file into a self-contained, optimized file `dist/server.cjs` using `esbuild`.
+
+To start the compiled production server:
+```bash
+npm run start
+```
+
+---
+
+## 🛡️ Default Administrator Account
+For early login, testing, and administration out-of-the-box, use these credentials:
+*   **Email**: `admin@cine.com`
+*   **Password**: `admin123`
+
+*(Note: Additional users registered through the sign-up panel default to "Standard Viewer" and can be promoted by an existing Admin through the CMS "User Base" tab).*
+
+---
+
+## 📄 License & Distribution Notes
+
+Purchasing this product grants you a **Single-Use Personal License** or **Commercial Unlimited License** depending on your selection at checkout:
+*   **Personal License**: Allowed to run on your own devices for learning, modification, or personal server setup. Reselling or distributing this source code on public platforms is strictly prohibited.
+*   **Commercial License**: Permitted to modify, brand, and deploy as a commercial portal for clients or active web platforms.
+
+For customer support or custom software extension requests, please reach out via the marketplace support desk. Happy building! 🎬🍿

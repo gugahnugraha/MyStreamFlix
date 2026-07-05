@@ -1,0 +1,1046 @@
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+import React, { useState, useEffect } from "react";
+import { 
+  BarChart3, Film, Settings, Plus, Edit, Trash2, Save, 
+  Tv, Eye, Play, ShieldAlert, CheckCircle, TrendingUp, Users, RefreshCw, X 
+} from "lucide-react";
+import { Movie, DashboardStats, CMSSettings, Subtitle, User } from "../types";
+
+interface AdminCMSProps {
+  onRefreshMovies: () => void;
+  movies: Movie[];
+}
+
+export default function AdminCMS({ onRefreshMovies, movies }: AdminCMSProps) {
+  const [activeSubTab, setActiveSubTab] = useState<"analytics" | "catalog" | "settings" | "users">("analytics");
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [settings, setSettings] = useState<CMSSettings | null>(null);
+  const [usersList, setUsersList] = useState<User[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  // Edit / Create Form States
+  const [showForm, setShowForm] = useState(false);
+  const [formMode, setFormMode] = useState<"create" | "edit">("create");
+  const [editingMovieId, setEditingMovieId] = useState<string | null>(null);
+
+  // Form Inputs
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [posterUrl, setPosterUrl] = useState("");
+  const [backdropUrl, setBackdropUrl] = useState("");
+  const [videoUrl, setVideoUrl] = useState("");
+  const [duration, setDuration] = useState(120);
+  const [releaseYear, setReleaseYear] = useState(2024);
+  const [rating, setRating] = useState(8.0);
+  const [ageRating, setAgeRating] = useState("PG-13");
+  const [quality, setQuality] = useState<"4K" | "Ultra HD" | "Full HD" | "HD">("Full HD");
+  const [genres, setGenres] = useState<string[]>([]);
+  const [cast, setCast] = useState<string[]>([]);
+  const [directors, setDirectors] = useState<string[]>([]);
+  const [country, setCountry] = useState("United States");
+  const [language, setLanguage] = useState("English");
+  const [isFeatured, setIsFeatured] = useState(false);
+  const [isBanner, setIsBanner] = useState(false);
+
+  // Status banners
+  const [successMsg, setSuccessMsg] = useState("");
+
+  const fetchDashboardData = async () => {
+    try {
+      setLoading(true);
+      setError("");
+      
+      const statsRes = await fetch("/api/dashboard/stats");
+      if (!statsRes.ok) throw new Error("Could not fetch analytical stats.");
+      const statsData = await statsRes.json();
+      setStats(statsData);
+
+      const settingsRes = await fetch("/api/settings");
+      if (!settingsRes.ok) throw new Error("Could not retrieve global settings.");
+      const settingsData = await settingsRes.json();
+      setSettings(settingsData);
+
+      // Fetch active registered users from database
+      const usersRes = await fetch("/api/users");
+      if (usersRes.ok) {
+        const usersData = await usersRes.json();
+        setUsersList(usersData);
+      }
+    } catch (err: any) {
+      setError(err.message || "An error occurred fetching dashboard modules.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, [movies]); // re-run stats whenever catalog changes
+
+  // Form field handlers
+  const handleOpenCreate = () => {
+    setFormMode("create");
+    setEditingMovieId(null);
+    setTitle("");
+    setDescription("");
+    setPosterUrl("");
+    setBackdropUrl("");
+    setVideoUrl("https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4");
+    setDuration(120);
+    setReleaseYear(2024);
+    setRating(7.5);
+    setAgeRating("PG-13");
+    setQuality("Full HD");
+    setGenres(["Drama", "Sci-Fi"]);
+    setCast(["Actor One", "Actor Two"]);
+    setDirectors(["Director Name"]);
+    setCountry("United States");
+    setLanguage("English");
+    setIsFeatured(false);
+    setIsBanner(false);
+    setShowForm(true);
+  };
+
+  const handleOpenEdit = (movie: Movie) => {
+    setFormMode("edit");
+    setEditingMovieId(movie.id);
+    setTitle(movie.title);
+    setDescription(movie.description);
+    setPosterUrl(movie.posterUrl);
+    setBackdropUrl(movie.backdropUrl);
+    setVideoUrl(movie.videoUrl);
+    setDuration(movie.duration);
+    setReleaseYear(movie.releaseYear);
+    setRating(movie.rating);
+    setAgeRating(movie.ageRating);
+    setQuality(movie.quality);
+    setGenres(movie.genres);
+    setCast(movie.cast);
+    setDirectors(movie.directors);
+    setCountry(movie.country);
+    setLanguage(movie.language);
+    setIsFeatured(movie.isFeatured);
+    setIsBanner(movie.isBanner);
+    setShowForm(true);
+  };
+
+  const handleDeleteMovie = async (movieId: string) => {
+    if (!window.confirm("Are you sure you want to permanently delete this movie from the system?")) return;
+    try {
+      const res = await fetch(`/api/movies/${movieId}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("Could not delete movie.");
+      
+      setSuccessMsg("Movie successfully deleted from the catalog!");
+      onRefreshMovies();
+      setTimeout(() => setSuccessMsg(""), 3500);
+    } catch (err: any) {
+      alert(err.message || "Deletion failed");
+    }
+  };
+
+  const handleSaveMovie = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!title.trim() || !videoUrl.trim()) {
+      alert("Title and Video URL are required.");
+      return;
+    }
+
+    const payload = {
+      title,
+      description,
+      posterUrl: posterUrl || "https://images.unsplash.com/photo-1594909122845-11baa439b7bf?w=500&auto=format&fit=crop&q=80",
+      backdropUrl: backdropUrl || "https://images.unsplash.com/photo-1574375927938-d5a98e8edd86?w=1200&auto=format&fit=crop&q=80",
+      videoUrl,
+      duration,
+      releaseYear,
+      rating,
+      ageRating,
+      quality,
+      genres,
+      cast,
+      directors,
+      country,
+      language,
+      isFeatured,
+      isBanner
+    };
+
+    try {
+      const url = formMode === "create" ? "/api/movies" : `/api/movies/${editingMovieId}`;
+      const method = formMode === "create" ? "POST" : "PUT";
+
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.error || "Failed saving catalog entry.");
+      }
+
+      setSuccessMsg(formMode === "create" ? "Successfully created new title!" : "Successfully updated movie details!");
+      setShowForm(false);
+      onRefreshMovies();
+      setTimeout(() => setSuccessMsg(""), 3500);
+    } catch (err: any) {
+      alert(err.message || "Save operation failed.");
+    }
+  };
+
+  const handleSaveSettings = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!settings) return;
+
+    try {
+      const res = await fetch("/api/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(settings)
+      });
+
+      if (!res.ok) throw new Error("Could not update settings.");
+      setSuccessMsg("Global CMS configurations saved successfully!");
+      setTimeout(() => setSuccessMsg(""), 3500);
+    } catch (err: any) {
+      alert(err.message || "Settings update failed.");
+    }
+  };
+
+  const handleToggleUserRole = async (userId: string, currentRole: "admin" | "user") => {
+    const targetRole = currentRole === "admin" ? "user" : "admin";
+    try {
+      const res = await fetch(`/api/users/${userId}/role`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ role: targetRole })
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Failed to update user role.");
+      }
+      setSuccessMsg(`Successfully toggled user role to ${targetRole}!`);
+      setTimeout(() => setSuccessMsg(""), 3500);
+      
+      // Refresh user base list
+      const usersRes = await fetch("/api/users");
+      if (usersRes.ok) {
+        const usersData = await usersRes.json();
+        setUsersList(usersData);
+      }
+    } catch (err: any) {
+      alert(err.message || "Role shift failed.");
+    }
+  };
+
+  const handleDeleteUser = async (userId: string) => {
+    if (!window.confirm("Are you sure you want to permanently delete this user's account?")) return;
+    try {
+      const res = await fetch(`/api/users/${userId}`, { method: "DELETE" });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Failed to delete account.");
+      }
+      setSuccessMsg("Successfully deleted user account.");
+      setTimeout(() => setSuccessMsg(""), 3500);
+      
+      // Refresh user base list
+      const usersRes = await fetch("/api/users");
+      if (usersRes.ok) {
+        const usersData = await usersRes.json();
+        setUsersList(usersData);
+      }
+    } catch (err: any) {
+      alert(err.message || "User deletion failed.");
+    }
+  };
+
+  if (loading && !stats) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-64 py-20 gap-3" id="cms-loading">
+        <div className="w-10 h-10 border-4 border-red-600 border-t-transparent rounded-full animate-spin" />
+        <p className="text-xs text-zinc-500 font-mono">Synchronizing CMS database models...</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6 text-zinc-300" id="admin-cms-wrapper">
+      {/* Top Banner Header */}
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-b border-zinc-800 pb-5">
+        <div>
+          <div className="flex items-center gap-2">
+            <span className="p-1 rounded bg-red-600/10 border border-red-500/20 text-red-500 text-[10px] font-bold tracking-wider font-mono">
+              SYSTEM CONSOLE
+            </span>
+          </div>
+          <h1 className="text-2xl font-black text-white tracking-tight mt-1">
+            Media Streaming CMS Admin Panel
+          </h1>
+          <p className="text-xs text-zinc-500 mt-1">
+            Publish movie catalogs, examine audience stream telemetry, and adjust metadata settings.
+          </p>
+        </div>
+
+        {/* Dashboard sub tabs controls */}
+        <div className="flex items-center gap-1.5 bg-zinc-950 p-1 rounded-lg border border-zinc-900" id="cms-subtabs">
+          <button
+            onClick={() => setActiveSubTab("analytics")}
+            className={`flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-md transition-all cursor-pointer ${
+              activeSubTab === "analytics"
+                ? "bg-red-600 text-white shadow-md shadow-red-600/10"
+                : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900"
+            }`}
+            id="subtab-analytics"
+          >
+            <BarChart3 className="w-3.5 h-3.5" />
+            Analytics
+          </button>
+          <button
+            onClick={() => setActiveSubTab("catalog")}
+            className={`flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-md transition-all cursor-pointer ${
+              activeSubTab === "catalog"
+                ? "bg-red-600 text-white shadow-md shadow-red-600/10"
+                : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900"
+            }`}
+            id="subtab-catalog"
+          >
+            <Film className="w-3.5 h-3.5" />
+            Catalog CRUD
+          </button>
+          <button
+            onClick={() => setActiveSubTab("settings")}
+            className={`flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-md transition-all cursor-pointer ${
+              activeSubTab === "settings"
+                ? "bg-red-600 text-white shadow-md shadow-red-600/10"
+                : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900"
+            }`}
+            id="subtab-settings"
+          >
+            <Settings className="w-3.5 h-3.5" />
+            SEO & Settings
+          </button>
+          <button
+            onClick={() => setActiveSubTab("users")}
+            className={`flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-md transition-all cursor-pointer ${
+              activeSubTab === "users"
+                ? "bg-red-600 text-white shadow-md shadow-red-600/10"
+                : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900"
+            }`}
+            id="subtab-users"
+          >
+            <Users className="w-3.5 h-3.5" />
+            User Base
+          </button>
+        </div>
+      </div>
+
+      {/* Success Banner notification */}
+      {successMsg && (
+        <div className="bg-emerald-600/10 border border-emerald-500/20 text-emerald-400 p-3 rounded-lg text-xs font-semibold flex items-center gap-2 animate-in fade-in duration-200">
+          <CheckCircle className="w-4.5 h-4.5 shrink-0" />
+          <span>{successMsg}</span>
+        </div>
+      )}
+
+      {/* SUB-TAB VIEWPORT 1: ANALYTICS */}
+      {activeSubTab === "analytics" && stats && (
+        <div className="space-y-6" id="cms-analytics-panel">
+          {/* Dashboard metric grid tiles */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="bg-zinc-950 border border-zinc-900 p-4 rounded-xl flex items-center gap-4">
+              <div className="w-10 h-10 rounded-lg bg-red-600/10 flex items-center justify-center text-red-500">
+                <Film className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Catalog Titles</p>
+                <p className="text-lg font-black text-white mt-0.5">{stats.totalMovies}</p>
+              </div>
+            </div>
+
+            <div className="bg-zinc-950 border border-zinc-900 p-4 rounded-xl flex items-center gap-4">
+              <div className="w-10 h-10 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-500">
+                <Eye className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Total Views</p>
+                <p className="text-lg font-black text-white mt-0.5">{stats.totalViews.toLocaleString()}</p>
+              </div>
+            </div>
+
+            <div className="bg-zinc-950 border border-zinc-900 p-4 rounded-xl flex items-center gap-4">
+              <div className="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-500">
+                <TrendingUp className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Watch Hours</p>
+                <p className="text-lg font-black text-white mt-0.5">{stats.totalWatchTime.toLocaleString()} hrs</p>
+              </div>
+            </div>
+
+            <div className="bg-zinc-950 border border-zinc-900 p-4 rounded-xl flex items-center gap-4">
+              <div className="w-10 h-10 rounded-lg bg-purple-500/10 flex items-center justify-center text-purple-500">
+                <Users className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Saas Signups</p>
+                <p className="text-lg font-black text-white mt-0.5">{stats.totalUsers}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* SVG Graphs and charts row */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Views over time bar chart */}
+            <div className="bg-zinc-950 border border-zinc-900 rounded-xl p-5 space-y-4">
+              <h3 className="text-xs font-bold text-zinc-400 tracking-wider uppercase">Audience Traffic (Views/Day)</h3>
+              <div className="h-44 w-full flex items-end justify-between pt-4">
+                {stats.recentViews.map((item, idx) => {
+                  const maxCount = Math.max(...stats!.recentViews.map(v => v.count));
+                  const percentage = Math.round((item.count / maxCount) * 100);
+                  return (
+                    <div key={idx} className="flex flex-col items-center gap-2 flex-1 group">
+                      <span className="text-[10px] font-mono font-semibold text-zinc-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                        {item.count}
+                      </span>
+                      <div className="w-8 bg-zinc-900 group-hover:bg-red-600 rounded-sm relative overflow-hidden transition-colors" style={{ height: "110px" }}>
+                        <div 
+                          className="bg-red-600/35 h-full absolute bottom-0 left-0 right-0 transition-all duration-500" 
+                          style={{ height: `${percentage}%` }}
+                        />
+                      </div>
+                      <span className="text-[10px] font-semibold text-zinc-500">{item.date}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Top performing movies table */}
+            <div className="bg-zinc-950 border border-zinc-900 rounded-xl p-5 space-y-4">
+              <h3 className="text-xs font-bold text-zinc-400 tracking-wider uppercase">Spotlight Engagement Leaders</h3>
+              <div className="space-y-3.5" id="engagement-leaderboard">
+                {stats.topMovies.map((m, idx) => (
+                  <div key={m.id} className="flex items-center justify-between border-b border-zinc-900 pb-2.5 last:border-0 last:pb-0">
+                    <div className="flex items-center gap-2.5">
+                      <span className="w-5 h-5 rounded-full bg-zinc-900 text-[10px] font-black text-red-500 flex items-center justify-center border border-zinc-850">
+                        {idx + 1}
+                      </span>
+                      <p className="text-xs font-bold text-zinc-200 truncate max-w-44 md:max-w-64">{m.title}</p>
+                    </div>
+
+                    <div className="flex items-center gap-4 text-xs">
+                      <span className="text-zinc-500 font-mono">{m.views.toLocaleString()} views</span>
+                      <span className="px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400 font-bold text-[10px]">
+                        ★ {m.rating}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Genre Distribution Badges */}
+          <div className="bg-zinc-950 border border-zinc-900 p-5 rounded-xl space-y-3">
+            <h3 className="text-xs font-bold text-zinc-400 tracking-wider uppercase">Genre Saturation</h3>
+            <div className="flex flex-wrap gap-2">
+              {stats.genreDistribution.map((item, idx) => (
+                <div 
+                  key={idx} 
+                  className="px-3 py-1.5 rounded-lg bg-zinc-900 border border-zinc-850 flex items-center gap-2 text-xs font-semibold"
+                >
+                  <span className="text-zinc-300">{item.name}</span>
+                  <span className="px-1.5 py-0.2 rounded-sm bg-red-600/15 text-red-400 font-mono text-[10px]">
+                    {item.count} items
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* SUB-TAB VIEWPORT 2: CATALOG MANAGEMENT */}
+      {activeSubTab === "catalog" && (
+        <div className="space-y-6" id="cms-catalog-panel">
+          {/* Create movie action and quick info */}
+          <div className="flex justify-between items-center bg-zinc-950 p-4 rounded-xl border border-zinc-900">
+            <p className="text-xs text-zinc-400">
+              Database currently contains <span className="text-white font-bold">{movies.length}</span> titles.
+            </p>
+            <button
+              onClick={handleOpenCreate}
+              className="flex items-center gap-1.5 bg-red-600 hover:bg-red-700 text-white font-bold text-xs px-4 py-2.5 rounded-md shadow-lg shadow-red-600/15 transition-all cursor-pointer"
+              id="cms-add-movie-btn"
+            >
+              <Plus className="w-4 h-4" />
+              Publish Title
+            </button>
+          </div>
+
+          {/* Catalog Listing Table */}
+          <div className="bg-zinc-950 border border-zinc-900 rounded-xl overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse text-xs">
+                <thead>
+                  <tr className="border-b border-zinc-900 bg-zinc-900/30 text-zinc-500 font-bold uppercase tracking-wider">
+                    <th className="p-4">Movie Info</th>
+                    <th className="p-4">Year / Duration</th>
+                    <th className="p-4">Genres</th>
+                    <th className="p-4">Views / Likes</th>
+                    <th className="p-4">Attributes</th>
+                    <th className="p-4 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-zinc-900" id="cms-catalog-tbody">
+                  {movies.map((m) => (
+                    <tr key={m.id} className="hover:bg-zinc-900/30 transition-colors">
+                      <td className="p-4">
+                        <div className="flex items-center gap-3">
+                          <img 
+                            src={m.posterUrl} 
+                            alt={m.title} 
+                            className="w-8 h-12 rounded object-cover border border-zinc-800 shrink-0"
+                            referrerPolicy="no-referrer"
+                          />
+                          <div>
+                            <p className="font-bold text-zinc-200 text-xs">{m.title}</p>
+                            <p className="text-[10px] text-zinc-500 font-mono mt-0.5">{m.quality} • {m.ageRating}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="p-4 font-semibold text-zinc-400">
+                        {m.releaseYear}
+                        <span className="block text-[10px] text-zinc-600 mt-0.5">{m.duration} minutes</span>
+                      </td>
+                      <td className="p-4">
+                        <div className="flex flex-wrap gap-1 max-w-44">
+                          {m.genres.map((g, idx) => (
+                            <span key={idx} className="px-1.5 py-0.2 bg-zinc-900 border border-zinc-850 rounded text-[9px] text-zinc-400 font-medium">
+                              {g}
+                            </span>
+                          ))}
+                        </div>
+                      </td>
+                      <td className="p-4 font-mono text-zinc-400">
+                        {m.views.toLocaleString()}
+                        <span className="block text-[10px] text-zinc-600 mt-0.5">{m.likes.toLocaleString()} likes</span>
+                      </td>
+                      <td className="p-4">
+                        <div className="flex flex-wrap gap-1">
+                          {m.isBanner && (
+                            <span className="px-1.5 py-0.2 bg-red-600/10 text-red-500 border border-red-500/20 text-[9px] rounded font-bold uppercase tracking-wider">
+                              Banner Spotlight
+                            </span>
+                          )}
+                          {m.isFeatured && (
+                            <span className="px-1.5 py-0.2 bg-amber-500/10 text-amber-500 border border-amber-500/20 text-[9px] rounded font-bold uppercase tracking-wider">
+                              Featured Row
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="p-4 text-right">
+                        <div className="flex items-center justify-end gap-1.5">
+                          <button
+                            onClick={() => handleOpenEdit(m)}
+                            className="p-1.5 rounded-md hover:bg-zinc-800 text-zinc-400 hover:text-white transition-colors cursor-pointer"
+                            title="Edit Title"
+                            id={`edit-movie-btn-${m.id}`}
+                          >
+                            <Edit className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteMovie(m.id)}
+                            className="p-1.5 rounded-md hover:bg-red-950/40 text-zinc-400 hover:text-red-400 transition-colors cursor-pointer"
+                            title="Delete Title"
+                            id={`delete-movie-btn-${m.id}`}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Slide-over catalog form overlay */}
+          {showForm && (
+            <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex items-center justify-end p-4">
+              <div 
+                className="fixed inset-0 -z-10" 
+                onClick={() => setShowForm(false)} 
+              />
+              <div className="bg-zinc-950 border border-zinc-800 w-full max-w-xl h-full rounded-xl overflow-hidden shadow-2xl flex flex-col">
+                <div className="px-5 py-4 border-b border-zinc-900 bg-zinc-900/40 flex justify-between items-center shrink-0">
+                  <h3 className="text-sm font-extrabold text-white flex items-center gap-1.5">
+                    <Film className="w-4.5 h-4.5 text-red-500" />
+                    {formMode === "create" ? "Publish New Movie Title" : "Modify Movie Metadata"}
+                  </h3>
+                  <button 
+                    onClick={() => setShowForm(false)}
+                    className="p-1.5 rounded-full hover:bg-zinc-800 text-zinc-500 hover:text-white transition-colors cursor-pointer"
+                  >
+                    <X className="w-4.5 h-4.5" />
+                  </button>
+                </div>
+
+                {/* Form fields */}
+                <form onSubmit={handleSaveMovie} className="p-5 overflow-y-auto space-y-4 flex-1">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold uppercase text-zinc-500">Title Headline *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Sintel: Path of the Dragon"
+                      value={title}
+                      onChange={(e) => setTitle(e.target.value)}
+                      className="w-full bg-zinc-900 border border-zinc-850 p-2.5 rounded text-xs focus:outline-hidden focus:border-red-500/50"
+                      id="form-input-title"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold uppercase text-zinc-500">Synopsis Storyboard</label>
+                    <textarea
+                      placeholder="Detailed narrative summary..."
+                      value={description}
+                      onChange={(e) => setDescription(e.target.value)}
+                      rows={3}
+                      className="w-full bg-zinc-900 border border-zinc-850 p-2.5 rounded text-xs focus:outline-hidden focus:border-red-500/50"
+                      id="form-input-desc"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold uppercase text-zinc-500">Video Source URL *</label>
+                      <input
+                        type="url"
+                        required
+                        placeholder="https://commondatastorage.googleapis.com/...mp4"
+                        value={videoUrl}
+                        onChange={(e) => setVideoUrl(e.target.value)}
+                        className="w-full bg-zinc-900 border border-zinc-850 p-2.5 rounded text-xs focus:outline-hidden focus:border-red-500/50"
+                        id="form-input-video"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold uppercase text-zinc-500">Poster Frame URL</label>
+                      <input
+                        type="url"
+                        placeholder="https://images.unsplash.com/...poster.jpg"
+                        value={posterUrl}
+                        onChange={(e) => setPosterUrl(e.target.value)}
+                        className="w-full bg-zinc-900 border border-zinc-850 p-2.5 rounded text-xs focus:outline-hidden focus:border-red-500/50"
+                        id="form-input-poster"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold uppercase text-zinc-500">Backdrop Landscape URL</label>
+                      <input
+                        type="url"
+                        placeholder="https://images.unsplash.com/...backdrop.jpg"
+                        value={backdropUrl}
+                        onChange={(e) => setBackdropUrl(e.target.value)}
+                        className="w-full bg-zinc-900 border border-zinc-850 p-2.5 rounded text-xs focus:outline-hidden focus:border-red-500/50"
+                        id="form-input-backdrop"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold uppercase text-zinc-500">Release Calendar Year</label>
+                      <input
+                        type="number"
+                        min={1900}
+                        max={2100}
+                        value={releaseYear}
+                        onChange={(e) => setReleaseYear(Number(e.target.value))}
+                        className="w-full bg-zinc-900 border border-zinc-850 p-2.5 rounded text-xs focus:outline-hidden focus:border-red-500/50"
+                        id="form-input-year"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold uppercase text-zinc-500">Duration (Min)</label>
+                      <input
+                        type="number"
+                        value={duration}
+                        onChange={(e) => setDuration(Number(e.target.value))}
+                        className="w-full bg-zinc-900 border border-zinc-850 p-2.5 rounded text-xs focus:outline-hidden"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold uppercase text-zinc-500">Age Rating</label>
+                      <select
+                        value={ageRating}
+                        onChange={(e) => setAgeRating(e.target.value)}
+                        className="w-full bg-zinc-900 border border-zinc-850 p-2.5 rounded text-xs focus:outline-hidden text-zinc-300 font-bold"
+                      >
+                        {["G", "PG", "PG-13", "R", "NC-17"].map((r) => (
+                          <option key={r} value={r}>{r}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold uppercase text-zinc-500">Quality Spec</label>
+                      <select
+                        value={quality}
+                        onChange={(e) => setQuality(e.target.value as any)}
+                        className="w-full bg-zinc-900 border border-zinc-850 p-2.5 rounded text-xs focus:outline-hidden text-zinc-300 font-bold"
+                      >
+                        {["4K", "Ultra HD", "Full HD", "HD"].map((q) => (
+                          <option key={q} value={q}>{q}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold uppercase text-zinc-500">Genres (Comma separated)</label>
+                      <input
+                        type="text"
+                        placeholder="Drama, Sci-Fi, Action"
+                        value={genres.join(", ")}
+                        onChange={(e) => setGenres(e.target.value.split(",").map(g => g.trim()).filter(Boolean))}
+                        className="w-full bg-zinc-900 border border-zinc-850 p-2.5 rounded text-xs focus:outline-hidden"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold uppercase text-zinc-500">Directors (Comma separated)</label>
+                      <input
+                        type="text"
+                        placeholder="Director name"
+                        value={directors.join(", ")}
+                        onChange={(e) => setDirectors(e.target.value.split(",").map(d => d.trim()).filter(Boolean))}
+                        className="w-full bg-zinc-900 border border-zinc-850 p-2.5 rounded text-xs focus:outline-hidden"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold uppercase text-zinc-500">Cast / Starring Crew (Comma separated)</label>
+                    <input
+                      type="text"
+                      placeholder="Actor Alpha, Actor Beta, Actor Gamma"
+                      value={cast.join(", ")}
+                      onChange={(e) => setCast(e.target.value.split(",").map(c => c.trim()).filter(Boolean))}
+                      className="w-full bg-zinc-900 border border-zinc-850 p-2.5 rounded text-xs focus:outline-hidden"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4 border-t border-zinc-900 pt-3">
+                    <div className="flex items-center gap-2 py-1">
+                      <input
+                        type="checkbox"
+                        checked={isBanner}
+                        onChange={(e) => setIsBanner(e.target.checked)}
+                        className="w-4 h-4 rounded border-zinc-850 accent-red-600 focus:ring-0"
+                        id="form-check-banner"
+                      />
+                      <div>
+                        <label htmlFor="form-check-banner" className="text-xs font-bold text-zinc-300">Banner Spotlight</label>
+                        <p className="text-[9px] text-zinc-500">Shows on top hero carousel.</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 py-1">
+                      <input
+                        type="checkbox"
+                        checked={isFeatured}
+                        onChange={(e) => setIsFeatured(e.target.checked)}
+                        className="w-4 h-4 rounded border-zinc-850 accent-red-600 focus:ring-0"
+                        id="form-check-featured"
+                      />
+                      <div>
+                        <label htmlFor="form-check-featured" className="text-xs font-bold text-zinc-300">Featured Catalog</label>
+                        <p className="text-[9px] text-zinc-500">Includes in the main category reels.</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Submission row */}
+                  <div className="border-t border-zinc-900 pt-4 flex gap-3 justify-end shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => setShowForm(false)}
+                      className="px-4 py-2 bg-zinc-900 border border-zinc-800 text-xs font-semibold hover:bg-zinc-800 rounded transition-colors cursor-pointer"
+                    >
+                      Dismiss
+                    </button>
+                    <button
+                      type="submit"
+                      className="px-5 py-2 bg-red-600 hover:bg-red-500 text-white text-xs font-bold rounded shadow-lg shadow-red-600/10 cursor-pointer"
+                      id="form-save-btn"
+                    >
+                      Publish Metadata
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* SUB-TAB VIEWPORT 3: SETTINGS */}
+      {activeSubTab === "settings" && settings && (
+        <form onSubmit={handleSaveSettings} className="space-y-6" id="cms-settings-panel">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Branding Settings Card */}
+            <div className="bg-zinc-950 border border-zinc-900 rounded-xl p-5 space-y-4">
+              <h3 className="text-xs font-bold text-zinc-400 tracking-wider uppercase">Portal Identity</h3>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold uppercase text-zinc-500">Site Name String</label>
+                <input
+                  type="text"
+                  value={settings.siteName}
+                  onChange={(e) => setSettings({ ...settings, siteName: e.target.value })}
+                  className="w-full bg-zinc-900 border border-zinc-850 p-2.5 rounded text-xs focus:outline-hidden"
+                  id="settings-input-sitename"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold uppercase text-zinc-500">Logo Headline Text</label>
+                <input
+                  type="text"
+                  value={settings.logoText}
+                  onChange={(e) => setSettings({ ...settings, logoText: e.target.value })}
+                  className="w-full bg-zinc-900 border border-zinc-850 p-2.5 rounded text-xs focus:outline-hidden"
+                  id="settings-input-logotext"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold uppercase text-zinc-500">Theme Contrast Accent Color</label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="color"
+                    value={settings.primaryColor}
+                    onChange={(e) => setSettings({ ...settings, primaryColor: e.target.value })}
+                    className="w-10 h-10 bg-transparent border border-zinc-800 rounded cursor-pointer"
+                  />
+                  <input
+                    type="text"
+                    value={settings.primaryColor}
+                    onChange={(e) => setSettings({ ...settings, primaryColor: e.target.value })}
+                    className="bg-zinc-900 border border-zinc-850 p-2 rounded text-xs focus:outline-hidden font-mono text-zinc-400 w-28"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* General Toggles / Maintenance Gates */}
+            <div className="bg-zinc-950 border border-zinc-900 rounded-xl p-5 space-y-4">
+              <h3 className="text-xs font-bold text-zinc-400 tracking-wider uppercase">Feature Permissions</h3>
+
+              <div className="flex items-center justify-between border-b border-zinc-900 pb-3">
+                <div>
+                  <p className="text-xs font-bold text-zinc-200">Enable Review Comment Form</p>
+                  <p className="text-[10px] text-zinc-500 mt-0.5">Allow signed-in members to post ratings and commentaries.</p>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={settings.enableComments}
+                  onChange={(e) => setSettings({ ...settings, enableComments: e.target.checked })}
+                  className="w-4 h-4 rounded border-zinc-850 accent-red-600"
+                />
+              </div>
+
+              <div className="flex items-center justify-between border-b border-zinc-900 pb-3">
+                <div>
+                  <p className="text-xs font-bold text-zinc-200">Aggregated Star Ratings</p>
+                  <p className="text-[10px] text-zinc-500 mt-0.5">Incorporate movie scores in main spotlight badges and search listings.</p>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={settings.enableRatings}
+                  onChange={(e) => setSettings({ ...settings, enableRatings: e.target.checked })}
+                  className="w-4 h-4 rounded border-zinc-850 accent-red-600"
+                />
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-bold text-zinc-200">System Maintenance Gate</p>
+                  <p className="text-[10px] text-zinc-500 mt-0.5">Restrict client browsing completely, allowing only system administrators in.</p>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={settings.maintenanceMode}
+                  onChange={(e) => setSettings({ ...settings, maintenanceMode: e.target.checked })}
+                  className="w-4 h-4 rounded border-zinc-850 accent-red-600"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* SEO Metadata Settings */}
+          <div className="bg-zinc-950 border border-zinc-900 p-5 rounded-xl space-y-4">
+            <h3 className="text-xs font-bold text-zinc-400 tracking-wider uppercase">SaaS SEO Search Metadata</h3>
+
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold uppercase text-zinc-500">SEO Crawler Title Header</label>
+              <input
+                type="text"
+                value={settings.seoTitle}
+                onChange={(e) => setSettings({ ...settings, seoTitle: e.target.value })}
+                className="w-full bg-zinc-900 border border-zinc-850 p-2.5 rounded text-xs focus:outline-hidden"
+              />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold uppercase text-zinc-500">SEO Keywords (Comma Separated)</label>
+                <input
+                  type="text"
+                  value={settings.seoKeywords}
+                  onChange={(e) => setSettings({ ...settings, seoKeywords: e.target.value })}
+                  className="w-full bg-zinc-900 border border-zinc-850 p-2.5 rounded text-xs focus:outline-hidden"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold uppercase text-zinc-500">SEO Narrative Meta Description</label>
+                <textarea
+                  value={settings.seoDescription}
+                  onChange={(e) => setSettings({ ...settings, seoDescription: e.target.value })}
+                  rows={2}
+                  className="w-full bg-zinc-900 border border-zinc-850 p-2.5 rounded text-xs focus:outline-hidden"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Settings Save Actions */}
+          <div className="flex justify-end pt-2">
+            <button
+              type="submit"
+              className="flex items-center gap-1.5 bg-red-600 hover:bg-red-500 text-white font-bold text-xs px-6 py-3 rounded-md shadow-lg shadow-red-600/10 cursor-pointer"
+              id="settings-save-btn"
+            >
+              <Save className="w-4 h-4" />
+              Commit CMS Configurations
+            </button>
+          </div>
+        </form>
+      )}
+
+      {/* SUB-TAB VIEWPORT 4: USER BASE MANAGEMENT */}
+      {activeSubTab === "users" && (
+        <div className="space-y-6" id="cms-users-panel">
+          {/* Section Header */}
+          <div className="bg-zinc-950 border border-zinc-900 rounded-xl p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div>
+              <h3 className="text-sm font-bold text-white tracking-wider uppercase">Active Registered User Base</h3>
+              <p className="text-xs text-zinc-500 mt-1">
+                Maintain authorization scopes, inspect members, or demote/promote administrative accounts.
+              </p>
+            </div>
+            <div className="bg-red-600/10 border border-red-500/20 px-3 py-1.5 rounded-md text-red-500 font-mono text-xs font-semibold flex items-center gap-1.5">
+              <Users className="w-4 h-4" />
+              <span>{usersList.length} Accounts Registered</span>
+            </div>
+          </div>
+
+          {/* User list Table container */}
+          <div className="bg-zinc-950 border border-zinc-900 rounded-xl overflow-hidden shadow-lg">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse text-xs">
+                <thead>
+                  <tr className="bg-zinc-900/60 border-b border-zinc-900 text-zinc-400 font-bold uppercase tracking-wider">
+                    <th className="p-4">User Details</th>
+                    <th className="p-4">System Role Scope</th>
+                    <th className="p-4">Registered On</th>
+                    <th className="p-4 text-right">Administrative Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-zinc-900/40">
+                  {usersList.length === 0 ? (
+                    <tr>
+                      <td colSpan={4} className="p-8 text-center text-zinc-500 italic">
+                        No registered members discovered in the CMS database.
+                      </td>
+                    </tr>
+                  ) : (
+                    usersList.map((usr) => (
+                      <tr key={usr.id} className="hover:bg-zinc-900/30 transition-colors">
+                        <td className="p-4">
+                          <div className="flex items-center gap-3">
+                            <img
+                              src={usr.profileImage || `https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=80&auto=format&fit=crop&q=80`}
+                              alt={usr.name}
+                              className="w-10 h-10 rounded-full border border-zinc-800 object-cover bg-zinc-900"
+                              referrerPolicy="no-referrer"
+                            />
+                            <div>
+                              <p className="font-extrabold text-white text-sm">{usr.name}</p>
+                              <p className="text-[10px] text-zinc-500 font-mono mt-0.5">{usr.email}</p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="p-4">
+                          {usr.role === "admin" ? (
+                            <span className="px-2.5 py-1 rounded bg-red-600/15 border border-red-600/30 text-red-500 text-[10px] font-black uppercase tracking-wider font-mono">
+                              System Admin
+                            </span>
+                          ) : (
+                            <span className="px-2.5 py-1 rounded bg-zinc-900 border border-zinc-800 text-zinc-400 text-[10px] font-black uppercase tracking-wider font-mono">
+                              Standard Viewer
+                            </span>
+                          )}
+                        </td>
+                        <td className="p-4 text-zinc-400 font-mono">
+                          {new Date(usr.createdAt).toLocaleDateString(undefined, {
+                            year: "numeric",
+                            month: "short",
+                            day: "numeric"
+                          })}
+                        </td>
+                        <td className="p-4 text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            <button
+                              onClick={() => handleToggleUserRole(usr.id, usr.role)}
+                              className="px-3 py-1.5 rounded bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 text-zinc-300 font-semibold hover:text-white transition-all text-[11px] cursor-pointer"
+                              title="Toggle admin / user role scopes"
+                            >
+                              Toggle Role Override
+                            </button>
+                            <button
+                              onClick={() => handleDeleteUser(usr.id)}
+                              className="p-1.5 rounded bg-red-600/10 hover:bg-red-600/20 text-red-500 hover:text-red-400 border border-red-500/10 hover:border-red-500/25 transition-all cursor-pointer"
+                              title="Delete active member from directories"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
