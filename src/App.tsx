@@ -6,7 +6,7 @@
 import React, { useState, useEffect } from "react";
 import { 
   Film, Heart, AlertTriangle, Play, Sparkles, Filter, 
-  ArrowUpDown, ListVideo, HelpCircle, Flame, Compass 
+  ArrowUpDown, ListVideo, HelpCircle, Flame, Compass, Tv, Clapperboard
 } from "lucide-react";
 import Header from "./components/Header";
 import MovieCard from "./components/MovieCard";
@@ -329,6 +329,7 @@ export default function App() {
         currentLanguage={currentLanguage}
         onLanguageChange={handleLanguageChange}
         t={t}
+        movies={displayedMovies}
       />
 
       {/* Main Container Viewport switch */}
@@ -414,28 +415,29 @@ export default function App() {
             )}
 
             {/* Content Type Filter Tabs: All Content, Movies, TV Series */}
-            <div className="px-4 md:px-8 max-w-7xl mx-auto flex items-center border-b border-zinc-900/40 gap-8" id="content-type-filter-bar">
+            <div className="px-4 md:px-8 max-w-7xl mx-auto flex items-center border-b border-white/10 gap-3 md:gap-4 pt-2" id="content-type-filter-bar">
               {[
-                { id: "all", label: t.allContent, icon: "🍿" },
-                { id: "movie", label: t.movies, icon: "🎬" },
-                { id: "series", label: t.tvSeries, icon: "📺" }
+                { id: "all", label: t.allContent, icon: Sparkles },
+                { id: "movie", label: t.movies, icon: Clapperboard },
+                { id: "series", label: t.tvSeries, icon: Tv }
               ].map((item) => {
                 const isActive = selectedContentType === item.id;
+                const Icon = item.icon;
                 return (
                   <button
                     key={item.id}
                     onClick={() => {
                       setSelectedContentType(item.id as any);
                     }}
-                    className={`pb-3 text-sm font-extrabold tracking-wide flex items-center gap-2 relative transition-all cursor-pointer ${
-                      isActive ? "font-black" : "text-zinc-500 hover:text-zinc-350"
+                    className={`px-3 py-2 text-sm font-extrabold tracking-wide flex items-center gap-2 relative transition-all cursor-pointer rounded-md ${
+                      isActive ? "font-black" : "text-zinc-500 hover:text-zinc-200 hover:bg-white/[0.04]"
                     }`}
-                    style={isActive ? { color: settings.primaryColor } : {}}
+                    style={isActive ? { color: settings.primaryColor, backgroundColor: `${settings.primaryColor}12` } : {}}
                   >
-                    <span>{item.icon}</span>
+                    <Icon className="w-4 h-4" style={isActive ? { color: settings.primaryColor } : {}} />
                     <span>{item.label}</span>
                     {isActive && (
-                      <div className="absolute bottom-0 left-0 right-0 h-[3px] rounded-full transition-all" style={{ backgroundColor: settings.primaryColor, boxShadow: `0 0 12px ${settings.primaryColor}80` }} />
+                      <div className="absolute -bottom-px left-2 right-2 h-[3px] rounded-full transition-all" style={{ backgroundColor: settings.primaryColor, boxShadow: `0 0 12px ${settings.primaryColor}80` }} />
                     )}
                   </button>
                 );
@@ -443,18 +445,18 @@ export default function App() {
             </div>
 
             {/* Quick Filter Tag categories Row */}
-            <div className="px-4 md:px-8 max-w-7xl mx-auto flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 py-3 bg-zinc-950 rounded-xl border border-zinc-900/60 shadow-lg">
+            <div className="px-4 md:px-5 max-w-7xl mx-auto flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 py-4 cinema-panel rounded-lg">
               {/* Genre tabs */}
               <div className="flex items-center gap-2 overflow-x-auto w-full sm:w-auto scrollbar-thin scrollbar-thumb-zinc-900 scrollbar-track-transparent">
-                <Compass className="w-4 h-4 text-zinc-400 shrink-0 hidden md:inline" />
+                <Compass className="w-4 h-4 shrink-0 hidden md:inline" style={{ color: settings.primaryColor }} />
                 {["All", "Action", "Animation", "Drama", "Fantasy", "Sci-Fi", "Comedy"].map((genre) => (
                   <button
                     key={genre}
                     onClick={() => setSelectedGenre(genre)}
-                    className={`px-3 py-1.5 rounded-full text-xs font-semibold shrink-0 cursor-pointer transition-all ${
+                    className={`px-3 py-1.5 rounded-md text-xs font-semibold shrink-0 cursor-pointer transition-all border ${
                       selectedGenre === genre
-                        ? "text-white shadow-md"
-                        : "bg-zinc-900 hover:bg-zinc-850 text-zinc-400 hover:text-zinc-200"
+                        ? "text-white shadow-md border-transparent"
+                        : "bg-white/[0.035] hover:bg-white/[0.07] border-white/10 text-zinc-400 hover:text-zinc-200"
                     }`}
                     style={selectedGenre === genre ? { backgroundColor: settings.primaryColor, boxShadow: `0 0 8px ${settings.primaryColor}40` } : {}}
                   >
@@ -472,7 +474,7 @@ export default function App() {
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value)}
-                  className="bg-zinc-900 border border-zinc-800 text-xs font-semibold text-zinc-300 px-3 py-1.5 rounded-md focus:outline-hidden"
+                  className="bg-white/[0.04] border border-white/10 text-xs font-semibold text-zinc-300 px-3 py-1.5 rounded-md focus:outline-hidden theme-control"
                   style={{ '--focus-color': settings.primaryColor } as any}
                   onFocus={(e) => { (e.target as any).style.borderColor = settings.primaryColor + '80'; }}
                   onBlur={(e) => { (e.target as any).style.borderColor = ''; }}
@@ -492,8 +494,8 @@ export default function App() {
               {currentUser && displayedWatchHistory.length > 0 && !searchQuery && (
                 <div className="space-y-4" id="continue-watching-section">
                   <div className="flex items-center gap-2">
-                    <ListVideo className="w-5 h-5 text-red-500" />
-                    <h2 className="text-lg font-extrabold text-white">{t.continueWatching}</h2>
+                    <ListVideo className="w-5 h-5" style={{ color: settings.primaryColor }} />
+                    <h2 className="text-lg font-extrabold" style={{ color: settings.primaryColor }}>{t.continueWatching}</h2>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                     {displayedWatchHistory.map((hist) => (
@@ -514,8 +516,8 @@ export default function App() {
               <div className="space-y-4" id="main-catalog-grid">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <Flame className="w-5 h-5 text-red-500 animate-pulse" />
-                    <h2 className="text-lg font-extrabold text-white">
+                    <Flame className="w-5 h-5 animate-pulse" style={{ color: settings.primaryColor }} />
+                    <h2 className="text-lg font-extrabold" style={{ color: settings.primaryColor }}>
                       {selectedGenre === "All" ? t.trendingSpotlight : `${t[selectedGenre as keyof typeof t] || selectedGenre} Spotlight`}
                     </h2>
                   </div>
@@ -526,7 +528,7 @@ export default function App() {
 
                 {loading ? (
                   <div className="py-20 flex flex-col items-center gap-2" id="grid-loading">
-                    <div className="w-8 h-8 border-2 border-red-600 border-t-transparent rounded-full animate-spin" />
+                    <div className="w-8 h-8 border-2 border-t-transparent rounded-full animate-spin" style={{ borderColor: settings.primaryColor, borderTopColor: "transparent" }} />
                     <span className="text-xs text-zinc-500">Querying FlixSphere indexes...</span>
                   </div>
                 ) : error ? (
@@ -557,8 +559,8 @@ export default function App() {
               {!searchQuery && selectedGenre === "All" && featuredMovies.length > 0 && (
                 <div className="space-y-4 border-t border-zinc-900/60 pt-8" id="featured-curations-section">
                   <div className="flex items-center gap-1.5">
-                    <Sparkles className="w-5 h-5 text-amber-500" />
-                    <h2 className="text-lg font-extrabold text-white">{t.recommendedContent}</h2>
+                    <Sparkles className="w-5 h-5" style={{ color: settings.primaryColor }} />
+                    <h2 className="text-lg font-extrabold" style={{ color: settings.primaryColor }}>{t.recommendedContent}</h2>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                     {featuredMovies.map((movie) => (

@@ -24,7 +24,7 @@ export default function MovieCard({ movie, progress, onSelect, onPlay, t }: Movi
 
   return (
     <div 
-      className="group relative flex flex-col bg-zinc-950 rounded-lg overflow-hidden border border-zinc-900 hover:border-zinc-700/80 transition-all duration-300 shadow-lg cursor-pointer transform hover:-translate-y-1"
+      className="group relative flex flex-col cinema-surface rounded-lg overflow-hidden transition-all duration-300 cursor-pointer transform hover:-translate-y-1 hover:shadow-[0_22px_58px_rgba(0,0,0,0.42)]"
       onClick={() => onSelect(movie)}
       id={`movie-card-${movie.id}`}
     >
@@ -39,7 +39,7 @@ export default function MovieCard({ movie, progress, onSelect, onPlay, t }: Movi
         />
 
         {/* Dynamic Dark Gradient Cover */}
-        <div className="absolute inset-0 bg-linear-to-t from-black/90 via-black/20 to-black/30 opacity-60 group-hover:opacity-85 transition-opacity duration-300" />
+        <div className="absolute inset-0 bg-linear-to-t from-black/92 via-black/16 to-black/34 opacity-65 group-hover:opacity-90 transition-opacity duration-300" />
 
         {/* Hover Action Indicators */}
         <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
@@ -48,7 +48,8 @@ export default function MovieCard({ movie, progress, onSelect, onPlay, t }: Movi
               e.stopPropagation();
               onPlay(movie);
             }}
-            className="w-12 h-12 rounded-full bg-red-600 hover:bg-red-500 text-white flex items-center justify-center shadow-xl shadow-red-600/30 hover:scale-110 transition-transform cursor-pointer"
+            className="w-12 h-12 rounded-full text-white flex items-center justify-center shadow-xl hover:scale-110 transition-transform cursor-pointer ring-1 ring-white/20"
+            style={{ backgroundColor: "var(--theme-primary)", boxShadow: "0 16px 34px var(--theme-primary-30)" }}
             id={`play-btn-${movie.id}`}
           >
             <Play className="w-5 h-5 text-white fill-white ml-0.5" />
@@ -58,7 +59,7 @@ export default function MovieCard({ movie, progress, onSelect, onPlay, t }: Movi
         {/* Top Floating Badge Row */}
         <div className="absolute top-2 left-2 flex items-center gap-1.5">
           {movie.contentType === "series" && (
-            <span className="px-1.5 py-0.5 text-[9px] font-black bg-red-600/20 text-red-400 rounded border border-red-500/20 uppercase tracking-wider">
+            <span className="px-1.5 py-0.5 text-[9px] font-black rounded border uppercase tracking-wider theme-chip">
               {t?.tvSeries || "Series"}
             </span>
           )}
@@ -66,12 +67,14 @@ export default function MovieCard({ movie, progress, onSelect, onPlay, t }: Movi
             <span className={`px-1.5 py-0.5 text-[9px] font-black rounded flex items-center gap-0.5 ${
               movie.tier === "premium" 
                 ? "bg-amber-500 text-black shadow-xs font-black" 
-                : "bg-red-600 text-white shadow-xs"
-            }`}>
+                : "text-white shadow-xs"
+            }`}
+            style={movie.tier === "premium" ? undefined : { backgroundColor: "var(--theme-primary)" }}
+            >
               {movie.tier.toUpperCase()}
             </span>
           )}
-          <span className="px-1.5 py-0.5 text-[9px] font-black bg-black/60 backdrop-blur-md text-red-500 rounded border border-red-500/20">
+          <span className="px-1.5 py-0.5 text-[9px] font-black bg-black/60 backdrop-blur-md rounded border theme-chip">
             {movie.quality}
           </span>
           <span className="px-1.5 py-0.5 text-[9px] font-semibold bg-zinc-950/80 backdrop-blur-md text-zinc-300 rounded border border-zinc-800">
@@ -93,8 +96,8 @@ export default function MovieCard({ movie, progress, onSelect, onPlay, t }: Movi
         {progress && progressPercent > 0 && (
           <div className="absolute bottom-0 left-0 right-0 bg-zinc-900/60 h-1">
             <div 
-              className="bg-red-600 h-full transition-all duration-300"
-              style={{ width: `${progressPercent}%` }}
+              className="h-full transition-all duration-300"
+              style={{ width: `${progressPercent}%`, backgroundColor: "var(--theme-primary)" }}
             />
           </div>
         )}
@@ -104,7 +107,7 @@ export default function MovieCard({ movie, progress, onSelect, onPlay, t }: Movi
       <div className="p-3.5 flex flex-col justify-between flex-1">
         <div>
           <div className="flex items-start justify-between gap-1.5">
-            <h3 className="text-sm font-bold text-zinc-100 group-hover:text-red-500 transition-colors line-clamp-1">
+            <h3 className="text-sm font-bold text-zinc-100 transition-colors line-clamp-1 group-hover:[color:var(--theme-primary)]">
               {movie.title}
             </h3>
             <div className="flex items-center gap-1 shrink-0 text-amber-500">

@@ -6,7 +6,7 @@
 import React, { useState, useEffect } from "react";
 import { 
   BarChart3, Film, Settings, Plus, Edit, Trash2, Save, 
-  Tv, Eye, Play, ShieldAlert, CheckCircle, TrendingUp, Users, RefreshCw, X 
+  Tv, Eye, Play, ShieldAlert, CheckCircle, TrendingUp, Users, RefreshCw, X, Search, Database 
 } from "lucide-react";
 import { Movie, DashboardStats, CMSSettings, Subtitle, User, Season, Episode } from "../types";
 
@@ -14,6 +14,37 @@ interface AdminCMSProps {
   onRefreshMovies: () => void;
   movies: Movie[];
 }
+
+type TmdbSearchResult = {
+  id: string;
+  tmdbId: number;
+  type: "movie" | "series";
+  title: string;
+  subtitle: string;
+  posterUrl?: string;
+  backdropUrl?: string;
+};
+
+type TmdbMetadata = {
+  tmdbId: number;
+  contentType: "movie" | "series";
+  title: string;
+  description: string;
+  posterUrl: string;
+  backdropUrl: string;
+  duration: number;
+  releaseYear: number;
+  rating: number;
+  ageRating: string;
+  genres: string[];
+  cast: string[];
+  directors: string[];
+  country: string;
+  language: string;
+  seasonsCount: number;
+  episodesPerSeason: number;
+  seasons: Season[];
+};
 
 export default function AdminCMS({ onRefreshMovies, movies }: AdminCMSProps) {
   const [activeSubTab, setActiveSubTab] = useState<"analytics" | "catalog" | "settings" | "users">("analytics");
@@ -31,6 +62,11 @@ export default function AdminCMS({ onRefreshMovies, movies }: AdminCMSProps) {
   const [showForm, setShowForm] = useState(false);
   const [formMode, setFormMode] = useState<"create" | "edit">("create");
   const [editingMovieId, setEditingMovieId] = useState<string | null>(null);
+  const [tmdbQuery, setTmdbQuery] = useState("");
+  const [tmdbResults, setTmdbResults] = useState<TmdbSearchResult[]>([]);
+  const [tmdbLoading, setTmdbLoading] = useState(false);
+  const [tmdbError, setTmdbError] = useState("");
+  const [applyingTmdbId, setApplyingTmdbId] = useState<number | null>(null);
 
   // Form Inputs
   const [title, setTitle] = useState("");
@@ -204,6 +240,45 @@ export default function AdminCMS({ onRefreshMovies, movies }: AdminCMSProps) {
     fetchDashboardData();
   }, [movies]); // re-run stats whenever catalog changes
 
+  useEffect(() => {
+    if (!showForm || tmdbQuery.trim().length < 2) {
+      setTmdbResults([]);
+      setTmdbError("");
+      setTmdbLoading(false);
+      return;
+    }
+
+    const controller = new AbortController();
+    const timer = window.setTimeout(async () => {
+      setTmdbLoading(true);
+      setTmdbError("");
+      try {
+        const params = new URLSearchParams({
+          q: tmdbQuery.trim(),
+          contentType: "all"
+        });
+        const res = await fetch(`/api/tmdb/search?${params.toString()}`, {
+          signal: controller.signal
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "TMDB search failed.");
+        setTmdbResults(data);
+      } catch (err: any) {
+        if (err.name !== "AbortError") {
+          setTmdbResults([]);
+          setTmdbError(err.message || "Could not reach TMDB.");
+        }
+      } finally {
+        if (!controller.signal.aborted) setTmdbLoading(false);
+      }
+    }, 350);
+
+    return () => {
+      window.clearTimeout(timer);
+      controller.abort();
+    };
+  }, [showForm, tmdbQuery]);
+
   // Form field handlers
   const handleOpenCreate = () => {
     setFormMode("create");
@@ -229,6 +304,9 @@ export default function AdminCMS({ onRefreshMovies, movies }: AdminCMSProps) {
     setSeasonsCount(1);
     setEpisodesPerSeason(5);
     setSeasons([]);
+    setTmdbQuery("");
+    setTmdbResults([]);
+    setTmdbError("");
     setShowForm(true);
   };
 
@@ -256,7 +334,51 @@ export default function AdminCMS({ onRefreshMovies, movies }: AdminCMSProps) {
     setSeasonsCount(movie.seasons?.length || 1);
     setEpisodesPerSeason(movie.seasons?.[0]?.episodes?.length || 5);
     setSeasons(movie.seasons || []);
+    setTmdbQuery(movie.title);
+    setTmdbResults([]);
+    setTmdbError("");
     setShowForm(true);
+  };
+
+  const applyTmdbMetadata = async (result: TmdbSearchResult) => {
+    try {
+      setApplyingTmdbId(result.tmdbId);
+      setTmdbError("");
+      const mediaType = result.type === "series" ? "tv" : "movie";
+      const params = new URLSearchParams({
+        id: String(result.tmdbId),
+        mediaType
+      });
+      const res = await fetch(`/api/tmdb/metadata?${params.toString()}`);
+      const metadata: TmdbMetadata | { error?: string } = await res.json();
+      if (!res.ok) throw new Error((metadata as any).error || "Could not import TMDB metadata.");
+
+      const data = metadata as TmdbMetadata;
+      setContentType(data.contentType);
+      setTitle(data.title || title);
+      setTmdbQuery(data.title || result.title);
+      setDescription(data.description || "");
+      setPosterUrl(data.posterUrl || posterUrl);
+      setBackdropUrl(data.backdropUrl || backdropUrl);
+      setDuration(data.duration || duration);
+      setReleaseYear(data.releaseYear || releaseYear);
+      setRating(data.rating || rating);
+      setAgeRating(data.ageRating || ageRating);
+      setGenres(data.genres.length ? data.genres : genres);
+      setCast(data.cast.length ? data.cast : cast);
+      setDirectors(data.directors.length ? data.directors : directors);
+      setCountry(data.country || country);
+      setLanguage(data.language || language);
+      setSeasonsCount(data.seasonsCount || 1);
+      setEpisodesPerSeason(data.episodesPerSeason || 5);
+      setSeasons(data.contentType === "series" ? data.seasons : []);
+      setSuccessMsg(`TMDB metadata imported for ${data.title || result.title}.`);
+      setTimeout(() => setSuccessMsg(""), 2500);
+    } catch (err: any) {
+      setTmdbError(err.message || "TMDB import failed.");
+    } finally {
+      setApplyingTmdbId(null);
+    }
   };
 
   const handleDeleteMovie = async (movieId: string) => {
@@ -734,7 +856,7 @@ export default function AdminCMS({ onRefreshMovies, movies }: AdminCMSProps) {
               <div className="bg-zinc-950 border border-zinc-800 w-full max-w-xl h-full rounded-xl overflow-hidden shadow-2xl flex flex-col">
                 <div className="px-5 py-4 border-b border-zinc-900 bg-zinc-900/40 flex justify-between items-center shrink-0">
                   <h3 className="text-sm font-extrabold text-white flex items-center gap-1.5">
-                    <Film className="w-4.5 h-4.5 text-red-500" />
+                    <Film className="w-4.5 h-4.5" style={{ color: brandColor }} />
                     {formMode === "create" ? "Publish New Movie Title" : "Modify Movie Metadata"}
                   </h3>
                   <button 
@@ -754,10 +876,80 @@ export default function AdminCMS({ onRefreshMovies, movies }: AdminCMSProps) {
                       required
                       placeholder="e.g. Sintel: Path of the Dragon"
                       value={title}
-                      onChange={(e) => setTitle(e.target.value)}
+                      onChange={(e) => {
+                        setTitle(e.target.value);
+                        setTmdbQuery(e.target.value);
+                      }}
                       className="w-full bg-zinc-900 border border-zinc-850 p-2.5 rounded text-xs focus:outline-hidden focus:border-red-500/50"
                       id="form-input-title"
                     />
+                  </div>
+
+                  <div className="rounded-lg border border-zinc-900 bg-zinc-950/50 p-3 space-y-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <h4 className="text-xs font-black text-white uppercase tracking-wider flex items-center gap-1.5">
+                          <Database className="w-4 h-4" style={{ color: brandColor }} />
+                          TMDB Metadata Import
+                        </h4>
+                        <p className="text-[10px] text-zinc-500 mt-0.5">
+                          Search movies or TV series, then apply metadata to this form.
+                        </p>
+                      </div>
+                      {tmdbLoading && (
+                        <RefreshCw className="w-4 h-4 animate-spin shrink-0" style={{ color: brandColor }} />
+                      )}
+                    </div>
+
+                    <div className="relative">
+                      <Search className="absolute left-3 top-2.5 w-4 h-4 text-zinc-500" />
+                      <input
+                        type="text"
+                        placeholder="Search TMDB by title..."
+                        value={tmdbQuery}
+                        onChange={(e) => setTmdbQuery(e.target.value)}
+                        className="w-full bg-zinc-900 border border-zinc-850 p-2.5 pl-9 rounded text-xs focus:outline-hidden focus:border-red-500/50"
+                      />
+                    </div>
+
+                    {tmdbError && (
+                      <div className="text-[11px] text-red-400 bg-red-950/20 border border-red-500/20 rounded p-2">
+                        {tmdbError}
+                      </div>
+                    )}
+
+                    {tmdbResults.length > 0 && (
+                      <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+                        {tmdbResults.map((item) => (
+                          <div key={item.id} className="flex items-center gap-3 rounded-md border border-zinc-900 bg-zinc-900/40 p-2">
+                            {item.posterUrl ? (
+                              <img src={item.posterUrl} alt="" className="w-10 h-14 rounded object-cover bg-zinc-950 border border-zinc-800 shrink-0" />
+                            ) : (
+                              <div className="w-10 h-14 rounded bg-zinc-950 border border-zinc-800 flex items-center justify-center shrink-0">
+                                {item.type === "series" ? <Tv className="w-4 h-4" /> : <Film className="w-4 h-4" />}
+                              </div>
+                            )}
+                            <div className="min-w-0 flex-1">
+                              <p className="text-xs font-bold text-zinc-100 truncate">{item.title}</p>
+                              <p className="text-[10px] text-zinc-500 truncate">{item.subtitle}</p>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => applyTmdbMetadata(item)}
+                              disabled={applyingTmdbId === item.tmdbId}
+                              className="px-2.5 py-1.5 text-[10px] font-black rounded border transition-all cursor-pointer disabled:opacity-60"
+                              style={{ color: brandColor, borderColor: `${brandColor}35`, backgroundColor: `${brandColor}12` }}
+                            >
+                              {applyingTmdbId === item.tmdbId ? "Importing" : "Apply"}
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {!tmdbLoading && tmdbQuery.trim().length >= 2 && !tmdbError && tmdbResults.length === 0 && (
+                      <p className="text-[10px] text-zinc-600">No TMDB matches yet. Try a more exact title.</p>
+                    )}
                   </div>
 
                   <div className="grid grid-cols-2 gap-4 border-b border-zinc-900/60 pb-4">

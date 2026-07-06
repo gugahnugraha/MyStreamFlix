@@ -32,6 +32,9 @@
   --theme-primary-30: rgba(229, 9, 20, 0.3);
   --theme-primary-20: rgba(229, 9, 20, 0.2);
   --theme-primary-10: rgba(229, 9, 20, 0.1);
+  --surface-strong: rgba(15, 15, 18, 0.94);
+  --surface-soft: rgba(24, 24, 27, 0.72);
+  --line-soft: rgba(255, 255, 255, 0.08);
 }
 
 @keyframes fadeInScale {
@@ -67,7 +70,8 @@
 
 /* Base body custom styles */
 body {
-  background-color: #09090b; /* zinc-950 */
+  background:
+    linear-gradient(180deg, #050505 0%, #0b0b0d 46%, #060607 100%);
   color: #f4f4f5; /* zinc-100 */
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
@@ -75,10 +79,142 @@ body {
   overflow-x: hidden;
 }
 
+#app-root {
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.025) 0%, transparent 22rem),
+    linear-gradient(135deg, rgba(255,255,255,0.018) 0%, transparent 38%),
+    #070708;
+}
+
+.cinema-surface {
+  background:
+    linear-gradient(180deg, rgba(39,39,42,0.76), rgba(9,9,11,0.94));
+  border: 1px solid var(--line-soft);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.34);
+}
+
+.cinema-panel {
+  background:
+    linear-gradient(180deg, rgba(24,24,27,0.78), rgba(9,9,11,0.88));
+  border: 1px solid var(--line-soft);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.04), 0 16px 40px rgba(0,0,0,0.22);
+}
+
+.theme-control {
+  border-color: rgba(255,255,255,0.09);
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease;
+}
+
+.theme-control:focus {
+  border-color: var(--theme-primary-50) !important;
+  box-shadow: 0 0 0 2px var(--theme-primary-20);
+}
+
+.theme-chip {
+  color: var(--theme-primary);
+  border-color: var(--theme-primary-30);
+  background: var(--theme-primary-10);
+}
+
+#header-nav button,
+#header-actions button,
+#cms-subtabs button,
+#content-type-filter-bar button {
+  letter-spacing: 0;
+}
+
+#header-nav button:hover,
+#content-type-filter-bar button:hover {
+  color: var(--theme-primary);
+}
+
+#home-feed-viewport > .px-4,
+#favorites-feed-viewport > .py-20,
+#cms-catalog-panel > .bg-zinc-950,
+#cms-analytics-panel .bg-zinc-950,
+#cms-settings-panel .bg-zinc-950,
+#cms-users-panel .bg-zinc-950,
+#admin-cms-wrapper .bg-zinc-950.border {
+  background:
+    linear-gradient(180deg, rgba(24,24,27,0.74), rgba(9,9,11,0.88));
+  border-color: var(--line-soft);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.035), 0 16px 40px rgba(0,0,0,0.18);
+}
+
+#main-catalog-grid,
+#continue-watching-section,
+#featured-curations-section {
+  scroll-margin-top: 6rem;
+}
+
+#main-catalog-grid > .flex,
+#continue-watching-section > .flex,
+#featured-curations-section > .flex {
+  padding-bottom: 0.35rem;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+input,
+select,
+textarea {
+  accent-color: var(--theme-primary);
+}
+
+#app-root .text-red-500,
+#app-root .text-red-400 {
+  color: var(--theme-primary) !important;
+}
+
+#app-root .bg-red-600,
+#app-root .hover\:bg-red-600:hover,
+#app-root .hover\:bg-red-500:hover {
+  background-color: var(--theme-primary) !important;
+}
+
+#app-root .bg-red-600\/10,
+#app-root .bg-red-500\/10,
+#app-root .hover\:bg-red-600\/20:hover {
+  background-color: var(--theme-primary-10) !important;
+}
+
+#app-root .bg-red-600\/15,
+#app-root .bg-red-600\/20,
+#app-root .bg-red-500\/20,
+#app-root .bg-red-950\/20,
+#app-root .bg-red-950\/40,
+#app-root .hover\:bg-red-950\/40:hover {
+  background-color: var(--theme-primary-20) !important;
+}
+
+#app-root .border-red-500,
+#app-root .border-red-600,
+#app-root .border-red-500\/10,
+#app-root .border-red-500\/20,
+#app-root .border-red-500\/25,
+#app-root .border-red-500\/30,
+#app-root .border-red-500\/50,
+#app-root .border-red-600\/30 {
+  border-color: var(--theme-primary-30) !important;
+}
+
+#app-root .fill-red-500 {
+  fill: var(--theme-primary) !important;
+}
+
+#app-root .accent-red-600 {
+  accent-color: var(--theme-primary) !important;
+}
+
+#app-root .shadow-red-600\/10,
+#app-root .shadow-red-600\/30,
+#app-root .shadow-red-950\/30 {
+  box-shadow: 0 14px 34px var(--theme-primary-20) !important;
+}
+
 /* Custom interactive input range customizations */
 input[type="range"]::-webkit-slider-thumb {
   border-radius: 9999px;
-  background-color: #ef4444; /* red-500 */
+  background-color: var(--theme-primary);
   transition: transform 0.15s ease;
 }
 

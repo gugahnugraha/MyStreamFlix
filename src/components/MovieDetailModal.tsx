@@ -146,7 +146,7 @@ export default function MovieDetailModal({
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-xs" id="detail-modal-loading">
         <div className="flex flex-col items-center gap-3">
-          <div className="w-10 h-10 border-4 border-red-600 border-t-transparent rounded-full animate-spin" />
+          <div className="w-10 h-10 border-4 border-t-transparent rounded-full animate-spin" style={{ borderColor: "var(--theme-primary)", borderTopColor: "transparent" }} />
           <p className="text-xs text-zinc-400 font-medium">Retrieving Title Details...</p>
         </div>
       </div>
@@ -157,11 +157,12 @@ export default function MovieDetailModal({
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85" id="detail-modal-error">
         <div className="bg-zinc-900 border border-zinc-800 p-6 rounded-lg max-w-sm text-center">
-          <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+          <AlertTriangle className="w-12 h-12 mx-auto mb-4" style={{ color: "var(--theme-primary)" }} />
           <p className="text-white font-bold">{error || "Failed to load movie info"}</p>
           <button 
             onClick={onClose}
-            className="mt-4 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded text-xs font-semibold"
+            className="mt-4 px-4 py-2 text-white rounded text-xs font-semibold hover:brightness-110"
+            style={{ backgroundColor: "var(--theme-primary)" }}
           >
             Close Dialog
           </button>
@@ -176,11 +177,11 @@ export default function MovieDetailModal({
       <div className="fixed inset-0 -z-10" onClick={onClose} />
 
       {/* Main Card Container */}
-      <div className="bg-zinc-900 border border-zinc-800/80 rounded-xl overflow-hidden w-full max-w-4xl shadow-2xl relative flex flex-col h-fit">
+      <div className="cinema-surface rounded-lg overflow-hidden w-full max-w-5xl shadow-2xl relative flex flex-col h-fit">
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 z-10 w-9 h-9 rounded-full bg-black/60 hover:bg-red-600 text-white flex items-center justify-center transition-colors shadow-lg cursor-pointer"
+          className="absolute top-4 right-4 z-10 w-9 h-9 rounded-full bg-black/60 text-white flex items-center justify-center transition-colors shadow-lg cursor-pointer hover:[background-color:var(--theme-primary)]"
           id="detail-modal-close"
         >
           <X className="w-4 h-4" />
@@ -194,19 +195,21 @@ export default function MovieDetailModal({
             className="w-full h-full object-cover object-top"
             referrerPolicy="no-referrer"
           />
-          <div className="absolute inset-0 bg-linear-to-t from-zinc-900 via-zinc-900/30 to-transparent" />
+          <div className="absolute inset-0 bg-linear-to-t from-[#0b0b0d] via-[#0b0b0d]/42 to-transparent" />
           <div className="absolute inset-x-0 bottom-0 p-6 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
             <div>
               {movie.tier && movie.tier !== "free" && (
                 <span className={`px-2 py-0.5 text-[10px] font-black rounded mr-2 uppercase ${
                   movie.tier === "premium" 
                     ? "bg-amber-500 text-black font-black" 
-                    : "bg-red-600 text-white"
-                }`}>
+                    : "text-white"
+                }`}
+                style={movie.tier === "premium" ? undefined : { backgroundColor: "var(--theme-primary)" }}
+                >
                   {movie.tier.toUpperCase()} VIP
                 </span>
               )}
-              <span className="px-2.5 py-0.5 text-[10px] font-black bg-red-600 text-white rounded mr-2">
+              <span className="px-2.5 py-0.5 text-[10px] font-black text-white rounded mr-2" style={{ backgroundColor: "var(--theme-primary)" }}>
                 {movie.quality}
               </span>
               <span className="px-2 py-0.5 text-xs font-bold bg-zinc-950/80 text-zinc-300 rounded border border-zinc-800">
@@ -220,7 +223,8 @@ export default function MovieDetailModal({
             <div className="flex items-center gap-2">
               <button
                 onClick={() => onPlay(movie)}
-                className="flex items-center gap-2 bg-red-600 hover:bg-red-500 text-white font-bold text-xs px-5 py-2.5 rounded-md transition-colors shadow-lg shadow-red-600/10 cursor-pointer"
+                className="flex items-center gap-2 text-white font-bold text-xs px-5 py-2.5 rounded-md transition-colors shadow-lg cursor-pointer hover:brightness-110"
+                style={{ backgroundColor: "var(--theme-primary)", boxShadow: "0 14px 30px var(--theme-primary-20)" }}
                 id="modal-play-btn"
               >
                 <Play className="w-4 h-4 fill-white" />
@@ -231,20 +235,21 @@ export default function MovieDetailModal({
                 onClick={() => onToggleFavorite(movie.id)}
                 className={`w-10 h-10 flex items-center justify-center rounded-md border transition-colors cursor-pointer ${
                   isFavorite(movie.id)
-                    ? "bg-red-600/10 border-red-500/50 text-red-500 hover:bg-red-600/20"
+                    ? ""
                     : "bg-zinc-950/80 border-zinc-800 text-zinc-400 hover:text-white"
                 }`}
+                style={isFavorite(movie.id) ? { backgroundColor: "var(--theme-primary-10)", borderColor: "var(--theme-primary-50)", color: "var(--theme-primary)" } : {}}
                 title="Add to Watchlist"
                 id="modal-fav-btn"
               >
-                <Heart className={`w-4 h-4 ${isFavorite(movie.id) ? "fill-red-500" : ""}`} />
+                <Heart className={`w-4 h-4 ${isFavorite(movie.id) ? "fill-current" : ""}`} />
               </button>
             </div>
           </div>
         </div>
 
         {/* Dynamic Detail Body Grid */}
-        <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="p-6 md:p-7 grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* Left Column: Summary and Review Board */}
           <div className="md:col-span-2 space-y-6">
             <div>

@@ -1,8 +1,18 @@
-import React, { useState } from "react";
-import { Film, User as UserIcon, ShieldAlert, Heart, LayoutDashboard, LogIn, LogOut, RefreshCw, Search, Crown, Sparkles, Users, Globe } from "lucide-react";
+import React, { useEffect, useMemo, useState } from "react";
+import { Film, Heart, LayoutDashboard, LogIn, LogOut, RefreshCw, Search, Crown, Sparkles, Users, Globe, Clapperboard, Tv, UserRound } from "lucide-react";
 import { User, CMSSettings } from "../types";
 
 import { Movie } from "../types";
+
+type SearchSuggestion = {
+  id: string;
+  type: "movie" | "series" | "cast";
+  title: string;
+  subtitle: string;
+  posterUrl?: string;
+  query: string;
+  source: "local" | "tmdb";
+};
 
 interface HeaderProps {
   currentUser: User | null;
@@ -41,33 +51,99 @@ export default function Header({
 }: HeaderProps) {
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [showSearchSuggestions, setShowSearchSuggestions] = useState(false);
+  const [searchSuggestions, setSearchSuggestions] = useState<SearchSuggestion[]>([]);
+  const [suggestionsLoading, setSuggestionsLoading] = useState(false);
   
-  // Generate search suggestions
-  const searchSuggestions = searchQuery.trim() ? movies
-    .filter(m => m.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                  m.cast.some(c => c.toLowerCase().includes(searchQuery.toLowerCase())))
-    .slice(0, 8)
-    .map(m => ({ title: m.title, poster: m.posterUrl, id: m.id })) : [];
-
   // Dynamic profile calculation matching Prime/Disney+
   const activeProfile = currentUser?.profiles?.find(p => p.id === currentUser.activeProfileId);
   const profileAvatar = activeProfile?.avatar || currentUser?.profileImage || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80";
   const profileName = activeProfile?.name || currentUser?.name;
   const brandColor = settings?.primaryColor || "#E50914";
+  const localSuggestions = useMemo<SearchSuggestion[]>(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return [];
+
+    const titleMatches = movies
+      .filter(m => m.title.toLowerCase().includes(q) || m.cast.some(c => c.toLowerCase().includes(q)))
+      .slice(0, 5)
+      .map(m => ({
+        id: `local-${m.id}`,
+        type: (m.contentType === "series" ? "series" : "movie") as "series" | "movie",
+        title: m.title,
+        subtitle: `${m.contentType === "series" ? "TV Series" : "Movie"} • ${m.releaseYear}`,
+        posterUrl: m.posterUrl,
+        query: m.title,
+        source: "local" as const
+      }));
+
+    const castMatches = Array.from(new Set(
+      movies.flatMap(m => m.cast).filter(c => c.toLowerCase().includes(q))
+    )).slice(0, 3).map(name => ({
+      id: `cast-${name}`,
+      type: "cast" as const,
+      title: name,
+      subtitle: "Cast",
+      query: name,
+      source: "local" as const
+    }));
+
+    return [...titleMatches, ...castMatches].slice(0, 8);
+  }, [movies, searchQuery]);
+
+  useEffect(() => {
+    const q = searchQuery.trim();
+    if (!q) {
+      setSearchSuggestions([]);
+      setSuggestionsLoading(false);
+      return;
+    }
+
+    setSearchSuggestions(localSuggestions);
+    const controller = new AbortController();
+    const timer = window.setTimeout(async () => {
+      setSuggestionsLoading(true);
+      try {
+        const res = await fetch(`/api/search/suggestions?q=${encodeURIComponent(q)}`, {
+          signal: controller.signal
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setSearchSuggestions(data.length ? data : localSuggestions);
+        }
+      } catch (error: any) {
+        if (error.name !== "AbortError") {
+          setSearchSuggestions(localSuggestions);
+        }
+      } finally {
+        if (!controller.signal.aborted) setSuggestionsLoading(false);
+      }
+    }, 220);
+
+    return () => {
+      window.clearTimeout(timer);
+      controller.abort();
+    };
+  }, [localSuggestions, searchQuery]);
+
+  const getSuggestionIcon = (type: SearchSuggestion["type"]) => {
+    if (type === "series") return <Tv className="w-4 h-4" style={{ color: brandColor }} />;
+    if (type === "cast") return <UserRound className="w-4 h-4" style={{ color: brandColor }} />;
+    return <Clapperboard className="w-4 h-4" style={{ color: brandColor }} />;
+  };
 
   return (
-    <header className="sticky top-0 z-40 bg-linear-to-b from-black/95 to-black/80 backdrop-blur-md border-b border-zinc-800/40 px-4 md:px-8 py-3 flex items-center justify-between">
+    <header className="sticky top-0 z-40 bg-black/72 backdrop-blur-xl border-b border-white/10 px-4 md:px-8 py-3 flex items-center justify-between shadow-[0_12px_36px_rgba(0,0,0,0.28)]">
       {/* Brand Logo */}
       <div 
         className="flex items-center gap-2 cursor-pointer group"
         onClick={() => setActiveTab("home")}
         id="header-brand-logo"
       >
-        <div className="w-9 h-9 rounded-lg flex items-center justify-center shadow-lg group-hover:scale-110 transition-all duration-300" style={{ backgroundColor: brandColor, boxShadow: `0 0 12px ${brandColor}40` }}>
+        <div className="w-9 h-9 rounded-lg flex items-center justify-center shadow-lg group-hover:scale-110 transition-all duration-300 ring-1 ring-white/10" style={{ backgroundColor: brandColor, boxShadow: `0 12px 28px ${brandColor}38` }}>
           <Film className="w-5 h-5 text-white group-hover:animate-pulse" />
         </div>
         <span className="text-xl font-bold tracking-wider text-white font-sans flex items-center gap-1.5">
-          {settings.logoText}
+          <span style={{ color: brandColor }}>{settings.logoText}</span>
           {currentUser?.isPremium && (
             <span className="text-[9px] bg-amber-500/10 text-amber-500 border border-amber-500/20 px-1.5 py-0.5 rounded-sm font-black tracking-widest uppercase flex items-center gap-1">
               <Crown className="w-2.5 h-2.5 fill-amber-500 shrink-0" />
@@ -78,28 +154,31 @@ export default function Header({
       </div>
 
       {/* Main Navigation */}
-      <nav className="hidden md:flex items-center gap-6 text-sm font-medium text-zinc-400" id="header-nav">
+      <nav className="hidden md:flex items-center gap-2 text-sm font-medium text-zinc-400 bg-white/[0.03] border border-white/10 rounded-lg p-1" id="header-nav">
         <button
           onClick={() => setActiveTab("home")}
-          className={`relative px-1 pb-1 hover:text-white transition-colors cursor-pointer group ${
-            activeTab === "home" ? "text-white font-semibold" : ""
+          className={`relative px-3 py-1.5 rounded-md transition-all cursor-pointer group ${
+            activeTab === "home" ? "text-white font-semibold" : "hover:bg-white/[0.04]"
           }`}
+          style={activeTab === "home" ? { backgroundColor: `${brandColor}18`, color: brandColor } : {}}
           id="nav-home"
         >
           {t.browse}
-          <span className={`absolute bottom-0 left-0 right-0 h-0.5 rounded-full transition-all duration-300 ${activeTab === "home" ? "opacity-100" : "opacity-0 group-hover:opacity-50"}`} style={{ backgroundColor: brandColor }} />
         </button>
         {currentUser && (
           <button
             onClick={() => setActiveTab("favorites")}
-            className={`relative px-1 pb-1 hover:text-white transition-colors cursor-pointer flex items-center gap-1.5 group ${
-              activeTab === "favorites" ? "text-white font-semibold" : ""
+            className={`relative px-3 py-1.5 rounded-md transition-all cursor-pointer flex items-center gap-1.5 group ${
+              activeTab === "favorites" ? "text-white font-semibold" : "hover:bg-white/[0.04]"
             }`}
+            style={activeTab === "favorites" ? { backgroundColor: `${brandColor}18`, color: brandColor } : {}}
             id="nav-favorites"
           >
-            <Heart className={`w-4 h-4 transition-transform ${activeTab === "favorites" ? "fill-current" : "group-hover:scale-110"}`} />
+            <Heart
+              className={`w-4 h-4 transition-transform ${activeTab === "favorites" ? "fill-current" : "group-hover:scale-110"}`}
+              style={activeTab === "favorites" ? { color: brandColor } : {}}
+            />
             {t.myList}
-            <span className={`absolute bottom-0 left-0 right-0 h-0.5 rounded-full transition-all duration-300 ${activeTab === "favorites" ? "opacity-100" : "opacity-0 group-hover:opacity-50"}`} style={{ backgroundColor: brandColor }} />
           </button>
         )}
 
@@ -107,8 +186,8 @@ export default function Header({
         {currentUser && !currentUser.isPremium && (
           <button
             onClick={onOpenSubscription}
-            className="flex items-center gap-1 px-3 py-1.5 rounded-full text-black text-xs font-bold transition-all shadow-lg hover:shadow-2xl cursor-pointer shrink-0 ml-auto group relative overflow-hidden"
-            style={{ backgroundColor: brandColor }}
+            className="flex items-center gap-1 px-3 py-1.5 rounded-md text-white text-xs font-bold transition-all shadow-lg hover:shadow-2xl cursor-pointer shrink-0 ml-auto group relative overflow-hidden"
+            style={{ backgroundColor: brandColor, boxShadow: `0 12px 28px ${brandColor}28` }}
           >
             <div className="absolute inset-0 opacity-0 group-hover:opacity-20 transition-opacity" style={{ backgroundColor: "white" }} />
             <Sparkles className="w-3 h-3 fill-current relative z-10" />
@@ -122,20 +201,68 @@ export default function Header({
         {/* Search Input */}
         {activeTab === "home" && (
           <div className="relative hidden sm:block">
-            <Search className="absolute left-3 top-2.5 w-4 h-4 text-zinc-500" />
+            <Search className="absolute left-3 top-2.5 w-4 h-4 text-zinc-500" style={showSearchSuggestions ? { color: brandColor } : {}} />
             <input
               type="text"
               placeholder={t.searchPlaceholder}
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-40 lg:w-56 bg-zinc-900/90 text-xs text-white pl-9 pr-4 py-2 rounded-full border border-zinc-800 focus:outline-hidden focus:border-red-500/50 focus:ring-2 focus:ring-red-500/20 transition-all placeholder:text-zinc-500"
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setShowSearchSuggestions(true);
+              }}
+              onFocus={() => setShowSearchSuggestions(true)}
+              onBlur={() => window.setTimeout(() => setShowSearchSuggestions(false), 120)}
+              className="w-40 lg:w-64 bg-white/[0.04] text-xs text-white pl-9 pr-4 py-2 rounded-lg border border-white/10 focus:outline-hidden focus:ring-2 transition-all placeholder:text-zinc-500"
+              style={showSearchSuggestions ? { borderColor: `${brandColor}80`, boxShadow: `0 0 0 2px ${brandColor}20` } : {}}
               id="header-search-input"
             />
+            {showSearchSuggestions && searchQuery.trim() && (
+              <div className="absolute right-0 top-full mt-2 w-72 rounded-lg border border-white/10 bg-zinc-950/98 shadow-2xl shadow-black/60 overflow-hidden z-50">
+                {suggestionsLoading && searchSuggestions.length === 0 ? (
+                  <div className="px-3 py-3 text-[11px] text-zinc-500">Loading suggestions...</div>
+                ) : searchSuggestions.length > 0 ? (
+                  <div className="max-h-96 overflow-y-auto py-1">
+                    {searchSuggestions.map((item) => (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onMouseDown={(event) => {
+                          event.preventDefault();
+                          setSearchQuery(item.query || item.title);
+                          setShowSearchSuggestions(false);
+                        }}
+                        className="w-full px-2.5 py-2 text-left flex items-center gap-2.5 hover:bg-zinc-900 transition-colors"
+                      >
+                        {item.posterUrl ? (
+                          <img src={item.posterUrl} alt="" className="w-8 h-11 object-cover rounded bg-zinc-900 border border-zinc-800" />
+                        ) : (
+                          <span className="w-8 h-11 rounded bg-zinc-900 border border-zinc-800 flex items-center justify-center shrink-0">
+                            {getSuggestionIcon(item.type)}
+                          </span>
+                        )}
+                        <span className="min-w-0 flex-1">
+                          <span className="block text-xs font-bold text-zinc-100 truncate">{item.title}</span>
+                          <span className="block text-[10px] text-zinc-500 truncate">{item.subtitle}</span>
+                        </span>
+                        <span
+                          className="text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded border"
+                          style={{ color: brandColor, borderColor: `${brandColor}30`, backgroundColor: `${brandColor}10` }}
+                        >
+                          {item.source}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="px-3 py-3 text-[11px] text-zinc-500">No matching titles or cast found.</div>
+                )}
+              </div>
+            )}
           </div>
         )}
 
         {/* Premium Multi-Language Selector Dropdown */}
-        <div className="flex items-center gap-1.5 bg-zinc-900/80 border border-zinc-800 rounded-md px-2 py-1.5 text-xs text-zinc-300">
+        <div className="flex items-center gap-1.5 bg-white/[0.04] border border-white/10 rounded-md px-2 py-1.5 text-xs text-zinc-300">
           <Globe className="w-3.5 h-3.5 text-zinc-500 shrink-0" />
           <select
             value={currentLanguage}
@@ -154,10 +281,10 @@ export default function Header({
           <button
             onClick={onToggleRole}
             title={`Switch to ${currentUser.role === "admin" ? "User" : "Admin"} role`}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-zinc-900/60 hover:bg-zinc-800 text-xs font-mono text-zinc-400 border border-zinc-800/80 transition-all"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-white/[0.04] hover:bg-white/[0.07] text-xs font-mono text-zinc-400 border border-white/10 transition-all"
             id="header-role-toggle"
           >
-            <RefreshCw className="w-3 h-3 text-red-500 animate-spin-slow" />
+            <RefreshCw className="w-3 h-3 animate-spin-slow" style={{ color: brandColor }} />
             <span className="hidden lg:inline">{t.testRole}</span>
             <span className="font-bold text-white capitalize">{currentUser.role}</span>
           </button>
@@ -175,7 +302,8 @@ export default function Header({
                 <img
                   src={profileAvatar}
                   alt={profileName}
-                  className="w-8 h-8 rounded-md object-cover border border-zinc-700 hover:border-red-500 transition-colors"
+                  className="w-8 h-8 rounded-md object-cover border border-zinc-700 transition-colors"
+                  style={{ borderColor: showProfileMenu ? brandColor : undefined }}
                 />
                 {activeProfile?.isKids && (
                   <span className="absolute -top-1 -right-1 bg-yellow-500 text-black text-[7px] font-black px-1 rounded-sm shadow-xs shrink-0">
@@ -195,7 +323,7 @@ export default function Header({
                   className="fixed inset-0 z-40" 
                   onClick={() => setShowProfileMenu(false)}
                 />
-                <div className="absolute right-0 mt-2.5 w-56 bg-zinc-950 border border-zinc-800 rounded-lg shadow-2xl p-1.5 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+                <div className="absolute right-0 mt-2.5 w-56 bg-zinc-950/98 border border-white/10 rounded-lg shadow-2xl p-1.5 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
                   <div className="px-3 py-2.5 border-b border-zinc-900">
                     <div className="flex items-center gap-1.5">
                       <p className="text-xs font-bold text-white truncate max-w-[140px]">{profileName}</p>
@@ -208,9 +336,11 @@ export default function Header({
                     <div className="mt-2 flex flex-wrap gap-1">
                       <span className={`px-1.5 py-0.5 text-[9px] rounded-sm font-semibold tracking-wider ${
                         currentUser.role === "admin" 
-                          ? "bg-red-500/10 text-red-400 border border-red-500/20" 
+                          ? "border" 
                           : "bg-zinc-800 text-zinc-400 border border-zinc-700"
-                      }`}>
+                      }`}
+                      style={currentUser.role === "admin" ? { backgroundColor: `${brandColor}10`, color: brandColor, borderColor: `${brandColor}25` } : undefined}
+                      >
                         {currentUser.role === "admin" ? "ADMIN" : t.freeTier}
                       </span>
                       {currentUser.isPremium ? (
@@ -245,7 +375,7 @@ export default function Header({
                       onClick={() => { onOpenProfileSwitcher(); setShowProfileMenu(false); }}
                       className="w-full text-left px-3 py-1.5 text-xs text-zinc-300 hover:text-white hover:bg-zinc-900 rounded-md flex items-center gap-2 transition-colors cursor-pointer"
                     >
-                      <Users className="w-3.5 h-3.5 text-zinc-500" />
+                      <Users className="w-3.5 h-3.5" style={{ color: brandColor }} />
                       {t.switchProfile}
                     </button>
                     {!currentUser.isPremium && (
@@ -273,19 +403,19 @@ export default function Header({
                     >
                       {t.myList}
                     </button>
-                    {currentUser.role === "admin" && (
-                      <button
-                        onClick={() => { setActiveTab("admin"); setShowProfileMenu(false); }}
-                        className="w-full text-left px-3 py-1.5 text-xs text-red-400 hover:bg-zinc-900 rounded-md transition-colors"
-                      >
-                        {t.adminDashboard}
-                      </button>
-                    )}
                   </div>
 
                   <button
                     onClick={() => { onLogout(); setShowProfileMenu(false); }}
-                    className="w-full text-left px-3 py-2 text-xs text-zinc-400 hover:text-white hover:bg-red-900/10 hover:text-red-400 rounded-md flex items-center gap-2 transition-colors mt-1 cursor-pointer"
+                    className="w-full text-left px-3 py-2 text-xs text-zinc-400 hover:text-white rounded-md flex items-center gap-2 transition-colors mt-1 cursor-pointer"
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = `${brandColor}10`;
+                      e.currentTarget.style.color = brandColor;
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = "";
+                      e.currentTarget.style.color = "";
+                    }}
                     id="header-logout-btn"
                   >
                     <LogOut className="w-3.5 h-3.5" />
@@ -298,7 +428,8 @@ export default function Header({
         ) : (
           <button
             onClick={onOpenAuth}
-            className="flex items-center gap-1.5 bg-red-600 hover:bg-red-700 text-white text-xs font-semibold px-4 py-2 rounded-md shadow-md transition-colors cursor-pointer"
+            className="flex items-center gap-1.5 text-white text-xs font-semibold px-4 py-2 rounded-md shadow-md transition-colors cursor-pointer hover:brightness-110"
+            style={{ backgroundColor: brandColor }}
             id="header-signin-btn"
           >
             <LogIn className="w-3.5 h-3.5" />
