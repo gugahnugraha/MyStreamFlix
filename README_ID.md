@@ -51,7 +51,54 @@ Secara bawaan (*default*), templat proyek ini menggunakan **mesin penyimpanan st
 
 ---
 
-## 📂 Struktur Folder
+## � Panduan Integrasi Database
+
+Proyek ini sengaja dibuat menggunakan penyimpanan in-memory di `server.ts` agar pembeli dapat langsung menjalankan aplikasi tanpa setup database. Untuk penggunaan produksi, Anda bisa mengganti array in-memory dengan database nyata sambil tetap mempertahankan route API Express yang sama.
+
+### Langkah integrasi yang direkomendasikan
+1. Pilih database dan ORM/driver:
+   * `Prisma` untuk PostgreSQL, MySQL, atau SQLite.
+   * `Drizzle ORM` untuk PostgreSQL, MySQL, atau SQLite.
+   * `Mongoose` untuk MongoDB.
+   * `Firebase` / `Supabase` untuk penyimpanan serverless.
+2. Buat file klien database baru seperti `src/db.ts` dan gunakan `dotenv` untuk konfigurasi.
+3. Tambahkan file `.env` dengan connection string Anda, misalnya:
+   ```bash
+   DATABASE_URL="postgresql://user:password@localhost:5432/cinemaniac"
+   ```
+4. Ganti koleksi in-memory di `server.ts` dengan query database, contohnya:
+   * `db.movie.findMany(...)` menggantikan array `movies`
+   * `db.user.findUnique(...)` menggantikan `users.find(...)`
+   * query tabel untuk favorites, riwayat tontonan, review, dan settings
+5. Pertahankan kontrak route yang ada agar panggilan API frontend tetap bekerja:
+   * `GET /api/movies`
+   * `POST /api/user/favorites`
+   * `GET /api/settings`
+   * `POST /api/auth/login`, dll.
+6. Opsional: pertahankan data mock in-memory untuk pengembangan lokal dengan fallback jika database belum dikonfigurasi.
+
+### Contoh cepat dengan Prisma
+* Instal:
+  ```bash
+  npm install @prisma/client
+  npm install -D prisma
+  ```
+* Inisialisasi:
+  ```bash
+  npx prisma init
+  ```
+* Definisikan schema untuk `Movie`, `User`, `Review`, `WatchHistory`, dan `CMSSettings`.
+* Jalankan migrasi:
+  ```bash
+  npx prisma migrate dev --name init
+  ```
+
+### Pertahankan kompatibilitas API
+UI menggunakan endpoint REST backend yang ada secara langsung, jadi Anda dapat menukar implementasi penyimpanan tanpa mengubah kode frontend. Hanya `server.ts` dan file adapter database baru yang diperlukan.
+
+---
+
+## �📂 Struktur Folder
 
 ```text
 ├── server.ts              # Endpoint API Express & Logika sesi pengguna

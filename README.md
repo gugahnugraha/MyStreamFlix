@@ -51,7 +51,54 @@ By default, the template runs on a highly-optimized, **zero-config in-memory sta
 
 ---
 
-## 📂 Folder Structure
+## � Database Integration Guide
+
+This project is intentionally built with in-memory state in `server.ts` so buyers can run it immediately without database setup. For production deployments, you can replace the in-memory arrays with a real database layer while keeping the same Express API routes.
+
+### Recommended integration path
+1. Pick a database and ORM/driver:
+   * `Prisma` for PostgreSQL, MySQL, or SQLite.
+   * `Drizzle ORM` for PostgreSQL, MySQL, or SQLite.
+   * `Mongoose` for MongoDB.
+   * `Firebase` / `Supabase` for serverless backend storage.
+2. Create a new database client file such as `src/db.ts` and use `dotenv` for configuration.
+3. Add a `.env` file with your connection string, for example:
+   ```bash
+   DATABASE_URL="postgresql://user:password@localhost:5432/cinemaniac"
+   ```
+4. Replace the in-memory collections in `server.ts` with database queries, such as:
+   * `db.movie.findMany(...)` instead of the `movies` array
+   * `db.user.findUnique(...)` instead of `users.find(...)`
+   * query tables for favorites, watch history, reviews, and settings
+5. Keep the existing route contract so the frontend API calls continue to work:
+   * `GET /api/movies`
+   * `POST /api/user/favorites`
+   * `GET /api/settings`
+   * `POST /api/auth/login`, etc.
+6. Optionally keep the in-memory seed data for local development by falling back when the database is not configured.
+
+### Quick example with Prisma
+* Install:
+  ```bash
+  npm install @prisma/client
+  npm install -D prisma
+  ```
+* Initialize:
+  ```bash
+  npx prisma init
+  ```
+* Define the schema for `Movie`, `User`, `Review`, `WatchHistory`, and `CMSSettings`.
+* Run migration:
+  ```bash
+  npx prisma migrate dev --name init
+  ```
+
+### Keep API compatibility
+The UI uses the existing backend REST endpoints directly, so you can swap storage implementations without changing frontend code. Only `server.ts` and a new database adapter file are required.
+
+---
+
+## �📂 Folder Structure
 
 ```text
 ├── server.ts              # Express API endpoints & session logic
