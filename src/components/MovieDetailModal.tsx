@@ -55,6 +55,7 @@ export default function MovieDetailModal({
   const [userComment, setUserComment] = useState("");
   const [submittingReview, setSubmittingReview] = useState(false);
   const [reviewMessage, setReviewMessage] = useState("");
+  const [activeDetailTab, setActiveDetailTab] = useState<"overview" | "episodes" | "reviews">("overview");
 
   // Fetch complete movie details
   const fetchMovieDetails = async () => {
@@ -96,6 +97,7 @@ export default function MovieDetailModal({
 
   useEffect(() => {
     fetchMovieDetails();
+    setActiveDetailTab("overview");
   }, [activeId]);
 
   // Submit User Review
@@ -171,6 +173,12 @@ export default function MovieDetailModal({
     );
   }
 
+  const detailTabs = [
+    { id: "overview", label: "Overview", count: null },
+    ...(movie.contentType === "series" ? [{ id: "episodes", label: "Episodes", count: movie.seasons?.reduce((sum, season) => sum + season.episodes.length, 0) || 0 }] : []),
+    { id: "reviews", label: "Reviews", count: reviews.length }
+  ] as const;
+
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-black/85 backdrop-blur-md flex justify-center p-4 md:py-10" id="detail-modal">
       {/* Background click to dismiss */}
@@ -187,96 +195,179 @@ export default function MovieDetailModal({
           <X className="w-4 h-4" />
         </button>
 
-        {/* Hero Backdrop Backdrop */}
-        <div className="relative aspect-video md:aspect-[21/9] w-full">
+        {/* Compact interactive hero */}
+        <div className="relative min-h-[360px] md:min-h-[390px] w-full">
           <img
             src={movie.backdropUrl}
             alt={movie.title}
-            className="w-full h-full object-cover object-top"
+            className="absolute inset-0 w-full h-full object-cover object-top"
             referrerPolicy="no-referrer"
           />
-          <div className="absolute inset-0 bg-linear-to-t from-[#0b0b0d] via-[#0b0b0d]/42 to-transparent" />
-          <div className="absolute inset-x-0 bottom-0 p-6 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
-            <div>
-              {movie.tier && movie.tier !== "free" && (
-                <span className={`px-2 py-0.5 text-[10px] font-black rounded mr-2 uppercase ${
-                  movie.tier === "premium" 
-                    ? "bg-amber-500 text-black font-black" 
-                    : "text-white"
-                }`}
-                style={movie.tier === "premium" ? undefined : { backgroundColor: "var(--theme-primary)" }}
+          <div className="absolute inset-0 bg-linear-to-t from-[#0b0b0d] via-[#0b0b0d]/70 to-black/20" />
+          <div className="absolute inset-0 bg-linear-to-r from-black/82 via-black/34 to-transparent" />
+
+          <div className="absolute inset-x-0 bottom-0 p-5 md:p-7">
+            <div className="flex flex-col md:flex-row md:items-end gap-5">
+              <div className="group relative w-28 md:w-36 aspect-[2/3] shrink-0 rounded-lg overflow-hidden border border-white/15 bg-zinc-950 shadow-2xl shadow-black/60">
+                <img
+                  src={movie.posterUrl || movie.backdropUrl}
+                  alt={movie.title}
+                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                  referrerPolicy="no-referrer"
+                />
+                <button
+                  onClick={() => onPlay(movie)}
+                  className="absolute inset-0 bg-black/45 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer"
+                  aria-label={`Play ${movie.title}`}
                 >
-                  {movie.tier.toUpperCase()} VIP
-                </span>
-              )}
-              <span className="px-2.5 py-0.5 text-[10px] font-black text-white rounded mr-2" style={{ backgroundColor: "var(--theme-primary)" }}>
-                {movie.quality}
-              </span>
-              <span className="px-2 py-0.5 text-xs font-bold bg-zinc-950/80 text-zinc-300 rounded border border-zinc-800">
-                {movie.ageRating}
-              </span>
-              <h2 className="text-xl md:text-3xl font-black text-white mt-2 drop-shadow-md">
-                {movie.title}
-              </h2>
-            </div>
+                  <span className="w-11 h-11 rounded-full bg-white text-black flex items-center justify-center shadow-xl">
+                    <Play className="w-5 h-5 fill-black ml-0.5" />
+                  </span>
+                </button>
+              </div>
 
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => onPlay(movie)}
-                className="flex items-center gap-2 text-white font-bold text-xs px-5 py-2.5 rounded-md transition-colors shadow-lg cursor-pointer hover:brightness-110"
-                style={{ backgroundColor: "var(--theme-primary)", boxShadow: "0 14px 30px var(--theme-primary-20)" }}
-                id="modal-play-btn"
-              >
-                <Play className="w-4 h-4 fill-white" />
-                Stream Now
-              </button>
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2 mb-3">
+                  {movie.tier && movie.tier !== "free" && (
+                    <span
+                      className={`px-2 py-0.5 text-[10px] font-black rounded uppercase ${
+                        movie.tier === "premium" ? "bg-amber-500 text-black" : "text-white"
+                      }`}
+                      style={movie.tier === "premium" ? undefined : { backgroundColor: "var(--theme-primary)" }}
+                    >
+                      {movie.tier.toUpperCase()} VIP
+                    </span>
+                  )}
+                  <span className="px-2.5 py-0.5 text-[10px] font-black text-white rounded" style={{ backgroundColor: "var(--theme-primary)" }}>
+                    {movie.quality}
+                  </span>
+                  <span className="px-2 py-0.5 text-[10px] font-bold bg-white/10 text-zinc-200 rounded border border-white/10">
+                    {movie.ageRating}
+                  </span>
+                  <span className="px-2 py-0.5 text-[10px] font-bold bg-black/45 text-zinc-300 rounded border border-white/10">
+                    {movie.contentType === "series" ? `${movie.seasons?.length || 0} Seasons` : `${movie.duration} min`}
+                  </span>
+                </div>
 
-              <button
-                onClick={() => onToggleFavorite(movie.id)}
-                className={`w-10 h-10 flex items-center justify-center rounded-md border transition-colors cursor-pointer ${
-                  isFavorite(movie.id)
-                    ? ""
-                    : "bg-zinc-950/80 border-zinc-800 text-zinc-400 hover:text-white"
-                }`}
-                style={isFavorite(movie.id) ? { backgroundColor: "var(--theme-primary-10)", borderColor: "var(--theme-primary-50)", color: "var(--theme-primary)" } : {}}
-                title="Add to Watchlist"
-                id="modal-fav-btn"
-              >
-                <Heart className={`w-4 h-4 ${isFavorite(movie.id) ? "fill-current" : ""}`} />
-              </button>
+                <h2 className="text-2xl md:text-4xl font-black text-white tracking-tight leading-tight drop-shadow-lg">
+                  {movie.title}
+                </h2>
+                <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-zinc-300">
+                  <span className="flex items-center gap-1 text-amber-400 font-bold">
+                    <Star className="w-3.5 h-3.5 fill-amber-400" />
+                    {movie.rating}/10
+                  </span>
+                  <span>{movie.releaseYear}</span>
+                  <span className="text-zinc-600">•</span>
+                  <span className="line-clamp-1">{movie.genres.slice(0, 3).join(", ")}</span>
+                </div>
+
+                <p className="mt-3 max-w-2xl text-xs md:text-sm text-zinc-300 leading-relaxed line-clamp-2">
+                  {movie.description}
+                </p>
+
+                <div className="mt-5 flex flex-wrap items-center gap-2">
+                  <button
+                    onClick={() => onPlay(movie)}
+                    className="flex items-center gap-2 text-white font-bold text-xs px-5 py-2.5 rounded-md transition-all shadow-lg cursor-pointer hover:brightness-110 active:scale-95"
+                    style={{ backgroundColor: "var(--theme-primary)", boxShadow: "0 14px 30px var(--theme-primary-20)" }}
+                    id="modal-play-btn"
+                  >
+                    <Play className="w-4 h-4 fill-white" />
+                    Stream Now
+                  </button>
+
+                  <button
+                    onClick={() => onToggleFavorite(movie.id)}
+                    className={`h-10 px-3 flex items-center gap-2 rounded-md border text-xs font-bold transition-all cursor-pointer active:scale-95 ${
+                      isFavorite(movie.id)
+                        ? ""
+                        : "bg-white/[0.06] border-white/10 text-zinc-300 hover:text-white hover:bg-white/[0.1]"
+                    }`}
+                    style={isFavorite(movie.id) ? { backgroundColor: "var(--theme-primary-10)", borderColor: "var(--theme-primary-50)", color: "var(--theme-primary)" } : {}}
+                    title="Add to Watchlist"
+                    id="modal-fav-btn"
+                  >
+                    <Heart className={`w-4 h-4 ${isFavorite(movie.id) ? "fill-current" : ""}`} />
+                    {isFavorite(movie.id) ? "In List" : "My List"}
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
 
+        <div className="px-5 md:px-7 pt-5 border-t border-white/10 bg-[#0b0b0d]">
+          <div className="flex gap-1.5 overflow-x-auto">
+            {detailTabs.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveDetailTab(tab.id)}
+                className={`px-3.5 py-2 rounded-md text-xs font-black transition-all cursor-pointer flex items-center gap-2 shrink-0 ${
+                  activeDetailTab === tab.id
+                    ? "text-white"
+                    : "text-zinc-500 hover:text-zinc-200 hover:bg-white/[0.04]"
+                }`}
+                style={activeDetailTab === tab.id ? { backgroundColor: "var(--theme-primary-10)", color: "var(--theme-primary)" } : {}}
+              >
+                {tab.label}
+                {tab.count !== null && (
+                  <span className="px-1.5 py-0.5 rounded bg-white/10 text-[9px] text-zinc-300">
+                    {tab.count}
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+
         {/* Dynamic Detail Body Grid */}
-        <div className="p-6 md:p-7 grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="p-5 md:p-7 grid grid-cols-1 md:grid-cols-3 gap-6 bg-[#0b0b0d]">
           {/* Left Column: Summary and Review Board */}
           <div className="md:col-span-2 space-y-6">
-            <div>
-              <h3 className="text-zinc-400 text-xs font-bold tracking-wider uppercase mb-2">Synopsis</h3>
-              <p className="text-zinc-200 text-sm leading-relaxed">{movie.description}</p>
-            </div>
+            {activeDetailTab === "overview" && (
+              <div className="space-y-5 animate-fade-in-quick">
+                <div className="cinema-panel rounded-lg p-4">
+                  <h3 className="text-zinc-400 text-xs font-bold tracking-wider uppercase mb-2">Synopsis</h3>
+                  <p className="text-zinc-200 text-sm leading-relaxed">{movie.description}</p>
+                </div>
 
-            {/* Subtitles & Playback Info */}
-            {movie.subtitles.length > 0 && (
-              <div>
-                <h3 className="text-zinc-400 text-xs font-bold tracking-wider uppercase mb-2">Available Subtitles</h3>
-                <div className="flex flex-wrap gap-1.5">
-                  {movie.subtitles.map((sub) => (
-                    <span 
-                      key={sub.id} 
-                      className="px-2 py-1 bg-zinc-900 border border-zinc-800 text-xs text-zinc-300 rounded font-mono"
-                    >
-                      CC: {sub.label}
-                    </span>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  {[
+                    ["Views", movie.views.toLocaleString()],
+                    ["Likes", movie.likes.toLocaleString()],
+                    ["Country", movie.country],
+                    ["Audio", movie.language]
+                  ].map(([label, value]) => (
+                    <div key={label} className="rounded-lg border border-white/10 bg-white/[0.035] p-3">
+                      <p className="text-[10px] text-zinc-500 font-bold uppercase">{label}</p>
+                      <p className="mt-1 text-xs font-black text-zinc-100 truncate">{value}</p>
+                    </div>
                   ))}
                 </div>
+
+                {/* Subtitles & Playback Info */}
+                {movie.subtitles.length > 0 && (
+                  <div className="cinema-panel rounded-lg p-4">
+                    <h3 className="text-zinc-400 text-xs font-bold tracking-wider uppercase mb-2">Available Subtitles</h3>
+                    <div className="flex flex-wrap gap-1.5">
+                      {movie.subtitles.map((sub) => (
+                        <span 
+                          key={sub.id} 
+                          className="px-2 py-1 bg-white/[0.04] border border-white/10 text-xs text-zinc-300 rounded font-mono"
+                        >
+                          CC: {sub.label}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
             {/* Episodes Explorer for TV Series */}
-            {movie.contentType === "series" && movie.seasons && movie.seasons.length > 0 && (
-              <div className="border-t border-zinc-800/80 pt-6">
+            {activeDetailTab === "episodes" && movie.contentType === "series" && movie.seasons && movie.seasons.length > 0 && (
+              <div className="animate-fade-in-quick">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
                   <h3 className="text-white text-sm font-black flex items-center gap-2">
                     <Film className="w-4 h-4 text-red-500" />
@@ -289,11 +380,12 @@ export default function MovieDetailModal({
                       <button
                         key={s.id}
                         onClick={() => setActiveModalSeason(s)}
-                        className={`px-3 py-1 rounded-full text-xs font-bold shrink-0 cursor-pointer transition-all ${
+                        className={`px-3 py-1.5 rounded-md text-xs font-bold shrink-0 cursor-pointer transition-all border ${
                           activeModalSeason?.id === s.id
-                            ? "bg-red-600 text-white shadow-md shadow-red-600/15"
-                            : "bg-zinc-950 hover:bg-zinc-800 text-zinc-400 border border-zinc-850"
+                            ? "text-white shadow-md shadow-red-600/15 border-transparent"
+                            : "bg-white/[0.04] hover:bg-white/[0.08] text-zinc-400 border-white/10"
                         }`}
+                        style={activeModalSeason?.id === s.id ? { backgroundColor: "var(--theme-primary)" } : {}}
                       >
                         {s.title}
                       </button>
@@ -306,7 +398,8 @@ export default function MovieDetailModal({
                   {activeModalSeason?.episodes.map((ep: any) => (
                     <div 
                       key={ep.id}
-                      className="bg-zinc-950/40 border border-zinc-900/80 p-3 rounded-lg flex gap-4 hover:border-zinc-800 transition-all group"
+                      className="cinema-panel p-3 rounded-lg flex gap-4 hover:border-white/20 transition-all group cursor-pointer"
+                      onClick={() => onPlay(movie)}
                     >
                       {/* Episode action play trigger */}
                       <div className="relative w-28 aspect-video shrink-0 bg-zinc-900 rounded-md overflow-hidden">
@@ -317,7 +410,10 @@ export default function MovieDetailModal({
                           referrerPolicy="no-referrer"
                         />
                         <button 
-                          onClick={() => onPlay(movie)}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            onPlay(movie);
+                          }}
                           className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
                         >
                           <Play className="w-6 h-6 text-white fill-white" />
@@ -330,7 +426,7 @@ export default function MovieDetailModal({
                       <div className="flex-1 flex flex-col justify-center">
                         <div className="flex items-center gap-2 mb-0.5">
                           <span className="text-[10px] font-bold text-red-500 font-mono">EP {ep.episodeNumber}</span>
-                          <span className="text-xs font-bold text-zinc-200 group-hover:text-red-500 transition-colors">{ep.title}</span>
+                          <span className="text-xs font-bold text-zinc-200 group-hover:[color:var(--theme-primary)] transition-colors">{ep.title}</span>
                         </div>
                         {ep.description && (
                           <p className="text-[11px] text-zinc-400 line-clamp-2 leading-relaxed">{ep.description}</p>
@@ -343,7 +439,8 @@ export default function MovieDetailModal({
             )}
 
             {/* Review Board */}
-            <div className="border-t border-zinc-800/80 pt-6">
+            {activeDetailTab === "reviews" && (
+            <div className="animate-fade-in-quick">
               <h3 className="text-white text-base font-bold flex items-center gap-2 mb-4">
                 <MessageSquare className="w-4.5 h-4.5 text-red-500" />
                 Community Reviews ({reviews.length})
@@ -351,7 +448,7 @@ export default function MovieDetailModal({
 
               {/* Review Submit Form */}
               {currentUser ? (
-                <form onSubmit={handleSubmitReview} className="bg-zinc-950/60 p-4 rounded-lg border border-zinc-800/50 space-y-3 mb-6">
+                <form onSubmit={handleSubmitReview} className="cinema-panel p-4 rounded-lg space-y-3 mb-6">
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-zinc-300 font-semibold">Write a Review</span>
                     <div className="flex items-center gap-2">
@@ -374,7 +471,7 @@ export default function MovieDetailModal({
                     value={userComment}
                     onChange={(e) => setUserComment(e.target.value)}
                     rows={2}
-                    className="w-full bg-zinc-900 border border-zinc-800 p-2.5 text-xs text-white rounded focus:outline-hidden focus:border-red-500/50"
+                    className="w-full bg-white/[0.04] border border-white/10 p-2.5 text-xs text-white rounded focus:outline-hidden focus:border-red-500/50"
                     id="review-comment-textarea"
                   />
 
@@ -385,7 +482,7 @@ export default function MovieDetailModal({
                     <button
                       type="submit"
                       disabled={submittingReview}
-                      className="flex items-center gap-1.5 bg-red-600 hover:bg-red-500 disabled:bg-zinc-800 text-white font-semibold text-xs px-3.5 py-1.5 rounded transition-all cursor-pointer"
+                      className="flex items-center gap-1.5 bg-red-600 hover:bg-red-500 disabled:bg-zinc-800 text-white font-semibold text-xs px-3.5 py-1.5 rounded transition-all cursor-pointer active:scale-95"
                       id="review-submit-btn"
                     >
                       <Send className="w-3 h-3" />
@@ -407,7 +504,7 @@ export default function MovieDetailModal({
                   <p className="text-xs text-zinc-500 italic">No reviews yet. Be the first to express opinion!</p>
                 ) : (
                   reviews.map((rev) => (
-                    <div key={rev.id} className="bg-zinc-950/40 p-3.5 rounded-lg border border-zinc-900/80 space-y-2">
+                    <div key={rev.id} className="cinema-panel p-3.5 rounded-lg space-y-2">
                       <div className="flex items-center justify-between">
                         <span className="text-xs text-zinc-300 font-bold">{rev.userName}</span>
                         <div className="flex items-center gap-1 text-amber-500">
@@ -422,6 +519,7 @@ export default function MovieDetailModal({
                 )}
               </div>
             </div>
+            )}
           </div>
 
           {/* Right Column: Metadata Cards */}

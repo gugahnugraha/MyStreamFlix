@@ -19,6 +19,8 @@ interface HeaderProps {
   settings: CMSSettings;
   activeTab: string;
   setActiveTab: (tab: string) => void;
+  selectedContentType: "all" | "movie" | "series";
+  onSelectContentType: (type: "all" | "movie" | "series") => void;
   onOpenAuth: () => void;
   onLogout: () => void;
   onToggleRole: () => void;
@@ -37,6 +39,8 @@ export default function Header({
   settings,
   activeTab,
   setActiveTab,
+  selectedContentType,
+  onSelectContentType,
   onOpenAuth,
   onLogout,
   onToggleRole,
@@ -132,7 +136,7 @@ export default function Header({
   };
 
   return (
-    <header className="sticky top-0 z-40 bg-black/72 backdrop-blur-xl border-b border-white/10 px-4 md:px-8 py-3 flex items-center justify-between shadow-[0_12px_36px_rgba(0,0,0,0.28)]">
+    <header className="fixed top-0 left-0 right-0 z-40 bg-black/72 backdrop-blur-xl border-b border-white/10 px-4 md:px-8 py-3 flex items-center justify-between shadow-[0_12px_36px_rgba(0,0,0,0.28)]">
       {/* Brand Logo */}
       <div 
         className="flex items-center gap-2 cursor-pointer group"
@@ -156,14 +160,43 @@ export default function Header({
       {/* Main Navigation */}
       <nav className="hidden md:flex items-center gap-2 text-sm font-medium text-zinc-400 bg-white/[0.03] border border-white/10 rounded-lg p-1" id="header-nav">
         <button
-          onClick={() => setActiveTab("home")}
+          onClick={() => {
+            setActiveTab("home");
+            onSelectContentType("all");
+          }}
           className={`relative px-3 py-1.5 rounded-md transition-all cursor-pointer group ${
-            activeTab === "home" ? "text-white font-semibold" : "hover:bg-white/[0.04]"
+            activeTab === "home" && selectedContentType === "all" ? "text-white font-semibold" : "hover:bg-white/[0.04]"
           }`}
-          style={activeTab === "home" ? { backgroundColor: `${brandColor}18`, color: brandColor } : {}}
+          style={activeTab === "home" && selectedContentType === "all" ? { backgroundColor: `${brandColor}18`, color: brandColor } : {}}
           id="nav-home"
         >
           {t.browse}
+        </button>
+        <button
+          onClick={() => {
+            setActiveTab("home");
+            onSelectContentType("movie");
+          }}
+          className={`relative px-3 py-1.5 rounded-md transition-all cursor-pointer group ${
+            activeTab === "home" && selectedContentType === "movie" ? "text-white font-semibold" : "hover:bg-white/[0.04]"
+          }`}
+          style={activeTab === "home" && selectedContentType === "movie" ? { backgroundColor: `${brandColor}18`, color: brandColor } : {}}
+          id="nav-movies"
+        >
+          {t.movies || "Movies"}
+        </button>
+        <button
+          onClick={() => {
+            setActiveTab("home");
+            onSelectContentType("series");
+          }}
+          className={`relative px-3 py-1.5 rounded-md transition-all cursor-pointer group ${
+            activeTab === "home" && selectedContentType === "series" ? "text-white font-semibold" : "hover:bg-white/[0.04]"
+          }`}
+          style={activeTab === "home" && selectedContentType === "series" ? { backgroundColor: `${brandColor}18`, color: brandColor } : {}}
+          id="nav-series"
+        >
+          {t.tvSeries || "Series"}
         </button>
         {currentUser && (
           <button
@@ -392,10 +425,22 @@ export default function Header({
                   {/* Mobile Nav Links Inside Dropdown */}
                   <div className="block md:hidden border-b border-zinc-900 py-1">
                     <button
-                      onClick={() => { setActiveTab("home"); setShowProfileMenu(false); }}
+                      onClick={() => { setActiveTab("home"); onSelectContentType("all"); setShowProfileMenu(false); }}
                       className="w-full text-left px-3 py-1.5 text-xs text-zinc-300 hover:bg-zinc-900 rounded-md transition-colors"
                     >
                       {t.browse}
+                    </button>
+                    <button
+                      onClick={() => { setActiveTab("home"); onSelectContentType("movie"); setShowProfileMenu(false); }}
+                      className="w-full text-left px-3 py-1.5 text-xs text-zinc-300 hover:bg-zinc-900 rounded-md transition-colors"
+                    >
+                      {t.movies || "Movies"}
+                    </button>
+                    <button
+                      onClick={() => { setActiveTab("home"); onSelectContentType("series"); setShowProfileMenu(false); }}
+                      className="w-full text-left px-3 py-1.5 text-xs text-zinc-300 hover:bg-zinc-900 rounded-md transition-colors"
+                    >
+                      {t.tvSeries || "Series"}
                     </button>
                     <button
                       onClick={() => { setActiveTab("favorites"); setShowProfileMenu(false); }}

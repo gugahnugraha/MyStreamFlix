@@ -6,19 +6,100 @@
 import express from "express";
 import * as dotenv from "dotenv";
 import path from "path";
+import mongoose, { Schema } from "mongoose";
 import { createServer as createViteServer } from "vite";
 import { Movie, User, WatchHistoryItem, CMSSettings, DashboardStats, Subtitle, Review } from "./src/types";
 
 dotenv.config();
 dotenv.config({ path: ".env.example", override: false });
 
+const movieSchema = new Schema(
+  {
+    id: { type: String, required: true, unique: true, index: true },
+    tmdbId: { type: Number, index: true, sparse: true },
+    tmdbMediaType: { type: String, enum: ["movie", "tv"], index: true, sparse: true },
+    title: { type: String, required: true, index: true },
+    description: String,
+    posterUrl: String,
+    backdropUrl: String,
+    videoUrl: String,
+    duration: Number,
+    releaseYear: Number,
+    rating: Number,
+    ageRating: String,
+    quality: String,
+    genres: [String],
+    cast: [String],
+    directors: [String],
+    subtitles: { type: Array, default: [] },
+    country: String,
+    language: String,
+    views: Number,
+    likes: Number,
+    isFeatured: Boolean,
+    isBanner: Boolean,
+    tier: String,
+    contentType: { type: String, enum: ["movie", "series"], index: true },
+    seasons: { type: Array, default: [] },
+    createdAt: String
+  },
+  { timestamps: true, collection: "movies" }
+);
+
+movieSchema.index(
+  { tmdbId: 1, tmdbMediaType: 1 },
+  { unique: true, sparse: true, partialFilterExpression: { tmdbId: { $type: "number" }, tmdbMediaType: { $exists: true } } }
+);
+
+const MongoMovie = (mongoose.models.Movie as mongoose.Model<any>) || mongoose.model<any>("Movie", movieSchema);
+
 async function startServer() {
   const app = express();
   const PORT = 3000;
+  let mongoReady = false;
 
   // JSON and URL-encoded body parsers
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
+
+  const connectMongo = async () => {
+    const uri = process.env.MONGODB_URI?.trim();
+    if (!uri) {
+      console.warn("MONGODB_URI is not configured. MongoDB persistence is disabled.");
+      return;
+    }
+
+    try {
+      const dbName = process.env.MONGODB_DB_NAME?.trim() || "mystreamflix";
+      await mongoose.connect(uri, {
+        dbName,
+        serverSelectionTimeoutMS: 8000
+      });
+      mongoReady = true;
+      console.log(`MongoDB Atlas connected (${dbName}).`);
+    } catch (error) {
+      mongoReady = false;
+      console.warn("MongoDB Atlas connection failed. Continuing with in-memory data.", error);
+    }
+  };
+
+  const persistMovieToMongo = async (movie: Movie) => {
+    if (!process.env.MONGODB_URI?.trim()) return;
+    if (!mongoReady) throw new Error("MongoDB Atlas is configured but not connected.");
+    await MongoMovie.findOneAndUpdate(
+      { id: movie.id },
+      { $set: movie },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    );
+  };
+
+  const deleteMovieFromMongo = async (movieId: string) => {
+    if (!process.env.MONGODB_URI?.trim()) return;
+    if (!mongoReady) throw new Error("MongoDB Atlas is configured but not connected.");
+    await MongoMovie.deleteOne({ id: movieId });
+  };
+
+  await connectMongo();
 
   // ==========================================
   // IN-MEMORY DATABASE & SEED DATA
@@ -496,6 +577,7 @@ async function startServer() {
 
     return {
       tmdbId: data.id,
+      tmdbMediaType: mediaType,
       contentType: isMovie ? "movie" : "series",
       title,
       description: data.overview || "",
@@ -533,6 +615,71 @@ async function startServer() {
             }))
         : []
     };
+  };
+
+  const normalizeTitleKey = (value?: string) => {
+    return (value || "").trim().toLowerCase().replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ");
+  };
+
+  const findDuplicateMovie = (movieData: Partial<Movie>, ignoreId?: string) => {
+    const incomingTmdbId = movieData.tmdbId !== undefined ? Number(movieData.tmdbId) : undefined;
+    const incomingMediaType = movieData.tmdbMediaType || (movieData.contentType === "series" ? "tv" : "movie");
+    const incomingType = movieData.contentType || (incomingMediaType === "tv" ? "series" : "movie");
+    const incomingTitleKey = normalizeTitleKey(movieData.title);
+    const incomingYear = Number(movieData.releaseYear) || undefined;
+
+    return movies.find((movie) => {
+      if (ignoreId && movie.id === ignoreId) return false;
+
+      if (incomingTmdbId && movie.tmdbId && Number(movie.tmdbId) === incomingTmdbId) {
+        const movieMediaType = movie.tmdbMediaType || (movie.contentType === "series" ? "tv" : "movie");
+        return movieMediaType === incomingMediaType;
+      }
+
+      return (
+        incomingTitleKey.length > 0 &&
+        normalizeTitleKey(movie.title) === incomingTitleKey &&
+        movie.contentType === incomingType &&
+        (!incomingYear || movie.releaseYear === incomingYear)
+      );
+    });
+  };
+
+  const escapeRegex = (value: string) => {
+    return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  };
+
+  const findDuplicateMovieInMongo = async (movieData: Partial<Movie>, ignoreId?: string) => {
+    if (!mongoReady) return null;
+
+    const incomingTmdbId = movieData.tmdbId !== undefined ? Number(movieData.tmdbId) : undefined;
+    const incomingMediaType = movieData.tmdbMediaType || (movieData.contentType === "series" ? "tv" : "movie");
+    const incomingType = movieData.contentType || (incomingMediaType === "tv" ? "series" : "movie");
+    const incomingYear = Number(movieData.releaseYear) || undefined;
+    const clauses: any[] = [];
+
+    if (incomingTmdbId) {
+      clauses.push({ tmdbId: incomingTmdbId, tmdbMediaType: incomingMediaType });
+    }
+
+    if (movieData.title) {
+      clauses.push({
+        title: new RegExp(`^${escapeRegex(movieData.title.trim())}$`, "i"),
+        contentType: incomingType,
+        ...(incomingYear ? { releaseYear: incomingYear } : {})
+      });
+    }
+
+    if (clauses.length === 0) return null;
+
+    const existing = await MongoMovie.findOne({
+      $and: [
+        { $or: clauses },
+        ...(ignoreId ? [{ id: { $ne: ignoreId } }] : [])
+      ]
+    }).lean();
+
+    return existing as Movie | null;
   };
 
   // ==========================================
@@ -760,6 +907,14 @@ async function startServer() {
         if (contentType === "movie") return item.type === "movie";
         if (contentType === "series") return item.type === "series";
         return item.type === "movie" || item.type === "series";
+      }).map((item: any) => {
+        const mediaType = item.type === "series" ? "tv" : "movie";
+        const existing = movies.find((movie) => movie.tmdbId === item.tmdbId && (movie.tmdbMediaType || (movie.contentType === "series" ? "tv" : "movie")) === mediaType);
+        return {
+          ...item,
+          alreadyImported: !!existing,
+          existingMovieId: existing?.id
+        };
       });
       res.json(filtered);
     } catch (error: any) {
@@ -894,14 +1049,25 @@ async function startServer() {
   });
 
   // Admin CRUD: Create
-  app.post("/api/movies", requireAdmin, (req, res) => {
+  app.post("/api/movies", requireAdmin, async (req, res) => {
     const movieData: Partial<Movie> = req.body;
     if (!movieData.title || !movieData.videoUrl) {
       return res.status(400).json({ error: "Title and Video URL are required." });
     }
 
+    const duplicate = findDuplicateMovie(movieData) || await findDuplicateMovieInMongo(movieData);
+    if (duplicate) {
+      return res.status(409).json({
+        error: `"${duplicate.title}" is already in the catalog database.`,
+        duplicateId: duplicate.id,
+        duplicateTitle: duplicate.title
+      });
+    }
+
     const newMovie: Movie = {
       id: `mov-${movies.length + 1}`,
+      tmdbId: movieData.tmdbId !== undefined ? Number(movieData.tmdbId) : undefined,
+      tmdbMediaType: movieData.tmdbMediaType || (movieData.contentType === "series" ? "tv" : movieData.tmdbId ? "movie" : undefined),
       title: movieData.title,
       description: movieData.description || "",
       posterUrl: movieData.posterUrl || "https://images.unsplash.com/photo-1594909122845-11baa439b7bf?w=500&auto=format&fit=crop&q=80",
@@ -929,11 +1095,20 @@ async function startServer() {
     };
 
     movies.push(newMovie);
-    res.status(201).json(newMovie);
+    try {
+      await persistMovieToMongo(newMovie);
+      res.status(201).json(newMovie);
+    } catch (error: any) {
+      movies = movies.filter((movie) => movie.id !== newMovie.id);
+      if (error?.code === 11000) {
+        return res.status(409).json({ error: `"${newMovie.title}" is already in MongoDB Atlas.` });
+      }
+      return res.status(502).json({ error: error.message || "Movie saved locally but failed to persist to MongoDB Atlas." });
+    }
   });
 
   // Admin CRUD: Update
-  app.put("/api/movies/:id", requireAdmin, (req, res) => {
+  app.put("/api/movies/:id", requireAdmin, async (req, res) => {
     const mIdx = movies.findIndex(m => m.id === req.params.id);
     if (mIdx === -1) {
       return res.status(404).json({ error: "Movie not found" });
@@ -941,8 +1116,16 @@ async function startServer() {
 
     const original = movies[mIdx];
     const updateData = req.body;
+    const duplicate = findDuplicateMovie(updateData, original.id) || await findDuplicateMovieInMongo(updateData, original.id);
+    if (duplicate) {
+      return res.status(409).json({
+        error: `"${duplicate.title}" is already in the catalog database.`,
+        duplicateId: duplicate.id,
+        duplicateTitle: duplicate.title
+      });
+    }
 
-    movies[mIdx] = {
+    const updatedMovie = {
       ...original,
       ...updateData,
       // Ensure specific types are maintained
@@ -951,21 +1134,40 @@ async function startServer() {
       releaseYear: updateData.releaseYear !== undefined ? Number(updateData.releaseYear) : original.releaseYear,
       rating: updateData.rating !== undefined ? Number(updateData.rating) : original.rating,
       contentType: updateData.contentType || original.contentType,
+      tmdbId: updateData.tmdbId !== undefined && updateData.tmdbId !== "" ? Number(updateData.tmdbId) : original.tmdbId,
+      tmdbMediaType: updateData.tmdbMediaType || original.tmdbMediaType,
       seasons: updateData.seasons || original.seasons,
     };
 
-    res.json(movies[mIdx]);
+    movies[mIdx] = updatedMovie;
+
+    try {
+      await persistMovieToMongo(updatedMovie);
+      res.json(movies[mIdx]);
+    } catch (error: any) {
+      movies[mIdx] = original;
+      if (error?.code === 11000) {
+        return res.status(409).json({ error: `"${updatedMovie.title}" is already in MongoDB Atlas.` });
+      }
+      res.status(502).json({ error: error.message || "Movie updated locally but failed to persist to MongoDB Atlas." });
+    }
   });
 
   // Admin CRUD: Delete
-  app.delete("/api/movies/:id", requireAdmin, (req, res) => {
+  app.delete("/api/movies/:id", requireAdmin, async (req, res) => {
     const mIdx = movies.findIndex(m => m.id === req.params.id);
     if (mIdx === -1) {
       return res.status(404).json({ error: "Movie not found" });
     }
 
     const deleted = movies.splice(mIdx, 1)[0];
-    res.json({ success: true, deletedId: deleted.id });
+    try {
+      await deleteMovieFromMongo(deleted.id);
+      res.json({ success: true, deletedId: deleted.id });
+    } catch (error: any) {
+      movies.splice(mIdx, 0, deleted);
+      res.status(502).json({ error: error.message || "Movie deleted locally but failed to delete from MongoDB Atlas." });
+    }
   });
 
   // Submit Review

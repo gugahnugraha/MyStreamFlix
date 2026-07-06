@@ -57,6 +57,8 @@ export interface Movie {
   isFeatured: boolean;
   isBanner: boolean; // Homepage banner carousel
   createdAt: string;
+  tmdbId?: number;
+  tmdbMediaType?: "movie" | "tv";
   tier?: "free" | "vip" | "premium"; // content classification like Hotstar/Prime
   contentType?: "movie" | "series";
   seasons?: Season[];
