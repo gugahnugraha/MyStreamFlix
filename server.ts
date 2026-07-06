@@ -6,6 +6,7 @@
 import express from "express";
 import * as dotenv from "dotenv";
 import path from "path";
+import crypto from "crypto";
 import mongoose, { Schema } from "mongoose";
 import { createServer as createViteServer } from "vite";
 import { Movie, User, WatchHistoryItem, CMSSettings, DashboardStats, Subtitle, Review } from "./src/types";
@@ -53,6 +54,41 @@ movieSchema.index(
 
 const MongoMovie = (mongoose.models.Movie as mongoose.Model<any>) || mongoose.model<any>("Movie", movieSchema);
 
+const userSchema = new Schema(
+  {
+    id: { type: String, required: true, unique: true, index: true },
+    name: String,
+    email: { type: String, required: true, unique: true, index: true },
+    passwordHash: String,
+    role: { type: String, enum: ["admin", "user"], default: "user" },
+    profileImage: String,
+    createdAt: String,
+    isPremium: Boolean,
+    profiles: { type: Array, default: [] },
+    activeProfileId: String
+  },
+  { timestamps: true, collection: "users" }
+);
+
+const settingsSchema = new Schema(
+  {
+    singletonKey: { type: String, required: true, unique: true, default: "global" },
+    siteName: String,
+    logoText: String,
+    primaryColor: String,
+    enableComments: Boolean,
+    enableRatings: Boolean,
+    maintenanceMode: Boolean,
+    seoTitle: String,
+    seoDescription: String,
+    seoKeywords: String
+  },
+  { timestamps: true, collection: "settings" }
+);
+
+const MongoUser = (mongoose.models.User as mongoose.Model<any>) || mongoose.model<any>("User", userSchema);
+const MongoSettings = (mongoose.models.Settings as mongoose.Model<any>) || mongoose.model<any>("Settings", settingsSchema);
+
 async function startServer() {
   const app = express();
   const PORT = 3000;
@@ -89,7 +125,7 @@ async function startServer() {
     await MongoMovie.findOneAndUpdate(
       { id: movie.id },
       { $set: movie },
-      { upsert: true, new: true, setDefaultsOnInsert: true }
+      { upsert: true, returnDocument: "after", setDefaultsOnInsert: true }
     );
   };
 
@@ -97,6 +133,44 @@ async function startServer() {
     if (!process.env.MONGODB_URI?.trim()) return;
     if (!mongoReady) throw new Error("MongoDB Atlas is configured but not connected.");
     await MongoMovie.deleteOne({ id: movieId });
+  };
+
+  const hashPassword = (password?: string) => {
+    if (!password) return undefined;
+    return crypto.createHash("sha256").update(password).digest("hex");
+  };
+
+  const publicUser = (user: any): User => {
+    const { passwordHash, _id, __v, updatedAt, ...safeUser } = user;
+    return safeUser as User;
+  };
+
+  const persistUserToMongo = async (user: User, password?: string) => {
+    if (!process.env.MONGODB_URI?.trim()) return;
+    if (!mongoReady) throw new Error("MongoDB Atlas is configured but not connected.");
+    const payload: any = { ...user };
+    if (password) payload.passwordHash = hashPassword(password);
+    await MongoUser.findOneAndUpdate(
+      { id: user.id },
+      { $set: payload },
+      { upsert: true, returnDocument: "after", setDefaultsOnInsert: true }
+    );
+  };
+
+  const deleteUserFromMongo = async (userId: string) => {
+    if (!process.env.MONGODB_URI?.trim()) return;
+    if (!mongoReady) throw new Error("MongoDB Atlas is configured but not connected.");
+    await MongoUser.deleteOne({ id: userId });
+  };
+
+  const persistSettingsToMongo = async (settings: CMSSettings) => {
+    if (!process.env.MONGODB_URI?.trim()) return;
+    if (!mongoReady) throw new Error("MongoDB Atlas is configured but not connected.");
+    await MongoSettings.findOneAndUpdate(
+      { singletonKey: "global" },
+      { $set: { singletonKey: "global", ...settings } },
+      { upsert: true, returnDocument: "after", setDefaultsOnInsert: true }
+    );
   };
 
   await connectMongo();
@@ -434,6 +508,64 @@ async function startServer() {
     ]
   };
 
+  const hydrateMoviesFromMongo = async () => {
+    if (!mongoReady) return;
+
+    try {
+      const docs = await MongoMovie.find({}).sort({ createdAt: -1 }).lean();
+      if (docs.length === 0) {
+        console.log("MongoDB Atlas movie catalog is empty. Using in-memory seed titles.");
+        return;
+      }
+
+      movies = docs.map((doc: any) => {
+        const { _id, __v, createdAt: mongoCreatedAt, updatedAt, ...movie } = doc;
+        return {
+          ...movie,
+          createdAt: movie.createdAt || mongoCreatedAt?.toISOString?.() || new Date().toISOString()
+        } as Movie;
+      });
+      console.log(`Hydrated ${movies.length} movie title(s) from MongoDB Atlas.`);
+    } catch (error) {
+      console.warn("Could not hydrate movies from MongoDB Atlas. Using in-memory seed titles.", error);
+    }
+  };
+
+  await hydrateMoviesFromMongo();
+
+  const hydrateUsersAndSettingsFromMongo = async () => {
+    if (!mongoReady) return;
+
+    try {
+      const userDocs = await MongoUser.find({}).sort({ createdAt: 1 }).lean();
+      if (userDocs.length > 0) {
+        users = userDocs.map(publicUser);
+        currentSessionUser = users.find((user) => user.role === "admin") || users[0] || null;
+        console.log(`Hydrated ${users.length} user account(s) from MongoDB Atlas.`);
+      } else {
+        await Promise.all([
+          persistUserToMongo(users[0], "admin"),
+          persistUserToMongo(users[1], "demo")
+        ]);
+        console.log("Seeded default demo users into MongoDB Atlas.");
+      }
+
+      const settingsDoc = await MongoSettings.findOne({ singletonKey: "global" }).lean();
+      if (settingsDoc) {
+        const { _id, __v, singletonKey, createdAt, updatedAt, ...settings } = settingsDoc as any;
+        cmsSettings = { ...cmsSettings, ...settings };
+        console.log("Hydrated global CMS settings from MongoDB Atlas.");
+      } else {
+        await persistSettingsToMongo(cmsSettings);
+        console.log("Seeded global CMS settings into MongoDB Atlas.");
+      }
+    } catch (error) {
+      console.warn("Could not hydrate users/settings from MongoDB Atlas. Using in-memory seed data.", error);
+    }
+  };
+
+  await hydrateUsersAndSettingsFromMongo();
+
   // ==========================================
   // MIDDLEWARE / SECURITY UTILS
   // ==========================================
@@ -621,6 +753,14 @@ async function startServer() {
     return (value || "").trim().toLowerCase().replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ");
   };
 
+  const getNextMovieId = () => {
+    const maxNumericId = movies.reduce((max, movie) => {
+      const match = /^mov-(\d+)$/.exec(movie.id);
+      return match ? Math.max(max, Number(match[1])) : max;
+    }, 0);
+    return `mov-${maxNumericId + 1}`;
+  };
+
   const findDuplicateMovie = (movieData: Partial<Movie>, ignoreId?: string) => {
     const incomingTmdbId = movieData.tmdbId !== undefined ? Number(movieData.tmdbId) : undefined;
     const incomingMediaType = movieData.tmdbMediaType || (movieData.contentType === "series" ? "tv" : "movie");
@@ -686,10 +826,23 @@ async function startServer() {
   // AUTH API ENDPOINTS
   // ==========================================
 
-  app.post("/api/auth/login", (req, res) => {
+  app.post("/api/auth/login", async (req, res) => {
     const { email, password } = req.body;
-    const user = users.find(u => u.email === email);
+    let user = users.find(u => u.email === email);
+    if (!user && mongoReady) {
+      const userDoc = await MongoUser.findOne({ email }).lean();
+      if (userDoc) {
+        user = publicUser(userDoc);
+        if (!users.some((existing) => existing.id === user!.id)) users.push(user);
+      }
+    }
     if (user) {
+      if (mongoReady && password) {
+        const userDoc = await MongoUser.findOne({ id: user.id }).lean();
+        if (userDoc?.passwordHash && userDoc.passwordHash !== hashPassword(password)) {
+          return res.status(401).json({ error: "Invalid email or password." });
+        }
+      }
       currentSessionUser = user;
       return res.json({ success: true, user });
     }
@@ -714,12 +867,17 @@ async function startServer() {
     };
     users.push(newUser);
     currentSessionUser = newUser;
+    try {
+      await persistUserToMongo(newUser, password || "password");
+    } catch (error) {
+      console.warn("Could not persist quick login user:", error);
+    }
     res.json({ success: true, user: newUser });
   });
 
-  app.post("/api/auth/register", (req, res) => {
+  app.post("/api/auth/register", async (req, res) => {
     const { name, email } = req.body;
-    const existing = users.find(u => u.email === email);
+    const existing = users.find(u => u.email === email) || (mongoReady ? await MongoUser.findOne({ email }).lean() : null);
     if (existing) {
       return res.status(400).json({ error: "Email already registered." });
     }
@@ -738,6 +896,13 @@ async function startServer() {
     };
     users.push(newUser);
     currentSessionUser = newUser;
+    try {
+      await persistUserToMongo(newUser, req.body.password || "password");
+    } catch (error: any) {
+      users = users.filter((user) => user.id !== newUser.id);
+      currentSessionUser = null;
+      return res.status(502).json({ error: error.message || "Registration failed while saving to MongoDB Atlas." });
+    }
     res.json({ success: true, user: newUser });
   });
 
@@ -751,18 +916,19 @@ async function startServer() {
   });
 
   // Upgrade user to Premium (simulating Hotstar/Prime paywall unlock)
-  app.post("/api/auth/subscribe", requireAuth, (req, res) => {
+  app.post("/api/auth/subscribe", requireAuth, async (req, res) => {
     if (currentSessionUser) {
       currentSessionUser.isPremium = true;
       const uIdx = users.findIndex(u => u.id === currentSessionUser!.id);
       if (uIdx !== -1) users[uIdx].isPremium = true;
+      await persistUserToMongo(currentSessionUser);
       return res.json({ success: true, user: currentSessionUser });
     }
     res.status(400).json({ error: "No active user logged in." });
   });
 
   // Switch active profile
-  app.post("/api/auth/profile/switch", requireAuth, (req, res) => {
+  app.post("/api/auth/profile/switch", requireAuth, async (req, res) => {
     const { profileId } = req.body;
     if (currentSessionUser) {
       const profileExists = currentSessionUser.profiles?.some(p => p.id === profileId);
@@ -772,13 +938,14 @@ async function startServer() {
       currentSessionUser.activeProfileId = profileId;
       const uIdx = users.findIndex(u => u.id === currentSessionUser!.id);
       if (uIdx !== -1) users[uIdx].activeProfileId = profileId;
+      await persistUserToMongo(currentSessionUser);
       return res.json({ success: true, user: currentSessionUser });
     }
     res.status(400).json({ error: "No active user logged in." });
   });
 
   // Create profile
-  app.post("/api/auth/profile/create", requireAuth, (req, res) => {
+  app.post("/api/auth/profile/create", requireAuth, async (req, res) => {
     const { name, avatar, isKids } = req.body;
     if (!name) return res.status(400).json({ error: "Profile name is required." });
 
@@ -798,14 +965,45 @@ async function startServer() {
       currentSessionUser.profiles.push(newProfile);
       const uIdx = users.findIndex(u => u.id === currentSessionUser!.id);
       if (uIdx !== -1) users[uIdx].profiles = currentSessionUser.profiles;
+      await persistUserToMongo(currentSessionUser);
 
       return res.json({ success: true, user: currentSessionUser });
     }
     res.status(400).json({ error: "No active user logged in." });
   });
 
+  app.put("/api/auth/account", requireAuth, async (req, res) => {
+    if (!currentSessionUser) {
+      return res.status(400).json({ error: "No active user logged in." });
+    }
+
+    const { name, email, profileImage, currentPassword, newPassword } = req.body;
+    if (email && users.some((user) => user.email === email && user.id !== currentSessionUser!.id)) {
+      return res.status(400).json({ error: "Email is already used by another account." });
+    }
+
+    if (newPassword && mongoReady) {
+      const userDoc = await MongoUser.findOne({ id: currentSessionUser.id }).lean();
+      if (userDoc?.passwordHash && userDoc.passwordHash !== hashPassword(currentPassword)) {
+        return res.status(401).json({ error: "Current password is incorrect." });
+      }
+    }
+
+    currentSessionUser = {
+      ...currentSessionUser,
+      name: name?.trim() || currentSessionUser.name,
+      email: email?.trim() || currentSessionUser.email,
+      profileImage: profileImage?.trim() || currentSessionUser.profileImage
+    };
+
+    const uIdx = users.findIndex((user) => user.id === currentSessionUser!.id);
+    if (uIdx !== -1) users[uIdx] = currentSessionUser;
+    await persistUserToMongo(currentSessionUser, newPassword || undefined);
+    res.json({ success: true, user: currentSessionUser });
+  });
+
   // Delete profile
-  app.delete("/api/auth/profile/:profileId", requireAuth, (req, res) => {
+  app.delete("/api/auth/profile/:profileId", requireAuth, async (req, res) => {
     const { profileId } = req.params;
     if (currentSessionUser) {
       if (!currentSessionUser.profiles) return res.status(404).json({ error: "No profiles found." });
@@ -829,6 +1027,7 @@ async function startServer() {
         users[uIdx].profiles = filtered;
         users[uIdx].activeProfileId = currentSessionUser.activeProfileId;
       }
+      await persistUserToMongo(currentSessionUser);
 
       return res.json({ success: true, user: currentSessionUser });
     }
@@ -836,12 +1035,13 @@ async function startServer() {
   });
 
   // Toggle quick user roles for testing convenience in preview
-  app.post("/api/auth/toggle-role", (req, res) => {
+  app.post("/api/auth/toggle-role", async (req, res) => {
     if (currentSessionUser) {
       currentSessionUser.role = currentSessionUser.role === "admin" ? "user" : "admin";
       // Sync in user database
       const uIdx = users.findIndex(u => u.id === currentSessionUser!.id);
       if (uIdx !== -1) users[uIdx].role = currentSessionUser.role;
+      await persistUserToMongo(currentSessionUser);
       return res.json({ success: true, user: currentSessionUser });
     }
     res.status(400).json({ error: "No active user logged in." });
@@ -855,7 +1055,7 @@ async function startServer() {
     res.json(users);
   });
 
-  app.put("/api/users/:id/role", requireAdmin, (req, res) => {
+  app.put("/api/users/:id/role", requireAdmin, async (req, res) => {
     const { id } = req.params;
     const { role } = req.body;
     
@@ -873,11 +1073,12 @@ async function startServer() {
     if (currentSessionUser && currentSessionUser.id === id) {
       currentSessionUser.role = role;
     }
+    await persistUserToMongo(user);
     
     res.json({ success: true, user });
   });
 
-  app.delete("/api/users/:id", requireAdmin, (req, res) => {
+  app.delete("/api/users/:id", requireAdmin, async (req, res) => {
     const { id } = req.params;
     if (currentSessionUser && currentSessionUser.id === id) {
       return res.status(400).json({ error: "Cannot delete your own active session account." });
@@ -889,6 +1090,7 @@ async function startServer() {
     }
     
     const deleted = users.splice(uIdx, 1)[0];
+    await deleteUserFromMongo(deleted.id);
     res.json({ success: true, deletedId: deleted.id });
   });
 
@@ -1065,7 +1267,7 @@ async function startServer() {
     }
 
     const newMovie: Movie = {
-      id: `mov-${movies.length + 1}`,
+      id: getNextMovieId(),
       tmdbId: movieData.tmdbId !== undefined ? Number(movieData.tmdbId) : undefined,
       tmdbMediaType: movieData.tmdbMediaType || (movieData.contentType === "series" ? "tv" : movieData.tmdbId ? "movie" : undefined),
       title: movieData.title,
@@ -1272,11 +1474,12 @@ async function startServer() {
     res.json(cmsSettings);
   });
 
-  app.put("/api/settings", requireAdmin, (req, res) => {
+  app.put("/api/settings", requireAdmin, async (req, res) => {
     cmsSettings = {
       ...cmsSettings,
       ...req.body
     };
+    await persistSettingsToMongo(cmsSettings);
     res.json(cmsSettings);
   });
 

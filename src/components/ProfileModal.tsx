@@ -4,7 +4,7 @@
  */
 
 import React, { useState } from "react";
-import { X, Plus, Trash2, User, Baby, Check, CheckSquare } from "lucide-react";
+import { X, Plus, Trash2, Baby, Check, Settings, Shield, Save } from "lucide-react";
 import { User as UserType, UserProfile } from "../types";
 
 interface ProfileModalProps {
@@ -15,8 +15,13 @@ interface ProfileModalProps {
 }
 
 export default function ProfileModal({ currentUser, onClose, onSuccess, t }: ProfileModalProps) {
-  const [mode, setMode] = useState<"select" | "create">("select");
+  const [mode, setMode] = useState<"select" | "create" | "account">("select");
   const [profileName, setProfileName] = useState("");
+  const [accountName, setAccountName] = useState(currentUser?.name || "");
+  const [accountEmail, setAccountEmail] = useState(currentUser?.email || "");
+  const [accountAvatar, setAccountAvatar] = useState(currentUser?.profileImage || "");
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
   const [isKids, setIsKids] = useState(false);
   const [selectedAvatar, setSelectedAvatar] = useState(
     "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80"
@@ -111,6 +116,36 @@ export default function ProfileModal({ currentUser, onClose, onSuccess, t }: Pro
       }
     } catch (err) {
       setErrorMessage("Network error deleting profile.");
+    }
+  };
+
+  const handleUpdateAccount = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMessage("");
+    setIsSubmitting(true);
+
+    try {
+      const res = await fetch("/api/auth/account", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: accountName,
+          email: accountEmail,
+          profileImage: accountAvatar,
+          currentPassword,
+          newPassword
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed updating account.");
+      setCurrentPassword("");
+      setNewPassword("");
+      onSuccess(data.user);
+      setMode("select");
+    } catch (err: any) {
+      setErrorMessage(err.message || "Network error updating account.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -211,7 +246,19 @@ export default function ProfileModal({ currentUser, onClose, onSuccess, t }: Pro
               )}
             </div>
 
-            <div className="pt-4 border-t border-zinc-900 flex justify-center">
+            <div className="pt-4 border-t border-zinc-900 flex flex-wrap justify-center gap-3">
+              <button
+                onClick={() => {
+                  setAccountName(currentUser.name);
+                  setAccountEmail(currentUser.email);
+                  setAccountAvatar(currentUser.profileImage || "");
+                  setMode("account");
+                }}
+                className="border border-zinc-800 hover:bg-zinc-900 text-zinc-400 hover:text-white px-6 py-2 rounded-lg text-xs font-semibold transition-colors cursor-pointer flex items-center gap-2"
+              >
+                <Settings className="w-3.5 h-3.5" />
+                Account Settings
+              </button>
               <button
                 onClick={onClose}
                 className="border border-zinc-800 hover:bg-zinc-900 text-zinc-400 hover:text-white px-6 py-2 rounded-lg text-xs font-semibold transition-colors cursor-pointer"
@@ -220,7 +267,7 @@ export default function ProfileModal({ currentUser, onClose, onSuccess, t }: Pro
               </button>
             </div>
           </div>
-        ) : (
+        ) : mode === "create" ? (
           <form onSubmit={handleCreateProfile} className="space-y-6 animate-in fade-in duration-300" id="profile-create-form">
             <div className="space-y-1">
               <h2 className="text-xl font-extrabold text-white">Create Sub-Profile</h2>
@@ -301,6 +348,93 @@ export default function ProfileModal({ currentUser, onClose, onSuccess, t }: Pro
                 ) : (
                   <span>Save Profile</span>
                 )}
+              </button>
+            </div>
+          </form>
+        ) : (
+          <form onSubmit={handleUpdateAccount} className="space-y-5 animate-in fade-in duration-300" id="account-edit-form">
+            <div className="space-y-1">
+              <h2 className="text-xl font-extrabold text-white flex items-center gap-2">
+                <Shield className="w-5 h-5 text-red-500" />
+                Account Settings
+              </h2>
+              <p className="text-xs text-zinc-500">Update account identity, main avatar, and password. Changes sync to MongoDB Atlas.</p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-[96px_1fr] gap-4 items-start rounded-xl border border-zinc-900 bg-zinc-950/60 p-4">
+              <img
+                src={accountAvatar || currentUser.profileImage || selectedAvatar}
+                alt={accountName}
+                className="w-24 h-24 rounded-xl object-cover border border-zinc-800"
+              />
+              <div className="space-y-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-zinc-400 uppercase">Name</label>
+                    <input
+                      value={accountName}
+                      onChange={(e) => setAccountName(e.target.value)}
+                      className="w-full bg-zinc-900 border border-zinc-800 text-xs text-white rounded-lg px-3.5 py-2.5 focus:outline-hidden focus:border-red-500/50"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-zinc-400 uppercase">Email</label>
+                    <input
+                      type="email"
+                      value={accountEmail}
+                      onChange={(e) => setAccountEmail(e.target.value)}
+                      className="w-full bg-zinc-900 border border-zinc-800 text-xs text-white rounded-lg px-3.5 py-2.5 focus:outline-hidden focus:border-red-500/50"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-zinc-400 uppercase">Main Avatar URL</label>
+                  <input
+                    value={accountAvatar}
+                    onChange={(e) => setAccountAvatar(e.target.value)}
+                    placeholder="https://..."
+                    className="w-full bg-zinc-900 border border-zinc-800 text-xs text-white rounded-lg px-3.5 py-2.5 focus:outline-hidden focus:border-red-500/50"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-zinc-900 bg-zinc-950/60 p-4 space-y-3">
+              <h3 className="text-xs font-black text-white uppercase tracking-wider">Password</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <input
+                  type="password"
+                  placeholder="Current password"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  className="w-full bg-zinc-900 border border-zinc-800 text-xs text-white rounded-lg px-3.5 py-2.5 focus:outline-hidden focus:border-red-500/50"
+                />
+                <input
+                  type="password"
+                  placeholder="New password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  className="w-full bg-zinc-900 border border-zinc-800 text-xs text-white rounded-lg px-3.5 py-2.5 focus:outline-hidden focus:border-red-500/50"
+                />
+              </div>
+              <p className="text-[10px] text-zinc-600">Leave password fields empty if you only want to update account details.</p>
+            </div>
+
+            <div className="pt-4 border-t border-zinc-900 flex gap-3">
+              <button
+                type="button"
+                onClick={() => setMode("select")}
+                className="flex-1 border border-zinc-800 hover:bg-zinc-900 text-zinc-400 hover:text-white font-bold text-xs py-2.5 rounded-lg transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold text-xs py-2.5 rounded-lg transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer"
+              >
+                {isSubmitting ? <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+                Save Account
               </button>
             </div>
           </form>

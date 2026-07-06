@@ -862,35 +862,42 @@ export default function AdminCMS({ onRefreshMovies, movies }: AdminCMSProps) {
             </div>
           </div>
 
-          {/* Slide-over catalog form overlay */}
+          {/* Full-screen catalog editor workspace */}
           {showForm && (
-            <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex items-center justify-end p-4">
-              <div 
-                className="fixed inset-0 -z-10" 
-                onClick={() => setShowForm(false)} 
-              />
-              <div className="bg-zinc-950 border border-white/10 w-full max-w-3xl h-full rounded-lg overflow-hidden shadow-2xl flex flex-col">
-                <div className="px-5 py-4 border-b border-white/10 bg-white/[0.035] flex justify-between items-center shrink-0">
+            <div className="fixed inset-0 z-50 bg-[#070708] flex flex-col">
+              <div className="px-5 md:px-8 py-4 border-b border-white/10 bg-black/70 backdrop-blur-xl flex justify-between items-center shrink-0">
                   <div>
-                    <h3 className="text-sm font-extrabold text-white flex items-center gap-1.5">
-                      <Film className="w-4.5 h-4.5" style={{ color: brandColor }} />
+                    <h3 className="text-lg font-extrabold text-white flex items-center gap-2">
+                      <Film className="w-5 h-5" style={{ color: brandColor }} />
                       {formMode === "create" ? "Publish New Title" : "Edit Catalog Metadata"}
                     </h3>
                     <p className="text-[10px] text-zinc-500 mt-1">
-                      Import from TMDB first, then adjust streaming-specific fields.
+                      Full-screen workspace for TMDB import, preview, streaming fields, seasons, and publishing controls.
                     </p>
                   </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="submit"
+                      form="catalog-editor-form"
+                      className="px-4 py-2 text-white text-xs font-bold rounded-md shadow-lg cursor-pointer hover:brightness-110"
+                      style={{ backgroundColor: brandColor, boxShadow: `0 12px 28px ${brandColor}24` }}
+                    >
+                      Publish Metadata
+                    </button>
                   <button 
                     onClick={() => setShowForm(false)}
-                    className="p-1.5 rounded-full hover:bg-zinc-800 text-zinc-500 hover:text-white transition-colors cursor-pointer"
+                      className="p-2 rounded-md hover:bg-white/[0.08] text-zinc-500 hover:text-white transition-colors cursor-pointer border border-white/10"
                   >
                     <X className="w-4.5 h-4.5" />
                   </button>
+                  </div>
                 </div>
 
                 {/* Form fields */}
-                <form onSubmit={handleSaveMovie} className="p-5 overflow-y-auto space-y-5 flex-1">
-                  <div className="rounded-lg border border-white/10 bg-linear-to-b from-white/[0.055] to-white/[0.025] p-4 space-y-3">
+              <form id="catalog-editor-form" onSubmit={handleSaveMovie} className="flex-1 overflow-y-auto p-5 md:p-8 max-w-7xl mx-auto w-full">
+                <div className="grid grid-cols-1 xl:grid-cols-[380px_1fr] gap-6 items-start">
+                  <aside className="space-y-5 xl:sticky xl:top-6">
+                    <div className="rounded-lg border border-white/10 bg-linear-to-b from-white/[0.055] to-white/[0.025] p-4 space-y-3">
                     <div className="flex items-center justify-between gap-3">
                       <div>
                         <h4 className="text-xs font-black text-white uppercase tracking-wider flex items-center gap-1.5">
@@ -981,9 +988,51 @@ export default function AdminCMS({ onRefreshMovies, movies }: AdminCMSProps) {
                     {!tmdbLoading && tmdbQuery.trim().length >= 2 && !tmdbError && tmdbResults.length === 0 && (
                       <p className="text-[10px] text-zinc-600">No TMDB matches yet. Try a more exact title.</p>
                     )}
-                  </div>
+                    </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-[1fr_160px] gap-4 rounded-lg border border-white/10 bg-white/[0.025] p-4">
+                    <div className="rounded-lg border border-white/10 bg-zinc-950/70 overflow-hidden">
+                      <div className="relative h-64 bg-zinc-900">
+                        {backdropUrl ? (
+                          <img src={backdropUrl} alt="" className="w-full h-full object-cover opacity-80" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-xs text-zinc-600">Backdrop preview</div>
+                        )}
+                        <div className="absolute inset-0 bg-linear-to-t from-zinc-950 via-zinc-950/45 to-transparent" />
+                        <div className="absolute left-4 bottom-4 flex items-end gap-4">
+                          <div className="w-24 aspect-[2/3] rounded-md overflow-hidden border border-white/15 bg-zinc-950 shadow-xl">
+                            {posterUrl ? (
+                              <img src={posterUrl} alt="" className="w-full h-full object-cover" />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-[10px] text-zinc-600 text-center px-2">Poster</div>
+                            )}
+                          </div>
+                          <div className="min-w-0 pb-1">
+                            <p className="text-lg font-black text-white line-clamp-2">{title || "Untitled catalog title"}</p>
+                            <div className="mt-2 flex flex-wrap gap-1.5">
+                              <span className="px-2 py-0.5 rounded bg-white/10 border border-white/10 text-[10px] font-bold text-zinc-200">{contentType === "series" ? "TV Series" : "Movie"}</span>
+                              <span className="px-2 py-0.5 rounded bg-white/10 border border-white/10 text-[10px] font-bold text-zinc-200">{releaseYear}</span>
+                              <span className="px-2 py-0.5 rounded bg-white/10 border border-white/10 text-[10px] font-bold text-zinc-200">★ {rating}</span>
+                              <span className="px-2 py-0.5 rounded bg-white/10 border border-white/10 text-[10px] font-bold text-zinc-200">{quality}</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="p-3 flex flex-wrap items-center justify-between gap-3">
+                        <p className="text-[10px] text-zinc-500">
+                          {genres.length ? genres.join(", ") : "No genres yet"}
+                        </p>
+                        <span
+                          className="text-[10px] font-black uppercase tracking-wider px-2 py-1 rounded border"
+                          style={{ color: brandColor, borderColor: `${brandColor}35`, backgroundColor: `${brandColor}10` }}
+                        >
+                          {selectedTmdbId ? "TMDB linked" : "Manual draft"}
+                        </span>
+                      </div>
+                    </div>
+                  </aside>
+
+                  <section className="space-y-5 min-w-0">
+                    <div className="grid grid-cols-1 sm:grid-cols-[1fr_160px] gap-4 rounded-lg border border-white/10 bg-white/[0.025] p-4">
                     <div className="space-y-1">
                       <label className="text-[10px] font-bold uppercase text-zinc-500">Title Headline *</label>
                       <input
@@ -1008,7 +1057,7 @@ export default function AdminCMS({ onRefreshMovies, movies }: AdminCMSProps) {
                         className="w-full bg-zinc-950 border border-zinc-850 p-2.5 rounded text-xs text-zinc-500 font-mono"
                       />
                     </div>
-                  </div>
+                    </div>
 
                   <div className="grid grid-cols-2 gap-4 border-b border-zinc-900/60 pb-4">
                     <div className="space-y-1">
@@ -1373,9 +1422,10 @@ export default function AdminCMS({ onRefreshMovies, movies }: AdminCMSProps) {
                       Publish Metadata
                     </button>
                   </div>
+                  </section>
+                </div>
                 </form>
               </div>
-            </div>
           )}
         </div>
       )}
