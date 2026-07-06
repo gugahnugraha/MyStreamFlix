@@ -292,8 +292,27 @@ export default function App() {
     ? watchHistory.filter((h) => isKidsFriendly(h.movie)) 
     : watchHistory;
 
+  // Apply dynamic theme color to CSS variables
+  useEffect(() => {
+    const root = document.documentElement;
+    root.style.setProperty('--theme-primary', settings.primaryColor);
+    // Dynamically calculate RGBA versions
+    const color = settings.primaryColor;
+    const hex = color.replace('#', '');
+    const r = parseInt(hex.substring(0, 2), 16);
+    const g = parseInt(hex.substring(2, 4), 16);
+    const b = parseInt(hex.substring(4, 6), 16);
+    root.style.setProperty('--theme-primary-90', `rgba(${r}, ${g}, ${b}, 0.9)`);
+    root.style.setProperty('--theme-primary-80', `rgba(${r}, ${g}, ${b}, 0.8)`);
+    root.style.setProperty('--theme-primary-50', `rgba(${r}, ${g}, ${b}, 0.5)`);
+    root.style.setProperty('--theme-primary-30', `rgba(${r}, ${g}, ${b}, 0.3)`);
+    root.style.setProperty('--theme-primary-20', `rgba(${r}, ${g}, ${b}, 0.2)`);
+    root.style.setProperty('--theme-primary-10', `rgba(${r}, ${g}, ${b}, 0.1)`);
+  }, [settings.primaryColor]);
+
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col font-sans selection:bg-red-600 selection:text-white relative overflow-x-hidden" id="app-root">
+    <div className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col font-sans selection:text-white relative overflow-x-hidden" id="app-root" style={{ selectionBackgroundColor: settings.primaryColor }}>
+
       {/* Header component */}
       <Header
         currentUser={currentUser}
@@ -325,7 +344,8 @@ export default function App() {
             <div className="pt-4">
               <button 
                 onClick={() => setShowAuth(true)}
-                className="bg-red-600 hover:bg-red-700 text-white font-bold text-xs px-5 py-2.5 rounded shadow-lg shadow-red-600/10 cursor-pointer"
+                className="text-white font-bold text-xs px-5 py-2.5 rounded shadow-lg cursor-pointer hover:opacity-90 transition-all"
+                style={{ backgroundColor: settings.primaryColor, boxShadow: `0 0 15px ${settings.primaryColor}30` }}
               >
                 {t.signInAsAdmin}
               </button>
@@ -342,7 +362,7 @@ export default function App() {
           <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6" id="favorites-feed-viewport">
             <div>
               <h2 className="text-xl font-extrabold text-white flex items-center gap-2">
-                <Heart className="w-5 h-5 text-red-500 fill-red-500" />
+                <Heart className="w-5 h-5 fill-current" style={{ color: settings.primaryColor }} />
                 {t.myWatchlistTitle} ({displayedFavorites.length})
               </h2>
               <p className="text-xs text-zinc-500 mt-1">
@@ -355,7 +375,10 @@ export default function App() {
                 <p className="text-xs text-zinc-500">{t.watchlistEmpty}</p>
                 <button
                   onClick={() => setActiveTab("home")}
-                  className="bg-red-600/10 text-red-500 border border-red-500/20 text-xs font-semibold px-4 py-2 rounded-md hover:bg-red-600/20 transition-all cursor-pointer"
+                  className="text-xs font-semibold px-4 py-2 rounded-md transition-all cursor-pointer border"
+                  style={{ backgroundColor: `${settings.primaryColor}10`, color: settings.primaryColor, borderColor: `${settings.primaryColor}40` }}
+                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = `${settings.primaryColor}20`)}
+                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = `${settings.primaryColor}10`)}
                 >
                   {t.exploreSpotlight}
                 </button>
@@ -405,13 +428,14 @@ export default function App() {
                       setSelectedContentType(item.id as any);
                     }}
                     className={`pb-3 text-sm font-extrabold tracking-wide flex items-center gap-2 relative transition-all cursor-pointer ${
-                      isActive ? "text-red-500 font-black" : "text-zinc-500 hover:text-zinc-350"
+                      isActive ? "font-black" : "text-zinc-500 hover:text-zinc-350"
                     }`}
+                    style={isActive ? { color: settings.primaryColor } : {}}
                   >
                     <span>{item.icon}</span>
                     <span>{item.label}</span>
                     {isActive && (
-                      <div className="absolute bottom-0 left-0 right-0 h-[3px] bg-red-600 rounded-full shadow-[0_0_12px_rgba(220,38,38,0.8)]" />
+                      <div className="absolute bottom-0 left-0 right-0 h-[3px] rounded-full transition-all" style={{ backgroundColor: settings.primaryColor, boxShadow: `0 0 12px ${settings.primaryColor}80` }} />
                     )}
                   </button>
                 );
@@ -429,9 +453,10 @@ export default function App() {
                     onClick={() => setSelectedGenre(genre)}
                     className={`px-3 py-1.5 rounded-full text-xs font-semibold shrink-0 cursor-pointer transition-all ${
                       selectedGenre === genre
-                        ? "bg-red-600 text-white shadow-md shadow-red-600/10"
+                        ? "text-white shadow-md"
                         : "bg-zinc-900 hover:bg-zinc-850 text-zinc-400 hover:text-zinc-200"
                     }`}
+                    style={selectedGenre === genre ? { backgroundColor: settings.primaryColor, boxShadow: `0 0 8px ${settings.primaryColor}40` } : {}}
                   >
                     {t[genre as keyof typeof t] || genre}
                   </button>
@@ -447,7 +472,10 @@ export default function App() {
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value)}
-                  className="bg-zinc-900 border border-zinc-800 text-xs font-semibold text-zinc-300 px-3 py-1.5 rounded-md focus:outline-hidden focus:border-red-500/50"
+                  className="bg-zinc-900 border border-zinc-800 text-xs font-semibold text-zinc-300 px-3 py-1.5 rounded-md focus:outline-hidden"
+                  style={{ '--focus-color': settings.primaryColor } as any}
+                  onFocus={(e) => { (e.target as any).style.borderColor = settings.primaryColor + '80'; }}
+                  onBlur={(e) => { (e.target as any).style.borderColor = ''; }}
                   id="sort-select"
                 >
                   <option value="recent">{t.recentlyPublished}</option>

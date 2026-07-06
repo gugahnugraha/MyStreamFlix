@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import { Film, User as UserIcon, ShieldAlert, Heart, LayoutDashboard, LogIn, LogOut, RefreshCw, Search, Crown, Sparkles, Users, Globe } from "lucide-react";
 import { User, CMSSettings } from "../types";
 
+import { Movie } from "../types";
+
 interface HeaderProps {
   currentUser: User | null;
   settings: CMSSettings;
@@ -17,6 +19,7 @@ interface HeaderProps {
   currentLanguage: "en" | "id" | "es";
   onLanguageChange: (lang: "en" | "id" | "es") => void;
   t: any;
+  movies: Movie[];
 }
 
 export default function Header({
@@ -34,13 +37,23 @@ export default function Header({
   currentLanguage,
   onLanguageChange,
   t,
+  movies,
 }: HeaderProps) {
   const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [showSearchSuggestions, setShowSearchSuggestions] = useState(false);
+  
+  // Generate search suggestions
+  const searchSuggestions = searchQuery.trim() ? movies
+    .filter(m => m.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                  m.cast.some(c => c.toLowerCase().includes(searchQuery.toLowerCase())))
+    .slice(0, 8)
+    .map(m => ({ title: m.title, poster: m.posterUrl, id: m.id })) : [];
 
   // Dynamic profile calculation matching Prime/Disney+
   const activeProfile = currentUser?.profiles?.find(p => p.id === currentUser.activeProfileId);
   const profileAvatar = activeProfile?.avatar || currentUser?.profileImage || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80";
   const profileName = activeProfile?.name || currentUser?.name;
+  const brandColor = settings?.primaryColor || "#E50914";
 
   return (
     <header className="sticky top-0 z-40 bg-linear-to-b from-black/95 to-black/80 backdrop-blur-md border-b border-zinc-800/40 px-4 md:px-8 py-3 flex items-center justify-between">
@@ -50,8 +63,8 @@ export default function Header({
         onClick={() => setActiveTab("home")}
         id="header-brand-logo"
       >
-        <div className="w-9 h-9 rounded-lg bg-red-600 flex items-center justify-center shadow-lg shadow-red-600/20 group-hover:scale-105 transition-transform duration-300">
-          <Film className="w-5 h-5 text-white animate-pulse" />
+        <div className="w-9 h-9 rounded-lg flex items-center justify-center shadow-lg group-hover:scale-110 transition-all duration-300" style={{ backgroundColor: brandColor, boxShadow: `0 0 12px ${brandColor}40` }}>
+          <Film className="w-5 h-5 text-white group-hover:animate-pulse" />
         </div>
         <span className="text-xl font-bold tracking-wider text-white font-sans flex items-center gap-1.5">
           {settings.logoText}
@@ -68,35 +81,25 @@ export default function Header({
       <nav className="hidden md:flex items-center gap-6 text-sm font-medium text-zinc-400" id="header-nav">
         <button
           onClick={() => setActiveTab("home")}
-          className={`hover:text-white transition-colors cursor-pointer ${
-            activeTab === "home" ? "text-red-500 font-semibold" : ""
+          className={`relative px-1 pb-1 hover:text-white transition-colors cursor-pointer group ${
+            activeTab === "home" ? "text-white font-semibold" : ""
           }`}
           id="nav-home"
         >
           {t.browse}
+          <span className={`absolute bottom-0 left-0 right-0 h-0.5 rounded-full transition-all duration-300 ${activeTab === "home" ? "opacity-100" : "opacity-0 group-hover:opacity-50"}`} style={{ backgroundColor: brandColor }} />
         </button>
         {currentUser && (
           <button
             onClick={() => setActiveTab("favorites")}
-            className={`hover:text-white transition-colors cursor-pointer flex items-center gap-1.5 ${
-              activeTab === "favorites" ? "text-red-500 font-semibold" : ""
+            className={`relative px-1 pb-1 hover:text-white transition-colors cursor-pointer flex items-center gap-1.5 group ${
+              activeTab === "favorites" ? "text-white font-semibold" : ""
             }`}
             id="nav-favorites"
           >
-            <Heart className="w-4 h-4" />
+            <Heart className={`w-4 h-4 transition-transform ${activeTab === "favorites" ? "fill-current" : "group-hover:scale-110"}`} />
             {t.myList}
-          </button>
-        )}
-        {currentUser?.role === "admin" && (
-          <button
-            onClick={() => setActiveTab("admin")}
-            className={`hover:text-white transition-colors cursor-pointer flex items-center gap-1.5 ${
-              activeTab === "admin" ? "text-red-500 font-semibold" : ""
-            }`}
-            id="nav-admin"
-          >
-            <LayoutDashboard className="w-4 h-4" />
-            {t.adminDashboard}
+            <span className={`absolute bottom-0 left-0 right-0 h-0.5 rounded-full transition-all duration-300 ${activeTab === "favorites" ? "opacity-100" : "opacity-0 group-hover:opacity-50"}`} style={{ backgroundColor: brandColor }} />
           </button>
         )}
 
@@ -104,10 +107,12 @@ export default function Header({
         {currentUser && !currentUser.isPremium && (
           <button
             onClick={onOpenSubscription}
-            className="flex items-center gap-1 px-3 py-1 rounded-full bg-amber-500 hover:bg-amber-600 text-black text-xs font-bold transition-all shadow-md animate-bounce cursor-pointer shrink-0"
+            className="flex items-center gap-1 px-3 py-1.5 rounded-full text-black text-xs font-bold transition-all shadow-lg hover:shadow-2xl cursor-pointer shrink-0 ml-auto group relative overflow-hidden"
+            style={{ backgroundColor: brandColor }}
           >
-            <Sparkles className="w-3 h-3 fill-black" />
-            {t.subscribeVip}
+            <div className="absolute inset-0 opacity-0 group-hover:opacity-20 transition-opacity" style={{ backgroundColor: "white" }} />
+            <Sparkles className="w-3 h-3 fill-current relative z-10" />
+            <span className="relative z-10">{t.subscribeVip}</span>
           </button>
         )}
       </nav>
@@ -219,6 +224,20 @@ export default function Header({
                       )}
                     </div>
                   </div>
+
+                  {/* Admin Dashboard Section */}
+                  {currentUser.role === "admin" && (
+                    <div className="py-1 border-b border-zinc-900">
+                      <button
+                        onClick={() => { setActiveTab("admin"); setShowProfileMenu(false); }}
+                        className="w-full text-left px-3 py-1.5 text-xs text-zinc-300 hover:text-white hover:bg-zinc-900 rounded-md flex items-center gap-2 transition-colors cursor-pointer"
+                        id="dropdown-admin-btn"
+                      >
+                        <LayoutDashboard className="w-3.5 h-3.5" style={{ color: brandColor }} />
+                        {t.adminDashboard}
+                      </button>
+                    </div>
+                  )}
 
                   {/* Profile Management Section */}
                   <div className="py-1 border-b border-zinc-900">

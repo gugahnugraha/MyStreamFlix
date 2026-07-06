@@ -22,6 +22,10 @@ export default function AdminCMS({ onRefreshMovies, movies }: AdminCMSProps) {
   const [usersList, setUsersList] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [successMsg, setSuccessMsg] = useState("");
+
+  // Get brand color from settings when loaded
+  const brandColor = settings?.primaryColor || "#E50914";
 
   // Edit / Create Form States
   const [showForm, setShowForm] = useState(false);
@@ -167,8 +171,6 @@ export default function AdminCMS({ onRefreshMovies, movies }: AdminCMSProps) {
     }
   }, [contentType]);
 
-  // Status banners
-  const [successMsg, setSuccessMsg] = useState("");
 
   const fetchDashboardData = async () => {
     try {
@@ -426,9 +428,10 @@ export default function AdminCMS({ onRefreshMovies, movies }: AdminCMSProps) {
             onClick={() => setActiveSubTab("analytics")}
             className={`flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-md transition-all cursor-pointer ${
               activeSubTab === "analytics"
-                ? "bg-red-600 text-white shadow-md shadow-red-600/10"
+                ? "text-white shadow-md"
                 : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900"
             }`}
+            style={activeSubTab === "analytics" ? { backgroundColor: brandColor, boxShadow: `0 0 8px ${brandColor}40` } : {}}
             id="subtab-analytics"
           >
             <BarChart3 className="w-3.5 h-3.5" />
@@ -438,9 +441,10 @@ export default function AdminCMS({ onRefreshMovies, movies }: AdminCMSProps) {
             onClick={() => setActiveSubTab("catalog")}
             className={`flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-md transition-all cursor-pointer ${
               activeSubTab === "catalog"
-                ? "bg-red-600 text-white shadow-md shadow-red-600/10"
+                ? "text-white shadow-md"
                 : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900"
             }`}
+            style={activeSubTab === "catalog" ? { backgroundColor: brandColor, boxShadow: `0 0 8px ${brandColor}40` } : {}}
             id="subtab-catalog"
           >
             <Film className="w-3.5 h-3.5" />
@@ -450,9 +454,10 @@ export default function AdminCMS({ onRefreshMovies, movies }: AdminCMSProps) {
             onClick={() => setActiveSubTab("settings")}
             className={`flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-md transition-all cursor-pointer ${
               activeSubTab === "settings"
-                ? "bg-red-600 text-white shadow-md shadow-red-600/10"
+                ? "text-white shadow-md"
                 : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900"
             }`}
+            style={activeSubTab === "settings" ? { backgroundColor: brandColor, boxShadow: `0 0 8px ${brandColor}40` } : {}}
             id="subtab-settings"
           >
             <Settings className="w-3.5 h-3.5" />
@@ -462,9 +467,10 @@ export default function AdminCMS({ onRefreshMovies, movies }: AdminCMSProps) {
             onClick={() => setActiveSubTab("users")}
             className={`flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-md transition-all cursor-pointer ${
               activeSubTab === "users"
-                ? "bg-red-600 text-white shadow-md shadow-red-600/10"
+                ? "text-white shadow-md"
                 : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900"
             }`}
+            style={activeSubTab === "users" ? { backgroundColor: brandColor, boxShadow: `0 0 8px ${brandColor}40` } : {}}
             id="subtab-users"
           >
             <Users className="w-3.5 h-3.5" />
@@ -609,7 +615,8 @@ export default function AdminCMS({ onRefreshMovies, movies }: AdminCMSProps) {
             </p>
             <button
               onClick={handleOpenCreate}
-              className="flex items-center gap-1.5 bg-red-600 hover:bg-red-700 text-white font-bold text-xs px-4 py-2.5 rounded-md shadow-lg shadow-red-600/15 transition-all cursor-pointer"
+              className="flex items-center gap-1.5 text-white font-bold text-xs px-4 py-2.5 rounded-md shadow-lg transition-all cursor-pointer hover:opacity-90"
+            style={{ backgroundColor: brandColor, boxShadow: `0 0 15px ${brandColor}30` }}
               id="cms-add-movie-btn"
             >
               <Plus className="w-4 h-4" />
