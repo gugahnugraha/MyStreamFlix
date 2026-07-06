@@ -63,9 +63,32 @@ This project is intentionally built with in-memory state in `server.ts` so buyer
    * `Firebase` / `Supabase` for serverless backend storage.
 2. Create a new database client file such as `src/db.ts` and use `dotenv` for configuration.
 3. Add a `.env` file with your connection string, for example:
-   ```bash
-   DATABASE_URL="postgresql://user:password@localhost:5432/cinemaniac"
-   ```
+   * PostgreSQL / Prisma / Drizzle:
+     ```bash
+     DATABASE_URL="postgresql://user:password@localhost:5432/cinemaniac"
+     ```
+   * MySQL / Prisma / Drizzle:
+     ```bash
+     DATABASE_URL="mysql://user:password@localhost:3306/cinemaniac"
+     ```
+   * SQLite / Prisma / Drizzle:
+     ```bash
+     DATABASE_URL="file:./dev.db"
+     ```
+   * MongoDB / Mongoose (example connection URI):
+     ```bash
+     MONGODB_URI="mongodb+srv://user:password@cluster0.mongodb.net/cinemaniac?retryWrites=true&w=majority"
+     ```
+   * Firebase / Supabase (serverless URL + key):
+     ```bash
+     FIREBASE_DATABASE_URL="https://your-project-id.firebaseio.com"
+     FIREBASE_API_KEY="your_api_key"
+     ```
+     or for Supabase:
+     ```bash
+     SUPABASE_URL="https://xyzcompany.supabase.co"
+     SUPABASE_ANON_KEY="your-anon-key"
+     ```
 4. Replace the in-memory collections in `server.ts` with database queries, such as:
    * `db.movie.findMany(...)` instead of the `movies` array
    * `db.user.findUnique(...)` instead of `users.find(...)`

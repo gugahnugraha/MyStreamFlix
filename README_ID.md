@@ -63,9 +63,32 @@ Proyek ini sengaja dibuat menggunakan penyimpanan in-memory di `server.ts` agar 
    * `Firebase` / `Supabase` untuk penyimpanan serverless.
 2. Buat file klien database baru seperti `src/db.ts` dan gunakan `dotenv` untuk konfigurasi.
 3. Tambahkan file `.env` dengan connection string Anda, misalnya:
-   ```bash
-   DATABASE_URL="postgresql://user:password@localhost:5432/cinemaniac"
-   ```
+   * PostgreSQL / Prisma / Drizzle:
+     ```bash
+     DATABASE_URL="postgresql://user:password@localhost:5432/cinemaniac"
+     ```
+   * MySQL / Prisma / Drizzle:
+     ```bash
+     DATABASE_URL="mysql://user:password@localhost:3306/cinemaniac"
+     ```
+   * SQLite / Prisma / Drizzle:
+     ```bash
+     DATABASE_URL="file:./dev.db"
+     ```
+   * MongoDB / Mongoose (contoh URI koneksi):
+     ```bash
+     MONGODB_URI="mongodb+srv://user:password@cluster0.mongodb.net/cinemaniac?retryWrites=true&w=majority"
+     ```
+   * Firebase / Supabase (URL serverless + key):
+     ```bash
+     FIREBASE_DATABASE_URL="https://your-project-id.firebaseio.com"
+     FIREBASE_API_KEY="your_api_key"
+     ```
+     atau untuk Supabase:
+     ```bash
+     SUPABASE_URL="https://xyzcompany.supabase.co"
+     SUPABASE_ANON_KEY="your-anon-key"
+     ```
 4. Ganti koleksi in-memory di `server.ts` dengan query database, contohnya:
    * `db.movie.findMany(...)` menggantikan array `movies`
    * `db.user.findUnique(...)` menggantikan `users.find(...)`
