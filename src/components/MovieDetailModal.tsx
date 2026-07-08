@@ -302,7 +302,7 @@ export default function MovieDetailModal({
             {detailTabs.map((tab) => (
               <button
                 key={tab.id}
-                onClick={() => setActiveDetailTab(tab.id)}
+                onClick={() => setActiveDetailTab(tab.id as any)}
                 className={`px-3.5 py-2 rounded-md text-xs font-black transition-all cursor-pointer flex items-center gap-2 shrink-0 ${
                   activeDetailTab === tab.id
                     ? "text-white"

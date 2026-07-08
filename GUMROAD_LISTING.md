@@ -5,39 +5,41 @@ Use this document to quickly fill in your product listing page on Gumroad, Lemon
 ---
 
 ## 🏷️ Suggested Product Titles
-1.  **CineManiac - Full-Stack Movie Streaming Portal with Admin CMS (React + Express + Tailwind)**
-2.  **Premium Full-Stack Cinematic Video Library & CMS Web App Template**
-3.  **Modern Cinematic Streaming Web Portal — React & Node.js Developer Kit**
+1.  **MyStreamFlix - Next.js 15 Video Streaming SaaS Portal with Admin CMS & Prisma ORM**
+2.  **Premium Full-Stack Cinematic Video Library & CMS Web App Template (Next.js + Prisma)**
+3.  **Modern Cinematic Streaming Web Portal — Next.js 15, Prisma, Tailwind CSS v4 Developer Kit**
 
 ---
 
 ## ⚡ Catchy Tagline / Pitch Intro
-> **"Launch your own beautifully designed, ultra-responsive streaming portal in less than 5 minutes."**
+> **"Launch your own beautifully designed, serverless-ready cinematic streaming portal in less than 5 minutes."**
 > 
-> Stop spending months building video galleries and admin control panels from scratch. **CineManiac** is a production-ready, highly polished full-stack streaming template featuring a beautiful cinematic dark theme, HLS/MP4 stream support with fallback simulation, an intuitive CMS catalog manager, user base controls, and dynamic real-time traffic analytics.
+> Stop spending months building video libraries and database APIs from scratch. **MyStreamFlix** is a production-ready, highly polished full-stack streaming template built on Next.js 15 featuring a premium cinema dark theme, cookie session auth, interactive player simulators, comprehensive catalog CMS, user role moderators, and real-time analytics.
 
 ---
 
-## 🌟 What makes CineManiac different? (The "Sales Hooks")
-*   **Zero Complex Database Setups**: Built on an extremely efficient portable state-persistent in-memory engine. Runs instantly with `npm install` and `npm run dev` out of the box—perfect for showcasing to clients or starting a media portfolio.
+## 🌟 What makes MyStreamFlix different? (The "Sales Hooks")
+*   **Zero Complex Database Setup Fallback**: Operates on a smart hybrid database model. Runs instantly locally via an in-memory data store with preloaded movie seed catalogs out of the box—perfect for demonstrating to clients or testing!
+*   **Production-Ready with Prisma ORM**: Easily plug in PostgreSQL, Supabase, or MongoDB database backends by simply setting a `DATABASE_URL` env variable.
+*   **Cookie Session Multi-Profile Space**: True SaaS capabilities where multiple users can register, manage up to 5 profiles (including a strict age-gated Kids Mode space), write reviews, and track play progress.
 *   **Cinematic Playback Fail-Safe**: If any direct video stream fails, the app automatically transitions into an atmospheric mock cinema playback simulation complete with interactive speed controls, working sub-titles, and details, ensuring visitors are never greeted by a broken screen.
 *   **Fully Equipped Admin Console**: Modify your catalog, manage user accounts (promote viewers to admin or remove accounts), change global settings, and view real-time traffic statistics instantly.
 
 ---
 
 ## 🎨 What is Included in the Digital ZIP File?
-1.  **Full Source Code**: Pristine, clean, and modular TypeScript files (`/src` folder, complete component division).
-2.  **Vite & esbuild Configs**: Optimally pre-configured build chains with support for bundling server-side files into self-contained code.
-3.  **Complete Documentation Suite**: Extensive `README.md` (English) and `README_ID.md` (Indonesian) files containing installation guides and credentials.
-4.  **Static UI Assets**: Organized vectors and CSS setups.
+1.  **Full Source Code**: Pristine, clean, and modular TypeScript files (Next.js App Router structure, client components, and serverless API routes).
+2.  **Prisma Schema Options**: Default PostgreSQL/Supabase schema + specialized MongoDB schema variant.
+3.  **Complete Documentation Suite**: Extensive `README.md` (English) and `README_ID.md` (Indonesian) files containing installation guides and database setup tutorials.
+4.  **Static UI Assets**: Organized vector icons and custom styles.
 
 ---
 
 ## 💡 Recommended Pricing Strategy
-*   **Tier 1: Personal Developer License ($14.99 - $19.99)**
+*   **Tier 1: Personal Developer License ($19.99 - $24.99)**
     *   *Best for*: Learning, personal portfolios, or deploying a private media hub.
-*   **Tier 2: Commercial Rebranding License ($39.90 - $49.99)**
-    *   *Best for*: Freelancers, web design agencies, and creators looking to launch customized streaming sites for clients or monetize their own channels.
+*   **Tier 2: Commercial Rebranding License ($49.90 - $59.99)**
+    *   *Best for*: Freelancers, web agencies, and creators looking to launch customized streaming sites for clients or monetize their own premium channels.
 
 ---
 
@@ -48,7 +50,7 @@ Use this document to quickly fill in your product listing page on Gumroad, Lemon
 
 ### **Launch Your Own Premium Cinematic Streaming Platform Today!**
 
-**CineManiac** is a premium, full-stack video portal and CMS template designed with a stunning, high-contrast cinematic theme. Perfect for developers, video content creators, online course providers, or agencies, this template provides a fully featured video experience without the headache of setting up heavyweight server databases.
+**MyStreamFlix** is a premium, full-stack video-on-demand (VoD) portal and CMS template designed with a stunning, high-contrast cinematic theme. Perfect for developers, creators, online course providers, or agencies, this template provides a fully featured video experience with seamless deployment to Vercel.
 
 ### **🎥 What's Under the Hood?**
 
@@ -64,17 +66,17 @@ Use this document to quickly fill in your product listing page on Gumroad, Lemon
 *   **SEO & Global Control**: Toggle default mock simulations, set search keywords, and control descriptions straight from the UI.
 
 ### **🛠️ Clean & Modern Technology Stack**
-*   **Frontend**: React 18 (TypeScript), Vite (blazing fast builds), Tailwind CSS (sleek, highly customizable utility design), Lucide React (elegant vector icons).
-*   **Backend**: Node.js, Express (RESTful APIs with session handling).
-*   **Database**: Portable persistent state engine (zero database setup required).
-*   **Styling**: Pre-configured fluid responsive layout styled with deep slate grays and cinematic red accents.
+*   **Core**: Next.js 15 (App Router), React 19, TypeScript
+*   **Database**: Prisma ORM with hybrid support (Zero-Config In-Memory fallback vs Supabase, MongoDB, or PostgreSQL databases)
+*   **Styling**: Tailwind CSS v4 and dynamic theme color customization
+*   **Authentication**: Multi-profile HTTP-only secure cookie session space
 
 ---
 
 ### **📋 Frequently Asked Questions (FAQ)**
 
-**Q: Do I need a database server like PostgreSQL or MySQL to run this?**
-A: No! CineManiac runs on an optimized, highly-portable state engine out of the box, making it exceptionally easy to host on cost-effective virtual servers or serverless environments.
+**Q: Do I need a database server like PostgreSQL or MongoDB to run this?**
+A: No! MyStreamFlix runs on an optimized, highly-portable state engine out of the box, making it exceptionally easy to host on cost-effective virtual servers or serverless environments.
 
 **Q: Can I connect my own database if needed later?**
 A: Yes! The backend routes are completely decoupled. You can easily plug in Prisma, Drizzle, or Mongoose schemas in `server.ts` in just a few lines of code.
@@ -86,4 +88,4 @@ A: Absolutely. All styles are declared with Tailwind CSS. Changing branding acce
 A: Use the pre-seeded admin account inside the source files (`admin@cine.com` / `admin123`) to unlock full access immediately.
 
 ---
-*Add CineManiac to your cart today, select your license, and start streaming!* 🍿🎬
+*Add MyStreamFlix to your cart today, select your license, and start streaming!* 🍿🎬

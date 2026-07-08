@@ -24,7 +24,7 @@ export default function MovieCard({ movie, progress, onSelect, onPlay, t }: Movi
 
   return (
     <div 
-      className="group relative flex flex-col cinema-surface rounded-lg overflow-hidden transition-all duration-300 cursor-pointer transform hover:-translate-y-1 hover:shadow-[0_22px_58px_rgba(0,0,0,0.42)]"
+      className="group relative flex flex-col cinema-surface rounded-xl overflow-hidden transition-all duration-500 cursor-pointer border border-white/[0.04] hover:border-red-500 hover:-translate-y-2 hover:shadow-[0_20px_50px_var(--theme-primary-20)]"
       onClick={() => onSelect(movie)}
       id={`movie-card-${movie.id}`}
     >
@@ -33,23 +33,23 @@ export default function MovieCard({ movie, progress, onSelect, onPlay, t }: Movi
         <img
           src={movie.backdropUrl || movie.posterUrl}
           alt={movie.title}
-          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+          className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-110"
           referrerPolicy="no-referrer"
           loading="lazy"
         />
 
         {/* Dynamic Dark Gradient Cover */}
-        <div className="absolute inset-0 bg-linear-to-t from-black/92 via-black/16 to-black/34 opacity-65 group-hover:opacity-90 transition-opacity duration-300" />
+        <div className="absolute inset-0 bg-linear-to-t from-black/95 via-black/20 to-black/30 opacity-70 group-hover:opacity-85 transition-opacity duration-500" />
 
         {/* Hover Action Indicators */}
-        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-350">
           <button
             onClick={(e) => {
               e.stopPropagation();
               onPlay(movie);
             }}
-            className="w-12 h-12 rounded-full text-white flex items-center justify-center shadow-xl hover:scale-110 transition-transform cursor-pointer ring-1 ring-white/20"
-            style={{ backgroundColor: "var(--theme-primary)", boxShadow: "0 16px 34px var(--theme-primary-30)" }}
+            className="w-12 h-12 rounded-full text-white flex items-center justify-center shadow-2xl scale-75 group-hover:scale-100 hover:!scale-110 active:!scale-95 transition-all duration-300 cursor-pointer border border-white/20"
+            style={{ backgroundColor: "var(--theme-primary)", boxShadow: "0 16px 34px var(--theme-primary-40)" }}
             id={`play-btn-${movie.id}`}
           >
             <Play className="w-5 h-5 text-white fill-white ml-0.5" />

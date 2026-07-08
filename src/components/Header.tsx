@@ -136,7 +136,7 @@ export default function Header({
   };
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-40 bg-black/72 backdrop-blur-xl border-b border-white/10 px-4 md:px-8 py-3 flex items-center justify-between shadow-[0_12px_36px_rgba(0,0,0,0.28)]">
+    <header className="fixed top-0 left-0 right-0 z-40 bg-[#070708]/75 backdrop-blur-xl border-b border-white/[0.06] px-4 md:px-8 py-3.5 flex items-center justify-between shadow-[0_12px_40px_rgba(0,0,0,0.4)] transition-all duration-300">
       {/* Brand Logo */}
       <div 
         className="flex items-center gap-2 cursor-pointer group"
@@ -234,7 +234,7 @@ export default function Header({
         {/* Search Input */}
         {activeTab === "home" && (
           <div className="relative hidden sm:block">
-            <Search className="absolute left-3 top-2.5 w-4 h-4 text-zinc-500" style={showSearchSuggestions ? { color: brandColor } : {}} />
+            <Search className="absolute left-3 top-2.5 w-4 h-4 text-zinc-500 transition-colors duration-300" style={showSearchSuggestions ? { color: brandColor } : {}} />
             <input
               type="text"
               placeholder={t.searchPlaceholder}
@@ -245,7 +245,7 @@ export default function Header({
               }}
               onFocus={() => setShowSearchSuggestions(true)}
               onBlur={() => window.setTimeout(() => setShowSearchSuggestions(false), 120)}
-              className="w-40 lg:w-64 bg-white/[0.04] text-xs text-white pl-9 pr-4 py-2 rounded-lg border border-white/10 focus:outline-hidden focus:ring-2 transition-all placeholder:text-zinc-500"
+              className="w-32 sm:w-36 focus:w-56 focus:sm:w-64 focus:lg:w-80 hover:w-44 focus:hover:w-56 focus:sm:hover:w-64 focus:lg:hover:w-80 bg-white/[0.03] text-xs text-white pl-9 pr-4 py-2 rounded-lg border border-white/10 focus:outline-hidden focus:ring-2 transition-all duration-300 ease-in-out placeholder:text-zinc-500"
               style={showSearchSuggestions ? { borderColor: `${brandColor}80`, boxShadow: `0 0 0 2px ${brandColor}20` } : {}}
               id="header-search-input"
             />

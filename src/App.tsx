@@ -22,11 +22,15 @@ import { getTranslation, LanguageCode } from "./translations";
 
 export default function App() {
   // Language Localization State
-  const [currentLanguage, setCurrentLanguage] = useState<LanguageCode>(() => {
+  const [currentLanguage, setCurrentLanguage] = useState<LanguageCode>("en");
+
+  // Load language preference on client mount
+  useEffect(() => {
     const saved = localStorage.getItem("app_lang");
-    if (saved === "en" || saved === "id" || saved === "es") return saved as LanguageCode;
-    return "en";
-  });
+    if (saved === "en" || saved === "id" || saved === "es") {
+      setCurrentLanguage(saved as LanguageCode);
+    }
+  }, []);
   const t = getTranslation(currentLanguage);
 
   const handleLanguageChange = (lang: LanguageCode) => {
@@ -311,7 +315,7 @@ export default function App() {
   }, [settings.primaryColor]);
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col font-sans selection:text-white relative overflow-x-hidden pt-[65px]" id="app-root" style={{ selectionBackgroundColor: settings.primaryColor }}>
+    <div className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col font-sans selection:text-white relative overflow-x-hidden pt-[65px]" id="app-root" style={{ ["selectionBackgroundColor" as any]: settings.primaryColor }}>
 
       {/* Header component */}
       <Header

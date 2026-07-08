@@ -1,0 +1,97 @@
+// This is your Prisma schema file for MongoDB,
+// use it if you want to use MongoDB as your database backend.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              String   @id @map("_id")
+  name            String
+  email           String   @unique
+  passwordHash    String?
+  role            String   @default("user")
+  profileImage    String?
+  createdAt       String
+  isPremium       Boolean  @default(false)
+  profiles        Json     @default("[]") // Stores array of UserProfile: { id, name, avatar, isKids }
+  activeProfileId String?
+}
+
+model Movie {
+  id            String   @id @map("_id")
+  tmdbId        Int?
+  tmdbMediaType String?
+  title         String
+  description   String
+  posterUrl     String
+  backdropUrl   String
+  videoUrl      String
+  duration      Int
+  releaseYear   Int
+  rating        Float
+  ageRating     String
+  quality       String
+  genres        String[]
+  cast          String[]
+  directors     String[]
+  subtitles     Json     @default("[]") // Stores array of Subtitle: { id, language, label, fileUrl }
+  country       String
+  language      String
+  views         Int      @default(0)
+  likes         Int      @default(0)
+  isFeatured    Boolean  @default(false)
+  isBanner      Boolean  @default(false)
+  tier          String   @default("free")
+  contentType   String   @default("movie")
+  seasons       Json     @default("[]") // Stores array of Season: { id, seasonNumber, title, episodes: [...] }
+  createdAt     String
+}
+
+model CMSSettings {
+  singletonKey   String  @id @map("_id") @default("global")
+  siteName       String
+  logoText       String
+  primaryColor   String  @default("#E50914")
+  enableComments Boolean @default(true)
+  enableRatings  Boolean @default(true)
+  maintenanceMode Boolean @default(false)
+  seoTitle       String
+  seoDescription String
+  seoKeywords    String
+}
+
+model Favorite {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String
+  movieId   String
+  createdAt DateTime @default(now())
+
+  @@unique([userId, movieId])
+}
+
+model WatchHistory {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId      String
+  movieId     String
+  progress    Int      // In seconds
+  duration    Int      // In seconds
+  lastWatched String   // ISO String
+
+  @@unique([userId, movieId])
+}
+
+model Review {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  movieId   String
+  userName  String
+  rating    Int
+  comment   String
+  date      String   // YYYY-MM-DD
+  createdAt DateTime @default(now())
+}
