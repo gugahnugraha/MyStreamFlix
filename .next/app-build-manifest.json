@@ -31,10 +31,25 @@
       "static/chunks/main-app.js",
       "static/chunks/app/api/movies/[id]/route.js"
     ],
-    "/_not-found/page": [
+    "/api/search/suggestions/route": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/_not-found/page.js"
+      "static/chunks/app/api/search/suggestions/route.js"
+    ],
+    "/api/auth/login/route": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/api/auth/login/route.js"
+    ],
+    "/api/user/favorites/route": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/api/user/favorites/route.js"
+    ],
+    "/api/user/history/route": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/api/user/history/route.js"
     ]
   }
 }

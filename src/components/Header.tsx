@@ -140,7 +140,10 @@ export default function Header({
       {/* Brand Logo */}
       <div 
         className="flex items-center gap-2 cursor-pointer group"
-        onClick={() => setActiveTab("home")}
+        onClick={() => {
+          setActiveTab("home");
+          setSearchQuery("");
+        }}
         id="header-brand-logo"
       >
         <div className="w-9 h-9 rounded-lg flex items-center justify-center shadow-lg group-hover:scale-110 transition-all duration-300 ring-1 ring-white/10" style={{ backgroundColor: brandColor, boxShadow: `0 12px 28px ${brandColor}38` }}>
@@ -163,6 +166,7 @@ export default function Header({
           onClick={() => {
             setActiveTab("home");
             onSelectContentType("all");
+            setSearchQuery("");
           }}
           className={`relative px-3 py-1.5 rounded-md transition-all cursor-pointer group ${
             activeTab === "home" && selectedContentType === "all" ? "text-white font-semibold" : "hover:bg-white/[0.04]"
@@ -176,6 +180,7 @@ export default function Header({
           onClick={() => {
             setActiveTab("home");
             onSelectContentType("movie");
+            setSearchQuery("");
           }}
           className={`relative px-3 py-1.5 rounded-md transition-all cursor-pointer group ${
             activeTab === "home" && selectedContentType === "movie" ? "text-white font-semibold" : "hover:bg-white/[0.04]"
@@ -189,6 +194,7 @@ export default function Header({
           onClick={() => {
             setActiveTab("home");
             onSelectContentType("series");
+            setSearchQuery("");
           }}
           className={`relative px-3 py-1.5 rounded-md transition-all cursor-pointer group ${
             activeTab === "home" && selectedContentType === "series" ? "text-white font-semibold" : "hover:bg-white/[0.04]"
@@ -200,7 +206,10 @@ export default function Header({
         </button>
         {currentUser && (
           <button
-            onClick={() => setActiveTab("favorites")}
+            onClick={() => {
+              setActiveTab("favorites");
+              setSearchQuery("");
+            }}
             className={`relative px-3 py-1.5 rounded-md transition-all cursor-pointer flex items-center gap-1.5 group ${
               activeTab === "favorites" ? "text-white font-semibold" : "hover:bg-white/[0.04]"
             }`}
