@@ -15,6 +15,7 @@ interface AdminCMSProps {
   movies: Movie[];
   globalSettings: CMSSettings;
   onUpdateGlobalSettings: (settings: CMSSettings) => void;
+  t: any;
 }
 
 const PRESET_COLORS = [
@@ -65,7 +66,8 @@ export default function AdminCMS({
   onRefreshMovies, 
   movies, 
   globalSettings, 
-  onUpdateGlobalSettings 
+  onUpdateGlobalSettings,
+  t
 }: AdminCMSProps) {
   const [activeSubTab, setActiveSubTab] = useState<"analytics" | "catalog" | "settings" | "users">("analytics");
   const [stats, setStats] = useState<DashboardStats | null>(null);
@@ -470,23 +472,23 @@ export default function AdminCMS({
   };
 
   const handleDeleteMovie = async (movieId: string) => {
-    if (!window.confirm("Are you sure you want to permanently delete this movie from the system?")) return;
+    if (!window.confirm(t.cmsDeleteMovieConfirm)) return;
     try {
       const res = await fetch(`/api/movies/${movieId}`, { method: "DELETE" });
-      if (!res.ok) throw new Error("Could not delete movie.");
+      if (!res.ok) throw new Error(t.cmsDeletedMovie);
       
-      setSuccessMsg("Movie successfully deleted from the catalog!");
+      setSuccessMsg(t.cmsDeletedMovie);
       onRefreshMovies();
       setTimeout(() => setSuccessMsg(""), 3500);
     } catch (err: any) {
-      alert(err.message || "Deletion failed");
+      alert(err.message || t.cmsFailedSave);
     }
   };
 
   const handleSaveMovie = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim() || !videoUrl.trim()) {
-      alert("Title and Video URL are required.");
+      alert(t.cmsTitleVideoRequired);
       return;
     }
 
@@ -529,12 +531,12 @@ export default function AdminCMS({
       if (!res.ok) {
         const errData = await res.json();
         if (res.status === 409) {
-          throw new Error(errData.error || "This title already exists in the catalog database.");
+          throw new Error(errData.error || t.cmsTitleExists);
         }
-        throw new Error(errData.error || "Failed saving catalog entry.");
+        throw new Error(errData.error || t.cmsFailedSave);
       }
 
-      setSuccessMsg(formMode === "create" ? "Successfully created new title!" : "Successfully updated movie details!");
+      setSuccessMsg(formMode === "create" ? t.cmsCreatedSuccess : t.cmsUpdatedSuccess);
       setShowForm(false);
       onRefreshMovies();
       setTimeout(() => setSuccessMsg(""), 3500);
@@ -554,8 +556,8 @@ export default function AdminCMS({
         body: JSON.stringify(settings)
       });
 
-      if (!res.ok) throw new Error("Could not update settings.");
-      setSuccessMsg("Global CMS configurations saved successfully!");
+      if (!res.ok) throw new Error(t.cmsSettingsSaved);
+      setSuccessMsg(t.cmsSettingsSaved);
       setTimeout(() => setSuccessMsg(""), 3500);
     } catch (err: any) {
       alert(err.message || "Settings update failed.");
@@ -574,7 +576,7 @@ export default function AdminCMS({
         const data = await res.json();
         throw new Error(data.error || "Failed to update user role.");
       }
-      setSuccessMsg(`Successfully toggled user role to ${targetRole}!`);
+      setSuccessMsg(t.cmsRoleToggled);
       setTimeout(() => setSuccessMsg(""), 3500);
       
       // Refresh user base list
@@ -589,14 +591,14 @@ export default function AdminCMS({
   };
 
   const handleDeleteUser = async (userId: string) => {
-    if (!window.confirm("Are you sure you want to permanently delete this user's account?")) return;
+    if (!window.confirm(t.cmsDeleteUserConfirm)) return;
     try {
       const res = await fetch(`/api/users/${userId}`, { method: "DELETE" });
       if (!res.ok) {
         const data = await res.json();
         throw new Error(data.error || "Failed to delete account.");
       }
-      setSuccessMsg("Successfully deleted user account.");
+      setSuccessMsg(t.cmsUserDeleted);
       setTimeout(() => setSuccessMsg(""), 3500);
       
       // Refresh user base list
@@ -614,7 +616,7 @@ export default function AdminCMS({
     return (
       <div className="flex flex-col items-center justify-center min-h-64 py-20 gap-3" id="cms-loading">
         <div className="w-10 h-10 border-4 border-red-600 border-t-transparent rounded-full animate-spin" />
-        <p className="text-xs text-zinc-500 font-mono">Synchronizing CMS database models...</p>
+        <p className="text-xs text-zinc-500 font-mono">{t.cmsSyncingDb}</p>
       </div>
     );
   }
@@ -626,14 +628,14 @@ export default function AdminCMS({
         <div>
           <div className="flex items-center gap-2">
             <span className="p-1 rounded bg-red-600/10 border border-red-500/20 text-red-500 text-[10px] font-bold tracking-wider font-mono">
-              SYSTEM CONSOLE
+              {t.cmsSystemConsole}
             </span>
           </div>
           <h1 className="text-2xl font-black text-white tracking-tight mt-1">
-            Media Streaming CMS Admin Panel
+            {t.cmsPanelTitle}
           </h1>
           <p className="text-xs text-zinc-500 mt-1">
-            Publish movie catalogs, examine audience stream telemetry, and adjust metadata settings.
+            {t.cmsPanelDesc}
           </p>
         </div>
 
@@ -650,7 +652,7 @@ export default function AdminCMS({
             id="subtab-analytics"
           >
             <BarChart3 className="w-3.5 h-3.5" />
-            Analytics
+            {t.cmsTabAnalytics}
           </button>
           <button
             onClick={() => setActiveSubTab("catalog")}
@@ -663,7 +665,7 @@ export default function AdminCMS({
             id="subtab-catalog"
           >
             <Film className="w-3.5 h-3.5" />
-            Catalog CRUD
+            {t.cmsTabCatalog}
           </button>
           <button
             onClick={() => setActiveSubTab("settings")}
@@ -676,7 +678,7 @@ export default function AdminCMS({
             id="subtab-settings"
           >
             <Settings className="w-3.5 h-3.5" />
-            Settings
+            {t.cmsTabSettings}
           </button>
           <button
             onClick={() => setActiveSubTab("users")}
@@ -689,7 +691,7 @@ export default function AdminCMS({
             id="subtab-users"
           >
             <Users className="w-3.5 h-3.5" />
-            User Base
+            {t.cmsTabUsers}
           </button>
         </div>
       </div>
@@ -712,7 +714,7 @@ export default function AdminCMS({
                 <Film className="w-5 h-5" />
               </div>
               <div>
-                <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Catalog Titles</p>
+                <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">{t.cmsCatalogTitles}</p>
                 <p className="text-lg font-black text-white mt-0.5">{stats.totalMovies}</p>
               </div>
             </div>
@@ -722,7 +724,7 @@ export default function AdminCMS({
                 <Eye className="w-5 h-5" />
               </div>
               <div>
-                <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Total Views</p>
+                <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">{t.cmsTotalViews}</p>
                 <p className="text-lg font-black text-white mt-0.5">{stats.totalViews.toLocaleString()}</p>
               </div>
             </div>
@@ -732,7 +734,7 @@ export default function AdminCMS({
                 <TrendingUp className="w-5 h-5" />
               </div>
               <div>
-                <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Watch Hours</p>
+                <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">{t.cmsWatchHours}</p>
                 <p className="text-lg font-black text-white mt-0.5">{stats.totalWatchTime.toLocaleString()} hrs</p>
               </div>
             </div>
@@ -742,7 +744,7 @@ export default function AdminCMS({
                 <Users className="w-5 h-5" />
               </div>
               <div>
-                <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Saas Signups</p>
+                <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">{t.cmsSaasSignups}</p>
                 <p className="text-lg font-black text-white mt-0.5">{stats.totalUsers}</p>
               </div>
             </div>
@@ -752,7 +754,7 @@ export default function AdminCMS({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Views over time bar chart */}
             <div className="bg-zinc-950 border border-zinc-900 rounded-xl p-5 space-y-4">
-              <h3 className="text-xs font-bold text-zinc-400 tracking-wider uppercase">Audience Traffic (Views/Day)</h3>
+              <h3 className="text-xs font-bold text-zinc-400 tracking-wider uppercase">{t.cmsAudienceTraffic}</h3>
               <div className="h-44 w-full flex items-end justify-between pt-4">
                 {stats.recentViews.map((item, idx) => {
                   const maxCount = Math.max(...stats!.recentViews.map(v => v.count));
@@ -777,7 +779,7 @@ export default function AdminCMS({
 
             {/* Top performing movies table */}
             <div className="bg-zinc-950 border border-zinc-900 rounded-xl p-5 space-y-4">
-              <h3 className="text-xs font-bold text-zinc-400 tracking-wider uppercase">Spotlight Engagement Leaders</h3>
+              <h3 className="text-xs font-bold text-zinc-400 tracking-wider uppercase">{t.cmsEngagementLeaders}</h3>
               <div className="space-y-3.5" id="engagement-leaderboard">
                 {stats.topMovies.map((m, idx) => (
                   <div key={m.id} className="flex items-center justify-between border-b border-zinc-900 pb-2.5 last:border-0 last:pb-0">
@@ -789,7 +791,7 @@ export default function AdminCMS({
                     </div>
 
                     <div className="flex items-center gap-4 text-xs">
-                      <span className="text-zinc-500 font-mono">{m.views.toLocaleString()} views</span>
+                      <span className="text-zinc-500 font-mono">{m.views.toLocaleString()} {t.cmsViews}</span>
                       <span className="px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400 font-bold text-[10px]">
                         ★ {m.rating}
                       </span>
@@ -811,7 +813,7 @@ export default function AdminCMS({
                 >
                   <span className="text-zinc-300">{item.name}</span>
                   <span className="px-1.5 py-0.2 rounded-sm bg-red-600/15 text-red-400 font-mono text-[10px]">
-                    {item.count} items
+                    {item.count} {t.cmsItems}
                   </span>
                 </div>
               ))}
@@ -826,7 +828,7 @@ export default function AdminCMS({
           {/* Create movie action and quick info */}
           <div className="flex justify-between items-center bg-zinc-950 p-4 rounded-xl border border-zinc-900">
             <p className="text-xs text-zinc-400">
-              Showing <span className="text-white font-bold">{filteredAndSortedMovies.length}</span> of <span className="text-zinc-550">{movies.length}</span> titles.
+              {t.cmsShowingOf} <span className="text-white font-bold">{filteredAndSortedMovies.length}</span> {t.cmsOf} <span className="text-zinc-550">{movies.length}</span> {t.cmsTitles}
             </p>
             <button
               onClick={handleOpenCreate}
@@ -835,7 +837,7 @@ export default function AdminCMS({
               id="cms-add-movie-btn"
             >
               <Plus className="w-4 h-4" />
-              Publish Title
+              {t.cmsPublishTitle}
             </button>
           </div>
 
@@ -846,7 +848,7 @@ export default function AdminCMS({
               <Search className="absolute left-3 top-2.5 w-4 h-4 text-zinc-500" />
               <input
                 type="text"
-                placeholder="Search catalog by title, genre, director or cast..."
+                placeholder={t.cmsSearchCatalog}
                 value={catalogSearch}
                 onChange={(e) => setCatalogSearch(e.target.value)}
                 className="w-full bg-zinc-900 text-zinc-200 pl-9 pr-4 py-2 rounded-lg border border-zinc-800 focus:border-zinc-700 focus:outline-hidden transition-all placeholder:text-zinc-550"
@@ -865,33 +867,33 @@ export default function AdminCMS({
             <div className="flex flex-wrap items-center gap-3">
               {/* Type Filter */}
               <div className="flex items-center gap-1.5">
-                <span className="text-zinc-500">Type:</span>
+                <span className="text-zinc-500">{t.cmsType}</span>
                 <select
                   value={catalogFilterType}
                   onChange={(e) => setCatalogFilterType(e.target.value as any)}
                   className="bg-zinc-900 border border-zinc-800 text-zinc-200 px-3 py-2 rounded-lg focus:outline-hidden focus:border-zinc-700 cursor-pointer"
                 >
-                  <option value="all">All Content</option>
-                  <option value="movie">Movies Only</option>
-                  <option value="series">TV Series Only</option>
+                  <option value="all">{t.cmsAllContent}</option>
+                  <option value="movie">{t.cmsMoviesOnly}</option>
+                  <option value="series">{t.cmsTvSeriesOnly}</option>
                 </select>
               </div>
 
               {/* Sorting */}
               <div className="flex items-center gap-1.5">
-                <span className="text-zinc-500">Sort By:</span>
+                <span className="text-zinc-500">{t.cmsSortBy}</span>
                 <select
                   value={catalogSortBy}
                   onChange={(e) => setCatalogSortBy(e.target.value)}
                   className="bg-zinc-900 border border-zinc-800 text-zinc-200 px-3 py-2 rounded-lg focus:outline-hidden focus:border-zinc-700 cursor-pointer"
                 >
-                  <option value="recent">Recently Added</option>
-                  <option value="title-asc">Title (A-Z)</option>
-                  <option value="title-desc">Title (Z-A)</option>
-                  <option value="year-desc">Year (Newest)</option>
-                  <option value="year-asc">Year (Oldest)</option>
-                  <option value="views-desc">Views (Most)</option>
-                  <option value="likes-desc">Likes (Most)</option>
+                  <option value="recent">{t.cmsRecentlyAdded}</option>
+                  <option value="title-asc">{t.cmsTitleAZ}</option>
+                  <option value="title-desc">{t.cmsTitleZA}</option>
+                  <option value="year-desc">{t.cmsYearNewest}</option>
+                  <option value="year-asc">{t.cmsYearOldest}</option>
+                  <option value="views-desc">{t.cmsViewsMost}</option>
+                  <option value="likes-desc">{t.cmsLikesMost}</option>
                 </select>
               </div>
             </div>
@@ -903,19 +905,19 @@ export default function AdminCMS({
               <table className="w-full text-left border-collapse text-xs">
                 <thead className="sticky top-0 bg-zinc-900 z-10 border-b border-zinc-800 shadow-xs">
                   <tr className="text-zinc-550 font-bold uppercase tracking-wider">
-                    <th className="p-4">Movie Info</th>
-                    <th className="p-4">Year / Duration</th>
-                    <th className="p-4">Genres</th>
-                    <th className="p-4">Views / Likes</th>
-                    <th className="p-4">Attributes</th>
-                    <th className="p-4 text-right">Actions</th>
+                    <th className="p-4">{t.cmsColMovieInfo}</th>
+                    <th className="p-4">{t.cmsColYearDuration}</th>
+                    <th className="p-4">{t.cmsColGenres}</th>
+                    <th className="p-4">{t.cmsColViewsLikes}</th>
+                    <th className="p-4">{t.cmsColAttributes}</th>
+                    <th className="p-4 text-right">{t.cmsColActions}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-zinc-900" id="cms-catalog-tbody">
                   {filteredAndSortedMovies.length === 0 ? (
                     <tr>
                       <td colSpan={6} className="p-8 text-center text-zinc-500">
-                        No matching titles found in the catalog database.
+                        {t.cmsNoMatchingTitles}
                       </td>
                     </tr>
                   ) : (
@@ -946,8 +948,8 @@ export default function AdminCMS({
                         {m.releaseYear}
                         <span className="block text-[10px] text-zinc-600 mt-0.5">
                           {m.contentType === "series"
-                            ? `${m.seasons?.length || 0} Seasons`
-                            : `${m.duration} minutes`}
+                            ? `${m.seasons?.length || 0} ${t.cmsSeasons}`
+                            : `${m.duration} ${t.cmsMinutes}`}
                         </span>
                       </td>
                       <td className="p-4">
@@ -961,18 +963,18 @@ export default function AdminCMS({
                       </td>
                       <td className="p-4 font-mono text-zinc-400">
                         {m.views.toLocaleString()}
-                        <span className="block text-[10px] text-zinc-600 mt-0.5">{m.likes.toLocaleString()} likes</span>
+                        <span className="block text-[10px] text-zinc-600 mt-0.5">{m.likes.toLocaleString()} {t.cmsLikes}</span>
                       </td>
                       <td className="p-4">
                         <div className="flex flex-wrap gap-1">
                           {m.isBanner && (
                             <span className="px-1.5 py-0.2 bg-red-600/10 text-red-500 border border-red-500/20 text-[9px] rounded font-bold uppercase tracking-wider">
-                              Banner Spotlight
+                              {t.cmsBannerSpotlight}
                             </span>
                           )}
                           {m.isFeatured && (
                             <span className="px-1.5 py-0.2 bg-amber-500/10 text-amber-500 border border-amber-500/20 text-[9px] rounded font-bold uppercase tracking-wider">
-                              Featured Row
+                              {t.cmsFeaturedRow}
                             </span>
                           )}
                         </div>
@@ -1012,10 +1014,10 @@ export default function AdminCMS({
                   <div>
                     <h3 className="text-lg font-extrabold text-white flex items-center gap-2">
                       <Film className="w-5 h-5" style={{ color: brandColor }} />
-                      {formMode === "create" ? "Publish New Title" : "Edit Catalog Metadata"}
+                      {formMode === "create" ? t.cmsPublishNewTitle : t.cmsEditCatalogMeta}
                     </h3>
                     <p className="text-[10px] text-zinc-500 mt-1">
-                      Full-screen workspace for TMDB import, preview, streaming fields, seasons, and publishing controls.
+                      {t.cmsEditorDesc}
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
@@ -1025,7 +1027,7 @@ export default function AdminCMS({
                       className="px-4 py-2 text-white text-xs font-bold rounded-md shadow-lg cursor-pointer hover:brightness-110"
                       style={{ backgroundColor: brandColor, boxShadow: `0 12px 28px ${brandColor}24` }}
                     >
-                      Publish Metadata
+                      {t.cmsPublishMetadata}
                     </button>
                   <button 
                     onClick={() => setShowForm(false)}
@@ -1045,10 +1047,10 @@ export default function AdminCMS({
                       <div>
                         <h4 className="text-xs font-black text-white uppercase tracking-wider flex items-center gap-1.5">
                           <Database className="w-4 h-4" style={{ color: brandColor }} />
-                          TMDB Import Assistant
+                          {t.cmsTmdbImport}
                         </h4>
                         <p className="text-[10px] text-zinc-500 mt-0.5">
-                          Search, apply metadata, then save it into your catalog database.
+                          {t.cmsTmdbImportDesc}
                         </p>
                       </div>
                       {tmdbLoading && (
@@ -1060,7 +1062,7 @@ export default function AdminCMS({
                       <Search className="absolute left-3 top-2.5 w-4 h-4 text-zinc-500" />
                       <input
                         type="text"
-                        placeholder="Search TMDB by title..."
+                        placeholder={t.cmsSearchTmdb}
                         value={tmdbQuery}
                         onChange={(e) => setTmdbQuery(e.target.value)}
                         className="w-full bg-zinc-950/80 border border-white/10 p-2.5 pl-9 rounded text-xs focus:outline-hidden focus:border-red-500/50"
@@ -1070,7 +1072,7 @@ export default function AdminCMS({
                     {selectedTmdbId && (
                       <div className="flex items-center justify-between gap-3 rounded-md border border-white/10 bg-black/25 px-3 py-2">
                         <div>
-                          <p className="text-[10px] text-zinc-500 font-bold uppercase">Selected TMDB Source</p>
+                          <p className="text-[10px] text-zinc-500 font-bold uppercase">{t.cmsSelectedTmdbSource}</p>
                           <p className="text-xs text-zinc-200 font-mono">
                             {selectedTmdbMediaType === "tv" ? "TV" : "Movie"} #{selectedTmdbId}
                           </p>
@@ -1083,7 +1085,7 @@ export default function AdminCMS({
                           }}
                           className="text-[10px] font-bold text-zinc-500 hover:text-white transition-colors cursor-pointer"
                         >
-                          Clear link
+                          {t.cmsClearLink}
                         </button>
                       </div>
                     )}
@@ -1111,7 +1113,7 @@ export default function AdminCMS({
                               <p className="text-xs font-bold text-zinc-100 truncate">{item.title}</p>
                               <p className="text-[10px] text-zinc-500 truncate">
                                 {item.subtitle}
-                                {item.alreadyImported ? " • Already in database" : ""}
+                                {item.alreadyImported ? ` • ${t.cmsAlreadyInDb}` : ""}
                               </p>
                             </div>
                             <button
@@ -1121,7 +1123,7 @@ export default function AdminCMS({
                               className="px-2.5 py-1.5 text-[10px] font-black rounded border transition-all cursor-pointer disabled:opacity-60"
                               style={item.alreadyImported ? undefined : { color: brandColor, borderColor: `${brandColor}35`, backgroundColor: `${brandColor}12` }}
                             >
-                              {item.alreadyImported ? "Exists" : applyingTmdbId === item.tmdbId ? "Importing" : "Apply"}
+                              {item.alreadyImported ? t.cmsExistsBtn : applyingTmdbId === item.tmdbId ? t.cmsImportingBtn : t.cmsApplyBtn}
                             </button>
                           </div>
                         ))}
@@ -1138,7 +1140,7 @@ export default function AdminCMS({
                         {backdropUrl ? (
                           <img src={backdropUrl} alt="" className="w-full h-full object-cover opacity-80" />
                         ) : (
-                          <div className="w-full h-full flex items-center justify-center text-xs text-zinc-600">Backdrop preview</div>
+                          <div className="w-full h-full flex items-center justify-center text-xs text-zinc-600">{t.cmsBackdropPreview}</div>
                         )}
                         <div className="absolute inset-0 bg-linear-to-t from-zinc-950 via-zinc-950/45 to-transparent" />
                         <div className="absolute left-4 bottom-4 flex items-end gap-4">
@@ -1146,7 +1148,7 @@ export default function AdminCMS({
                             {posterUrl ? (
                               <img src={posterUrl} alt="" className="w-full h-full object-cover" />
                             ) : (
-                              <div className="w-full h-full flex items-center justify-center text-[10px] text-zinc-600 text-center px-2">Poster</div>
+                              <div className="w-full h-full flex items-center justify-center text-[10px] text-zinc-600 text-center px-2">{t.cmsPosterLabel}</div>
                             )}
                           </div>
                           <div className="min-w-0 pb-1">
@@ -1162,13 +1164,13 @@ export default function AdminCMS({
                       </div>
                       <div className="p-3 flex flex-wrap items-center justify-between gap-3">
                         <p className="text-[10px] text-zinc-500">
-                          {genres.length ? genres.join(", ") : "No genres yet"}
+                          {genres.length ? genres.join(", ") : t.cmsNoGenresYet}
                         </p>
                         <span
                           className="text-[10px] font-black uppercase tracking-wider px-2 py-1 rounded border"
                           style={{ color: brandColor, borderColor: `${brandColor}35`, backgroundColor: `${brandColor}10` }}
                         >
-                          {selectedTmdbId ? "TMDB linked" : "Manual draft"}
+                          {selectedTmdbId ? t.cmsTmdbLinked : t.cmsManualDraft}
                         </span>
                       </div>
                     </div>
@@ -1177,7 +1179,7 @@ export default function AdminCMS({
                   <section className="space-y-5 min-w-0">
                     <div className="grid grid-cols-1 sm:grid-cols-[1fr_160px] gap-4 rounded-lg border border-white/10 bg-white/[0.025] p-4">
                     <div className="space-y-1">
-                      <label className="text-[10px] font-bold uppercase text-zinc-500">Title Headline *</label>
+                      <label className="text-[10px] font-bold uppercase text-zinc-500">{t.cmsTitleHeadline}</label>
                       <input
                         type="text"
                         required
@@ -1192,11 +1194,11 @@ export default function AdminCMS({
                       />
                     </div>
                     <div className="space-y-1">
-                      <label className="text-[10px] font-bold uppercase text-zinc-500">TMDB ID</label>
+                      <label className="text-[10px] font-bold uppercase text-zinc-500">{t.cmsTmdbId}</label>
                       <input
                         type="text"
                         readOnly
-                        value={selectedTmdbId ? `${selectedTmdbMediaType === "tv" ? "tv" : "movie"}:${selectedTmdbId}` : "Manual entry"}
+                        value={selectedTmdbId ? `${selectedTmdbMediaType === "tv" ? "tv" : "movie"}:${selectedTmdbId}` : (t.cmsManualEntry || "Manual entry")}
                         className="w-full bg-zinc-950 border border-zinc-850 p-2.5 rounded text-xs text-zinc-500 font-mono"
                       />
                     </div>
@@ -1204,19 +1206,19 @@ export default function AdminCMS({
 
                   <div className="grid grid-cols-2 gap-4 border-b border-zinc-900/60 pb-4">
                     <div className="space-y-1">
-                      <label className="text-[10px] font-bold uppercase text-zinc-500">Content Classification</label>
+                      <label className="text-[10px] font-bold uppercase text-zinc-500">{t.cmsContentClass}</label>
                       <select
                         value={contentType}
                         onChange={(e) => setContentType(e.target.value as any)}
                         className="w-full bg-zinc-900 border border-zinc-850 p-2.5 rounded text-xs focus:outline-hidden text-zinc-300 font-bold"
                       >
-                        <option value="movie">🍿 Single Movie</option>
-                        <option value="series">📺 TV Series Show</option>
+                        <option value="movie">{t.cmsSingleMovie}</option>
+                        <option value="series">{t.cmsTvSeriesShow}</option>
                       </select>
                     </div>
                     {contentType === "series" ? (
                       <div className="space-y-1">
-                        <label className="text-[10px] font-bold uppercase text-zinc-500">Seasons & Episodes (Est)</label>
+                        <label className="text-[10px] font-bold uppercase text-zinc-500">{t.cmsSeasonsEpEst}</label>
                         <div className="grid grid-cols-2 gap-2">
                           <input
                             type="number"
@@ -1246,7 +1248,7 @@ export default function AdminCMS({
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-[10px] font-bold uppercase text-zinc-500">Synopsis Storyboard</label>
+                    <label className="text-[10px] font-bold uppercase text-zinc-500">{t.cmsSynopsis}</label>
                     <textarea
                       placeholder="Detailed narrative summary..."
                       value={description}
@@ -1259,7 +1261,7 @@ export default function AdminCMS({
 
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1">
-                      <label className="text-[10px] font-bold uppercase text-zinc-500">Video Source URL *</label>
+                      <label className="text-[10px] font-bold uppercase text-zinc-500">{t.cmsVideoSourceUrl}</label>
                       <input
                         type="url"
                         required
@@ -1271,7 +1273,7 @@ export default function AdminCMS({
                       />
                     </div>
                     <div className="space-y-1">
-                      <label className="text-[10px] font-bold uppercase text-zinc-500">Poster Frame URL</label>
+                      <label className="text-[10px] font-bold uppercase text-zinc-500">{t.cmsPosterFrameUrl}</label>
                       <input
                         type="url"
                         placeholder="https://images.unsplash.com/...poster.jpg"
@@ -1285,7 +1287,7 @@ export default function AdminCMS({
 
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1">
-                      <label className="text-[10px] font-bold uppercase text-zinc-500">Backdrop Landscape URL</label>
+                      <label className="text-[10px] font-bold uppercase text-zinc-500">{t.cmsBackdropUrl}</label>
                       <input
                         type="url"
                         placeholder="https://images.unsplash.com/...backdrop.jpg"
@@ -1296,7 +1298,7 @@ export default function AdminCMS({
                       />
                     </div>
                     <div className="space-y-1">
-                      <label className="text-[10px] font-bold uppercase text-zinc-500">Release Calendar Year</label>
+                      <label className="text-[10px] font-bold uppercase text-zinc-500">{t.cmsReleaseYear}</label>
                       <input
                         type="number"
                         min={1900}
@@ -1311,7 +1313,7 @@ export default function AdminCMS({
 
                   <div className="grid grid-cols-3 gap-3">
                     <div className="space-y-1">
-                      <label className="text-[10px] font-bold uppercase text-zinc-500">Duration (Min)</label>
+                      <label className="text-[10px] font-bold uppercase text-zinc-500">{t.cmsDurationMin}</label>
                       <input
                         type="number"
                         value={duration}
@@ -1320,7 +1322,7 @@ export default function AdminCMS({
                       />
                     </div>
                     <div className="space-y-1">
-                      <label className="text-[10px] font-bold uppercase text-zinc-500">Age Rating</label>
+                      <label className="text-[10px] font-bold uppercase text-zinc-500">{t.cmsAgeRating}</label>
                       <select
                         value={ageRating}
                         onChange={(e) => setAgeRating(e.target.value)}
@@ -1332,7 +1334,7 @@ export default function AdminCMS({
                       </select>
                     </div>
                     <div className="space-y-1">
-                      <label className="text-[10px] font-bold uppercase text-zinc-500">Quality Spec</label>
+                      <label className="text-[10px] font-bold uppercase text-zinc-500">{t.cmsQualitySpec}</label>
                       <select
                         value={quality}
                         onChange={(e) => setQuality(e.target.value as any)}
@@ -1347,7 +1349,7 @@ export default function AdminCMS({
 
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1">
-                      <label className="text-[10px] font-bold uppercase text-zinc-500">Genres (Comma separated)</label>
+                      <label className="text-[10px] font-bold uppercase text-zinc-500">{t.cmsGenresComma}</label>
                       <input
                         type="text"
                         placeholder="Drama, Sci-Fi, Action"
@@ -1357,7 +1359,7 @@ export default function AdminCMS({
                       />
                     </div>
                     <div className="space-y-1">
-                      <label className="text-[10px] font-bold uppercase text-zinc-500">Directors (Comma separated)</label>
+                      <label className="text-[10px] font-bold uppercase text-zinc-500">{t.cmsDirectorsComma}</label>
                       <input
                         type="text"
                         placeholder="Director name"
@@ -1369,7 +1371,7 @@ export default function AdminCMS({
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-[10px] font-bold uppercase text-zinc-500">Cast / Starring Crew (Comma separated)</label>
+                    <label className="text-[10px] font-bold uppercase text-zinc-500">{t.cmsCastComma}</label>
                     <input
                       type="text"
                       placeholder="Actor Alpha, Actor Beta, Actor Gamma"
@@ -1386,10 +1388,10 @@ export default function AdminCMS({
                         <div>
                           <h4 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
                             <Tv className="w-4 h-4 text-red-500" />
-                            Seasons & Episodes Builder
+                            {t.cmsSeasonsBuilder}
                           </h4>
                           <p className="text-[10px] text-zinc-500">
-                            Add seasons and configure individual episode titles, video URLs, and descriptions.
+                            {t.cmsSeasonsBuilderDesc}
                           </p>
                         </div>
                         <button
@@ -1398,15 +1400,15 @@ export default function AdminCMS({
                           className="px-2.5 py-1.5 bg-red-600/10 hover:bg-red-600/20 text-red-500 hover:text-red-400 border border-red-500/20 rounded text-[10px] font-bold flex items-center gap-1 transition-all cursor-pointer"
                         >
                           <Plus className="w-3.5 h-3.5" />
-                          Add Season
+                          {t.cmsAddSeason}
                         </button>
                       </div>
 
                       {seasons.length === 0 ? (
                         <div className="text-center py-6 border border-dashed border-zinc-800 rounded-lg bg-zinc-950/20">
                           <Tv className="w-8 h-8 text-zinc-700 mx-auto mb-2" />
-                          <p className="text-xs text-zinc-500 font-bold">No Seasons Added Yet</p>
-                          <p className="text-[10px] text-zinc-600 mt-1">Click "Add Season" above to start adding content episodes.</p>
+                          <p className="text-xs text-zinc-500 font-bold">{t.cmsNoSeasonsYet}</p>
+                          <p className="text-[10px] text-zinc-600 mt-1">{t.cmsNoSeasonsNote}</p>
                         </div>
                       ) : (
                         <div className="space-y-4">
@@ -1429,7 +1431,7 @@ export default function AdminCMS({
                                     onClick={() => handleAddEpisode(season.id)}
                                     className="px-2 py-1 bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white rounded text-[10px] font-bold flex items-center gap-1 cursor-pointer"
                                   >
-                                    <Plus className="w-3 h-3" /> Add Episode
+                                    <Plus className="w-3 h-3" /> {t.cmsAddEpisode}
                                   </button>
                                   <button
                                     type="button"
@@ -1448,7 +1450,7 @@ export default function AdminCMS({
                                   <div key={ep.id} className="bg-zinc-900/30 border border-zinc-900 rounded p-2.5 space-y-2 relative group/ep">
                                     <div className="flex items-center justify-between">
                                       <span className="text-[9px] font-black text-zinc-500 font-mono uppercase">
-                                        Episode {ep.episodeNumber}
+                                        {t.cmsEpisodeLabel} {ep.episodeNumber}
                                       </span>
                                       <button
                                         type="button"
@@ -1462,7 +1464,7 @@ export default function AdminCMS({
 
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                                       <div className="space-y-0.5">
-                                        <label className="text-[9px] font-bold uppercase text-zinc-600">Episode Title *</label>
+                                        <label className="text-[9px] font-bold uppercase text-zinc-600">{t.cmsEpisodeTitleField}</label>
                                         <input
                                           type="text"
                                           required
@@ -1473,7 +1475,7 @@ export default function AdminCMS({
                                         />
                                       </div>
                                       <div className="space-y-0.5">
-                                        <label className="text-[9px] font-bold uppercase text-zinc-600">Duration (Minutes) *</label>
+                                        <label className="text-[9px] font-bold uppercase text-zinc-600">{t.cmsEpisodeDuration}</label>
                                         <input
                                           type="number"
                                           required
@@ -1487,7 +1489,7 @@ export default function AdminCMS({
                                     </div>
 
                                     <div className="space-y-0.5">
-                                      <label className="text-[9px] font-bold uppercase text-zinc-600">Episode Video URL *</label>
+                                      <label className="text-[9px] font-bold uppercase text-zinc-600">{t.cmsEpisodeVideoUrl}</label>
                                       <input
                                         type="url"
                                         required
@@ -1499,7 +1501,7 @@ export default function AdminCMS({
                                     </div>
 
                                     <div className="space-y-0.5">
-                                      <label className="text-[9px] font-bold uppercase text-zinc-600">Short Synopsis</label>
+                                      <label className="text-[9px] font-bold uppercase text-zinc-600">{t.cmsEpisodeShortSynopsis}</label>
                                       <textarea
                                         value={ep.description || ""}
                                         onChange={(e) => handleUpdateEpisode(season.id, ep.id, "description", e.target.value)}
@@ -1528,8 +1530,8 @@ export default function AdminCMS({
                         id="form-check-banner"
                       />
                       <div>
-                        <label htmlFor="form-check-banner" className="text-xs font-bold text-zinc-300">Banner Spotlight</label>
-                        <p className="text-[9px] text-zinc-500">Shows on top hero carousel.</p>
+                        <label htmlFor="form-check-banner" className="text-xs font-bold text-zinc-300">{t.cmsBannerLabel}</label>
+                        <p className="text-[9px] text-zinc-500">{t.cmsBannerNote}</p>
                       </div>
                     </div>
 
@@ -1542,8 +1544,8 @@ export default function AdminCMS({
                         id="form-check-featured"
                       />
                       <div>
-                        <label htmlFor="form-check-featured" className="text-xs font-bold text-zinc-300">Featured Catalog</label>
-                        <p className="text-[9px] text-zinc-500">Includes in the main category reels.</p>
+                        <label htmlFor="form-check-featured" className="text-xs font-bold text-zinc-300">{t.cmsFeaturedLabel}</label>
+                        <p className="text-[9px] text-zinc-500">{t.cmsFeaturedNote}</p>
                       </div>
                     </div>
                   </div>
@@ -1555,14 +1557,14 @@ export default function AdminCMS({
                       onClick={() => setShowForm(false)}
                       className="px-4 py-2 bg-zinc-900 border border-zinc-800 text-xs font-semibold hover:bg-zinc-800 rounded transition-colors cursor-pointer"
                     >
-                      Dismiss
+                      {t.cmsDismiss}
                     </button>
                     <button
                       type="submit"
                       className="px-5 py-2 bg-red-600 hover:bg-red-500 text-white text-xs font-bold rounded shadow-lg shadow-red-600/10 cursor-pointer"
                       id="form-save-btn"
                     >
-                      Publish Metadata
+                      {t.cmsPublishMetadata}
                     </button>
                   </div>
                   </section>
@@ -1579,10 +1581,10 @@ export default function AdminCMS({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Branding Settings Card */}
             <div className="bg-zinc-950 border border-zinc-900 rounded-xl p-5 space-y-4">
-              <h3 className="text-xs font-bold text-zinc-400 tracking-wider uppercase">Portal Identity</h3>
+              <h3 className="text-xs font-bold text-zinc-400 tracking-wider uppercase">{t.cmsPortalIdentity}</h3>
  
               <div className="space-y-1">
-                <label className="text-[10px] font-bold uppercase text-zinc-500">Site Name String</label>
+                <label className="text-[10px] font-bold uppercase text-zinc-500">{t.cmsSiteNameLabel}</label>
                 <input
                   type="text"
                   value={settings.siteName}
@@ -1593,7 +1595,7 @@ export default function AdminCMS({
               </div>
  
               <div className="space-y-1">
-                <label className="text-[10px] font-bold uppercase text-zinc-500">Logo Headline Text</label>
+                <label className="text-[10px] font-bold uppercase text-zinc-500">{t.cmsLogoTextLabel}</label>
                 <input
                   type="text"
                   value={settings.logoText}
@@ -1604,7 +1606,7 @@ export default function AdminCMS({
               </div>
  
               <div className="space-y-2">
-                <label className="text-[10px] font-bold uppercase text-zinc-500 block">Theme Accent Color</label>
+                <label className="text-[10px] font-bold uppercase text-zinc-500 block">{t.cmsThemeColor}</label>
                 <div className="flex flex-wrap items-center gap-3">
                   {/* Preset Colors */}
                   {PRESET_COLORS.map((preset) => (
@@ -1661,12 +1663,12 @@ export default function AdminCMS({
  
             {/* General Toggles / Maintenance Gates */}
             <div className="bg-zinc-950 border border-zinc-900 rounded-xl p-5 space-y-4">
-              <h3 className="text-xs font-bold text-zinc-400 tracking-wider uppercase">Feature Permissions</h3>
+              <h3 className="text-xs font-bold text-zinc-400 tracking-wider uppercase">{t.cmsFeaturePermissions}</h3>
  
               <div className="flex items-center justify-between border-b border-zinc-900 pb-3">
                 <div>
-                  <p className="text-xs font-bold text-zinc-200">Enable Review Comment Form</p>
-                  <p className="text-[10px] text-zinc-500 mt-0.5">Allow signed-in members to post ratings and commentaries.</p>
+                  <p className="text-xs font-bold text-zinc-200">{t.cmsEnableComments}</p>
+                  <p className="text-[10px] text-zinc-500 mt-0.5">{t.cmsEnableCommentsDesc}</p>
                 </div>
                 <input
                   type="checkbox"
@@ -1678,8 +1680,8 @@ export default function AdminCMS({
  
               <div className="flex items-center justify-between border-b border-zinc-900 pb-3">
                 <div>
-                  <p className="text-xs font-bold text-zinc-200">Aggregated Star Ratings</p>
-                  <p className="text-[10px] text-zinc-500 mt-0.5">Incorporate movie scores in main spotlight badges and search listings.</p>
+                  <p className="text-xs font-bold text-zinc-200">{t.cmsEnableRatings}</p>
+                  <p className="text-[10px] text-zinc-500 mt-0.5">{t.cmsEnableRatingsDesc}</p>
                 </div>
                 <input
                   type="checkbox"
@@ -1691,8 +1693,8 @@ export default function AdminCMS({
  
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs font-bold text-zinc-200">System Maintenance Gate</p>
-                  <p className="text-[10px] text-zinc-500 mt-0.5">Restrict client browsing completely, allowing only system administrators in.</p>
+                  <p className="text-xs font-bold text-zinc-200">{t.cmsMaintenanceMode}</p>
+                  <p className="text-[10px] text-zinc-500 mt-0.5">{t.cmsMaintenanceModeDesc}</p>
                 </div>
                 <input
                   type="checkbox"
@@ -1706,10 +1708,10 @@ export default function AdminCMS({
  
           {/* SEO Metadata Settings */}
           <div className="bg-zinc-950 border border-zinc-900 p-5 rounded-xl space-y-4">
-            <h3 className="text-xs font-bold text-zinc-400 tracking-wider uppercase">SaaS SEO Search Metadata</h3>
+            <h3 className="text-xs font-bold text-zinc-400 tracking-wider uppercase">{t.cmsSeoMetadata}</h3>
  
             <div className="space-y-1">
-              <label className="text-[10px] font-bold uppercase text-zinc-500">SEO Crawler Title Header</label>
+              <label className="text-[10px] font-bold uppercase text-zinc-500">{t.cmsSeoTitle}</label>
               <input
                 type="text"
                 value={settings.seoTitle}
@@ -1720,7 +1722,7 @@ export default function AdminCMS({
  
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
-                <label className="text-[10px] font-bold uppercase text-zinc-500">SEO Keywords (Comma Separated)</label>
+                <label className="text-[10px] font-bold uppercase text-zinc-500">{t.cmsSeoKeywords}</label>
                 <input
                   type="text"
                   value={settings.seoKeywords}
@@ -1730,7 +1732,7 @@ export default function AdminCMS({
               </div>
  
               <div className="space-y-1">
-                <label className="text-[10px] font-bold uppercase text-zinc-500">SEO Narrative Meta Description</label>
+                <label className="text-[10px] font-bold uppercase text-zinc-500">{t.cmsSeoDescription}</label>
                 <textarea
                   value={settings.seoDescription}
                   onChange={(e) => updateSettingsField("seoDescription", e.target.value)}
@@ -1749,7 +1751,7 @@ export default function AdminCMS({
               id="settings-save-btn"
             >
               <Save className="w-4 h-4" />
-              Commit CMS Configurations
+              {t.cmsCommitConfig}
             </button>
           </div>
         </form>
@@ -1761,14 +1763,14 @@ export default function AdminCMS({
           {/* Section Header */}
           <div className="bg-zinc-950 border border-zinc-900 rounded-xl p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             <div>
-              <h3 className="text-sm font-bold text-white tracking-wider uppercase">Active Registered User Base</h3>
+              <h3 className="text-sm font-bold text-white tracking-wider uppercase">{t.cmsUserBaseTitle}</h3>
               <p className="text-xs text-zinc-500 mt-1">
-                Maintain authorization scopes, inspect members, or demote/promote administrative accounts.
+                {t.cmsUserBaseDesc}
               </p>
             </div>
             <div className="bg-red-600/10 border border-red-500/20 px-3 py-1.5 rounded-md text-red-500 font-mono text-xs font-semibold flex items-center gap-1.5">
               <Users className="w-4 h-4" />
-              <span>{usersList.length} Accounts Registered</span>
+              <span>{usersList.length} {t.cmsAccountsRegistered}</span>
             </div>
           </div>
 
@@ -1788,7 +1790,7 @@ export default function AdminCMS({
                   {usersList.length === 0 ? (
                     <tr>
                       <td colSpan={4} className="p-8 text-center text-zinc-500 italic">
-                        No registered members discovered in the CMS database.
+                        {t.cmsNoUsers}
                       </td>
                     </tr>
                   ) : (
@@ -1811,11 +1813,11 @@ export default function AdminCMS({
                         <td className="p-4">
                           {usr.role === "admin" ? (
                             <span className="px-2.5 py-1 rounded bg-red-600/15 border border-red-600/30 text-red-500 text-[10px] font-black uppercase tracking-wider font-mono">
-                              System Admin
+                              {t.cmsSystemAdmin}
                             </span>
                           ) : (
                             <span className="px-2.5 py-1 rounded bg-zinc-900 border border-zinc-800 text-zinc-400 text-[10px] font-black uppercase tracking-wider font-mono">
-                              Standard Viewer
+                              {t.cmsStandardViewer}
                             </span>
                           )}
                         </td>
@@ -1833,7 +1835,7 @@ export default function AdminCMS({
                               className="px-3 py-1.5 rounded bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 text-zinc-300 font-semibold hover:text-white transition-all text-[11px] cursor-pointer"
                               title="Toggle admin / user role scopes"
                             >
-                              Toggle Role Override
+                              {t.cmsToggleRole}
                             </button>
                             <button
                               onClick={() => handleDeleteUser(usr.id)}

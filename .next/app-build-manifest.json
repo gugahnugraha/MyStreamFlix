@@ -11,6 +11,11 @@
       "static/chunks/main-app.js",
       "static/chunks/app/page.js"
     ],
+    "/api/settings/route": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/api/settings/route.js"
+    ],
     "/api/auth/me/route": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
@@ -20,11 +25,6 @@
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/api/movies/route.js"
-    ],
-    "/api/settings/route": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/api/settings/route.js"
     ],
     "/api/auth/login/route": [
       "static/chunks/webpack.js",
@@ -41,15 +41,10 @@
       "static/chunks/main-app.js",
       "static/chunks/app/api/user/history/route.js"
     ],
-    "/api/movies/[id]/route": [
+    "/api/auth/logout/route": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/api/movies/[id]/route.js"
-    ],
-    "/api/auth/toggle-role/route": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/api/auth/toggle-role/route.js"
+      "static/chunks/app/api/auth/logout/route.js"
     ],
     "/api/dashboard/stats/route": [
       "static/chunks/webpack.js",
@@ -61,10 +56,20 @@
       "static/chunks/main-app.js",
       "static/chunks/app/api/users/route.js"
     ],
-    "/api/auth/logout/route": [
+    "/api/movies/[id]/route": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/api/auth/logout/route.js"
+      "static/chunks/app/api/movies/[id]/route.js"
+    ],
+    "/api/user/favorites/[movieId]/route": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/api/user/favorites/[movieId]/route.js"
+    ],
+    "/api/tmdb/search/route": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/api/tmdb/search/route.js"
     ]
   }
 }

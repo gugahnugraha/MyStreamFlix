@@ -373,6 +373,7 @@ export default function App() {
             onRefreshMovies={fetchCatalogMovies} 
             globalSettings={settings}
             onUpdateGlobalSettings={setSettings}
+            t={t}
           />
         ) : activeTab === "favorites" ? (
           /* MY FAVORITE WATCHLIST FEED */
