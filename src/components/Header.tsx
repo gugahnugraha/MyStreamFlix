@@ -261,7 +261,7 @@ export default function Header({
             {showSearchSuggestions && searchQuery.trim() && (
               <div className="absolute right-0 top-full mt-2 w-72 rounded-lg border border-white/10 bg-zinc-950/98 shadow-2xl shadow-black/60 overflow-hidden z-50">
                 {suggestionsLoading && searchSuggestions.length === 0 ? (
-                  <div className="px-3 py-3 text-[11px] text-zinc-500">Loading suggestions...</div>
+                  <div className="px-3 py-3 text-[11px] text-zinc-500">{t.loadingSuggestions || "Loading suggestions..."}</div>
                 ) : searchSuggestions.length > 0 ? (
                   <div className="max-h-96 overflow-y-auto py-1">
                     {searchSuggestions.map((item) => (
@@ -290,7 +290,7 @@ export default function Header({
                     ))}
                   </div>
                 ) : (
-                  <div className="px-3 py-3 text-[11px] text-zinc-500">No matching titles or cast found.</div>
+                  <div className="px-3 py-3 text-[11px] text-zinc-500">{t.noResultsFound || "No matching titles or cast found."}</div>
                 )}
               </div>
             )}

@@ -423,8 +423,8 @@ export default function App() {
             {searchQuery ? (
               <div className="px-4 md:px-8 max-w-7xl mx-auto space-y-6 pb-16 pt-6">
                 <div className="flex items-center justify-between border-b border-white/5 pb-4">
-                  <h2 className="text-xl font-extrabold tracking-tight">Search Results for "{searchQuery}"</h2>
-                  <span className="text-xs text-zinc-500 font-mono">{displayedMovies.length} found</span>
+                  <h2 className="text-xl font-extrabold tracking-tight">{(t.searchResultsFor || "Search Results for")} "{searchQuery}"</h2>
+                  <span className="text-xs text-zinc-500 font-mono">{displayedMovies.length} {(t.found || "found")}</span>
                 </div>
                 {displayedMovies.length === 0 ? (
                   <div className="py-16 text-center text-zinc-500 text-xs border border-dashed border-zinc-900 rounded-xl bg-zinc-950/20">
@@ -481,7 +481,7 @@ export default function App() {
                 {/* 2. Featured Spotlight Slider */}
                 {featuredMovies.length > 0 && (
                   <MovieRow
-                    title="Featured Spotlight"
+                    title={t.featuredSpotlight || "Featured Spotlight"}
                     icon={<Sparkles className="w-5 h-5 text-amber-500" />}
                     items={featuredMovies.map((movie) => ({
                       movie,
@@ -496,7 +496,7 @@ export default function App() {
                 {/* 3. Popular Hits */}
                 {displayedMovies.length > 0 && (
                   <MovieRow
-                    title="Popular Hits"
+                    title={t.popularHits || "Popular Hits"}
                     icon={<Flame className="w-5 h-5 text-orange-500" />}
                     items={[...displayedMovies]
                       .sort((a, b) => b.views - a.views)
@@ -514,7 +514,7 @@ export default function App() {
                 {/* 4. New Releases */}
                 {displayedMovies.length > 0 && (
                   <MovieRow
-                    title="New Releases"
+                    title={t.newReleases || "New Releases"}
                     icon={<Film className="w-5 h-5" style={{ color: settings.primaryColor }} />}
                     items={[...displayedMovies]
                       .sort((a, b) => b.releaseYear - a.releaseYear)
@@ -538,15 +538,15 @@ export default function App() {
                 <div className="apple-header-panel py-10 px-8 rounded-3xl shadow-3xl relative overflow-hidden">
                   <div className="apple-header-glow" style={{ background: `radial-gradient(circle, var(--theme-primary-30) 0%, transparent 70%)` }} />
                   <span className="text-[10px] uppercase font-black tracking-widest px-2.5 py-1 rounded-md bg-white/[0.04] border border-white/10" style={{ color: settings.primaryColor }}>
-                    {selectedContentType === "movie" ? "Movies Catalog" : "TV Series Collections"}
+                    {selectedContentType === "movie" ? (t.moviesCatalog || "Movies Catalog") : (t.tvSeriesCollections || "TV Series Collections")}
                   </span>
                   <h1 className="text-3xl md:text-5xl font-black tracking-tight text-white mt-4 drop-shadow-md">
-                    {selectedContentType === "movie" ? "Premium Cinema Experience" : "Episodic Series Masterpieces"}
+                    {selectedContentType === "movie" ? (t.premiumCinemaExperience || "Premium Cinema Experience") : (t.episodicSeriesMasterpieces || "Episodic Series Masterpieces")}
                   </h1>
                   <p className="text-xs md:text-sm text-zinc-300 max-w-2xl mt-3 font-medium leading-relaxed drop-shadow-xs">
                     {selectedContentType === "movie" 
-                      ? "Explore our handpicked curation of blockbusters, documentaries, and animations in cinematic 4K HDR quality with offline localization."
-                      : "Engage with stunning multi-season storytelling structures, featuring sequential play, subtitle overlays, and resume capabilities."}
+                      ? (t.moviesCatalogDesc || "Explore our handpicked curation of blockbusters, documentaries, and animations in cinematic 4K HDR quality with offline localization.")
+                      : (t.tvSeriesCatalogDesc || "Engage with stunning multi-season storytelling structures, featuring sequential play, subtitle overlays, and resume capabilities.")}
                   </p>
                 </div>
  
@@ -594,7 +594,7 @@ export default function App() {
                     <div className="flex items-center gap-2">
                       <Flame className="w-5 h-5" style={{ color: settings.primaryColor }} />
                       <h2 className="text-lg font-bold tracking-tight text-white/95">
-                        {selectedGenre === "All" ? "Spotlight Curation" : `${selectedGenre} Curation`}
+                        {selectedGenre === "All" ? (t.spotlightCuration || "Spotlight Curation") : `${t[selectedGenre as keyof typeof t] || selectedGenre} Curation`}
                       </h2>
                     </div>
                     <span className="text-[10px] text-zinc-500 font-mono font-bold uppercase">
@@ -605,7 +605,7 @@ export default function App() {
                   {loading ? (
                     <div className="py-20 flex flex-col items-center gap-3" id="grid-loading">
                       <div className="w-8 h-8 border-2 border-t-transparent rounded-full animate-spin" style={{ borderColor: settings.primaryColor, borderTopColor: "transparent" }} />
-                      <span className="text-xs text-zinc-500 font-medium">Querying FlixSphere database indexes...</span>
+                      <span className="text-xs text-zinc-500 font-medium">{t.queryingDatabase || "Querying FlixSphere database indexes..."}</span>
                     </div>
                   ) : error ? (
                     <div className="py-14 text-center text-red-400 text-xs border border-zinc-900 rounded-xl">

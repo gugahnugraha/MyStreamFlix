@@ -36,29 +36,29 @@ export default function AuthModal({ onClose, onSuccess, t }: AuthModalProps) {
           body: JSON.stringify({ email, password })
         });
         const data = await res.json();
-        if (!res.ok) throw new Error(data.error || "Login failed");
+        if (!res.ok) throw new Error(data.error || t.loginFailed || "Login failed");
         
         onSuccess(data.user);
         onClose();
       } else if (mode === "register") {
-        if (!name.trim()) throw new Error("Full name is required.");
+        if (!name.trim()) throw new Error(t.nameRequired || "Full name is required.");
         const res = await fetch("/api/auth/register", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ name, email, password })
         });
         const data = await res.json();
-        if (!res.ok) throw new Error(data.error || "Registration failed");
-
+        if (!res.ok) throw new Error(data.error || t.registrationFailed || "Registration failed");
+ 
         onSuccess(data.user);
         onClose();
       } else {
         // Forgot password route simulation
-        if (!email) throw new Error("Please enter your registered email address.");
-        setSuccessMsg("A password recovery link has been dispatched to your email mailbox!");
+        if (!email) throw new Error(t.enterEmail || "Please enter your registered email address.");
+        setSuccessMsg(t.recoverySent || "A password recovery link has been dispatched to your email mailbox!");
       }
     } catch (err: any) {
-      setErrorMsg(err.message || "An authentication error occurred.");
+      setErrorMsg(err.message || t.authError || "An authentication error occurred.");
     } finally {
       setLoading(false);
     }
@@ -85,12 +85,12 @@ export default function AuthModal({ onClose, onSuccess, t }: AuthModalProps) {
           <h2 className="text-xl font-extrabold text-white tracking-tight">
             {mode === "login" && (t?.signIn || "Sign In")}
             {mode === "register" && (t?.signUpBtn || "Create SaaS Profile")}
-            {mode === "forgot" && "Recover Passcode"}
+            {mode === "forgot" && (t?.recoverPasscode || "Recover Passcode")}
           </h2>
           <p className="text-[11px] text-zinc-500 mt-1">
             {mode === "login" && (t?.authDesc || "Authenticate to access continuous watching and favorite list storage.")}
             {mode === "register" && (t?.authDesc || "Gain exclusive access to pristine 4K video feeds immediately.")}
-            {mode === "forgot" && "Submit your email address to receive password reset tokens."}
+            {mode === "forgot" && (t?.forgotDesc || "Submit your email address to receive password reset tokens.")}
           </p>
         </div>
 
@@ -150,7 +150,7 @@ export default function AuthModal({ onClose, onSuccess, t }: AuthModalProps) {
                     onClick={() => { setMode("forgot"); setErrorMsg(""); }}
                     className="text-[10px] text-zinc-500 hover:text-red-500 transition-colors"
                   >
-                    Forgot passcode?
+                    {t?.forgotPasscode || "Forgot passcode?"}
                   </button>
                 )}
               </div>
@@ -181,7 +181,7 @@ export default function AuthModal({ onClose, onSuccess, t }: AuthModalProps) {
                 {mode === "register" && <UserPlus className="w-3.5 h-3.5" />}
                 {mode === "forgot" && <KeyRound className="w-3.5 h-3.5" />}
                 <span className="capitalize">
-                  {mode === "forgot" ? "Dispatch Recover Link" : mode === "login" ? (t?.signIn || "Sign In") : (t?.signUpBtn || "Sign Up")}
+                  {mode === "forgot" ? (t?.dispatchRecoverLink || "Dispatch Recover Link") : mode === "login" ? (t?.signIn || "Sign In") : (t?.signUpBtn || "Sign Up")}
                 </span>
               </>
             )}
@@ -222,7 +222,7 @@ export default function AuthModal({ onClose, onSuccess, t }: AuthModalProps) {
               className="text-red-500 hover:underline font-semibold cursor-pointer"
               id="toggle-forgot-back-btn"
             >
-              Back to Sign In
+              {t?.backToSignIn || "Back to Sign In"}
             </button>
           )}
         </div>

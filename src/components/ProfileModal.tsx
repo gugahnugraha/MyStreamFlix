@@ -51,17 +51,17 @@ export default function ProfileModal({ currentUser, onClose, onSuccess, t }: Pro
         onClose();
       } else {
         const errData = await res.json();
-        setErrorMessage(errData.error || "Failed switching profiles.");
+        setErrorMessage(errData.error || t.failedSwitchProfile || "Failed switching profiles.");
       }
     } catch (err) {
-      setErrorMessage("Network error switching profiles.");
+      setErrorMessage(t.netErrorSwitchProfile || "Network error switching profiles.");
     }
   };
 
   const handleCreateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!profileName.trim()) {
-      setErrorMessage("Please enter a profile name.");
+      setErrorMessage(t.enterProfileName || "Please enter a profile name.");
       return;
     }
 
@@ -89,17 +89,17 @@ export default function ProfileModal({ currentUser, onClose, onSuccess, t }: Pro
       } else {
         const errData = await res.json();
         setIsSubmitting(false);
-        setErrorMessage(errData.error || "Failed creating profile.");
+        setErrorMessage(errData.error || t.failedCreateProfile || "Failed creating profile.");
       }
     } catch (err) {
       setIsSubmitting(false);
-      setErrorMessage("Network error creating profile.");
+      setErrorMessage(t.netErrorCreateProfile || "Network error creating profile.");
     }
   };
 
   const handleDeleteProfile = async (e: React.MouseEvent, profileId: string) => {
     e.stopPropagation(); // Avoid triggering profile selection on click
-    if (!window.confirm("Are you sure you want to delete this profile? All personalized lists will be cleared.")) {
+    if (!window.confirm(t.confirmDeleteProfile || "Are you sure you want to delete this profile? All personalized lists will be cleared.")) {
       return;
     }
 
@@ -112,10 +112,10 @@ export default function ProfileModal({ currentUser, onClose, onSuccess, t }: Pro
         onSuccess(data.user);
       } else {
         const errData = await res.json();
-        setErrorMessage(errData.error || "Failed deleting profile.");
+        setErrorMessage(errData.error || t.failedDeleteProfile || "Failed deleting profile.");
       }
     } catch (err) {
-      setErrorMessage("Network error deleting profile.");
+      setErrorMessage(t.netErrorDeleteProfile || "Network error deleting profile.");
     }
   };
 
@@ -137,13 +137,13 @@ export default function ProfileModal({ currentUser, onClose, onSuccess, t }: Pro
         })
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed updating account.");
+      if (!res.ok) throw new Error(data.error || t.failedUpdateProfile || "Failed updating account.");
       setCurrentPassword("");
       setNewPassword("");
       onSuccess(data.user);
       setMode("select");
     } catch (err: any) {
-      setErrorMessage(err.message || "Network error updating account.");
+      setErrorMessage(err.message || t.netErrorUpdateProfile || "Network error updating account.");
     } finally {
       setIsSubmitting(false);
     }
@@ -174,7 +174,7 @@ export default function ProfileModal({ currentUser, onClose, onSuccess, t }: Pro
           <div className="space-y-8 animate-in fade-in duration-300">
             <div className="text-center space-y-1.5">
               <h2 className="text-2xl font-black text-white tracking-wide">{t?.manageProfiles || "Who's watching?"}</h2>
-              <p className="text-xs text-zinc-500">Select a profile to customize your experience.</p>
+              <p className="text-xs text-zinc-500">{t?.selectProfileDesc || "Select a profile to customize your experience."}</p>
             </div>
 
             {/* Profile Grid */}
@@ -221,7 +221,7 @@ export default function ProfileModal({ currentUser, onClose, onSuccess, t }: Pro
                     {(currentUser.profiles?.length || 0) > 1 && (
                       <button
                         onClick={(e) => handleDeleteProfile(e, profile.id)}
-                        title="Delete Profile"
+                        title={t?.deleteProfile || "Delete Profile"}
                         className="opacity-0 group-hover:opacity-100 absolute -top-2 -left-2 bg-zinc-900 border border-zinc-800 p-1 rounded-md text-zinc-500 hover:text-red-500 hover:bg-zinc-800 transition-all shadow-md cursor-pointer"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
@@ -241,7 +241,7 @@ export default function ProfileModal({ currentUser, onClose, onSuccess, t }: Pro
                   <div className="w-24 h-24 rounded-2xl bg-zinc-900/40 border border-zinc-800/80 hover:border-zinc-700 flex items-center justify-center transition-all group-hover:scale-105">
                     <Plus className="w-8 h-8 text-zinc-500 group-hover:text-white transition-colors" />
                   </div>
-                  <span className="text-xs font-semibold text-zinc-500 group-hover:text-zinc-300">Add Profile</span>
+                  <span className="text-xs font-semibold text-zinc-500 group-hover:text-zinc-300">{t?.addProfileBtn || "Add Profile"}</span>
                 </div>
               )}
             </div>
@@ -257,27 +257,27 @@ export default function ProfileModal({ currentUser, onClose, onSuccess, t }: Pro
                 className="border border-zinc-800 hover:bg-zinc-900 text-zinc-400 hover:text-white px-6 py-2 rounded-lg text-xs font-semibold transition-colors cursor-pointer flex items-center gap-2"
               >
                 <Settings className="w-3.5 h-3.5" />
-                Account Settings
+                {t?.accountSettings || "Account Settings"}
               </button>
               <button
                 onClick={onClose}
                 className="border border-zinc-800 hover:bg-zinc-900 text-zinc-400 hover:text-white px-6 py-2 rounded-lg text-xs font-semibold transition-colors cursor-pointer"
               >
-                Close Switcher
+                {t?.closeSwitcher || "Close Switcher"}
               </button>
             </div>
           </div>
         ) : mode === "create" ? (
           <form onSubmit={handleCreateProfile} className="space-y-6 animate-in fade-in duration-300" id="profile-create-form">
             <div className="space-y-1">
-              <h2 className="text-xl font-extrabold text-white">Create Sub-Profile</h2>
-              <p className="text-xs text-zinc-500">Create a profile with custom avatar and optional G/PG restriction safeguards.</p>
+              <h2 className="text-xl font-extrabold text-white">{t?.createSubProfile || "Create Sub-Profile"}</h2>
+              <p className="text-xs text-zinc-500">{t?.createProfileDesc || "Create a profile with custom avatar and optional G/PG restriction safeguards."}</p>
             </div>
 
             {/* Form Inputs */}
             <div className="space-y-4">
               <div className="space-y-1.5">
-                <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Profile Name</label>
+                <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">{t?.profileNameLabel || "Profile Name"}</label>
                 <input
                   type="text"
                   required
@@ -288,7 +288,6 @@ export default function ProfileModal({ currentUser, onClose, onSuccess, t }: Pro
                 />
               </div>
 
-              {/* Kids Toggle */}
               <div 
                 onClick={() => setIsKids(!isKids)}
                 className="flex items-center justify-between bg-zinc-900/60 border border-zinc-800/80 p-3.5 rounded-xl cursor-pointer hover:border-zinc-700 transition-colors"
@@ -296,9 +295,9 @@ export default function ProfileModal({ currentUser, onClose, onSuccess, t }: Pro
                 <div className="space-y-0.5">
                   <h4 className="text-xs font-bold text-white flex items-center gap-1.5">
                     <Baby className="w-4 h-4 text-yellow-500" />
-                    Kids Profile?
+                    {t?.kidsProfileQuestion || "Kids Profile?"}
                   </h4>
-                  <p className="text-[10px] text-zinc-500">Restricts maturity rating access to G & PG (Animation, Comedy, Family only).</p>
+                  <p className="text-[10px] text-zinc-500">{t?.kidsProfileQuestionDesc || "Restricts maturity rating access to G & PG (Animation, Comedy, Family only)."}</p>
                 </div>
                 <div className={`w-5 h-5 rounded-md border flex items-center justify-center ${
                   isKids ? "bg-yellow-500 border-yellow-500 text-black" : "border-zinc-700"
@@ -309,7 +308,7 @@ export default function ProfileModal({ currentUser, onClose, onSuccess, t }: Pro
 
               {/* Avatar Picker */}
               <div className="space-y-2">
-                <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Select Avatar Icon</label>
+                <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">{t?.selectAvatar || "Select Avatar Icon"}</label>
                 <div className="flex flex-wrap gap-3">
                   {sampleAvatars.map((avUrl, i) => (
                     <img 
@@ -326,14 +325,13 @@ export default function ProfileModal({ currentUser, onClose, onSuccess, t }: Pro
               </div>
             </div>
 
-            {/* Bottom Actions */}
             <div className="pt-4 border-t border-zinc-900 flex gap-3">
               <button
                 type="button"
                 onClick={() => setMode("select")}
                 className="flex-1 border border-zinc-800 hover:bg-zinc-900 text-zinc-400 hover:text-white font-bold text-xs py-2.5 rounded-lg transition-colors cursor-pointer"
               >
-                Cancel
+                {t?.cancel || "Cancel"}
               </button>
               <button
                 type="submit"
@@ -343,10 +341,10 @@ export default function ProfileModal({ currentUser, onClose, onSuccess, t }: Pro
                 {isSubmitting ? (
                   <>
                     <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    <span>Saving...</span>
+                    <span>{t?.saving || "Saving..."}</span>
                   </>
                 ) : (
-                  <span>Save Profile</span>
+                  <span>{t?.saveProfile || "Save Profile"}</span>
                 )}
               </button>
             </div>
@@ -356,9 +354,9 @@ export default function ProfileModal({ currentUser, onClose, onSuccess, t }: Pro
             <div className="space-y-1">
               <h2 className="text-xl font-extrabold text-white flex items-center gap-2">
                 <Shield className="w-5 h-5 text-red-500" />
-                Account Settings
+                {t?.accountSettings || "Account Settings"}
               </h2>
-              <p className="text-xs text-zinc-500">Update account identity, main avatar, and password. Changes sync to MongoDB Atlas.</p>
+              <p className="text-xs text-zinc-500">{t?.modifySaaSDesc || "Update account identity, main avatar, and password. Changes sync to MongoDB Atlas."}</p>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-[96px_1fr] gap-4 items-start rounded-xl border border-zinc-900 bg-zinc-950/60 p-4">
@@ -370,7 +368,7 @@ export default function ProfileModal({ currentUser, onClose, onSuccess, t }: Pro
               <div className="space-y-3">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-zinc-400 uppercase">Name</label>
+                    <label className="text-[10px] font-bold text-zinc-400 uppercase">{t?.nameLabel || "Name"}</label>
                     <input
                       value={accountName}
                       onChange={(e) => setAccountName(e.target.value)}
@@ -378,7 +376,7 @@ export default function ProfileModal({ currentUser, onClose, onSuccess, t }: Pro
                     />
                   </div>
                   <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-zinc-400 uppercase">Email</label>
+                    <label className="text-[10px] font-bold text-zinc-400 uppercase">{t?.emailLabel || "Email"}</label>
                     <input
                       type="email"
                       value={accountEmail}
@@ -388,7 +386,7 @@ export default function ProfileModal({ currentUser, onClose, onSuccess, t }: Pro
                   </div>
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-zinc-400 uppercase">Main Avatar URL</label>
+                  <label className="text-[10px] font-bold text-zinc-400 uppercase">{t?.avatarUrl || "Main Avatar URL"}</label>
                   <input
                     value={accountAvatar}
                     onChange={(e) => setAccountAvatar(e.target.value)}
@@ -400,24 +398,24 @@ export default function ProfileModal({ currentUser, onClose, onSuccess, t }: Pro
             </div>
 
             <div className="rounded-xl border border-zinc-900 bg-zinc-950/60 p-4 space-y-3">
-              <h3 className="text-xs font-black text-white uppercase tracking-wider">Password</h3>
+              <h3 className="text-xs font-black text-white uppercase tracking-wider">{t?.passwordLabel || "Password"}</h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <input
                   type="password"
-                  placeholder="Current password"
+                  placeholder={t?.currentPassword || "Current password"}
                   value={currentPassword}
                   onChange={(e) => setCurrentPassword(e.target.value)}
                   className="w-full bg-zinc-900 border border-zinc-800 text-xs text-white rounded-lg px-3.5 py-2.5 focus:outline-hidden focus:border-red-500/50"
                 />
                 <input
                   type="password"
-                  placeholder="New password"
+                  placeholder={t?.newPasswordOptional || "New password (Optional)"}
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   className="w-full bg-zinc-900 border border-zinc-800 text-xs text-white rounded-lg px-3.5 py-2.5 focus:outline-hidden focus:border-red-500/50"
                 />
               </div>
-              <p className="text-[10px] text-zinc-600">Leave password fields empty if you only want to update account details.</p>
+              <p className="text-[10px] text-zinc-600">{t?.passwordLeaveEmptyHint || "Leave password fields empty if you only want to update account details."}</p>
             </div>
 
             <div className="pt-4 border-t border-zinc-900 flex gap-3">
@@ -426,7 +424,7 @@ export default function ProfileModal({ currentUser, onClose, onSuccess, t }: Pro
                 onClick={() => setMode("select")}
                 className="flex-1 border border-zinc-800 hover:bg-zinc-900 text-zinc-400 hover:text-white font-bold text-xs py-2.5 rounded-lg transition-colors cursor-pointer"
               >
-                Cancel
+                {t?.cancel || "Cancel"}
               </button>
               <button
                 type="submit"
@@ -434,7 +432,7 @@ export default function ProfileModal({ currentUser, onClose, onSuccess, t }: Pro
                 className="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold text-xs py-2.5 rounded-lg transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer"
               >
                 {isSubmitting ? <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Save className="w-3.5 h-3.5" />}
-                Save Account
+                {t?.saveChanges || "Save Changes"}
               </button>
             </div>
           </form>

@@ -149,7 +149,7 @@ export default function MovieDetailModal({
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-xs" id="detail-modal-loading">
         <div className="flex flex-col items-center gap-3">
           <div className="w-10 h-10 border-4 border-t-transparent rounded-full animate-spin" style={{ borderColor: "var(--theme-primary)", borderTopColor: "transparent" }} />
-          <p className="text-xs text-zinc-400 font-medium">Retrieving Title Details...</p>
+          <p className="text-xs text-zinc-400 font-medium">{t.retrievingTitleDetails || "Retrieving Title Details..."}</p>
         </div>
       </div>
     );
@@ -160,13 +160,13 @@ export default function MovieDetailModal({
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85" id="detail-modal-error">
         <div className="bg-zinc-900 border border-zinc-800 p-6 rounded-lg max-w-sm text-center">
           <AlertTriangle className="w-12 h-12 mx-auto mb-4" style={{ color: "var(--theme-primary)" }} />
-          <p className="text-white font-bold">{error || "Failed to load movie info"}</p>
+          <p className="text-white font-bold">{error || t.failedToLoadMovieInfo || "Failed to load movie info"}</p>
           <button 
             onClick={onClose}
             className="mt-4 px-4 py-2 text-white rounded text-xs font-semibold hover:brightness-110"
             style={{ backgroundColor: "var(--theme-primary)" }}
           >
-            Close Dialog
+            {t.closeDialog || "Close Dialog"}
           </button>
         </div>
       </div>
@@ -174,9 +174,9 @@ export default function MovieDetailModal({
   }
 
   const detailTabs = [
-    { id: "overview", label: "Overview", count: null },
-    ...(movie.contentType === "series" ? [{ id: "episodes", label: "Episodes", count: movie.seasons?.reduce((sum, season) => sum + season.episodes.length, 0) || 0 }] : []),
-    { id: "reviews", label: "Reviews", count: reviews.length }
+    { id: "overview", label: t.overviewTab || "Overview", count: null },
+    ...(movie.contentType === "series" ? [{ id: "episodes", label: t.episodesTab || "Episodes", count: movie.seasons?.reduce((sum, season) => sum + season.episodes.length, 0) || 0 }] : []),
+    { id: "reviews", label: t.reviewsTab || "Reviews", count: reviews.length }
   ] as const;
 
   return (
@@ -245,7 +245,9 @@ export default function MovieDetailModal({
                     {movie.ageRating}
                   </span>
                   <span className="px-2 py-0.5 text-[10px] font-bold bg-black/45 text-zinc-300 rounded border border-white/10">
-                    {movie.contentType === "series" ? `${movie.seasons?.length || 0} Seasons` : `${movie.duration} min`}
+                    {movie.contentType === "series" 
+                      ? `${movie.seasons?.length || 0} ${movie.seasons?.length === 1 ? (t.season || "Season") : (t.seasons || "Seasons")}` 
+                      : `${movie.duration}m`}
                   </span>
                 </div>
 
@@ -266,17 +268,16 @@ export default function MovieDetailModal({
                   {movie.description}
                 </p>
 
-                <div className="mt-5 flex flex-wrap items-center gap-2">
-                  <button
+                <div className="mt-5 flex flex-wrap items-center gap-2">                  <button
                     onClick={() => onPlay(movie)}
                     className="flex items-center gap-2 text-white font-bold text-xs px-5 py-2.5 rounded-md transition-all shadow-lg cursor-pointer hover:brightness-110 active:scale-95"
                     style={{ backgroundColor: "var(--theme-primary)", boxShadow: "0 14px 30px var(--theme-primary-20)" }}
                     id="modal-play-btn"
                   >
                     <Play className="w-4 h-4 fill-white" />
-                    Stream Now
+                    {t.watch || "Stream Now"}
                   </button>
-
+ 
                   <button
                     onClick={() => onToggleFavorite(movie.id)}
                     className={`h-10 px-3 flex items-center gap-2 rounded-md border text-xs font-bold transition-all cursor-pointer active:scale-95 ${
@@ -289,7 +290,7 @@ export default function MovieDetailModal({
                     id="modal-fav-btn"
                   >
                     <Heart className={`w-4 h-4 ${isFavorite(movie.id) ? "fill-current" : ""}`} />
-                    {isFavorite(movie.id) ? "In List" : "My List"}
+                    {isFavorite(movie.id) ? (t.inList || "In List") : (t.myList || "My List")}
                   </button>
                 </div>
               </div>
@@ -326,18 +327,17 @@ export default function MovieDetailModal({
           {/* Left Column: Summary and Review Board */}
           <div className="md:col-span-2 space-y-6">
             {activeDetailTab === "overview" && (
-              <div className="space-y-5 animate-fade-in-quick">
-                <div className="cinema-panel rounded-lg p-4">
-                  <h3 className="text-zinc-400 text-xs font-bold tracking-wider uppercase mb-2">Synopsis</h3>
+              <div className="space-y-5 animate-fade-in-quick">                <div className="cinema-panel rounded-lg p-4">
+                  <h3 className="text-zinc-400 text-xs font-bold tracking-wider uppercase mb-2">{t.synopsis || "Synopsis"}</h3>
                   <p className="text-zinc-200 text-sm leading-relaxed">{movie.description}</p>
                 </div>
-
+ 
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   {[
-                    ["Views", movie.views.toLocaleString()],
-                    ["Likes", movie.likes.toLocaleString()],
-                    ["Country", movie.country],
-                    ["Audio", movie.language]
+                    [t.views || "Views", movie.views.toLocaleString()],
+                    [t.likes || "Likes", movie.likes.toLocaleString()],
+                    [t.country || "Country", t[movie.country as keyof typeof t] || movie.country],
+                    [t.audio || "Audio", t[movie.language as keyof typeof t] || movie.language]
                   ].map(([label, value]) => (
                     <div key={label} className="rounded-lg border border-white/10 bg-white/[0.035] p-3">
                       <p className="text-[10px] text-zinc-500 font-bold uppercase">{label}</p>
@@ -349,7 +349,7 @@ export default function MovieDetailModal({
                 {/* Subtitles & Playback Info */}
                 {movie.subtitles.length > 0 && (
                   <div className="cinema-panel rounded-lg p-4">
-                    <h3 className="text-zinc-400 text-xs font-bold tracking-wider uppercase mb-2">Available Subtitles</h3>
+                    <h3 className="text-zinc-400 text-xs font-bold tracking-wider uppercase mb-2">{t.availableSubtitles || "Available Subtitles"}</h3>
                     <div className="flex flex-wrap gap-1.5">
                       {movie.subtitles.map((sub) => (
                         <span 
@@ -371,7 +371,7 @@ export default function MovieDetailModal({
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
                   <h3 className="text-white text-sm font-black flex items-center gap-2">
                     <Film className="w-4 h-4 text-red-500" />
-                    Browse Episodes
+                    {t.browseEpisodes || "Browse Episodes"}
                   </h3>
                   
                   {/* Season selector pills */}
@@ -443,16 +443,16 @@ export default function MovieDetailModal({
             <div className="animate-fade-in-quick">
               <h3 className="text-white text-base font-bold flex items-center gap-2 mb-4">
                 <MessageSquare className="w-4.5 h-4.5 text-red-500" />
-                Community Reviews ({reviews.length})
+                {(t.communityReviews || "Community Reviews")} ({reviews.length})
               </h3>
 
               {/* Review Submit Form */}
               {currentUser ? (
                 <form onSubmit={handleSubmitReview} className="cinema-panel p-4 rounded-lg space-y-3 mb-6">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-zinc-300 font-semibold">Write a Review</span>
+                    <span className="text-xs text-zinc-300 font-semibold">{t.writeReview || "Write a Review"}</span>
                     <div className="flex items-center gap-2">
-                      <span className="text-[11px] text-zinc-500 font-medium">Your Rating:</span>
+                      <span className="text-[11px] text-zinc-500 font-medium">{t.yourRating || "Your Rating:"}</span>
                       <select
                         value={userRating}
                         onChange={(e) => setUserRating(Number(e.target.value))}
@@ -467,7 +467,7 @@ export default function MovieDetailModal({
                   </div>
 
                   <textarea
-                    placeholder="Provide your feedback for this title..."
+                    placeholder={t.reviewPlaceholder || "Provide your feedback for this title..."}
                     value={userComment}
                     onChange={(e) => setUserComment(e.target.value)}
                     rows={2}
@@ -486,14 +486,14 @@ export default function MovieDetailModal({
                       id="review-submit-btn"
                     >
                       <Send className="w-3 h-3" />
-                      {submittingReview ? "Posting..." : "Submit"}
+                      {submittingReview ? (t.posting || "Posting...") : (t.submit || "Submit")}
                     </button>
                   </div>
                 </form>
               ) : (
                 <div className="bg-zinc-950/30 p-3 rounded border border-dashed border-zinc-800 text-center mb-6">
                   <p className="text-xs text-zinc-500">
-                    Please <span className="text-red-500 font-semibold">Login / Sign In</span> to post reviews.
+                    {t.loginToPostReviews || "Please log in to post reviews."}
                   </p>
                 </div>
               )}
@@ -501,7 +501,7 @@ export default function MovieDetailModal({
               {/* Reviews List */}
               <div className="space-y-4 max-h-64 overflow-y-auto pr-1" id="reviews-list">
                 {reviews.length === 0 ? (
-                  <p className="text-xs text-zinc-500 italic">No reviews yet. Be the first to express opinion!</p>
+                  <p className="text-xs text-zinc-500 italic">{t.noReviewsYet || "No reviews yet. Be the first to share your experience!"}</p>
                 ) : (
                   reviews.map((rev) => (
                     <div key={rev.id} className="cinema-panel p-3.5 rounded-lg space-y-2">
@@ -526,34 +526,34 @@ export default function MovieDetailModal({
           <div className="space-y-4">
             <div className="bg-zinc-950/50 border border-zinc-800/60 rounded-lg p-4 space-y-4">
               <div className="flex items-center gap-2 text-zinc-300">
-                <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
+                <Star className="w-4 h-4 text-amber-500 fill-amber-550" />
                 <div className="text-xs">
                   <p className="font-bold text-white text-sm">{movie.rating} / 10</p>
-                  <p className="text-[10px] text-zinc-500">Aggregate Rating</p>
+                  <p className="text-[10px] text-zinc-500">{t.aggregateRating || "Aggregate Rating"}</p>
                 </div>
               </div>
 
               <div className="border-t border-zinc-900/60 pt-3 flex items-center justify-between text-xs">
-                <span className="text-zinc-500">Release Year</span>
+                <span className="text-zinc-500">{t.releaseYear || "Release Year"}</span>
                 <span className="font-bold text-zinc-200">{movie.releaseYear}</span>
               </div>
 
               <div className="border-t border-zinc-900/60 pt-3 flex items-center justify-between text-xs">
-                <span className="text-zinc-500">{movie.contentType === "series" ? "Total Seasons" : "Runtime"}</span>
+                <span className="text-zinc-500">{movie.contentType === "series" ? (t.totalSeasons || "Total Seasons") : (t.runtime || "Runtime")}</span>
                 <span className="font-bold text-zinc-200">
                   {movie.contentType === "series"
-                    ? `${movie.seasons?.length || 0} ${movie.seasons?.length === 1 ? "Season" : "Seasons"}`
-                    : `${movie.duration} minutes`}
+                    ? `${movie.seasons?.length || 0} ${movie.seasons?.length === 1 ? (t.season || "Season") : (t.seasons || "Seasons")}`
+                    : `${movie.duration} ${t.minutes || "minutes"}`}
                 </span>
               </div>
 
               <div className="border-t border-zinc-900/60 pt-3 flex items-center justify-between text-xs">
-                <span className="text-zinc-500">Total Stream Views</span>
+                <span className="text-zinc-500">{t.totalStreamViews || "Total Stream Views"}</span>
                 <span className="font-bold text-zinc-200">{movie.views.toLocaleString()}</span>
               </div>
 
               <div className="border-t border-zinc-900/60 pt-3 flex items-center justify-between text-xs">
-                <span className="text-zinc-500">Likes / Favorites</span>
+                <span className="text-zinc-500">{t.likesFavorites || "Likes / Favorites"}</span>
                 <span className="font-bold text-zinc-200">{movie.likes.toLocaleString()}</span>
               </div>
             </div>
@@ -562,7 +562,7 @@ export default function MovieDetailModal({
             <div className="bg-zinc-950/50 border border-zinc-800/60 rounded-lg p-4 space-y-3.5">
               <div>
                 <p className="text-xs text-zinc-500 font-semibold flex items-center gap-1.5 mb-1.5">
-                  <Users className="w-3.5 h-3.5" /> Directing Crew
+                  <Users className="w-3.5 h-3.5" /> {t.directingCrew || "Directing Crew"}
                 </p>
                 <p className="text-xs text-zinc-200 font-medium pl-5">
                   {movie.directors.join(", ") || "Unknown"}
@@ -571,7 +571,7 @@ export default function MovieDetailModal({
 
               <div className="border-t border-zinc-900/60 pt-3">
                 <p className="text-xs text-zinc-500 font-semibold flex items-center gap-1.5 mb-1.5">
-                  <Film className="w-3.5 h-3.5" /> Starring Cast
+                  <Film className="w-3.5 h-3.5" /> {t.starringCast || "Starring Cast"}
                 </p>
                 <div className="flex flex-wrap gap-1 pl-5">
                   {movie.cast.map((actor, idx) => (
@@ -587,11 +587,11 @@ export default function MovieDetailModal({
 
               <div className="border-t border-zinc-900/60 pt-3">
                 <p className="text-xs text-zinc-500 font-semibold flex items-center gap-1.5 mb-1.5">
-                  <Globe className="w-3.5 h-3.5" /> Origins
+                  <Globe className="w-3.5 h-3.5" /> {t.origins || "Origins"}
                 </p>
                 <div className="text-xs text-zinc-300 pl-5 space-y-1">
-                  <p>Country: <span className="text-white font-medium">{movie.country}</span></p>
-                  <p>Audio: <span className="text-white font-medium">{movie.language}</span></p>
+                  <p>{t.country || "Country"}: <span className="text-white font-medium">{t[movie.country as keyof typeof t] || movie.country}</span></p>
+                  <p>{t.audio || "Audio"}: <span className="text-white font-medium">{t[movie.language as keyof typeof t] || movie.language}</span></p>
                 </div>
               </div>
             </div>
@@ -603,7 +603,7 @@ export default function MovieDetailModal({
           <div className="px-6 pb-8 border-t border-zinc-800/40 pt-6 bg-zinc-950/20" id="modal-recommendations">
             <h3 className="text-white text-xs font-black tracking-wider uppercase mb-4 flex items-center gap-1.5">
               <Sparkles className="w-3.5 h-3.5 text-amber-500 fill-amber-550" />
-              More Like This
+              {t.moreLikeThis || "More Like This"}
             </h3>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               {similarMovies.map((rec) => (

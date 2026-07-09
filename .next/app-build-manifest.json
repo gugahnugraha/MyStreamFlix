@@ -11,11 +11,6 @@
       "static/chunks/main-app.js",
       "static/chunks/app/page.js"
     ],
-    "/api/settings/route": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/api/settings/route.js"
-    ],
     "/api/auth/me/route": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
@@ -25,6 +20,11 @@
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/api/movies/route.js"
+    ],
+    "/api/settings/route": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/api/settings/route.js"
     ],
     "/api/auth/login/route": [
       "static/chunks/webpack.js",
@@ -41,6 +41,11 @@
       "static/chunks/main-app.js",
       "static/chunks/app/api/user/history/route.js"
     ],
+    "/api/movies/[id]/route": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/api/movies/[id]/route.js"
+    ],
     "/api/auth/toggle-role/route": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
@@ -55,21 +60,6 @@
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/api/users/route.js"
-    ],
-    "/api/tmdb/search/route": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/api/tmdb/search/route.js"
-    ],
-    "/api/tmdb/metadata/route": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/api/tmdb/metadata/route.js"
-    ],
-    "/api/movies/[id]/route": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/api/movies/[id]/route.js"
     ]
   }
 }

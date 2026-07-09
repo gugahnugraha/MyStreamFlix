@@ -29,11 +29,11 @@ export default function SubscriptionModal({ currentUser, onClose, onSuccess, t }
       id: "vip" as const,
       name: "VIP",
       price: "Rp 39.000",
-      period: "month",
+      period: t.month || "month",
       resolution: "HD (720p)",
-      screens: "1 Screen",
-      devices: "Mobile & Tablet only",
-      features: ["Standard Audio Quality", "Contains limited ads"],
+      screens: `1 ${t.screens || "Screen"}`,
+      devices: t.mobileTabletOnly || "Mobile & Tablet only",
+      features: [t.standardAudio || "Standard Audio Quality", t.containsLimitedAds || "Contains limited ads"],
       color: "border-zinc-800 hover:border-zinc-700",
       badgeColor: "bg-zinc-800 text-zinc-300",
     },
@@ -41,11 +41,11 @@ export default function SubscriptionModal({ currentUser, onClose, onSuccess, t }
       id: "premium" as const,
       name: "PREMIUM",
       price: "Rp 79.000",
-      period: "month",
+      period: t.month || "month",
       resolution: "Full HD (1080p)",
-      screens: "2 Screens",
-      devices: "TV, Laptop, Mobile & Tablet",
-      features: ["Dolby Audio 5.1 Support", "100% Ad-Free Streaming", "Supports Offline Downloads"],
+      screens: `2 ${t.screens || "Screens"}`,
+      devices: t.tvLaptopMobileTablet || "TV, Laptop, Mobile & Tablet",
+      features: [t.dolbyAudio || "Dolby Audio 5.1 Support", t.adFreeStreaming || "100% Ad-Free Streaming", t.offlineDownloads || "Supports Offline Downloads"],
       color: "border-red-600/60 shadow-lg shadow-red-950/10",
       badgeColor: "bg-red-600 text-white animate-pulse",
       popular: true,
@@ -54,11 +54,11 @@ export default function SubscriptionModal({ currentUser, onClose, onSuccess, t }
       id: "ultra" as const,
       name: "ULTRA 4K",
       price: "Rp 119.000",
-      period: "month",
+      period: t.month || "month",
       resolution: "Ultra HD (4K) + HDR",
-      screens: "4 Screens",
-      devices: "All Devices (UHD Supported)",
-      features: ["Dolby Atmos & Spatial Audio", "100% Ad-Free Streaming", "Max Quality Offline Downloads", "VIP Early Access Releases"],
+      screens: `4 ${t.screens || "Screens"}`,
+      devices: t.allDevicesUhd || "All Devices (UHD Supported)",
+      features: [t.dolbyAtmos || "Dolby Atmos & Spatial Audio", t.adFreeStreaming || "100% Ad-Free Streaming", t.maxQualityDownloads || "Max Quality Offline Downloads", t.vipEarlyAccess || "VIP Early Access Releases"],
       color: "border-amber-600/40 hover:border-amber-500",
       badgeColor: "bg-amber-500 text-black font-black",
     },
@@ -132,7 +132,7 @@ export default function SubscriptionModal({ currentUser, onClose, onSuccess, t }
                 SaaS Simulation
               </span>
             </h2>
-            <p className="text-xs text-zinc-400">Unlock direct 4K streaming, multi-screens, and zero ads just like Disney+ & Prime Video.</p>
+            <p className="text-xs text-zinc-400">{t.vipSubTitle || "Unlock the ultimate high-definition, ad-free cinema streaming experience."}</p>
           </div>
         </div>
 
@@ -149,8 +149,8 @@ export default function SubscriptionModal({ currentUser, onClose, onSuccess, t }
           {checkoutStep === "plans" && (
             <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-300">
               <div className="text-center space-y-1.5">
-                <h3 className="text-lg font-extrabold text-white">Choose Your Cinematic Experience</h3>
-                <p className="text-xs text-zinc-500 max-w-lg mx-auto">Flexible subscription models. Cancel anytime. Simulated payment gateway.</p>
+                <h3 className="text-lg font-extrabold text-white">{t.choosePlan || "Choose Your Cinematic Experience"}</h3>
+                <p className="text-xs text-zinc-500 max-w-lg mx-auto">{t.flexibleSubscription || "Flexible subscription models. Cancel anytime. Simulated payment gateway."}</p>
               </div>
 
               {/* Plans Grid */}
@@ -168,7 +168,7 @@ export default function SubscriptionModal({ currentUser, onClose, onSuccess, t }
                   >
                     {plan.popular && (
                       <span className="absolute -top-3 left-1/2 -translate-x-1/2 px-2.5 py-0.5 rounded-full text-[9px] font-bold bg-red-600 text-white tracking-wider uppercase">
-                        Most Popular
+                        {t.popularBadge || "Most Popular"}
                       </span>
                     )}
 
@@ -191,7 +191,7 @@ export default function SubscriptionModal({ currentUser, onClose, onSuccess, t }
                       <ul className="space-y-2 text-xs text-zinc-300">
                         <li className="flex items-center gap-2">
                           <Tv className="w-3.5 h-3.5 text-zinc-500" />
-                          <span>{plan.resolution}</span>
+                          <span>{t.resolution || "Resolution"}: {plan.resolution}</span>
                         </li>
                         <li className="flex items-center gap-2">
                           <Smartphone className="w-3.5 h-3.5 text-zinc-500" />
@@ -216,9 +216,9 @@ export default function SubscriptionModal({ currentUser, onClose, onSuccess, t }
               {/* Bottom CTA bar */}
               <div className="flex flex-col sm:flex-row items-center justify-between pt-6 border-t border-zinc-900 gap-4 bg-zinc-900/20 p-4 rounded-xl">
                 <div className="text-left">
-                  <p className="text-[10px] text-zinc-500">Selected Plan:</p>
+                  <p className="text-[10px] text-zinc-500">{t.selectedPlan || "Selected Plan:"}</p>
                   <p className="text-sm font-black text-white uppercase">
-                    {plans.find(p => p.id === selectedPlan)?.name} • {plans.find(p => p.id === selectedPlan)?.price}/month
+                    {plans.find(p => p.id === selectedPlan)?.name} • {plans.find(p => p.id === selectedPlan)?.price} / {t.month || "month"}
                   </p>
                 </div>
                 <button
@@ -226,7 +226,7 @@ export default function SubscriptionModal({ currentUser, onClose, onSuccess, t }
                   className="w-full sm:w-auto bg-red-600 hover:bg-red-700 text-white font-bold text-xs px-6 py-3 rounded-lg shadow-lg shadow-red-600/10 transition-all transform active:scale-95 cursor-pointer"
                   id="sub-modal-next-step"
                 >
-                  Continue to Secure Sandbox Checkout
+                  {t.continueCheckout || "Continue to Secure Sandbox Checkout"}
                 </button>
               </div>
             </div>
@@ -237,17 +237,17 @@ export default function SubscriptionModal({ currentUser, onClose, onSuccess, t }
               <div className="text-center space-y-1.5">
                 <h3 className="text-lg font-extrabold text-white flex items-center justify-center gap-2">
                   <CreditCard className="w-5 h-5 text-red-500" />
-                  Secure Payment Gateway
+                  {t.paymentDetails || "Secure Payment Gateway"}
                 </h3>
                 <p className="text-xs text-zinc-500">
-                  This is a simulated payment gateway. Please enter mock credentials to test client premium flows.
+                  {t.paymentDesc || "This is a simulated payment gateway. Please enter mock credentials to test client premium flows."}
                 </p>
               </div>
 
               {/* Simulated Card form */}
               <form onSubmit={handleProcessPayment} className="space-y-4">
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Cardholder Name</label>
+                  <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">{t.cardholderName || "Cardholder Name"}</label>
                   <input
                     type="text"
                     required
@@ -260,7 +260,7 @@ export default function SubscriptionModal({ currentUser, onClose, onSuccess, t }
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Card Number</label>
+                  <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">{t.cardNumber || "Card Number"}</label>
                   <div className="relative">
                     <input
                       type="text"
@@ -277,7 +277,7 @@ export default function SubscriptionModal({ currentUser, onClose, onSuccess, t }
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Expiration Date</label>
+                    <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">{t.expirationDate || "Expiration Date"}</label>
                     <input
                       type="text"
                       required
@@ -289,7 +289,7 @@ export default function SubscriptionModal({ currentUser, onClose, onSuccess, t }
                     />
                   </div>
                   <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">CVV Code</label>
+                    <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">{t.cvvCode || "CVV Code"}</label>
                     <input
                       type="password"
                       required
@@ -309,7 +309,7 @@ export default function SubscriptionModal({ currentUser, onClose, onSuccess, t }
                     onClick={() => setCheckoutStep("plans")}
                     className="flex-1 border border-zinc-800 hover:bg-zinc-900 text-zinc-400 hover:text-white font-bold text-xs py-2.5 rounded-lg transition-colors cursor-pointer"
                   >
-                    Go Back
+                    {t.back || "Go Back"}
                   </button>
                   <button
                     type="submit"
@@ -320,11 +320,11 @@ export default function SubscriptionModal({ currentUser, onClose, onSuccess, t }
                     {isProcessing ? (
                       <>
                         <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                        <span>Authorizing...</span>
+                        <span>{t.paying || "Authorizing..."}</span>
                       </>
                     ) : (
                       <>
-                        <span>Pay {plans.find(p => p.id === selectedPlan)?.price}</span>
+                        <span>{t.submit || "Pay"} {plans.find(p => p.id === selectedPlan)?.price}</span>
                       </>
                     )}
                   </button>
@@ -333,7 +333,7 @@ export default function SubscriptionModal({ currentUser, onClose, onSuccess, t }
 
               <div className="text-center text-[10px] text-zinc-600 flex items-center justify-center gap-1">
                 <Shield className="w-3 h-3 text-emerald-500" />
-                <span>Simulated secure SSL encryption layer</span>
+                <span>{t.secureSSL || "Simulated secure SSL encryption layer"}</span>
               </div>
             </div>
           )}
@@ -345,23 +345,23 @@ export default function SubscriptionModal({ currentUser, onClose, onSuccess, t }
               </div>
 
               <div className="space-y-2">
-                <h3 className="text-xl font-extrabold text-white uppercase tracking-wider">Premium Subscription Activated!</h3>
+                <h3 className="text-xl font-extrabold text-white uppercase tracking-wider">{t.paymentSuccessTitle || "Payment Successful!"}</h3>
                 <p className="text-xs text-zinc-400 max-w-sm mx-auto">
-                  Congratulations! Your account is now upgraded to **{plans.find(p => p.id === selectedPlan)?.name}**. All paywalls, premium labels, and restrictions are instantly unlocked.
+                  {t.upgradeSuccessDesc || "Your account email has been upgraded. Start streaming premium 4K catalog titles immediately."}
                 </p>
               </div>
 
               <div className="bg-zinc-900/50 border border-zinc-800 max-w-sm mx-auto rounded-xl p-4 text-left text-xs space-y-1.5">
                 <div className="flex justify-between text-zinc-500">
-                  <span>Subscription Tier:</span>
+                  <span>{t.subscriptionTier || "Subscription Tier:"}</span>
                   <span className="font-bold text-white uppercase">{selectedPlan}</span>
                 </div>
                 <div className="flex justify-between text-zinc-500">
-                  <span>Simulated Billing Period:</span>
-                  <span className="text-zinc-300">Monthly auto-renewal</span>
+                  <span>{t.billingPeriod || "Simulated Billing Period:"}</span>
+                  <span className="text-zinc-300">{t.monthlyRenewal || "Monthly auto-renewal"}</span>
                 </div>
                 <div className="flex justify-between text-zinc-500">
-                  <span>Interactive Screens:</span>
+                  <span>{t.interactiveScreens || "Interactive Screens:"}</span>
                   <span className="text-zinc-300">{plans.find(p => p.id === selectedPlan)?.screens}</span>
                 </div>
               </div>
@@ -372,7 +372,7 @@ export default function SubscriptionModal({ currentUser, onClose, onSuccess, t }
                   className="bg-red-600 hover:bg-red-700 text-white font-bold text-xs px-8 py-2.5 rounded-lg shadow-lg shadow-red-600/10 cursor-pointer"
                   id="sub-success-close-btn"
                 >
-                  Start Premium Viewing
+                  {t.letStream || "Let's Stream!"}
                 </button>
               </div>
             </div>

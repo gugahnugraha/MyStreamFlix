@@ -412,7 +412,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t }: 
               <div className="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-transparent flex flex-col justify-end p-4">
                 <div className="flex items-center gap-1.5 self-start">
                   <span className="px-2 py-0.5 rounded-sm bg-red-600 text-[10px] font-extrabold text-white uppercase tracking-wider">
-                    SIMULATED
+                    {t.simulated || "SIMULATED"}
                   </span>
                   <span className="px-2 py-0.5 rounded-sm bg-zinc-900/85 text-[10px] font-semibold text-zinc-300 uppercase tracking-wider">
                     {movie.quality}
@@ -423,23 +423,23 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t }: 
 
             <div className="space-y-2">
               <span className="text-[11px] font-bold text-red-500 font-mono tracking-widest uppercase">
-                Interactive Cinema Stream
+                {t.interactiveStream || "Interactive Cinema Stream"}
               </span>
               <h2 className="text-2xl md:text-3xl font-extrabold text-white tracking-tight">
                 {movie.title} {activeEpisode ? ` - S${activeSeason?.seasonNumber}E${activeEpisode.episodeNumber}` : ""}
               </h2>
               <p className="text-xs text-zinc-400 max-w-sm leading-relaxed mt-1">
-                {activeEpisode?.description || movie.description || "Direct raw link loading is limited by sandboxed container headers. Playing simulated high-fidelity HLS timeline."}
+                {activeEpisode?.description || movie.description || (t.simulationDesc || "Direct raw link loading is limited by sandboxed container headers. Playing simulated high-fidelity HLS timeline.")}
               </p>
               {isPlaying ? (
                 <div className="flex items-center justify-center gap-1.5 mt-4 text-emerald-500 text-xs font-mono font-semibold bg-emerald-500/10 px-3 py-1.5 rounded-full border border-emerald-500/20 shadow-xs animate-pulse">
                   <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                  Streaming @ 4K Ultra HD
+                  {t.streamingQualityLabel || "Streaming @ 4K Ultra HD"}
                 </div>
               ) : (
                 <div className="flex items-center justify-center gap-1.5 mt-4 text-zinc-400 text-xs font-mono font-semibold bg-zinc-800/30 px-3 py-1.5 rounded-full border border-zinc-800">
                   <span className="w-2 h-2 rounded-full bg-zinc-500" />
-                  Paused
+                  {t.pausedLabel || "Paused"}
                 </div>
               )}
             </div>
@@ -465,7 +465,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t }: 
         <div className="flex items-center justify-between w-full">
           <div>
             <p className="text-[10px] md:text-xs font-bold text-red-500 font-mono tracking-wider">
-              NOW STREAMING • {movie.quality}
+              {t.nowStreaming || "NOW STREAMING"} • {movie.quality}
             </p>
             <h1 className="text-white text-base md:text-xl font-extrabold truncate max-w-md mt-0.5">
               {movie.title} {activeEpisode ? ` • S${activeSeason?.seasonNumber}E${activeEpisode.episodeNumber}: ${activeEpisode.title}` : ""}
@@ -481,7 +481,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t }: 
             }}
             className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-zinc-900/80 hover:bg-red-600 text-white flex items-center justify-center border border-zinc-800 transition-colors shadow-lg cursor-pointer"
             id="media-player-exit"
-            title="Exit Player"
+            title={t.exitPlayer || "Exit Player"}
           >
             <X className="w-5 h-5" />
           </button>
@@ -517,7 +517,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t }: 
               <button
                 onClick={() => handleSkip(-10)}
                 className="text-zinc-300 hover:text-white transition-colors cursor-pointer"
-                title="Rewind 10s"
+                title={t.rewind10s || "Rewind 10s"}
               >
                 <RotateCcw className="w-5 h-5" />
               </button>
@@ -537,7 +537,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t }: 
               <button
                 onClick={() => handleSkip(10)}
                 className="text-zinc-300 hover:text-white transition-colors cursor-pointer"
-                title="Forward 10s"
+                title={t.forward10s || "Forward 10s"}
               >
                 <RotateCw className="w-5 h-5" />
               </button>
@@ -575,7 +575,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t }: 
                 <button
                   onClick={() => { setShowSpeedMenu(!showSpeedMenu); setShowSubtitleMenu(false); }}
                   className="flex items-center gap-1 text-zinc-300 hover:text-white text-xs font-semibold px-2 py-1 bg-zinc-900/80 border border-zinc-800 rounded-md cursor-pointer"
-                  title="Playback Speed"
+                  title={t.playbackSpeed || "Playback Speed"}
                 >
                   <Settings className="w-4 h-4" />
                   <span>{playbackRate}x</span>
@@ -608,10 +608,10 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t }: 
                         ? "bg-red-600/10 border-red-500 text-red-400" 
                         : "bg-zinc-900/80 border-zinc-800 text-zinc-300 hover:text-white"
                     }`}
-                    title="Toggle Captions"
+                    title={t.toggleCaptions || "Toggle Captions"}
                   >
                     <Subtitles className="w-4 h-4" />
-                    <span>Captions</span>
+                    <span>{t.toggleCaptions || "Captions"}</span>
                   </button>
 
                   {showSubtitleMenu && (
@@ -622,7 +622,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t }: 
                           activeSubtitle === "off" ? "text-red-500 font-bold bg-red-500/10" : "text-zinc-400"
                         }`}
                       >
-                        Off (None)
+                        {t.noneOff || "Off (None)"}
                       </button>
                       {movie.subtitles.map((sub) => (
                         <button
@@ -644,7 +644,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t }: 
               <button
                 onClick={toggleFullscreen}
                 className="text-zinc-300 hover:text-white transition-colors cursor-pointer"
-                title={isFullscreen ? "Exit Fullscreen" : "Toggle Fullscreen"}
+                title={isFullscreen ? (t.exitFullscreen || "Exit Fullscreen") : (t.toggleFullscreen || "Toggle Fullscreen")}
               >
                 {isFullscreen ? (
                   <Minimize className="w-5 h-5" />
@@ -664,7 +664,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t }: 
           {/* Header */}
           <div className="p-4 border-b border-zinc-900 bg-black/40">
             <h3 className="text-sm font-extrabold tracking-wide uppercase text-zinc-400 mb-2">
-              Seasons & Episodes
+              {t.seasonsAndEpisodes || "Seasons & Episodes"}
             </h3>
             {/* Season dropdown selector */}
             <select
@@ -683,7 +683,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t }: 
             >
               {movie.seasons.map((s) => (
                 <option key={s.id} value={s.id}>
-                  {s.title} ({s.episodes.length} Episodes)
+                  {s.title} ({s.episodes.length} {t.episodesTab || "Episodes"})
                 </option>
               ))}
             </select>
@@ -708,7 +708,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t }: 
                 >
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] font-bold text-red-500">
-                      EPISODE {ep.episodeNumber}
+                      {t.episodeLabel || "EPISODE"} {ep.episodeNumber}
                     </span>
                     <span className="text-[10px] text-zinc-500 font-mono">
                       {ep.duration}m
