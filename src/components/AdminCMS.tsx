@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { 
   BarChart3, Film, Settings, Plus, Edit, Trash2, Save, 
   Tv, Eye, Play, ShieldAlert, CheckCircle, TrendingUp, Users, RefreshCw, X, Search, Database 
@@ -92,6 +92,54 @@ export default function AdminCMS({
 
   // Get brand color from settings when loaded
   const brandColor = settings?.primaryColor || "#E50914";
+
+  // Catalog Filter / Sort States
+  const [catalogSearch, setCatalogSearch] = useState("");
+  const [catalogFilterType, setCatalogFilterType] = useState<"all" | "movie" | "series">("all");
+  const [catalogSortBy, setCatalogSortBy] = useState<string>("recent");
+
+  const filteredAndSortedMovies = useMemo(() => {
+    let result = [...movies];
+
+    // 1. Filter by content type
+    if (catalogFilterType !== "all") {
+      result = result.filter(m => m.contentType === catalogFilterType);
+    }
+
+    // 2. Filter by search query
+    const q = catalogSearch.trim().toLowerCase();
+    if (q) {
+      result = result.filter(m => 
+        m.title.toLowerCase().includes(q) || 
+        (m.genres || []).some(g => g.toLowerCase().includes(q)) ||
+        (m.directors || []).some(d => d.toLowerCase().includes(q)) ||
+        (m.cast || []).some(c => c.toLowerCase().includes(q))
+      );
+    }
+
+    // 3. Sort
+    result.sort((a, b) => {
+      switch (catalogSortBy) {
+        case "title-asc":
+          return a.title.localeCompare(b.title);
+        case "title-desc":
+          return b.title.localeCompare(a.title);
+        case "year-desc":
+          return b.releaseYear - a.releaseYear;
+        case "year-asc":
+          return a.releaseYear - b.releaseYear;
+        case "views-desc":
+          return b.views - a.views;
+        case "likes-desc":
+          return b.likes - a.likes;
+        case "recent":
+        default:
+          return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
+      }
+    });
+
+    return result;
+  }, [movies, catalogFilterType, catalogSearch, catalogSortBy]);
 
   // Edit / Create Form States
   const [showForm, setShowForm] = useState(false);
@@ -778,7 +826,7 @@ export default function AdminCMS({
           {/* Create movie action and quick info */}
           <div className="flex justify-between items-center bg-zinc-950 p-4 rounded-xl border border-zinc-900">
             <p className="text-xs text-zinc-400">
-              Database currently contains <span className="text-white font-bold">{movies.length}</span> titles.
+              Showing <span className="text-white font-bold">{filteredAndSortedMovies.length}</span> of <span className="text-zinc-550">{movies.length}</span> titles.
             </p>
             <button
               onClick={handleOpenCreate}
@@ -791,12 +839,70 @@ export default function AdminCMS({
             </button>
           </div>
 
+          {/* Controls Bar: Filter & Sort */}
+          <div className="flex flex-col md:flex-row gap-3 md:items-center justify-between bg-zinc-950 p-4 rounded-xl border border-zinc-900 text-xs">
+            {/* Search filter input */}
+            <div className="relative flex-1 max-w-md">
+              <Search className="absolute left-3 top-2.5 w-4 h-4 text-zinc-500" />
+              <input
+                type="text"
+                placeholder="Search catalog by title, genre, director or cast..."
+                value={catalogSearch}
+                onChange={(e) => setCatalogSearch(e.target.value)}
+                className="w-full bg-zinc-900 text-zinc-200 pl-9 pr-4 py-2 rounded-lg border border-zinc-800 focus:border-zinc-700 focus:outline-hidden transition-all placeholder:text-zinc-550"
+              />
+              {catalogSearch && (
+                <button 
+                  onClick={() => setCatalogSearch("")}
+                  className="absolute right-3 top-2.5 text-zinc-500 hover:text-white"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+
+            {/* Filter & Sort select dropdowns */}
+            <div className="flex flex-wrap items-center gap-3">
+              {/* Type Filter */}
+              <div className="flex items-center gap-1.5">
+                <span className="text-zinc-500">Type:</span>
+                <select
+                  value={catalogFilterType}
+                  onChange={(e) => setCatalogFilterType(e.target.value as any)}
+                  className="bg-zinc-900 border border-zinc-800 text-zinc-200 px-3 py-2 rounded-lg focus:outline-hidden focus:border-zinc-700 cursor-pointer"
+                >
+                  <option value="all">All Content</option>
+                  <option value="movie">Movies Only</option>
+                  <option value="series">TV Series Only</option>
+                </select>
+              </div>
+
+              {/* Sorting */}
+              <div className="flex items-center gap-1.5">
+                <span className="text-zinc-500">Sort By:</span>
+                <select
+                  value={catalogSortBy}
+                  onChange={(e) => setCatalogSortBy(e.target.value)}
+                  className="bg-zinc-900 border border-zinc-800 text-zinc-200 px-3 py-2 rounded-lg focus:outline-hidden focus:border-zinc-700 cursor-pointer"
+                >
+                  <option value="recent">Recently Added</option>
+                  <option value="title-asc">Title (A-Z)</option>
+                  <option value="title-desc">Title (Z-A)</option>
+                  <option value="year-desc">Year (Newest)</option>
+                  <option value="year-asc">Year (Oldest)</option>
+                  <option value="views-desc">Views (Most)</option>
+                  <option value="likes-desc">Likes (Most)</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
           {/* Catalog Listing Table */}
           <div className="bg-zinc-950 border border-zinc-900 rounded-xl overflow-hidden">
-            <div className="overflow-x-auto">
+            <div className="overflow-auto max-h-[550px]">
               <table className="w-full text-left border-collapse text-xs">
-                <thead>
-                  <tr className="border-b border-zinc-900 bg-zinc-900/30 text-zinc-500 font-bold uppercase tracking-wider">
+                <thead className="sticky top-0 bg-zinc-900 z-10 border-b border-zinc-800 shadow-xs">
+                  <tr className="text-zinc-550 font-bold uppercase tracking-wider">
                     <th className="p-4">Movie Info</th>
                     <th className="p-4">Year / Duration</th>
                     <th className="p-4">Genres</th>
@@ -806,8 +912,15 @@ export default function AdminCMS({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-zinc-900" id="cms-catalog-tbody">
-                  {movies.map((m) => (
-                    <tr key={m.id} className="hover:bg-zinc-900/30 transition-colors">
+                  {filteredAndSortedMovies.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="p-8 text-center text-zinc-500">
+                        No matching titles found in the catalog database.
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredAndSortedMovies.map((m) => (
+                      <tr key={m.id} className="hover:bg-zinc-900/30 transition-colors">
                       <td className="p-4">
                         <div className="flex items-center gap-3">
                           <img 
@@ -885,7 +998,8 @@ export default function AdminCMS({
                         </div>
                       </td>
                     </tr>
-                  ))}
+                  ))
+                  )}
                 </tbody>
               </table>
             </div>
