@@ -48,6 +48,19 @@ const defaultUsers: User[] = [
       { id: "prof-4", name: "Kids Mode", avatar: "https://images.unsplash.com/photo-1501196354995-cbb51c65aaea?w=150&auto=format&fit=crop&q=80", isKids: true }
     ],
     activeProfileId: "prof-3"
+  },
+  {
+    id: "usr-3",
+    name: "Premium Viewer",
+    email: "premium@viewer.com",
+    role: "user",
+    profileImage: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&auto=format&fit=crop&q=80",
+    createdAt: new Date().toISOString(),
+    isPremium: true,
+    profiles: [
+      { id: "prof-5", name: "Premium (Adult)", avatar: "https://images.unsplash.com/photo-1544723795-3fb6469f5b39?w=150&auto=format&fit=crop&q=80", isKids: false }
+    ],
+    activeProfileId: "prof-5"
   }
 ];
 
@@ -91,7 +104,8 @@ const hashPassword = (password: string) => {
 
 const defaultPasswords: Record<string, string> = {
   "usr-1": hashPassword("admin"),
-  "usr-2": hashPassword("demo")
+  "usr-2": hashPassword("demo"),
+  "usr-3": hashPassword("premium")
 };
 
 const globalForInMemory = global as unknown as { inMemoryStore: InMemoryStore | undefined };
@@ -103,7 +117,8 @@ export const store = globalForInMemory.inMemoryStore || (() => {
     users: [...defaultUsers],
     favorites: {
       "usr-1": ["mov-1339713", "mov-1275779"],
-      "usr-2": []
+      "usr-2": [],
+      "usr-3": ["mov-1084244"]
     },
     watchHistory: {
       "usr-1": [
@@ -120,7 +135,8 @@ export const store = globalForInMemory.inMemoryStore || (() => {
           lastWatched: new Date(Date.now() - 3600000).toISOString()
         }
       ],
-      "usr-2": []
+      "usr-2": [],
+      "usr-3": []
     },
     cmsSettings: { ...defaultSettings },
     movieReviews: { ...defaultReviews },

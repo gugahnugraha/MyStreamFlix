@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Film, Heart, LayoutDashboard, LogIn, LogOut, RefreshCw, Search, Crown, Sparkles, Users, Globe, Clapperboard, Tv, UserRound } from "lucide-react";
+import { Film, Heart, LayoutDashboard, LogIn, LogOut, Search, Crown, Sparkles, Users, Globe, Clapperboard, Tv, UserRound, ChevronDown } from "lucide-react";
 import { User, CMSSettings } from "../types";
 
 import { Movie } from "../types";
@@ -23,7 +23,6 @@ interface HeaderProps {
   onSelectContentType: (type: "all" | "movie" | "series") => void;
   onOpenAuth: () => void;
   onLogout: () => void;
-  onToggleRole: () => void;
   searchQuery: string;
   setSearchQuery: (query: string) => void;
   onOpenSubscription: () => void;
@@ -43,7 +42,6 @@ export default function Header({
   onSelectContentType,
   onOpenAuth,
   onLogout,
-  onToggleRole,
   searchQuery,
   setSearchQuery,
   onOpenSubscription,
@@ -224,18 +222,6 @@ export default function Header({
           </button>
         )}
 
-        {/* Dynamic Subscribe / Premium Banner in Nav */}
-        {currentUser && !currentUser.isPremium && (
-          <button
-            onClick={onOpenSubscription}
-            className="flex items-center gap-1 px-3 py-1.5 rounded-md text-white text-xs font-bold transition-all shadow-lg hover:shadow-2xl cursor-pointer shrink-0 ml-auto group relative overflow-hidden"
-            style={{ backgroundColor: brandColor, boxShadow: `0 12px 28px ${brandColor}28` }}
-          >
-            <div className="absolute inset-0 opacity-0 group-hover:opacity-20 transition-opacity" style={{ backgroundColor: "white" }} />
-            <Sparkles className="w-3 h-3 fill-current relative z-10" />
-            <span className="relative z-10">{t.subscribeVip}</span>
-          </button>
-        )}
       </nav>
 
       {/* Search Bar & User Actions */}
@@ -312,34 +298,22 @@ export default function Header({
           </select>
         </div>
 
-        {/* Role Access Testing Switch */}
-        {currentUser && (
-          <button
-            onClick={onToggleRole}
-            title={`Switch to ${currentUser.role === "admin" ? "User" : "Admin"} role`}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-white/[0.04] hover:bg-white/[0.07] text-xs font-mono text-zinc-400 border border-white/10 transition-all"
-            id="header-role-toggle"
-          >
-            <RefreshCw className="w-3 h-3 animate-spin-slow" style={{ color: brandColor }} />
-            <span className="hidden lg:inline">{t.testRole}</span>
-            <span className="font-bold text-white capitalize">{currentUser.role}</span>
-          </button>
-        )}
-
         {/* User Account / Auth Trigger */}
         {currentUser ? (
           <div className="relative">
-            <button
-              onClick={() => setShowProfileMenu(!showProfileMenu)}
-              className="flex items-center gap-2 focus:outline-hidden cursor-pointer"
+          <button
+              onClick={() => setShowProfileMenu(prev => !prev)}
+              className="flex items-center gap-2 focus:outline-hidden cursor-pointer group"
               id="header-profile-menu-trigger"
+              aria-expanded={showProfileMenu}
+              aria-haspopup="true"
             >
               <div className="relative">
                 <img
                   src={profileAvatar}
                   alt={profileName}
-                  className="w-8 h-8 rounded-md object-cover border border-zinc-700 transition-colors"
-                  style={{ borderColor: showProfileMenu ? brandColor : undefined }}
+                  className="w-8 h-8 rounded-md object-cover border transition-colors"
+                  style={{ borderColor: showProfileMenu ? brandColor : "rgba(255,255,255,0.15)" }}
                 />
                 {activeProfile?.isKids && (
                   <span className="absolute -top-1 -right-1 bg-yellow-500 text-black text-[7px] font-black px-1 rounded-sm shadow-xs shrink-0">
@@ -347,19 +321,22 @@ export default function Header({
                   </span>
                 )}
               </div>
-              <span className="hidden md:inline text-xs font-semibold text-zinc-200 hover:text-white transition-colors">
+              <span className="hidden md:inline text-xs font-semibold text-zinc-200 group-hover:text-white transition-colors">
                 {profileName}
               </span>
+              <ChevronDown
+                className={`w-3.5 h-3.5 text-zinc-500 transition-transform duration-200 ${showProfileMenu ? "rotate-180" : ""}`}
+              />
             </button>
 
             {/* Account Dropdown */}
             {showProfileMenu && (
               <>
-                <div 
-                  className="fixed inset-0 z-40" 
+                <div
+                  className="fixed inset-0 z-[49]"
                   onClick={() => setShowProfileMenu(false)}
                 />
-                <div className="absolute right-0 mt-2.5 w-56 bg-zinc-950/98 border border-white/10 rounded-lg shadow-2xl p-1.5 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+                <div className="absolute right-0 top-full mt-2.5 w-60 bg-[#111112]/98 backdrop-blur-xl border border-white/[0.08] rounded-xl shadow-[0_24px_60px_rgba(0,0,0,0.7)] p-1.5 z-50 origin-top-right animate-in fade-in zoom-in-95 slide-in-from-top-2 duration-200">
                   <div className="px-3 py-2.5 border-b border-zinc-900">
                     <div className="flex items-center gap-1.5">
                       <p className="text-xs font-bold text-white truncate max-w-[140px]">{profileName}</p>

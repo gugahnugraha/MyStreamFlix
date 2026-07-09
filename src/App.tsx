@@ -336,7 +336,6 @@ export default function App() {
         onSelectContentType={setSelectedContentType}
         onOpenAuth={() => setShowAuth(true)}
         onLogout={handleLogout}
-        onToggleRole={handleToggleTestingRole}
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
         onOpenSubscription={() => setShowSubscription(true)}

@@ -172,11 +172,19 @@ Next.js is built by Vercel, making the deployment process incredibly easy:
 
 ---
 
-## 🛡️ Default Administrator Accounts
+## 🛡️ Default Demo Accounts
 
-When running in **In-Memory Mode**, use these credentials to log in:
-- **Administrator**: `admin@streamcms.com` / Password: `admin`
-- **Demo Viewer**: `demo@viewer.com` / Password: `demo`
+When running in **In-Memory Mode**, use these credentials to log in and explore different roles:
+
+| Role | Email | Password | Tier | Access |
+|---|---|---|---|---|
+| **Administrator** | `admin@streamcms.com` | `admin` | Premium VIP | Full CMS & Admin Dashboard |
+| **Demo Viewer** | `demo@viewer.com` | `demo` | Free | Limited to free content |
+| **Premium Viewer** | `premium@viewer.com` | `premium` | Premium VIP | Full premium catalog, no admin |
+
+- **Admin** — has access to the full Admin CMS dashboard (movie catalog CRUD, analytics, site settings).
+- **Demo Viewer** — standard free-tier user, can browse free content, manage profiles, and subscribe.
+- **Premium Viewer** — subscriber-tier user with full premium catalog access, without admin privileges.
 
 *(Note: In database mode, these default accounts will automatically be generated in your database during the first run).*
 
