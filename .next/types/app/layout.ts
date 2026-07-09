@@ -1,4 +1,4 @@
-// File: C:\Users\Gugah Nugraha\Documents\New folder\MyStreamFlix\app\layout.tsx
+// File: C:\Users\Program Diskominfo\Documents\trae_projects\New folder\MyStreamFlix\app\layout.tsx
 import * as entry from '../../../app/layout.js'
 import type { ResolvingMetadata, ResolvingViewport } from 'next/dist/lib/metadata/types/metadata-interface.js'
 

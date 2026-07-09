@@ -11,6 +11,7 @@ import {
 import Header from "./components/Header";
 import MovieCard from "./components/MovieCard";
 import MovieCarousel from "./components/MovieCarousel";
+import MovieRow from "./components/MovieRow";
 import MovieDetailModal from "./components/MovieDetailModal";
 import MediaPlayer from "./components/MediaPlayer";
 import AdminCMS from "./components/AdminCMS";
@@ -167,6 +168,14 @@ export default function App() {
   useEffect(() => {
     fetchUserPersonalization();
   }, [currentUser]);
+
+  // Revert settings if leaving admin mode without saving
+  useEffect(() => {
+    if (activeTab !== "admin") {
+      fetchGlobalSettings();
+    }
+  }, [activeTab]);
+
 
   // ==========================================
   // INTERACTION FLOW ACTIONS
@@ -363,6 +372,8 @@ export default function App() {
           <AdminCMS 
             movies={movies} 
             onRefreshMovies={fetchCatalogMovies} 
+            globalSettings={settings}
+            onUpdateGlobalSettings={setSettings}
           />
         ) : activeTab === "favorites" ? (
           /* MY FAVORITE WATCHLIST FEED */
@@ -436,148 +447,127 @@ export default function App() {
               </div>
             ) : selectedContentType === "all" ? (
               /* HOME VIEW: CATEGORIES & Snapping horizontal scroll sliders */
-              <div className="px-4 md:px-8 max-w-7xl mx-auto space-y-12 pb-16 pt-6">
+              <div className="px-4 md:px-8 max-w-7xl mx-auto space-y-12 pb-16 pt-6 animate-fade-in-quick">
                 
+                {/* Hero Widescreen Carousel */}
+                {bannerMovies.length > 0 && (
+                  <div className="w-full">
+                    <MovieCarousel
+                      bannerMovies={bannerMovies}
+                      isFavorite={isFavorite}
+                      onToggleFavorite={handleToggleFavorite}
+                      onSelect={setSelectedMovie}
+                      onPlay={handleLaunchStream}
+                      t={t}
+                    />
+                  </div>
+                )}
+
                 {/* 1. Continue Watching Reel */}
                 {currentUser && displayedWatchHistory.length > 0 && (
-                  <div className="space-y-4" id="continue-watching-section">
-                    <div className="flex items-center gap-2">
-                      <ListVideo className="w-5 h-5 animate-pulse" style={{ color: settings.primaryColor }} />
-                      <h2 className="text-xl font-extrabold tracking-tight">{t.continueWatching}</h2>
-                    </div>
-                    <div className="flex gap-6 overflow-x-auto pb-4 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent scroll-smooth snap-x">
-                      {displayedWatchHistory.map((hist) => (
-                        <div key={hist.movieId} className="w-64 shrink-0 snap-start">
-                          <MovieCard
-                            movie={hist.movie}
-                            progress={{ progress: hist.progress, duration: hist.duration }}
-                            onSelect={setSelectedMovie}
-                            onPlay={() => handleLaunchStream(hist.movie)}
-                            t={t}
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  </div>
+                  <MovieRow
+                    title={t.continueWatching}
+                    icon={<ListVideo className="w-5 h-5" style={{ color: settings.primaryColor }} />}
+                    items={displayedWatchHistory.map((hist) => ({
+                      movie: hist.movie,
+                      progress: { progress: hist.progress, duration: hist.duration }
+                    }))}
+                    onSelect={setSelectedMovie}
+                    onPlay={(movie) => handleLaunchStream(movie)}
+                    t={t}
+                  />
                 )}
 
                 {/* 2. Featured Spotlight Slider */}
                 {featuredMovies.length > 0 && (
-                  <div className="space-y-4" id="featured-curations-section">
-                    <div className="flex items-center gap-2">
-                      <Sparkles className="w-5 h-5 text-amber-500 animate-pulse" />
-                      <h2 className="text-xl font-extrabold tracking-tight">Featured Spotlight</h2>
-                    </div>
-                    <div className="flex gap-6 overflow-x-auto pb-4 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent scroll-smooth snap-x">
-                      {featuredMovies.map((movie) => (
-                        <div key={movie.id} className="w-64 shrink-0 snap-start">
-                          <MovieCard
-                            movie={movie}
-                            progress={getProgressOfMovie(movie.id)}
-                            onSelect={setSelectedMovie}
-                            onPlay={handleLaunchStream}
-                            t={t}
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  </div>
+                  <MovieRow
+                    title="Featured Spotlight"
+                    icon={<Sparkles className="w-5 h-5 text-amber-500" />}
+                    items={featuredMovies.map((movie) => ({
+                      movie,
+                      progress: getProgressOfMovie(movie.id)
+                    }))}
+                    onSelect={setSelectedMovie}
+                    onPlay={handleLaunchStream}
+                    t={t}
+                  />
                 )}
 
                 {/* 3. Popular Hits */}
                 {displayedMovies.length > 0 && (
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-2">
-                      <Flame className="w-5 h-5 text-orange-500" />
-                      <h2 className="text-xl font-extrabold tracking-tight">Popular Hits</h2>
-                    </div>
-                    <div className="flex gap-6 overflow-x-auto pb-4 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent scroll-smooth snap-x">
-                      {[...displayedMovies]
-                        .sort((a, b) => b.views - a.views)
-                        .slice(0, 10)
-                        .map((movie) => (
-                          <div key={movie.id} className="w-64 shrink-0 snap-start">
-                            <MovieCard
-                              movie={movie}
-                              progress={getProgressOfMovie(movie.id)}
-                              onSelect={setSelectedMovie}
-                              onPlay={handleLaunchStream}
-                              t={t}
-                            />
-                          </div>
-                        ))}
-                    </div>
-                  </div>
+                  <MovieRow
+                    title="Popular Hits"
+                    icon={<Flame className="w-5 h-5 text-orange-500" />}
+                    items={[...displayedMovies]
+                      .sort((a, b) => b.views - a.views)
+                      .slice(0, 10)
+                      .map((movie) => ({
+                        movie,
+                        progress: getProgressOfMovie(movie.id)
+                      }))}
+                    onSelect={setSelectedMovie}
+                    onPlay={handleLaunchStream}
+                    t={t}
+                  />
                 )}
 
                 {/* 4. New Releases */}
                 {displayedMovies.length > 0 && (
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-2">
-                      <Film className="w-5 h-5" style={{ color: settings.primaryColor }} />
-                      <h2 className="text-xl font-extrabold tracking-tight">New Releases</h2>
-                    </div>
-                    <div className="flex gap-6 overflow-x-auto pb-4 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent scroll-smooth snap-x">
-                      {[...displayedMovies]
-                        .sort((a, b) => b.releaseYear - a.releaseYear)
-                        .slice(0, 10)
-                        .map((movie) => (
-                          <div key={movie.id} className="w-64 shrink-0 snap-start">
-                            <MovieCard
-                              movie={movie}
-                              progress={getProgressOfMovie(movie.id)}
-                              onSelect={setSelectedMovie}
-                              onPlay={handleLaunchStream}
-                              t={t}
-                            />
-                          </div>
-                        ))}
-                    </div>
-                  </div>
+                  <MovieRow
+                    title="New Releases"
+                    icon={<Film className="w-5 h-5" style={{ color: settings.primaryColor }} />}
+                    items={[...displayedMovies]
+                      .sort((a, b) => b.releaseYear - a.releaseYear)
+                      .slice(0, 10)
+                      .map((movie) => ({
+                        movie,
+                        progress: getProgressOfMovie(movie.id)
+                      }))}
+                    onSelect={setSelectedMovie}
+                    onPlay={handleLaunchStream}
+                    t={t}
+                  />
                 )}
                 
               </div>
             ) : (
               /* DEDICATED CATALOG VIEW FOR MOVIES / TV SERIES (NO CAROUSEL) */
-              <div className="px-4 md:px-8 max-w-7xl mx-auto space-y-8 pb-16 pt-6">
+              <div className="px-4 md:px-8 max-w-7xl mx-auto space-y-10 pb-16 pt-6 animate-fade-in-quick">
                 
                 {/* Immersive Tagline Header instead of Carousel */}
-                <div className="py-8 px-6 rounded-2xl bg-zinc-950/40 border border-white/[0.04] shadow-2xl relative overflow-hidden backdrop-blur-md">
-                  <div className="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 rounded-full opacity-10 blur-3xl" style={{ backgroundColor: settings.primaryColor }} />
-                  <span className="text-[10px] uppercase font-black tracking-widest px-2.5 py-1 rounded bg-white/[0.04] border border-white/10" style={{ color: settings.primaryColor }}>
+                <div className="apple-header-panel py-10 px-8 rounded-3xl shadow-3xl relative overflow-hidden">
+                  <div className="apple-header-glow" style={{ background: `radial-gradient(circle, var(--theme-primary-30) 0%, transparent 70%)` }} />
+                  <span className="text-[10px] uppercase font-black tracking-widest px-2.5 py-1 rounded-md bg-white/[0.04] border border-white/10" style={{ color: settings.primaryColor }}>
                     {selectedContentType === "movie" ? "Movies Catalog" : "TV Series Collections"}
                   </span>
-                  <h1 className="text-3xl md:text-4xl font-black tracking-tight text-white mt-4">
+                  <h1 className="text-3xl md:text-5xl font-black tracking-tight text-white mt-4 drop-shadow-md">
                     {selectedContentType === "movie" ? "Premium Cinema Experience" : "Episodic Series Masterpieces"}
                   </h1>
-                  <p className="text-xs md:text-sm text-zinc-400 max-w-2xl mt-2 font-medium">
+                  <p className="text-xs md:text-sm text-zinc-300 max-w-2xl mt-3 font-medium leading-relaxed drop-shadow-xs">
                     {selectedContentType === "movie" 
                       ? "Explore our handpicked curation of blockbusters, documentaries, and animations in cinematic 4K HDR quality with offline localization."
                       : "Engage with stunning multi-season storytelling structures, featuring sequential play, subtitle overlays, and resume capabilities."}
                   </p>
                 </div>
-
+ 
                 {/* Quick Filters Row */}
-                <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 py-4 px-5 cinema-panel rounded-xl">
+                <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 py-4 px-5 bg-white/[0.02] border border-white/[0.05] rounded-2xl backdrop-blur-md shadow-lg">
                   {/* Genre filters */}
-                  <div className="flex items-center gap-2 overflow-x-auto w-full md:w-auto scrollbar-thin scrollbar-thumb-zinc-900 scrollbar-track-transparent">
+                  <div className="flex items-center gap-2 overflow-x-auto w-full md:w-auto pb-1 md:pb-0 scrollbar-thin scrollbar-thumb-zinc-900 scrollbar-track-transparent">
                     <Compass className="w-4 h-4 shrink-0 hidden md:inline animate-spin-slow" style={{ color: settings.primaryColor }} />
                     {["All", "Action", "Animation", "Drama", "Fantasy", "Sci-Fi", "Comedy"].map((genre) => (
                       <button
                         key={genre}
                         onClick={() => setSelectedGenre(genre)}
-                        className={`px-3.5 py-1.5 rounded-lg text-xs font-bold shrink-0 cursor-pointer transition-all border ${
-                          selectedGenre === genre
-                            ? "text-white shadow-lg border-transparent"
-                            : "bg-white/[0.02] hover:bg-white/[0.06] border-white/5 text-zinc-400 hover:text-zinc-200"
+                        className={`glass-pill px-4 py-2 rounded-full text-xs font-bold shrink-0 cursor-pointer ${
+                          selectedGenre === genre ? "active" : "text-zinc-400 hover:text-zinc-200"
                         }`}
-                        style={selectedGenre === genre ? { backgroundColor: settings.primaryColor, boxShadow: `0 0 12px ${settings.primaryColor}50` } : {}}
                       >
                         {t[genre as keyof typeof t] || genre}
                       </button>
                     ))}
                   </div>
-
+ 
                   {/* Sorting dropdown */}
                   <div className="flex items-center gap-3 shrink-0 w-full md:w-auto justify-between md:justify-end">
                     <div className="flex items-center gap-1.5 text-zinc-500 text-xs font-semibold">
@@ -587,26 +577,23 @@ export default function App() {
                     <select
                       value={sortBy}
                       onChange={(e) => setSortBy(e.target.value)}
-                      className="bg-white/[0.04] border border-white/10 text-xs font-extrabold text-zinc-300 px-3 py-1.5 rounded-lg focus:outline-hidden theme-control cursor-pointer"
-                      style={{ '--focus-color': settings.primaryColor } as any}
-                      onFocus={(e) => { (e.target as any).style.borderColor = settings.primaryColor + '80'; }}
-                      onBlur={(e) => { (e.target as any).style.borderColor = ''; }}
+                      className="glass-select text-xs font-extrabold focus:outline-hidden focus:ring-1 focus:ring-white/20"
                       id="sort-select"
                     >
-                      <option value="recent">{t.recentlyPublished}</option>
-                      <option value="rating">{t.audienceScore}</option>
-                      <option value="year">{t.releaseCalendar}</option>
-                      <option value="views">{t.totalViewsLabel}</option>
+                      <option value="recent" className="bg-zinc-950 text-white">{t.recentlyPublished}</option>
+                      <option value="rating" className="bg-zinc-950 text-white">{t.audienceScore}</option>
+                      <option value="year" className="bg-zinc-950 text-white">{t.releaseCalendar}</option>
+                      <option value="views" className="bg-zinc-950 text-white">{t.totalViewsLabel}</option>
                     </select>
                   </div>
                 </div>
-
+ 
                 {/* Grid Content */}
                 <div className="space-y-4" id="main-catalog-grid">
-                  <div className="flex items-center justify-between border-b border-white/[0.04] pb-3">
+                  <div className="flex items-center justify-between border-b border-white/[0.04] pb-3 px-1">
                     <div className="flex items-center gap-2">
-                      <Flame className="w-5 h-5 animate-pulse" style={{ color: settings.primaryColor }} />
-                      <h2 className="text-lg font-black tracking-tight">
+                      <Flame className="w-5 h-5" style={{ color: settings.primaryColor }} />
+                      <h2 className="text-lg font-bold tracking-tight text-white/95">
                         {selectedGenre === "All" ? "Spotlight Curation" : `${selectedGenre} Curation`}
                       </h2>
                     </div>
@@ -614,7 +601,7 @@ export default function App() {
                       {displayedMovies.length} {selectedContentType === "movie" ? t.movies : t.tvSeries}
                     </span>
                   </div>
-
+ 
                   {loading ? (
                     <div className="py-20 flex flex-col items-center gap-3" id="grid-loading">
                       <div className="w-8 h-8 border-2 border-t-transparent rounded-full animate-spin" style={{ borderColor: settings.primaryColor, borderTopColor: "transparent" }} />
@@ -630,7 +617,7 @@ export default function App() {
                       {t.noMatchingContentDesc}
                     </div>
                   ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-6 gap-y-10">
                       {displayedMovies.map((movie) => (
                         <MovieCard
                           key={movie.id}

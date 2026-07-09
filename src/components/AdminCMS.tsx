@@ -13,7 +13,19 @@ import { Movie, DashboardStats, CMSSettings, Subtitle, User, Season, Episode } f
 interface AdminCMSProps {
   onRefreshMovies: () => void;
   movies: Movie[];
+  globalSettings: CMSSettings;
+  onUpdateGlobalSettings: (settings: CMSSettings) => void;
 }
+
+const PRESET_COLORS = [
+  { name: "Flix Red", value: "#E50914" },
+  { name: "Royal Blue", value: "#007AFF" },
+  { name: "Apple Purple", value: "#AF52DE" },
+  { name: "Vibrant Pink", value: "#FF2D55" },
+  { name: "Sunset Orange", value: "#FF9500" },
+  { name: "Forest Green", value: "#34C759" },
+  { name: "Neon Teal", value: "#00C7BE" }
+];
 
 type TmdbSearchResult = {
   id: string;
@@ -49,14 +61,34 @@ type TmdbMetadata = {
   seasons: Season[];
 };
 
-export default function AdminCMS({ onRefreshMovies, movies }: AdminCMSProps) {
+export default function AdminCMS({ 
+  onRefreshMovies, 
+  movies, 
+  globalSettings, 
+  onUpdateGlobalSettings 
+}: AdminCMSProps) {
   const [activeSubTab, setActiveSubTab] = useState<"analytics" | "catalog" | "settings" | "users">("analytics");
   const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [settings, setSettings] = useState<CMSSettings | null>(null);
+  const [settings, setSettings] = useState<CMSSettings | null>(globalSettings || null);
   const [usersList, setUsersList] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
+
+  // Sync settings state with prop
+  useEffect(() => {
+    if (globalSettings) {
+      setSettings(globalSettings);
+    }
+  }, [globalSettings]);
+
+  // Update a single settings field in real-time
+  const updateSettingsField = (key: keyof CMSSettings, value: any) => {
+    if (!settings) return;
+    const newSettings = { ...settings, [key]: value };
+    setSettings(newSettings);
+    onUpdateGlobalSettings(newSettings);
+  };
 
   // Get brand color from settings when loaded
   const brandColor = settings?.primaryColor || "#E50914";
@@ -223,10 +255,7 @@ export default function AdminCMS({ onRefreshMovies, movies }: AdminCMSProps) {
       const statsData = await statsRes.json();
       setStats(statsData);
 
-      const settingsRes = await fetch("/api/settings");
-      if (!settingsRes.ok) throw new Error("Could not retrieve global settings.");
-      const settingsData = await settingsRes.json();
-      setSettings(settingsData);
+      // Settings are synchronized and updated in real-time through globalSettings props
 
       // Fetch active registered users from database
       const usersRes = await fetch("/api/users");
@@ -599,7 +628,7 @@ export default function AdminCMS({ onRefreshMovies, movies }: AdminCMSProps) {
             id="subtab-settings"
           >
             <Settings className="w-3.5 h-3.5" />
-            SEO & Settings
+            Settings
           </button>
           <button
             onClick={() => setActiveSubTab("users")}
@@ -1437,52 +1466,89 @@ export default function AdminCMS({ onRefreshMovies, movies }: AdminCMSProps) {
             {/* Branding Settings Card */}
             <div className="bg-zinc-950 border border-zinc-900 rounded-xl p-5 space-y-4">
               <h3 className="text-xs font-bold text-zinc-400 tracking-wider uppercase">Portal Identity</h3>
-
+ 
               <div className="space-y-1">
                 <label className="text-[10px] font-bold uppercase text-zinc-500">Site Name String</label>
                 <input
                   type="text"
                   value={settings.siteName}
-                  onChange={(e) => setSettings({ ...settings, siteName: e.target.value })}
+                  onChange={(e) => updateSettingsField("siteName", e.target.value)}
                   className="w-full bg-zinc-900 border border-zinc-850 p-2.5 rounded text-xs focus:outline-hidden"
                   id="settings-input-sitename"
                 />
               </div>
-
+ 
               <div className="space-y-1">
                 <label className="text-[10px] font-bold uppercase text-zinc-500">Logo Headline Text</label>
                 <input
                   type="text"
                   value={settings.logoText}
-                  onChange={(e) => setSettings({ ...settings, logoText: e.target.value })}
+                  onChange={(e) => updateSettingsField("logoText", e.target.value)}
                   className="w-full bg-zinc-900 border border-zinc-850 p-2.5 rounded text-xs focus:outline-hidden"
                   id="settings-input-logotext"
                 />
               </div>
-
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold uppercase text-zinc-500">Theme Contrast Accent Color</label>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="color"
-                    value={settings.primaryColor}
-                    onChange={(e) => setSettings({ ...settings, primaryColor: e.target.value })}
-                    className="w-10 h-10 bg-transparent border border-zinc-800 rounded cursor-pointer"
-                  />
+ 
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold uppercase text-zinc-500 block">Theme Accent Color</label>
+                <div className="flex flex-wrap items-center gap-3">
+                  {/* Preset Colors */}
+                  {PRESET_COLORS.map((preset) => (
+                    <button
+                      key={preset.value}
+                      type="button"
+                      onClick={() => updateSettingsField("primaryColor", preset.value)}
+                      className={`w-8 h-8 rounded-full cursor-pointer transition-all hover:scale-110 active:scale-95 shadow-md flex items-center justify-center border-2 ${
+                        settings.primaryColor.toLowerCase() === preset.value.toLowerCase()
+                          ? "border-white ring-2 ring-white/20 scale-105"
+                          : "border-transparent hover:border-zinc-500"
+                      }`}
+                      style={{ backgroundColor: preset.value }}
+                      title={preset.name}
+                    >
+                      {settings.primaryColor.toLowerCase() === preset.value.toLowerCase() && (
+                        <div className="w-1.5 h-1.5 bg-white rounded-full" />
+                      )}
+                    </button>
+                  ))}
+ 
+                  {/* Custom Color Selector (Color Wheel) */}
+                  <div className="relative w-8 h-8 rounded-full border-2 border-transparent hover:border-zinc-500 transition-all hover:scale-110 active:scale-95 shadow-md flex items-center justify-center overflow-hidden"
+                    style={{ background: "conic-gradient(from 0deg, red, yellow, green, blue, purple, red)" }}
+                    title="Custom Color Picker"
+                  >
+                    <input
+                      type="color"
+                      value={settings.primaryColor}
+                      onChange={(e) => updateSettingsField("primaryColor", e.target.value)}
+                      className="opacity-0 absolute inset-0 w-full h-full cursor-pointer"
+                    />
+                    {!PRESET_COLORS.some(p => p.value.toLowerCase() === settings.primaryColor.toLowerCase()) && (
+                      <div className="w-1.5 h-1.5 bg-white rounded-full mix-blend-difference" />
+                    )}
+                  </div>
+ 
+                  {/* HEX Input */}
                   <input
                     type="text"
                     value={settings.primaryColor}
-                    onChange={(e) => setSettings({ ...settings, primaryColor: e.target.value })}
-                    className="bg-zinc-900 border border-zinc-850 p-2 rounded text-xs focus:outline-hidden font-mono text-zinc-400 w-28"
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (val.startsWith("#") && val.length <= 7) {
+                        updateSettingsField("primaryColor", val);
+                      }
+                    }}
+                    className="bg-zinc-900 border border-zinc-850 px-3 py-1.5 rounded-lg text-xs focus:outline-hidden font-mono text-zinc-300 w-24 tracking-wider uppercase text-center"
+                    placeholder="#HEX"
                   />
                 </div>
               </div>
             </div>
-
+ 
             {/* General Toggles / Maintenance Gates */}
             <div className="bg-zinc-950 border border-zinc-900 rounded-xl p-5 space-y-4">
               <h3 className="text-xs font-bold text-zinc-400 tracking-wider uppercase">Feature Permissions</h3>
-
+ 
               <div className="flex items-center justify-between border-b border-zinc-900 pb-3">
                 <div>
                   <p className="text-xs font-bold text-zinc-200">Enable Review Comment Form</p>
@@ -1491,11 +1557,11 @@ export default function AdminCMS({ onRefreshMovies, movies }: AdminCMSProps) {
                 <input
                   type="checkbox"
                   checked={settings.enableComments}
-                  onChange={(e) => setSettings({ ...settings, enableComments: e.target.checked })}
+                  onChange={(e) => updateSettingsField("enableComments", e.target.checked)}
                   className="w-4 h-4 rounded border-zinc-850 accent-red-600"
                 />
               </div>
-
+ 
               <div className="flex items-center justify-between border-b border-zinc-900 pb-3">
                 <div>
                   <p className="text-xs font-bold text-zinc-200">Aggregated Star Ratings</p>
@@ -1504,11 +1570,11 @@ export default function AdminCMS({ onRefreshMovies, movies }: AdminCMSProps) {
                 <input
                   type="checkbox"
                   checked={settings.enableRatings}
-                  onChange={(e) => setSettings({ ...settings, enableRatings: e.target.checked })}
+                  onChange={(e) => updateSettingsField("enableRatings", e.target.checked)}
                   className="w-4 h-4 rounded border-zinc-850 accent-red-600"
                 />
               </div>
-
+ 
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs font-bold text-zinc-200">System Maintenance Gate</p>
@@ -1517,50 +1583,50 @@ export default function AdminCMS({ onRefreshMovies, movies }: AdminCMSProps) {
                 <input
                   type="checkbox"
                   checked={settings.maintenanceMode}
-                  onChange={(e) => setSettings({ ...settings, maintenanceMode: e.target.checked })}
+                  onChange={(e) => updateSettingsField("maintenanceMode", e.target.checked)}
                   className="w-4 h-4 rounded border-zinc-850 accent-red-600"
                 />
               </div>
             </div>
           </div>
-
+ 
           {/* SEO Metadata Settings */}
           <div className="bg-zinc-950 border border-zinc-900 p-5 rounded-xl space-y-4">
             <h3 className="text-xs font-bold text-zinc-400 tracking-wider uppercase">SaaS SEO Search Metadata</h3>
-
+ 
             <div className="space-y-1">
               <label className="text-[10px] font-bold uppercase text-zinc-500">SEO Crawler Title Header</label>
               <input
                 type="text"
                 value={settings.seoTitle}
-                onChange={(e) => setSettings({ ...settings, seoTitle: e.target.value })}
+                onChange={(e) => updateSettingsField("seoTitle", e.target.value)}
                 className="w-full bg-zinc-900 border border-zinc-850 p-2.5 rounded text-xs focus:outline-hidden"
               />
             </div>
-
+ 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
                 <label className="text-[10px] font-bold uppercase text-zinc-500">SEO Keywords (Comma Separated)</label>
                 <input
                   type="text"
                   value={settings.seoKeywords}
-                  onChange={(e) => setSettings({ ...settings, seoKeywords: e.target.value })}
+                  onChange={(e) => updateSettingsField("seoKeywords", e.target.value)}
                   className="w-full bg-zinc-900 border border-zinc-850 p-2.5 rounded text-xs focus:outline-hidden"
                 />
               </div>
-
+ 
               <div className="space-y-1">
                 <label className="text-[10px] font-bold uppercase text-zinc-500">SEO Narrative Meta Description</label>
                 <textarea
                   value={settings.seoDescription}
-                  onChange={(e) => setSettings({ ...settings, seoDescription: e.target.value })}
+                  onChange={(e) => updateSettingsField("seoDescription", e.target.value)}
                   rows={2}
                   className="w-full bg-zinc-900 border border-zinc-850 p-2.5 rounded text-xs focus:outline-hidden"
                 />
               </div>
             </div>
           </div>
-
+ 
           {/* Settings Save Actions */}
           <div className="flex justify-end pt-2">
             <button

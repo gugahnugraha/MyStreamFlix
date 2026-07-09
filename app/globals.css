@@ -240,3 +240,116 @@ input[type="range"]::-webkit-slider-thumb:hover {
 ::-webkit-scrollbar-thumb:hover {
   background: #52525b; /* zinc-600 */
 }
+
+/* ==========================================================================
+   Apple TV Premium Card & Glassmorphism Design System
+   ========================================================================== */
+
+/* Reflective glare sweep effect */
+.apple-card-glare {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    105deg,
+    rgba(255, 255, 255, 0) 30%,
+    rgba(255, 255, 255, 0.12) 45%,
+    rgba(255, 255, 255, 0.22) 50%,
+    rgba(255, 255, 255, 0.12) 55%,
+    rgba(255, 255, 255, 0) 70%
+  );
+  transform: translateX(-100%);
+  transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: none;
+  z-index: 20;
+}
+
+.group:hover .apple-card-glare {
+  transform: translateX(100%);
+}
+
+/* Elevated depth shadows */
+.apple-card-shadow {
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.6);
+  transition: box-shadow 0.45s cubic-bezier(0.16, 1, 0.3, 1), transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.group:hover .apple-card-shadow {
+  box-shadow: 0 28px 56px -12px rgba(0, 0, 0, 0.9), 0 0 20px var(--theme-primary-20);
+}
+
+/* Frosted glass controls and pills */
+.glass-pill {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  transition: background-color 0.25s cubic-bezier(0.16, 1, 0.3, 1), 
+              border-color 0.25s cubic-bezier(0.16, 1, 0.3, 1), 
+              color 0.25s cubic-bezier(0.16, 1, 0.3, 1), 
+              box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.glass-pill:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.16);
+  color: #ffffff;
+}
+
+.glass-pill.active {
+  background: var(--theme-primary);
+  border-color: transparent;
+  color: #ffffff;
+  box-shadow: 0 0 16px var(--theme-primary-35);
+}
+
+/* Frosted drop-down selector */
+.glass-select {
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 9999px;
+  color: rgba(255, 255, 255, 0.8);
+  padding: 0.5rem 1.25rem;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.glass-select:focus {
+  border-color: var(--theme-primary-50) !important;
+  box-shadow: 0 0 0 2px var(--theme-primary-20);
+  background: rgba(9, 9, 11, 0.95);
+}
+
+/* Organic Glow Header for Categories */
+.apple-header-panel {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.01) 0%, rgba(9, 9, 11, 0.4) 100%);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.02), 0 24px 50px rgba(0, 0, 0, 0.4);
+  position: relative;
+  overflow: hidden;
+}
+
+.apple-header-glow {
+  position: absolute;
+  top: -80px;
+  right: -80px;
+  width: 320px;
+  height: 320px;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--theme-primary-25) 0%, transparent 70%);
+  filter: blur(50px);
+  pointer-events: none;
+}
+
+/* Hide scrollbars completely for horizontal shelves */
+.scrollbar-none {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none; /* Chrome, Safari and Opera */
+}
+
+
