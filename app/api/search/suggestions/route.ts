@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getMovies } from "@/src/lib/data-service";
-import { searchTmdbMulti } from "@/src/lib/tmdb";
 
 export async function GET(request: NextRequest) {
   try {
@@ -55,17 +54,9 @@ export async function GET(request: NextRequest) {
       query: name
     }));
 
-    // TMDB matches
-    let tmdbMatches: any[] = [];
-    try {
-      tmdbMatches = await searchTmdbMulti(query);
-    } catch (error) {
-      console.warn("TMDB suggestion lookup failed:", error);
-    }
-
     // Combine matches uniquely
     const unique = new Map<string, any>();
-    [...localTitleMatches, ...localCastMatches, ...tmdbMatches].forEach((item) => {
+    [...localTitleMatches, ...localCastMatches].forEach((item) => {
       const key = `${item.type}-${item.title}`.toLowerCase();
       if (!unique.has(key)) {
         unique.set(key, item);

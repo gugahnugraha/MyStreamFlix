@@ -95,7 +95,7 @@ const defaultPasswords: Record<string, string> = {
 };
 
 const globalForInMemory = global as unknown as { inMemoryStore: InMemoryStore | undefined };
-globalForInMemory.inMemoryStore = undefined; // Reset old cached in-memory store so it loads our new 100-item TMDB dataset
+// globalForInMemory.inMemoryStore = undefined; // Reset old cached in-memory store so it loads our new 100-item TMDB dataset
 
 export const store = globalForInMemory.inMemoryStore || (() => {
   const newStore: InMemoryStore = {

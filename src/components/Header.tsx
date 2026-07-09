@@ -254,7 +254,7 @@ export default function Header({
               }}
               onFocus={() => setShowSearchSuggestions(true)}
               onBlur={() => window.setTimeout(() => setShowSearchSuggestions(false), 120)}
-              className="w-32 sm:w-36 focus:w-56 focus:sm:w-64 focus:lg:w-80 hover:w-44 focus:hover:w-56 focus:sm:hover:w-64 focus:lg:hover:w-80 bg-white/[0.03] text-xs text-white pl-9 pr-4 py-2 rounded-lg border border-white/10 focus:outline-hidden focus:ring-2 transition-all duration-300 ease-in-out placeholder:text-zinc-500"
+              className="w-32 sm:w-36 focus:w-56 focus:sm:w-64 focus:lg:w-80 hover:w-44 focus:hover:w-56 focus:sm:hover:w-64 focus:lg:hover:w-80 bg-white/[0.03] text-xs text-white pl-9 pr-4 py-2 rounded-full border border-white/10 focus:outline-hidden focus:ring-2 transition-all duration-300 ease-in-out placeholder:text-zinc-500"
               style={showSearchSuggestions ? { borderColor: `${brandColor}80`, boxShadow: `0 0 0 2px ${brandColor}20` } : {}}
               id="header-search-input"
             />
@@ -285,12 +285,6 @@ export default function Header({
                         <span className="min-w-0 flex-1">
                           <span className="block text-xs font-bold text-zinc-100 truncate">{item.title}</span>
                           <span className="block text-[10px] text-zinc-500 truncate">{item.subtitle}</span>
-                        </span>
-                        <span
-                          className="text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded border"
-                          style={{ color: brandColor, borderColor: `${brandColor}30`, backgroundColor: `${brandColor}10` }}
-                        >
-                          {item.source}
                         </span>
                       </button>
                     ))}
