@@ -8,7 +8,7 @@ export type LanguageCode = "en" | "id" | "es";
 export const translations = {
   en: {
     // Header & Nav
-    browse: "Browse",
+    browse: "Home",
     myList: "My List",
     adminDashboard: "Admin Dashboard",
     subscribeVip: "Subscribe to VIP",
@@ -147,7 +147,7 @@ export const translations = {
   },
   id: {
     // Header & Nav
-    browse: "Telusuri",
+    browse: "Beranda",
     myList: "Daftar Saya",
     adminDashboard: "Dasbor Admin",
     subscribeVip: "Langganan VIP",
@@ -286,7 +286,7 @@ export const translations = {
   },
   es: {
     // Header & Nav
-    browse: "Explorar",
+    browse: "Inicio",
     myList: "Mi Lista",
     adminDashboard: "Panel de Admin",
     subscribeVip: "Suscribirse a VIP",

@@ -408,141 +408,14 @@ export default function App() {
         ) : (
           /* HOME SPOTLIGHT OR MOVIE BROWSE SYSTEM */
           <div id="home-feed-viewport" className="space-y-8">
-            {/* Spotlight Banner carousel - skip if searching */}
-            {!searchQuery && bannerMovies.length > 0 && (
-              <MovieCarousel
-                bannerMovies={bannerMovies}
-                isFavorite={isFavorite}
-                onToggleFavorite={handleToggleFavorite}
-                onSelect={setSelectedMovie}
-                onPlay={handleLaunchStream}
-                t={t}
-              />
-            )}
-
-            {/* Content Type Filter Tabs: All Content, Movies, TV Series */}
-            <div className="px-4 md:px-8 max-w-7xl mx-auto flex items-center border-b border-white/10 gap-3 md:gap-4 pt-2" id="content-type-filter-bar">
-              {[
-                { id: "all", label: t.allContent, icon: Sparkles },
-                { id: "movie", label: t.movies, icon: Clapperboard },
-                { id: "series", label: t.tvSeries, icon: Tv }
-              ].map((item) => {
-                const isActive = selectedContentType === item.id;
-                const Icon = item.icon;
-                return (
-                  <button
-                    key={item.id}
-                    onClick={() => {
-                      setSelectedContentType(item.id as any);
-                    }}
-                    className={`px-3 py-2 text-sm font-extrabold tracking-wide flex items-center gap-2 relative transition-all cursor-pointer rounded-md ${
-                      isActive ? "font-black" : "text-zinc-500 hover:text-zinc-200 hover:bg-white/[0.04]"
-                    }`}
-                    style={isActive ? { color: settings.primaryColor, backgroundColor: `${settings.primaryColor}12` } : {}}
-                  >
-                    <Icon className="w-4 h-4" style={isActive ? { color: settings.primaryColor } : {}} />
-                    <span>{item.label}</span>
-                    {isActive && (
-                      <div className="absolute -bottom-px left-2 right-2 h-[3px] rounded-full transition-all" style={{ backgroundColor: settings.primaryColor, boxShadow: `0 0 12px ${settings.primaryColor}80` }} />
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Quick Filter Tag categories Row */}
-            <div className="px-4 md:px-5 max-w-7xl mx-auto flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 py-4 cinema-panel rounded-lg">
-              {/* Genre tabs */}
-              <div className="flex items-center gap-2 overflow-x-auto w-full sm:w-auto scrollbar-thin scrollbar-thumb-zinc-900 scrollbar-track-transparent">
-                <Compass className="w-4 h-4 shrink-0 hidden md:inline" style={{ color: settings.primaryColor }} />
-                {["All", "Action", "Animation", "Drama", "Fantasy", "Sci-Fi", "Comedy"].map((genre) => (
-                  <button
-                    key={genre}
-                    onClick={() => setSelectedGenre(genre)}
-                    className={`px-3 py-1.5 rounded-md text-xs font-semibold shrink-0 cursor-pointer transition-all border ${
-                      selectedGenre === genre
-                        ? "text-white shadow-md border-transparent"
-                        : "bg-white/[0.035] hover:bg-white/[0.07] border-white/10 text-zinc-400 hover:text-zinc-200"
-                    }`}
-                    style={selectedGenre === genre ? { backgroundColor: settings.primaryColor, boxShadow: `0 0 8px ${settings.primaryColor}40` } : {}}
-                  >
-                    {t[genre as keyof typeof t] || genre}
-                  </button>
-                ))}
-              </div>
-
-              {/* Sorting selectors */}
-              <div className="flex items-center gap-3 shrink-0 w-full sm:w-auto justify-between sm:justify-end">
-                <div className="flex items-center gap-1.5 text-zinc-500 text-xs">
-                  <ArrowUpDown className="w-3.5 h-3.5" />
-                  <span>{t.sortBy}</span>
+            {/* If searching, show search results grid instead of category rows */}
+            {searchQuery ? (
+              <div className="px-4 md:px-8 max-w-7xl mx-auto space-y-6 pb-16 pt-6">
+                <div className="flex items-center justify-between border-b border-white/5 pb-4">
+                  <h2 className="text-xl font-extrabold tracking-tight">Search Results for "{searchQuery}"</h2>
+                  <span className="text-xs text-zinc-500 font-mono">{displayedMovies.length} found</span>
                 </div>
-                <select
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value)}
-                  className="bg-white/[0.04] border border-white/10 text-xs font-semibold text-zinc-300 px-3 py-1.5 rounded-md focus:outline-hidden theme-control"
-                  style={{ '--focus-color': settings.primaryColor } as any}
-                  onFocus={(e) => { (e.target as any).style.borderColor = settings.primaryColor + '80'; }}
-                  onBlur={(e) => { (e.target as any).style.borderColor = ''; }}
-                  id="sort-select"
-                >
-                  <option value="recent">{t.recentlyPublished}</option>
-                  <option value="rating">{t.audienceScore}</option>
-                  <option value="year">{t.releaseCalendar}</option>
-                  <option value="views">{t.totalViewsLabel}</option>
-                </select>
-              </div>
-            </div>
-
-            {/* CURATED MAIN PANELS */}
-            <div className="px-4 md:px-8 max-w-7xl mx-auto space-y-10">
-              {/* 1. Continue Watching Reel (Personalized watch history) */}
-              {currentUser && displayedWatchHistory.length > 0 && !searchQuery && (
-                <div className="space-y-4" id="continue-watching-section">
-                  <div className="flex items-center gap-2">
-                    <ListVideo className="w-5 h-5" style={{ color: settings.primaryColor }} />
-                    <h2 className="text-lg font-extrabold" style={{ color: settings.primaryColor }}>{t.continueWatching}</h2>
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                    {displayedWatchHistory.map((hist) => (
-                      <MovieCard
-                        key={hist.movieId}
-                        movie={hist.movie}
-                        progress={{ progress: hist.progress, duration: hist.duration }}
-                        onSelect={setSelectedMovie}
-                        onPlay={() => handleLaunchStream(hist.movie)}
-                        t={t}
-                      />
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* 2. Main Selected Grid */}
-              <div className="space-y-4" id="main-catalog-grid">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Flame className="w-5 h-5 animate-pulse" style={{ color: settings.primaryColor }} />
-                    <h2 className="text-lg font-extrabold" style={{ color: settings.primaryColor }}>
-                      {selectedGenre === "All" ? t.trendingSpotlight : `${t[selectedGenre as keyof typeof t] || selectedGenre} Spotlight`}
-                    </h2>
-                  </div>
-                  <span className="text-[10px] text-zinc-500 font-mono font-bold uppercase">
-                    {displayedMovies.length} {selectedContentType === "movie" ? t.movies : selectedContentType === "series" ? t.tvSeries : t.allContent}
-                  </span>
-                </div>
-
-                {loading ? (
-                  <div className="py-20 flex flex-col items-center gap-2" id="grid-loading">
-                    <div className="w-8 h-8 border-2 border-t-transparent rounded-full animate-spin" style={{ borderColor: settings.primaryColor, borderTopColor: "transparent" }} />
-                    <span className="text-xs text-zinc-500">Querying FlixSphere indexes...</span>
-                  </div>
-                ) : error ? (
-                  <div className="py-14 text-center text-red-400 text-xs border border-zinc-900 rounded-xl">
-                    <AlertTriangle className="w-8 h-8 mx-auto mb-2 text-red-500" />
-                    {error}
-                  </div>
-                ) : displayedMovies.length === 0 ? (
+                {displayedMovies.length === 0 ? (
                   <div className="py-16 text-center text-zinc-500 text-xs border border-dashed border-zinc-900 rounded-xl bg-zinc-950/20">
                     {t.noMatchingContentDesc}
                   </div>
@@ -561,28 +434,219 @@ export default function App() {
                   </div>
                 )}
               </div>
-                            {/* 3. Featured Row (Only if no active filter tag/search query) */}
-              {!searchQuery && selectedGenre === "All" && featuredMovies.length > 0 && (
-                <div className="space-y-4 border-t border-zinc-900/60 pt-8" id="featured-curations-section">
-                  <div className="flex items-center gap-1.5">
-                    <Sparkles className="w-5 h-5" style={{ color: settings.primaryColor }} />
-                    <h2 className="text-lg font-extrabold" style={{ color: settings.primaryColor }}>{t.recommendedContent}</h2>
+            ) : selectedContentType === "all" ? (
+              /* HOME VIEW: CATEGORIES & Snapping horizontal scroll sliders */
+              <div className="px-4 md:px-8 max-w-7xl mx-auto space-y-12 pb-16 pt-6">
+                
+                {/* 1. Continue Watching Reel */}
+                {currentUser && displayedWatchHistory.length > 0 && (
+                  <div className="space-y-4" id="continue-watching-section">
+                    <div className="flex items-center gap-2">
+                      <ListVideo className="w-5 h-5 animate-pulse" style={{ color: settings.primaryColor }} />
+                      <h2 className="text-xl font-extrabold tracking-tight">{t.continueWatching}</h2>
+                    </div>
+                    <div className="flex gap-6 overflow-x-auto pb-4 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent scroll-smooth snap-x">
+                      {displayedWatchHistory.map((hist) => (
+                        <div key={hist.movieId} className="w-64 shrink-0 snap-start">
+                          <MovieCard
+                            movie={hist.movie}
+                            progress={{ progress: hist.progress, duration: hist.duration }}
+                            onSelect={setSelectedMovie}
+                            onPlay={() => handleLaunchStream(hist.movie)}
+                            t={t}
+                          />
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                    {featuredMovies.map((movie) => (
-                      <MovieCard
-                        key={movie.id}
-                        movie={movie}
-                        progress={getProgressOfMovie(movie.id)}
-                        onSelect={setSelectedMovie}
-                        onPlay={handleLaunchStream}
-                        t={t}
-                      />
+                )}
+
+                {/* 2. Featured Spotlight Slider */}
+                {featuredMovies.length > 0 && (
+                  <div className="space-y-4" id="featured-curations-section">
+                    <div className="flex items-center gap-2">
+                      <Sparkles className="w-5 h-5 text-amber-500 animate-pulse" />
+                      <h2 className="text-xl font-extrabold tracking-tight">Featured Spotlight</h2>
+                    </div>
+                    <div className="flex gap-6 overflow-x-auto pb-4 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent scroll-smooth snap-x">
+                      {featuredMovies.map((movie) => (
+                        <div key={movie.id} className="w-64 shrink-0 snap-start">
+                          <MovieCard
+                            movie={movie}
+                            progress={getProgressOfMovie(movie.id)}
+                            onSelect={setSelectedMovie}
+                            onPlay={handleLaunchStream}
+                            t={t}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* 3. Popular Hits */}
+                {displayedMovies.length > 0 && (
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2">
+                      <Flame className="w-5 h-5 text-orange-500" />
+                      <h2 className="text-xl font-extrabold tracking-tight">Popular Hits</h2>
+                    </div>
+                    <div className="flex gap-6 overflow-x-auto pb-4 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent scroll-smooth snap-x">
+                      {[...displayedMovies]
+                        .sort((a, b) => b.views - a.views)
+                        .slice(0, 10)
+                        .map((movie) => (
+                          <div key={movie.id} className="w-64 shrink-0 snap-start">
+                            <MovieCard
+                              movie={movie}
+                              progress={getProgressOfMovie(movie.id)}
+                              onSelect={setSelectedMovie}
+                              onPlay={handleLaunchStream}
+                              t={t}
+                            />
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* 4. New Releases */}
+                {displayedMovies.length > 0 && (
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2">
+                      <Film className="w-5 h-5" style={{ color: settings.primaryColor }} />
+                      <h2 className="text-xl font-extrabold tracking-tight">New Releases</h2>
+                    </div>
+                    <div className="flex gap-6 overflow-x-auto pb-4 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent scroll-smooth snap-x">
+                      {[...displayedMovies]
+                        .sort((a, b) => b.releaseYear - a.releaseYear)
+                        .slice(0, 10)
+                        .map((movie) => (
+                          <div key={movie.id} className="w-64 shrink-0 snap-start">
+                            <MovieCard
+                              movie={movie}
+                              progress={getProgressOfMovie(movie.id)}
+                              onSelect={setSelectedMovie}
+                              onPlay={handleLaunchStream}
+                              t={t}
+                            />
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                )}
+                
+              </div>
+            ) : (
+              /* DEDICATED CATALOG VIEW FOR MOVIES / TV SERIES (NO CAROUSEL) */
+              <div className="px-4 md:px-8 max-w-7xl mx-auto space-y-8 pb-16 pt-6">
+                
+                {/* Immersive Tagline Header instead of Carousel */}
+                <div className="py-8 px-6 rounded-2xl bg-zinc-950/40 border border-white/[0.04] shadow-2xl relative overflow-hidden backdrop-blur-md">
+                  <div className="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 rounded-full opacity-10 blur-3xl" style={{ backgroundColor: settings.primaryColor }} />
+                  <span className="text-[10px] uppercase font-black tracking-widest px-2.5 py-1 rounded bg-white/[0.04] border border-white/10" style={{ color: settings.primaryColor }}>
+                    {selectedContentType === "movie" ? "Movies Catalog" : "TV Series Collections"}
+                  </span>
+                  <h1 className="text-3xl md:text-4xl font-black tracking-tight text-white mt-4">
+                    {selectedContentType === "movie" ? "Premium Cinema Experience" : "Episodic Series Masterpieces"}
+                  </h1>
+                  <p className="text-xs md:text-sm text-zinc-400 max-w-2xl mt-2 font-medium">
+                    {selectedContentType === "movie" 
+                      ? "Explore our handpicked curation of blockbusters, documentaries, and animations in cinematic 4K HDR quality with offline localization."
+                      : "Engage with stunning multi-season storytelling structures, featuring sequential play, subtitle overlays, and resume capabilities."}
+                  </p>
+                </div>
+
+                {/* Quick Filters Row */}
+                <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 py-4 px-5 cinema-panel rounded-xl">
+                  {/* Genre filters */}
+                  <div className="flex items-center gap-2 overflow-x-auto w-full md:w-auto scrollbar-thin scrollbar-thumb-zinc-900 scrollbar-track-transparent">
+                    <Compass className="w-4 h-4 shrink-0 hidden md:inline animate-spin-slow" style={{ color: settings.primaryColor }} />
+                    {["All", "Action", "Animation", "Drama", "Fantasy", "Sci-Fi", "Comedy"].map((genre) => (
+                      <button
+                        key={genre}
+                        onClick={() => setSelectedGenre(genre)}
+                        className={`px-3.5 py-1.5 rounded-lg text-xs font-bold shrink-0 cursor-pointer transition-all border ${
+                          selectedGenre === genre
+                            ? "text-white shadow-lg border-transparent"
+                            : "bg-white/[0.02] hover:bg-white/[0.06] border-white/5 text-zinc-400 hover:text-zinc-200"
+                        }`}
+                        style={selectedGenre === genre ? { backgroundColor: settings.primaryColor, boxShadow: `0 0 12px ${settings.primaryColor}50` } : {}}
+                      >
+                        {t[genre as keyof typeof t] || genre}
+                      </button>
                     ))}
                   </div>
+
+                  {/* Sorting dropdown */}
+                  <div className="flex items-center gap-3 shrink-0 w-full md:w-auto justify-between md:justify-end">
+                    <div className="flex items-center gap-1.5 text-zinc-500 text-xs font-semibold">
+                      <ArrowUpDown className="w-3.5 h-3.5" />
+                      <span>{t.sortBy}</span>
+                    </div>
+                    <select
+                      value={sortBy}
+                      onChange={(e) => setSortBy(e.target.value)}
+                      className="bg-white/[0.04] border border-white/10 text-xs font-extrabold text-zinc-300 px-3 py-1.5 rounded-lg focus:outline-hidden theme-control cursor-pointer"
+                      style={{ '--focus-color': settings.primaryColor } as any}
+                      onFocus={(e) => { (e.target as any).style.borderColor = settings.primaryColor + '80'; }}
+                      onBlur={(e) => { (e.target as any).style.borderColor = ''; }}
+                      id="sort-select"
+                    >
+                      <option value="recent">{t.recentlyPublished}</option>
+                      <option value="rating">{t.audienceScore}</option>
+                      <option value="year">{t.releaseCalendar}</option>
+                      <option value="views">{t.totalViewsLabel}</option>
+                    </select>
+                  </div>
                 </div>
-              )}
-            </div>
+
+                {/* Grid Content */}
+                <div className="space-y-4" id="main-catalog-grid">
+                  <div className="flex items-center justify-between border-b border-white/[0.04] pb-3">
+                    <div className="flex items-center gap-2">
+                      <Flame className="w-5 h-5 animate-pulse" style={{ color: settings.primaryColor }} />
+                      <h2 className="text-lg font-black tracking-tight">
+                        {selectedGenre === "All" ? "Spotlight Curation" : `${selectedGenre} Curation`}
+                      </h2>
+                    </div>
+                    <span className="text-[10px] text-zinc-500 font-mono font-bold uppercase">
+                      {displayedMovies.length} {selectedContentType === "movie" ? t.movies : t.tvSeries}
+                    </span>
+                  </div>
+
+                  {loading ? (
+                    <div className="py-20 flex flex-col items-center gap-3" id="grid-loading">
+                      <div className="w-8 h-8 border-2 border-t-transparent rounded-full animate-spin" style={{ borderColor: settings.primaryColor, borderTopColor: "transparent" }} />
+                      <span className="text-xs text-zinc-500 font-medium">Querying FlixSphere database indexes...</span>
+                    </div>
+                  ) : error ? (
+                    <div className="py-14 text-center text-red-400 text-xs border border-zinc-900 rounded-xl">
+                      <AlertTriangle className="w-8 h-8 mx-auto mb-2 text-red-500" />
+                      {error}
+                    </div>
+                  ) : displayedMovies.length === 0 ? (
+                    <div className="py-16 text-center text-zinc-500 text-xs border border-dashed border-zinc-900/60 rounded-xl bg-zinc-950/20">
+                      {t.noMatchingContentDesc}
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                      {displayedMovies.map((movie) => (
+                        <MovieCard
+                          key={movie.id}
+                          movie={movie}
+                          progress={getProgressOfMovie(movie.id)}
+                          onSelect={setSelectedMovie}
+                          onPlay={handleLaunchStream}
+                          t={t}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+              </div>
+            )}
           </div>
         )}
       </main>
