@@ -1,4 +1,4 @@
-// File: C:\Users\Program Diskominfo\Documents\trae_projects\New folder\MyStreamFlix\app\api\auth\me\route.ts
+// File: C:\Users\Gugah Nugraha\Documents\New folder\MyStreamFlix\app\api\auth\me\route.ts
 import * as entry from '../../../../../../app/api/auth/me/route.js'
 import type { NextRequest } from 'next/server.js'
 
