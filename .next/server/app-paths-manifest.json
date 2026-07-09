@@ -1,8 +1,10 @@
 {
-  "/api/settings/route": "app/api/settings/route.js",
   "/api/movies/[id]/route": "app/api/movies/[id]/route.js",
   "/api/movies/route": "app/api/movies/route.js",
   "/api/user/favorites/route": "app/api/user/favorites/route.js",
   "/api/user/history/route": "app/api/user/history/route.js",
+  "/api/dashboard/stats/route": "app/api/dashboard/stats/route.js",
+  "/api/users/route": "app/api/users/route.js",
+  "/api/settings/route": "app/api/settings/route.js",
   "/page": "app/page.js"
 }

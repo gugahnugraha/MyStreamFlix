@@ -4,7 +4,7 @@
  */
 
 import React, { useRef, useState, useEffect } from "react";
-import { Play, Pause, RotateCcw, RotateCw, Volume2, VolumeX, Maximize, X, Subtitles, Settings } from "lucide-react";
+import { Play, Pause, RotateCcw, RotateCw, Volume2, VolumeX, Maximize, Minimize, X, Subtitles, Settings } from "lucide-react";
 import { Movie } from "../types";
 
 interface MediaPlayerProps {
@@ -67,6 +67,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t }: 
   // Custom Error and Simulation Fallback states
   const [hasError, setHasError] = useState(false);
   const [isSimulating, setIsSimulating] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   // Auto-hide controls overlay
   useEffect(() => {
@@ -99,6 +100,18 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t }: 
       }
     };
   }, [isPlaying]);
+
+  // Listen to fullscreen changes (e.g. from pressing Escape key)
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    return () => {
+      document.removeEventListener("fullscreenchange", handleFullscreenChange);
+    };
+  }, []);
 
   // Video Initialization & Resume Point
   useEffect(() => {
@@ -341,12 +354,14 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t }: 
 
   return (
     <div 
-      ref={containerRef}
       className="fixed inset-0 z-50 bg-black flex flex-col md:flex-row select-none overflow-hidden"
       id="media-player-container"
     >
       {/* Primary Video Screen Area */}
-      <div className="relative flex-1 h-full bg-black flex items-center justify-center overflow-hidden">
+      <div 
+        ref={containerRef}
+        className="relative flex-1 h-full bg-black flex items-center justify-center overflow-hidden"
+      >
         {/* HTML5 Video Layer */}
         {!isSimulating ? (
           <video
@@ -458,7 +473,12 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t }: 
           </div>
 
           <button
-            onClick={onClose}
+            onClick={() => {
+              if (document.fullscreenElement) {
+                document.exitFullscreen().catch(() => {});
+              }
+              onClose();
+            }}
             className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-zinc-900/80 hover:bg-red-600 text-white flex items-center justify-center border border-zinc-800 transition-colors shadow-lg cursor-pointer"
             id="media-player-exit"
             title="Exit Player"
@@ -624,9 +644,13 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t }: 
               <button
                 onClick={toggleFullscreen}
                 className="text-zinc-300 hover:text-white transition-colors cursor-pointer"
-                title="Toggle Fullscreen"
+                title={isFullscreen ? "Exit Fullscreen" : "Toggle Fullscreen"}
               >
-                <Maximize className="w-5 h-5" />
+                {isFullscreen ? (
+                  <Minimize className="w-5 h-5" />
+                ) : (
+                  <Maximize className="w-5 h-5" />
+                )}
               </button>
             </div>
           </div>
