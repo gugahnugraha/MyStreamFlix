@@ -8,7 +8,7 @@ It features a gorgeous cinematic player, robust comment boards, real-time analyt
 
 ## ⚡ Key Highlights & Architecture
 
-- **Unified Next.js 15 Stack**: Replaced Express and Vite with a modern, serverless-ready Next.js App Router setup.
+- **Modern Next.js 15 Stack**: Designed with a serverless-ready Next.js App Router architecture for optimized performance.
 - **Hybrid Data Storage Engine (Zero-Config Fallback)**:
   - **In-Memory Mode**: If no database is configured, the application runs instantly out-of-the-box using an in-memory data store. Perfect for local previews or zero-setup deployments!
   - **Prisma Database Mode**: When a `DATABASE_URL` is supplied, the app automatically switches to database persistence. Compatible with **Supabase**, **MongoDB**, and **PostgreSQL**.

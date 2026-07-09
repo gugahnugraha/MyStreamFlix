@@ -8,7 +8,7 @@ Aplikasi ini dilengkapi pemutar video sinematik yang menawan, papan komentar int
 
 ## ⚡ Sorotan Utama & Arsitektur
 
-- **Next.js 15 Unified Stack**: Menggantikan arsitektur lama Express dan Vite dengan setup Next.js App Router modern yang siap untuk serverless.
+- **Next.js 15 App Router**: Menggunakan arsitektur Next.js App Router modern yang siap untuk serverless dan dioptimalkan secara penuh.
 - **Mesin Penyimpanan Data Hibrida (Zero-Config Fallback)**:
   - **In-Memory Mode**: Jika database tidak dikonfigurasi, aplikasi akan berjalan secara instan menggunakan penyimpanan RAM in-memory lokal yang sudah dimuat dengan data dummy film dan akun uji coba. Sangat cocok untuk pratinjau lokal tanpa instalasi database!
   - **Prisma Database Mode**: Ketika `DATABASE_URL` disetel pada berkas `.env`, aplikasi akan secara otomatis beralih menggunakan database asli. Kompatibel dengan **Supabase**, **MongoDB**, dan **PostgreSQL**.
