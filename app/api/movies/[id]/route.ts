@@ -21,7 +21,7 @@ export async function GET(
     const apiKey = process.env.TMDB_API_KEY?.trim();
     if (movie.tmdbId && apiKey && apiKey !== "MY_TMDB_API_KEY") {
       try {
-        const mediaType = movie.tmdbMediaType === "series" ? "tv" : (movie.tmdbMediaType || "movie");
+        const mediaType = movie.contentType === "series" ? "tv" : (movie.tmdbMediaType || "movie");
         const tmdbUrl = `https://api.themoviedb.org/3/${mediaType}/${movie.tmdbId}/videos?api_key=${apiKey}&language=en-US`;
         const res = await fetch(tmdbUrl);
         if (res.ok) {
