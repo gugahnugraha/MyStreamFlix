@@ -668,19 +668,6 @@ export default function AdminCMS({
             {t.cmsTabCatalog}
           </button>
           <button
-            onClick={() => setActiveSubTab("settings")}
-            className={`flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-md transition-all cursor-pointer ${
-              activeSubTab === "settings"
-                ? "text-white shadow-md"
-                : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900"
-            }`}
-            style={activeSubTab === "settings" ? { backgroundColor: brandColor, boxShadow: `0 0 8px ${brandColor}40` } : {}}
-            id="subtab-settings"
-          >
-            <Settings className="w-3.5 h-3.5" />
-            {t.cmsTabSettings}
-          </button>
-          <button
             onClick={() => setActiveSubTab("users")}
             className={`flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-md transition-all cursor-pointer ${
               activeSubTab === "users"
@@ -692,6 +679,19 @@ export default function AdminCMS({
           >
             <Users className="w-3.5 h-3.5" />
             {t.cmsTabUsers}
+          </button>
+          <button
+            onClick={() => setActiveSubTab("settings")}
+            className={`flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-md transition-all cursor-pointer ${
+              activeSubTab === "settings"
+                ? "text-white shadow-md"
+                : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900"
+            }`}
+            style={activeSubTab === "settings" ? { backgroundColor: brandColor, boxShadow: `0 0 8px ${brandColor}40` } : {}}
+            id="subtab-settings"
+          >
+            <Settings className="w-3.5 h-3.5" />
+            {t.cmsTabSettings}
           </button>
         </div>
       </div>
@@ -1578,6 +1578,22 @@ export default function AdminCMS({
       {/* SUB-TAB VIEWPORT 3: SETTINGS */}
       {activeSubTab === "settings" && settings && (
         <form onSubmit={handleSaveSettings} className="space-y-6" id="cms-settings-panel">
+          {/* Top Save Actions Bar */}
+          <div className="flex items-center justify-between bg-zinc-950 border border-zinc-900 p-4 rounded-xl shadow-md">
+            <div className="space-y-0.5">
+              <h3 className="text-xs font-bold text-zinc-300 tracking-wider uppercase">{t.cmsTabSettings}</h3>
+              <p className="text-[10px] text-zinc-500">{t.cmsPanelDesc || "Adjust global system-wide settings."}</p>
+            </div>
+            <button
+              type="submit"
+              className="flex items-center gap-1.5 bg-red-600 hover:bg-red-500 text-white font-bold text-xs px-5 py-2.5 rounded-md shadow-lg shadow-red-600/10 cursor-pointer transition-colors"
+              id="settings-save-top-btn"
+            >
+              <Save className="w-3.5 h-3.5" />
+              {t.cmsCommitConfig}
+            </button>
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Branding Settings Card */}
             <div className="bg-zinc-950 border border-zinc-900 rounded-xl p-5 space-y-4">

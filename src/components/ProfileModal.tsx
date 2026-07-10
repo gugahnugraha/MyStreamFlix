@@ -4,18 +4,28 @@
  */
 
 import React, { useState } from "react";
-import { X, Plus, Trash2, Baby, Check, Settings, Shield, Save } from "lucide-react";
+import { X, Plus, Trash2, Baby, Check, Settings, Shield, Save, UserRound, KeyRound, Users, Calendar, Sparkles, Crown } from "lucide-react";
 import { User as UserType, UserProfile } from "../types";
 
 interface ProfileModalProps {
   currentUser: UserType | null;
   onClose: () => void;
   onSuccess: (updatedUser: UserType) => void;
+  onOpenSubscription?: () => void;
   t?: any;
+  initialMode?: "select" | "create" | "account";
 }
 
-export default function ProfileModal({ currentUser, onClose, onSuccess, t }: ProfileModalProps) {
-  const [mode, setMode] = useState<"select" | "create" | "account">("select");
+export default function ProfileModal({ 
+  currentUser, 
+  onClose, 
+  onSuccess, 
+  onOpenSubscription,
+  t, 
+  initialMode = "select" 
+}: ProfileModalProps) {
+  const [mode, setMode] = useState<"select" | "create" | "account">(initialMode);
+  const [accountTab, setAccountTab] = useState<"profile" | "password" | "profiles">("profile");
   const [profileName, setProfileName] = useState("");
   const [accountName, setAccountName] = useState(currentUser?.name || "");
   const [accountEmail, setAccountEmail] = useState(currentUser?.email || "");
@@ -359,82 +369,318 @@ export default function ProfileModal({ currentUser, onClose, onSuccess, t }: Pro
               <p className="text-xs text-zinc-500">{t?.modifySaaSDesc || "Update account identity, main avatar, and password. Changes sync to MongoDB Atlas."}</p>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-[96px_1fr] gap-4 items-start rounded-xl border border-zinc-900 bg-zinc-950/60 p-4">
-              <img
-                src={accountAvatar || currentUser.profileImage || selectedAvatar}
-                alt={accountName}
-                className="w-24 h-24 rounded-xl object-cover border border-zinc-800"
-              />
-              <div className="space-y-3">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-zinc-400 uppercase">{t?.nameLabel || "Name"}</label>
-                    <input
-                      value={accountName}
-                      onChange={(e) => setAccountName(e.target.value)}
-                      className="w-full bg-zinc-900 border border-zinc-800 text-xs text-white rounded-lg px-3.5 py-2.5 focus:outline-hidden focus:border-red-500/50"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-zinc-400 uppercase">{t?.emailLabel || "Email"}</label>
-                    <input
-                      type="email"
-                      value={accountEmail}
-                      onChange={(e) => setAccountEmail(e.target.value)}
-                      className="w-full bg-zinc-900 border border-zinc-800 text-xs text-white rounded-lg px-3.5 py-2.5 focus:outline-hidden focus:border-red-500/50"
-                    />
-                  </div>
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-zinc-400 uppercase">{t?.avatarUrl || "Main Avatar URL"}</label>
-                  <input
-                    value={accountAvatar}
-                    onChange={(e) => setAccountAvatar(e.target.value)}
-                    placeholder="https://..."
-                    className="w-full bg-zinc-900 border border-zinc-800 text-xs text-white rounded-lg px-3.5 py-2.5 focus:outline-hidden focus:border-red-500/50"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="rounded-xl border border-zinc-900 bg-zinc-950/60 p-4 space-y-3">
-              <h3 className="text-xs font-black text-white uppercase tracking-wider">{t?.passwordLabel || "Password"}</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <input
-                  type="password"
-                  placeholder={t?.currentPassword || "Current password"}
-                  value={currentPassword}
-                  onChange={(e) => setCurrentPassword(e.target.value)}
-                  className="w-full bg-zinc-900 border border-zinc-800 text-xs text-white rounded-lg px-3.5 py-2.5 focus:outline-hidden focus:border-red-500/50"
-                />
-                <input
-                  type="password"
-                  placeholder={t?.newPasswordOptional || "New password (Optional)"}
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  className="w-full bg-zinc-900 border border-zinc-800 text-xs text-white rounded-lg px-3.5 py-2.5 focus:outline-hidden focus:border-red-500/50"
-                />
-              </div>
-              <p className="text-[10px] text-zinc-600">{t?.passwordLeaveEmptyHint || "Leave password fields empty if you only want to update account details."}</p>
-            </div>
-
-            <div className="pt-4 border-t border-zinc-900 flex gap-3">
+            {/* Tabs Selector */}
+            <div className="flex border-b border-zinc-900 pb-px mb-5 gap-2 overflow-x-auto">
               <button
                 type="button"
-                onClick={() => setMode("select")}
-                className="flex-1 border border-zinc-800 hover:bg-zinc-900 text-zinc-400 hover:text-white font-bold text-xs py-2.5 rounded-lg transition-colors cursor-pointer"
+                onClick={() => setAccountTab("profile")}
+                className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold border-b-2 transition-all cursor-pointer shrink-0 ${
+                  accountTab === "profile"
+                    ? "border-red-600 text-white font-black"
+                    : "border-transparent text-zinc-500 hover:text-zinc-300"
+                }`}
               >
-                {t?.cancel || "Cancel"}
+                <UserRound className="w-4 h-4" />
+                {t?.profileLabel || "Profile Info"}
               </button>
               <button
-                type="submit"
-                disabled={isSubmitting}
-                className="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold text-xs py-2.5 rounded-lg transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer"
+                type="button"
+                onClick={() => setAccountTab("password")}
+                className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold border-b-2 transition-all cursor-pointer shrink-0 ${
+                  accountTab === "password"
+                    ? "border-red-600 text-white font-black"
+                    : "border-transparent text-zinc-500 hover:text-zinc-300"
+                }`}
               >
-                {isSubmitting ? <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Save className="w-3.5 h-3.5" />}
-                {t?.saveChanges || "Save Changes"}
+                <KeyRound className="w-4 h-4" />
+                {t?.passwordLabel || "Change Password"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setAccountTab("profiles")}
+                className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold border-b-2 transition-all cursor-pointer shrink-0 ${
+                  accountTab === "profiles"
+                    ? "border-red-600 text-white font-black"
+                    : "border-transparent text-zinc-500 hover:text-zinc-300"
+                }`}
+              >
+                <Users className="w-4 h-4" />
+                {t?.manageProfiles || "Profiles"}
               </button>
             </div>
+
+            {/* TAB CONTENT: PROFILE INFO */}
+            {accountTab === "profile" && (
+              <div className="space-y-4 animate-in fade-in duration-200">
+                <div className="grid grid-cols-1 sm:grid-cols-[100px_1fr] gap-4 items-start rounded-xl border border-zinc-900 bg-zinc-950/60 p-4">
+                  <div className="flex flex-col items-center gap-2 mx-auto">
+                    <img
+                      src={accountAvatar || currentUser.profileImage || selectedAvatar}
+                      alt={accountName}
+                      className="w-20 h-20 rounded-xl object-cover border border-zinc-800"
+                    />
+                    <span className="text-[9px] text-zinc-500 font-mono tracking-widest uppercase">Preview</span>
+                  </div>
+                  <div className="space-y-3 w-full">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">{t?.nameLabel || "Name"}</label>
+                        <input
+                          value={accountName}
+                          required
+                          onChange={(e) => setAccountName(e.target.value)}
+                          className="w-full bg-zinc-900 border border-zinc-800 text-xs text-white rounded-lg px-3.5 py-2.5 focus:outline-hidden focus:border-red-500/50"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">{t?.emailLabel || "Email"}</label>
+                        <input
+                          type="email"
+                          required
+                          value={accountEmail}
+                          onChange={(e) => setAccountEmail(e.target.value)}
+                          className="w-full bg-zinc-900 border border-zinc-800 text-xs text-white rounded-lg px-3.5 py-2.5 focus:outline-hidden focus:border-red-500/50"
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">{t?.avatarUrl || "Main Avatar URL"}</label>
+                      <input
+                        value={accountAvatar}
+                        onChange={(e) => setAccountAvatar(e.target.value)}
+                        placeholder="https://..."
+                        className="w-full bg-zinc-900 border border-zinc-800 text-xs text-white rounded-lg px-3.5 py-2.5 focus:outline-hidden focus:border-red-500/50"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* Account Metadata info */}
+                  <div className="rounded-xl border border-zinc-900 bg-zinc-950/60 p-4 space-y-3">
+                    <h4 className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider flex items-center gap-1.5">
+                      <Shield className="w-3.5 h-3.5 text-zinc-500" />
+                      Account Identity
+                    </h4>
+                    <div className="space-y-2 text-xs">
+                      <div className="flex justify-between items-center py-1 border-b border-zinc-900/60">
+                        <span className="text-zinc-500">System Role:</span>
+                        <span className={`px-2 py-0.5 text-[10px] font-bold rounded-sm ${
+                          currentUser.role === "admin" 
+                            ? "bg-red-950/40 text-red-400 border border-red-900/30" 
+                            : "bg-zinc-900 text-zinc-300"
+                        }`}>
+                          {currentUser.role === "admin" ? "ADMINISTRATOR" : "MEMBER"}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center py-1">
+                        <span className="text-zinc-500">Member Since:</span>
+                        <span className="text-zinc-300 font-semibold flex items-center gap-1">
+                          <Calendar className="w-3 h-3 text-zinc-500" />
+                          {new Date(currentUser.createdAt || Date.now()).toLocaleDateString(t?.browse === "Beranda" ? 'id-ID' : 'en-US', {
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric'
+                          })}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Subscription Status info */}
+                  <div className="rounded-xl border border-zinc-900 bg-zinc-950/60 p-4 space-y-3">
+                    <h4 className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider flex items-center gap-1.5">
+                      <Crown className="w-3.5 h-3.5 text-amber-500" />
+                      Membership Subscription
+                    </h4>
+                    <div className="space-y-2 text-xs">
+                      <div className="flex justify-between items-center py-1 border-b border-zinc-900/60">
+                        <span className="text-zinc-500">Plan Tier:</span>
+                        {currentUser.isPremium ? (
+                          <span className="px-2 py-0.5 text-[10px] font-extrabold rounded-sm bg-amber-500/10 text-amber-400 border border-amber-500/20 flex items-center gap-1">
+                            <Crown className="w-2.5 h-2.5 fill-amber-500" />
+                            VIP PREMIUM
+                          </span>
+                        ) : (
+                          <span className="px-2 py-0.5 text-[10px] font-bold rounded-sm bg-zinc-900 text-zinc-500">
+                            FREE MEMBERSHIP
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex justify-between items-center py-0.5">
+                        <span className="text-zinc-500">Streaming Access:</span>
+                        <span className="text-zinc-300 font-semibold">
+                          {currentUser.isPremium ? "Unlimited 4K HDR" : "Ad-supported HD"}
+                        </span>
+                      </div>
+                      {!currentUser.isPremium && onOpenSubscription && (
+                        <button
+                          type="button"
+                          onClick={onOpenSubscription}
+                          className="w-full bg-amber-500 hover:bg-amber-600 text-black font-black text-[10px] py-1.5 rounded-md transition-colors mt-2 flex items-center justify-center gap-1 cursor-pointer shadow-md shadow-amber-500/10"
+                        >
+                          <Sparkles className="w-3 h-3 text-black fill-black" />
+                          UPGRADE TO VIP PREMIUM
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* TAB CONTENT: EDIT PASSWORD */}
+            {accountTab === "password" && (
+              <div className="space-y-4 animate-in fade-in duration-200">
+                <div className="rounded-xl border border-zinc-900 bg-zinc-950/60 p-4 space-y-4">
+                  <div className="space-y-1">
+                    <h4 className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider flex items-center gap-1.5">
+                      <KeyRound className="w-3.5 h-3.5 text-zinc-500" />
+                      {t?.passwordLabel || "Edit Password"}
+                    </h4>
+                    <p className="text-[10px] text-zinc-500">Provide your current account password to authorize changing to a new password.</p>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-zinc-500 uppercase">{t?.currentPassword || "Current password"}</label>
+                      <input
+                        type="password"
+                        placeholder="••••••••"
+                        value={currentPassword}
+                        onChange={(e) => setCurrentPassword(e.target.value)}
+                        className="w-full bg-zinc-900 border border-zinc-800 text-xs text-white rounded-lg px-3.5 py-2.5 focus:outline-hidden focus:border-red-500/50"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-zinc-500 uppercase">{t?.newPasswordOptional || "New password (Optional)"}</label>
+                      <input
+                        type="password"
+                        placeholder="Minimum 6 characters"
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        className="w-full bg-zinc-900 border border-zinc-800 text-xs text-white rounded-lg px-3.5 py-2.5 focus:outline-hidden focus:border-red-500/50"
+                      />
+                    </div>
+                  </div>
+                  <div className="p-3 bg-zinc-900/50 border border-zinc-850 rounded-lg">
+                    <ul className="list-disc pl-4 text-[10px] text-zinc-500 space-y-1">
+                      <li>Security standard: Choose a strong password you do not use elsewhere.</li>
+                      <li>Password updates require verification of your current password.</li>
+                      <li>Leave these fields empty if you do not want to change your password.</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* TAB CONTENT: SUB-PROFILES */}
+            {accountTab === "profiles" && (
+              <div className="space-y-4 animate-in fade-in duration-200">
+                <div className="rounded-xl border border-zinc-900 bg-zinc-950/60 p-4 space-y-4">
+                  <div className="flex justify-between items-center border-b border-zinc-900 pb-2">
+                    <div>
+                      <h4 className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider flex items-center gap-1.5">
+                        <Users className="w-3.5 h-3.5 text-zinc-500" />
+                        Manage Viewing Profiles
+                      </h4>
+                      <p className="text-[10px] text-zinc-500">View and manage personalized sub-profiles for your family members.</p>
+                    </div>
+                    {(currentUser.profiles?.length || 0) < 5 && (
+                      <button
+                        type="button"
+                        onClick={() => setMode("create")}
+                        className="bg-zinc-900 border border-zinc-800 hover:bg-zinc-850 hover:border-zinc-700 text-white font-bold text-[10px] px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1 cursor-pointer"
+                      >
+                        <Plus className="w-3 h-3" />
+                        {t?.addProfileBtn || "Add Profile"}
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Profiles List */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 py-2">
+                    {currentUser.profiles?.map((profile) => {
+                      const isActive = currentUser.activeProfileId === profile.id;
+                      return (
+                        <div 
+                          key={profile.id}
+                          onClick={() => handleSelectProfile(profile.id)}
+                          className={`flex items-center gap-3 p-3 rounded-xl border transition-all cursor-pointer group hover:bg-zinc-900/60 ${
+                            isActive ? "bg-red-950/10 border-red-900/40" : "bg-zinc-950 border-zinc-900"
+                          }`}
+                          title="Click to switch to this profile"
+                        >
+                          <div className="relative shrink-0">
+                            <img 
+                              src={profile.avatar} 
+                              alt={profile.name}
+                              className="w-10 h-10 rounded-xl object-cover border border-zinc-850 group-hover:scale-105 transition-transform"
+                            />
+                            {profile.isKids && (
+                              <span className="absolute -top-1 -right-1 bg-yellow-500 text-black text-[7px] font-black px-1 py-0.5 rounded-md shadow-xs">
+                                KIDS
+                              </span>
+                            )}
+                          </div>
+                          
+                          <div className="flex-1 min-w-0">
+                            <span className="block text-xs font-bold text-white truncate">{profile.name}</span>
+                            <span className="block text-[10px] text-zinc-500">
+                              {isActive ? "Active Profile" : "Click to Switch"}
+                            </span>
+                          </div>
+
+                          {/* Delete Icon (only if it is not the only profile) */}
+                          {(currentUser.profiles?.length || 0) > 1 && (
+                            <button
+                              type="button"
+                              onClick={(e) => handleDeleteProfile(e, profile.id)}
+                              title={t?.deleteProfile || "Delete Profile"}
+                              className="p-1.5 text-zinc-600 hover:text-red-500 hover:bg-zinc-900 rounded-lg transition-colors cursor-pointer opacity-0 group-hover:opacity-100"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Action Buttons */}
+            {accountTab !== "profiles" && (
+              <div className="pt-4 border-t border-zinc-900 flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setMode("select")}
+                  className="flex-1 border border-zinc-800 hover:bg-zinc-900 text-zinc-400 hover:text-white font-bold text-xs py-2.5 rounded-lg transition-colors cursor-pointer"
+                >
+                  {t?.cancel || "Cancel"}
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold text-xs py-2.5 rounded-lg transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  {isSubmitting ? <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+                  {t?.saveChanges || "Save Changes"}
+                </button>
+              </div>
+            )}
+            {accountTab === "profiles" && (
+              <div className="pt-4 border-t border-zinc-900 flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => setMode("select")}
+                  className="border border-zinc-800 hover:bg-zinc-900 text-zinc-400 hover:text-white font-bold text-xs px-6 py-2.5 rounded-lg transition-colors cursor-pointer"
+                >
+                  {t?.backToSwitcher || "Back to Switcher"}
+                </button>
+              </div>
+            )}
           </form>
         )}
       </div>

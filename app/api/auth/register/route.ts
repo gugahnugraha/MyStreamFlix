@@ -3,6 +3,8 @@ import { getUserByEmail, createUser, hashPassword } from "@/src/lib/data-service
 import { setSessionCookie } from "@/src/lib/session";
 import { User } from "@/src/types";
 
+export const dynamic = "force-dynamic";
+
 export async function POST(request: NextRequest) {
   try {
     const { name, email, password } = await request.json();

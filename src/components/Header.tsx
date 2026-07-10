@@ -26,7 +26,7 @@ interface HeaderProps {
   searchQuery: string;
   setSearchQuery: (query: string) => void;
   onOpenSubscription: () => void;
-  onOpenProfileSwitcher: () => void;
+  onOpenProfileSwitcher: (mode?: "select" | "account" | "create") => void;
   currentLanguage: "en" | "id" | "es";
   onLanguageChange: (lang: "en" | "id" | "es") => void;
   t: any;
@@ -385,11 +385,19 @@ export default function Header({
                   {/* Profile Management Section */}
                   <div className="py-1 border-b border-zinc-900">
                     <button
-                      onClick={() => { onOpenProfileSwitcher(); setShowProfileMenu(false); }}
+                      onClick={() => { onOpenProfileSwitcher("select"); setShowProfileMenu(false); }}
                       className="w-full text-left px-3 py-1.5 text-xs text-zinc-300 hover:text-white hover:bg-zinc-900 rounded-md flex items-center gap-2 transition-colors cursor-pointer"
                     >
                       <Users className="w-3.5 h-3.5" style={{ color: brandColor }} />
                       {t.switchProfile}
+                    </button>
+                    <button
+                      onClick={() => { onOpenProfileSwitcher("account"); setShowProfileMenu(false); }}
+                      className="w-full text-left px-3 py-1.5 text-xs text-zinc-300 hover:text-white hover:bg-zinc-900 rounded-md flex items-center gap-2 transition-colors cursor-pointer"
+                      id="dropdown-profile-settings-btn"
+                    >
+                      <UserRound className="w-3.5 h-3.5" style={{ color: brandColor }} />
+                      {t.accountSettings || "Account Settings"}
                     </button>
                     {!currentUser.isPremium && (
                       <button

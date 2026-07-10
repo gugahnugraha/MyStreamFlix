@@ -18,6 +18,7 @@ import AdminCMS from "./components/AdminCMS";
 import AuthModal from "./components/AuthModal";
 import SubscriptionModal from "./components/SubscriptionModal";
 import ProfileModal from "./components/ProfileModal";
+import Footer from "./components/Footer";
 import { Movie, User, WatchHistoryItem, CMSSettings } from "./types";
 import { getTranslation, LanguageCode } from "./translations";
 
@@ -60,6 +61,7 @@ export default function App() {
   const [activeStream, setActiveStream] = useState<Movie | null>(null);
   const [showSubscription, setShowSubscription] = useState(false);
   const [showProfileSwitcher, setShowProfileSwitcher] = useState(false);
+  const [profileModalMode, setProfileModalMode] = useState<"select" | "create" | "account">("select");
 
   // Catalog, Search, Filters
   const [movies, setMovies] = useState<Movie[]>([]);
@@ -341,7 +343,10 @@ export default function App() {
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
         onOpenSubscription={() => setShowSubscription(true)}
-        onOpenProfileSwitcher={() => setShowProfileSwitcher(true)}
+        onOpenProfileSwitcher={(mode = "select") => {
+          setProfileModalMode(mode);
+          setShowProfileSwitcher(true);
+        }}
         currentLanguage={currentLanguage}
         onLanguageChange={handleLanguageChange}
         t={t}
@@ -690,6 +695,11 @@ export default function App() {
         <ProfileModal
           currentUser={currentUser}
           onClose={() => setShowProfileSwitcher(false)}
+          initialMode={profileModalMode}
+          onOpenSubscription={() => {
+            setShowProfileSwitcher(false);
+            setShowSubscription(true);
+          }}
           onSuccess={(updatedUser) => {
             setCurrentUser(updatedUser);
             setShowProfileSwitcher(false);
@@ -701,13 +711,15 @@ export default function App() {
         />
       )}
 
-      {/* Footer copyright */}
-      <footer className="border-t border-zinc-900/80 bg-black/90 py-8 px-4 text-center text-zinc-600 text-xs mt-auto">
-        <p>© 2026 {settings.siteName} SaaS Platform. All Rights Reserved.</p>
-        <p className="text-[10px] text-zinc-700 mt-1 font-mono">
-          Marketplace Presentation Model • Port 3000 Container Proxy Ingress Route
-        </p>
-      </footer>
+      {/* Footer component */}
+      <Footer
+        settings={settings}
+        setActiveTab={setActiveTab}
+        onSelectContentType={setSelectedContentType}
+        onOpenSubscription={() => setShowSubscription(true)}
+        onOpenAuth={() => setShowAuth(true)}
+        t={t}
+      />
     </div>
   );
 }

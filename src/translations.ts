@@ -256,7 +256,6 @@ export const translations = {
     netErrorUpdateProfile: "Network error updating account.",
     loadingSuggestions: "Loading suggestions...",
     noResultsFound: "No matching titles or cast found.",
-    searchResultsFor: "Search Results for",
 
     // Admin CMS — Tabs
     cmsTabAnalytics: "Analytics",
@@ -384,7 +383,7 @@ export const translations = {
     cmsSeoTitle: "SEO Crawler Title Header",
     cmsSeoKeywords: "SEO Keywords (Comma Separated)",
     cmsSeoDescription: "SEO Narrative Meta Description",
-    cmsCommitConfig: "Commit CMS Configurations",
+    cmsCommitConfig: "Save Configuration",
 
     // Admin CMS — Users
     cmsUserBaseTitle: "Active Registered User Base",
@@ -663,7 +662,6 @@ export const translations = {
     netErrorUpdateProfile: "Kesalahan jaringan saat memperbarui akun.",
     loadingSuggestions: "Memuat saran pencarian...",
     noResultsFound: "Tidak ada judul atau pemeran yang cocok.",
-    searchResultsFor: "Hasil Pencarian untuk",
 
     // Admin CMS — Tabs
     cmsTabAnalytics: "Analitik",
@@ -791,7 +789,7 @@ export const translations = {
     cmsSeoTitle: "Header Judul SEO",
     cmsSeoKeywords: "Kata Kunci SEO (Pisahkan dengan koma)",
     cmsSeoDescription: "Deskripsi Meta SEO",
-    cmsCommitConfig: "Simpan Konfigurasi CMS",
+    cmsCommitConfig: "Simpan Konfigurasi",
 
     // Admin CMS — Users
     cmsUserBaseTitle: "Basis Pengguna Terdaftar Aktif",
@@ -1070,7 +1068,6 @@ export const translations = {
     netErrorUpdateProfile: "Error de red al actualizar la cuenta.",
     loadingSuggestions: "Cargando sugerencias...",
     noResultsFound: "No se encontraron títulos ni reparto que coincidan.",
-    searchResultsFor: "Resultados de Búsqueda para",
 
     // Admin CMS — Tabs
     cmsTabAnalytics: "Analíticas",
@@ -1198,7 +1195,7 @@ export const translations = {
     cmsSeoTitle: "Encabezado de Título SEO",
     cmsSeoKeywords: "Palabras Clave SEO (Separadas por coma)",
     cmsSeoDescription: "Descripción Meta SEO",
-    cmsCommitConfig: "Confirmar Configuraciones CMS",
+    cmsCommitConfig: "Guardar Configuración",
 
     // Admin CMS — Users
     cmsUserBaseTitle: "Base de Usuarios Registrados Activos",

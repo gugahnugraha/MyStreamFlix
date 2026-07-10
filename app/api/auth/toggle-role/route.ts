@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { updateUserRole } from "@/src/lib/data-service";
 import { getCurrentSessionUser } from "@/src/lib/session";
 
+export const dynamic = "force-dynamic";
+
 export async function POST() {
   try {
     const sessionUser = await getCurrentSessionUser();
