@@ -28,7 +28,7 @@ export default function SubscriptionModal({ currentUser, onClose, onSuccess, t }
     {
       id: "vip" as const,
       name: "VIP",
-      price: "Rp 39.000",
+      price: "$2.99",
       period: t.month || "month",
       resolution: "HD (720p)",
       screens: `1 ${t.screens || "Screen"}`,
@@ -40,7 +40,7 @@ export default function SubscriptionModal({ currentUser, onClose, onSuccess, t }
     {
       id: "premium" as const,
       name: "PREMIUM",
-      price: "Rp 79.000",
+      price: "$5.99",
       period: t.month || "month",
       resolution: "Full HD (1080p)",
       screens: `2 ${t.screens || "Screens"}`,
@@ -53,7 +53,7 @@ export default function SubscriptionModal({ currentUser, onClose, onSuccess, t }
     {
       id: "ultra" as const,
       name: "ULTRA 4K",
-      price: "Rp 119.000",
+      price: "$8.99",
       period: t.month || "month",
       resolution: "Ultra HD (4K) + HDR",
       screens: `4 ${t.screens || "Screens"}`,
@@ -64,12 +64,42 @@ export default function SubscriptionModal({ currentUser, onClose, onSuccess, t }
     },
   ];
 
-  const handleStartCheckout = () => {
+  const handleStartCheckout = async (provider: "stripe" | "paypal") => {
     if (!currentUser) {
       setErrorMessage("Please log in first to purchase a subscription.");
       return;
     }
-    setCheckoutStep("payment");
+    
+    setIsProcessing(true);
+    setErrorMessage("");
+    
+    try {
+      const endpoint = provider === "paypal" 
+        ? "/api/subscription/paypal/checkout" 
+        : "/api/subscription/checkout";
+
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ planId: selectedPlan })
+      });
+      
+      const data = await res.json();
+      setIsProcessing(false);
+      
+      if (res.ok && data.url) {
+        // Redirect directly to live payment page!
+        window.location.href = data.url;
+        return;
+      }
+      
+      // Fallback to manual mock card payment if credentials are not configured
+      setCheckoutStep("payment");
+    } catch (err: any) {
+      setIsProcessing(false);
+      // Fallback
+      setCheckoutStep("payment");
+    }
   };
 
   const handleProcessPayment = async (e: React.FormEvent) => {
@@ -221,13 +251,26 @@ export default function SubscriptionModal({ currentUser, onClose, onSuccess, t }
                     {plans.find(p => p.id === selectedPlan)?.name} • {plans.find(p => p.id === selectedPlan)?.price} / {t.month || "month"}
                   </p>
                 </div>
-                <button
-                  onClick={handleStartCheckout}
-                  className="w-full sm:w-auto bg-red-600 hover:bg-red-700 text-white font-bold text-xs px-6 py-3 rounded-lg shadow-lg shadow-red-600/10 transition-all transform active:scale-95 cursor-pointer"
-                  id="sub-modal-next-step"
-                >
-                  {t.continueCheckout || "Continue to Secure Sandbox Checkout"}
-                </button>
+                <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+                  {/* Stripe Credit Card option */}
+                  <button
+                    onClick={() => handleStartCheckout("stripe")}
+                    disabled={isProcessing}
+                    className="w-full sm:w-auto bg-zinc-900 border border-zinc-800 hover:border-zinc-700 text-white font-bold text-xs px-5 py-2.5 rounded-lg flex items-center justify-center gap-2 transition-all active:scale-95 cursor-pointer disabled:opacity-50"
+                  >
+                    <CreditCard className="w-4 h-4 text-red-500" />
+                    Pay with Card (Stripe)
+                  </button>
+                  {/* PayPal option */}
+                  <button
+                    onClick={() => handleStartCheckout("paypal")}
+                    disabled={isProcessing}
+                    className="w-full sm:w-auto bg-[#FFC439] hover:bg-[#F2BA30] text-[#111111] font-bold text-xs px-5 py-2.5 rounded-lg flex items-center justify-center gap-2 transition-all active:scale-95 cursor-pointer disabled:opacity-50"
+                  >
+                    <span className="font-extrabold italic text-sm text-[#003087]">Pay</span>
+                    <span className="font-extrabold italic text-sm text-[#0079C1]">Pal</span>
+                  </button>
+                </div>
               </div>
             </div>
           )}
