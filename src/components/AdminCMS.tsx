@@ -6,7 +6,8 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { 
   BarChart3, Film, Settings, Plus, Edit, Trash2, Save, 
-  Tv, Eye, Play, ShieldAlert, CheckCircle, TrendingUp, Users, RefreshCw, X, Search, Database 
+  Tv, Eye, Play, ShieldAlert, CheckCircle, TrendingUp, Users, RefreshCw, X, Search, Database,
+  CreditCard, UserCheck
 } from "lucide-react";
 import { Movie, DashboardStats, CMSSettings, Subtitle, User, Season, Episode } from "../types";
 
@@ -708,7 +709,7 @@ export default function AdminCMS({
       {activeSubTab === "analytics" && stats && (
         <div className="space-y-6" id="cms-analytics-panel">
           {/* Dashboard metric grid tiles */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
             <div className="bg-zinc-950 border border-zinc-900 p-4 rounded-xl flex items-center gap-4">
               <div className="w-10 h-10 rounded-lg bg-red-600/10 flex items-center justify-center text-red-500">
                 <Film className="w-5 h-5" />
@@ -746,6 +747,26 @@ export default function AdminCMS({
               <div>
                 <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">{t.cmsSaasSignups}</p>
                 <p className="text-lg font-black text-white mt-0.5">{stats.totalUsers}</p>
+              </div>
+            </div>
+
+            <div className="bg-zinc-950 border border-zinc-900 p-4 rounded-xl flex items-center gap-4">
+              <div className="w-10 h-10 rounded-lg bg-sky-500/10 flex items-center justify-center text-sky-500">
+                <UserCheck className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">{t.cmsActiveUsersToday}</p>
+                <p className="text-lg font-black text-white mt-0.5">{stats.activeUsersToday}</p>
+              </div>
+            </div>
+
+            <div className="bg-zinc-950 border border-zinc-900 p-4 rounded-xl flex items-center gap-4">
+              <div className="w-10 h-10 rounded-lg bg-pink-500/10 flex items-center justify-center text-pink-500">
+                <CreditCard className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">{t.cmsMonthlyRevenue}</p>
+                <p className="text-sm font-black text-white mt-0.5">Rp {stats.revenueThisMonth.toLocaleString()}</p>
               </div>
             </div>
           </div>

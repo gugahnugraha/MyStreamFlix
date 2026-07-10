@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getFavorites, addFavorite } from "@/src/lib/data-service";
 import { getCurrentSessionUser } from "@/src/lib/session";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   try {
     const sessionUser = await getCurrentSessionUser();
