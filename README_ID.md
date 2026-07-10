@@ -91,18 +91,41 @@ Aplikasi akan secara otomatis berjalan dalam **Mode In-Memory** karena variabel 
 
 ---
 
-## 🗄️ Panduan Integrasi Database (Supabase, PostgreSQL, MongoDB)
+## 🗄️ Panduan Integrasi Database (Neon.tech, Supabase, PostgreSQL, MongoDB)
 
 Untuk menyimpan akun pengguna, katalog film, dan riwayat tontonan secara permanen, hubungkan database menggunakan Prisma ORM.
 
-### Opsi A: Supabase (PostgreSQL) - *Sangat Direkomendasikan*
+> [!IMPORTANT]
+> Perintah `npx prisma db push` hanya **membuat struktur tabel** (tabel kosong) di database Anda. Perintah ini **tidak mengimpor data apapun**. Data diisi sendiri oleh Anda melalui fitur Admin CMS setelah deployment.
+
+### Opsi A: Neon.tech (PostgreSQL) - *Direkomendasikan untuk Vercel*
+Neon.tech menyediakan database PostgreSQL serverless gratis dengan kuota generous dan dioptimalkan secara native untuk deployment di Vercel.
+
+1. **Buat proyek di [Neon.tech](https://neon.tech)**:
+   - Daftar akun, lalu buat proyek baru.
+   - Dari dashboard proyek, buka **Connection Details** dan salin **Connection String** (diawali dengan `postgresql://...`).
+2. **Konfigurasi berkas `.env`**:
+   ```env
+   DATABASE_URL="postgresql://user:password@ep-xxx.ap-southeast-1.aws.neon.tech/neondb?sslmode=require"
+   TMDB_API_KEY="kunci_api_tmdb_anda" # Opsional
+   ```
+3. **Buat Tabel (jalankan sekali dari komputer lokal Anda)**:
+   ```bash
+   npx prisma db push
+   ```
+   Perintah ini terhubung dari komputer lokal Anda ke Neon.tech dan membuat semua tabel yang diperlukan. Database akan kosong — siap diisi melalui Admin CMS.
+4. **Jalankan Aplikasi**:
+   Jalankan `npm run dev` — aplikasi sekarang akan membaca dan menulis data langsung ke Neon.tech.
+
+---
+
+### Opsi B: Supabase (PostgreSQL)
 Supabase menyediakan database PostgreSQL cloud gratis yang sangat stabil dan cocok untuk Next.js di Vercel.
 
 1. **Dapatkan string koneksi database**:
    - Masuk ke dashboard proyek Supabase Anda -> **Project Settings** -> **Database**.
    - Salin string koneksi **Transaction** (biasanya diawali dengan `postgres://...` atau `postgresql://...`). Gunakan port transaction pooling (biasanya `6543`) dan tambahkan parameter `?pgbouncer=true` di bagian akhir string.
 2. **Konfigurasi berkas `.env`**:
-   Buat berkas `.env` di folder root proyek dan masukkan string koneksi tersebut beserta session secret:
    ```env
    DATABASE_URL="postgresql://postgres.[username]:[password]@aws-0-us-east-1.pooler.supabase.com:6543/postgres?pgbouncer=true"
    SESSION_SECRET="kunci_rahasia_sesi_kustom_anda" # Ganti dengan string acak panjang bebas
@@ -157,19 +180,54 @@ MongoDB adalah database dokumen NoSQL yang sangat fleksibel dan didukung penuh o
 
 ## 🚀 Panduan Deploy ke Vercel
 
-Mendeploy Next.js ke Vercel sangatlah praktis:
-
-1. Unggah repositori kode Anda ke **GitHub / GitLab / Bitbucket**.
-2. Masuk ke dashboard [Vercel](https://vercel.com).
-3. Klik **Add New** -> **Project** lalu impor repositori Anda.
-4. Tambahkan **Environment Variables** berikut pada konfigurasi proyek di Vercel:
-   - `DATABASE_URL` : (String koneksi Supabase, PostgreSQL, atau MongoDB Anda)
-   - `SESSION_SECRET` : (Kunci string acak aman untuk menandatangani cookie sesi)
-   - `TMDB_API_KEY` : (Opsional, untuk merekomendasikan judul film dari TMDB)
-5. Klik **Deploy**! Vercel akan otomatis melakukan kompilasi aplikasi Next.js dan meluncurkan serverless API Anda.
+Mendeploy Next.js ke Vercel sangatlah praktis.
 
 > [!WARNING]
 > Ketika dideploy ke Vercel, **Anda wajib mengkonfigurasi database asli**. Mode In-Memory bersifat sementara (volatil) dan akan terhapus secara acak ketika serverless container dibersihkan oleh Vercel.
+
+### ✅ Urutan yang Direkomendasikan (Deployment Baru)
+
+Ikuti urutan ini agar deployment berjalan mulus:
+
+```
+Langkah 1 → Dapatkan DATABASE_URL dari Neon.tech (atau Supabase)
+Langkah 2 → Perbarui DATABASE_URL di berkas .env lokal Anda
+Langkah 3 → Jalankan: npx prisma db push  (dari komputer lokal Anda)
+Langkah 4 → Push kode ke GitHub
+Langkah 5 → Import repositori di Vercel Dashboard
+Langkah 6 → Atur Environment Variables di Vercel (lihat di bawah)
+Langkah 7 → Deploy!
+```
+
+### ⚠️ Sudah Terlanjur Deploy ke Vercel Sebelum Menjalankan `prisma db push`?
+
+Tidak masalah — `prisma db push` dan proses deployment Vercel adalah **dua hal yang independen**. Anda tetap bisa menjalankan `prisma db push` kapan saja dari komputer lokal:
+
+1. Pastikan berkas `.env` lokal Anda sudah berisi `DATABASE_URL` yang benar (mengarah ke Neon.tech atau Supabase).
+2. Jalankan perintah berikut di terminal dari folder proyek:
+   ```bash
+   npx prisma db push
+   ```
+   *(Gunakan `npx prisma db push`, bukan `prisma db push` — Prisma adalah dependensi lokal, bukan CLI global.)*
+3. Buka **Vercel Dashboard → Project → Settings → Environment Variables**, tambahkan atau perbarui `DATABASE_URL` dengan string koneksi yang sama.
+4. Klik **Redeploy** di Vercel.
+
+### Environment Variables yang Diperlukan di Vercel
+
+| Variabel | Keterangan |
+|---|---|
+| `DATABASE_URL` | String koneksi Neon.tech, Supabase, PostgreSQL, atau MongoDB Anda |
+| `SESSION_SECRET` | String acak aman untuk menandatangani cookie sesi pengguna |
+| `TMDB_API_KEY` | *(Opsional)* API key dari [themoviedb.org](https://www.themoviedb.org/settings/api) untuk saran film |
+| `GEMINI_API_KEY` | *(Opsional)* API key Gemini AI |
+
+### Memahami Apa yang Dilakukan `prisma db push`
+
+| Perintah | Fungsi |
+|---|---|
+| `npx prisma db push` | Membuat **tabel kosong** di database Anda (sinkronisasi schema). Dijalankan dari komputer lokal. |
+| Tambah film via Admin CMS | Menyimpan data film ke database — inilah cara mengisi data. |
+| Import TMDB via CMS | Mengambil metadata film dari TMDB dan menyimpannya langsung ke database. |
 
 ---
 
