@@ -55,12 +55,26 @@ export default function Header({
   const [showSearchSuggestions, setShowSearchSuggestions] = useState(false);
   const [searchSuggestions, setSearchSuggestions] = useState<SearchSuggestion[]>([]);
   const [suggestionsLoading, setSuggestionsLoading] = useState(false);
-  
+  const [userThemeColor, setUserThemeColor] = useState<string | null>(null);
+
+  useEffect(() => {
+    const handleThemeSync = () => {
+      if (typeof window !== "undefined") {
+        const stored = localStorage.getItem("user-theme-primary");
+        setUserThemeColor(stored);
+      }
+    };
+
+    handleThemeSync();
+    window.addEventListener('themechange', handleThemeSync);
+    return () => window.removeEventListener('themechange', handleThemeSync);
+  }, []);
+
   // Dynamic profile calculation matching Prime/Disney+
   const activeProfile = currentUser?.profiles?.find(p => p.id === currentUser.activeProfileId);
   const profileAvatar = activeProfile?.avatar || currentUser?.profileImage || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80";
   const profileName = activeProfile?.name || currentUser?.name;
-  const brandColor = settings?.primaryColor || "#E50914";
+  const brandColor = userThemeColor || settings?.primaryColor || "#E50914";
   const localSuggestions = useMemo<SearchSuggestion[]>(() => {
     const q = searchQuery.trim().toLowerCase();
     if (!q) return [];

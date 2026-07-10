@@ -93,8 +93,23 @@ export default function AdminCMS({
     onUpdateGlobalSettings(newSettings);
   };
 
+  const [userThemeColor, setUserThemeColor] = useState<string | null>(null);
+
+  useEffect(() => {
+    const handleThemeSync = () => {
+      if (typeof window !== "undefined") {
+        const stored = localStorage.getItem("user-theme-primary");
+        setUserThemeColor(stored);
+      }
+    };
+
+    handleThemeSync();
+    window.addEventListener('themechange', handleThemeSync);
+    return () => window.removeEventListener('themechange', handleThemeSync);
+  }, []);
+
   // Get brand color from settings when loaded
-  const brandColor = settings?.primaryColor || "#E50914";
+  const brandColor = userThemeColor || settings?.primaryColor || "#E50914";
 
   // Catalog Filter / Sort States
   const [catalogSearch, setCatalogSearch] = useState("");

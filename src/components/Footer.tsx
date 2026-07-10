@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Film, Github, Twitter, Instagram, Youtube, Mail, HelpCircle, Shield, Globe, Heart, ExternalLink, Tv } from "lucide-react";
 import { CMSSettings } from "../types";
 
@@ -19,7 +19,22 @@ export default function Footer({
   onOpenAuth,
   t,
 }: FooterProps) {
-  const brandColor = settings.primaryColor || "#E50914";
+  const [userThemeColor, setUserThemeColor] = useState<string | null>(null);
+
+  useEffect(() => {
+    const handleThemeSync = () => {
+      if (typeof window !== "undefined") {
+        const stored = localStorage.getItem("user-theme-primary");
+        setUserThemeColor(stored);
+      }
+    };
+
+    handleThemeSync();
+    window.addEventListener('themechange', handleThemeSync);
+    return () => window.removeEventListener('themechange', handleThemeSync);
+  }, []);
+
+  const brandColor = userThemeColor || settings.primaryColor || "#E50914";
 
   const handleNav = (tab: string, type?: "all" | "movie" | "series") => {
     setActiveTab(tab);
