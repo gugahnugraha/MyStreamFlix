@@ -260,6 +260,42 @@ export default function Header({
                 style={showSearchSuggestions ? { borderColor: `${brandColor}80`, boxShadow: `0 0 0 2px ${brandColor}20` } : {}}
                 id="header-search-input"
               />
+              {showSearchSuggestions && searchQuery.trim() && (
+                <div className="absolute right-0 top-full mt-2 w-72 rounded-lg border border-white/10 bg-zinc-950/98 shadow-2xl shadow-black/60 overflow-hidden z-50">
+                  {suggestionsLoading && searchSuggestions.length === 0 ? (
+                    <div className="px-3 py-3 text-[11px] text-zinc-500">{t.loadingSuggestions || "Loading suggestions..."}</div>
+                  ) : searchSuggestions.length > 0 ? (
+                    <div className="max-h-96 overflow-y-auto py-1">
+                      {searchSuggestions.map((item) => (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onMouseDown={(event) => {
+                            event.preventDefault();
+                            setSearchQuery(item.query || item.title);
+                            setShowSearchSuggestions(false);
+                          }}
+                          className="w-full px-2.5 py-2 text-left flex items-center gap-2.5 hover:bg-zinc-900 transition-colors"
+                        >
+                          {item.posterUrl ? (
+                            <img src={item.posterUrl} alt="" className="w-8 h-11 object-cover rounded bg-zinc-900 border border-zinc-800" />
+                          ) : (
+                            <span className="w-8 h-11 rounded bg-zinc-900 border border-zinc-800 flex items-center justify-center shrink-0">
+                              {getSuggestionIcon(item.type)}
+                            </span>
+                          )}
+                          <span className="min-w-0 flex-1">
+                            <span className="block text-xs font-bold text-zinc-100 truncate">{item.title}</span>
+                            <span className="block text-[10px] text-zinc-550 truncate">{item.subtitle}</span>
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="px-3 py-3 text-[11px] text-zinc-500">{t.noResultsFound || "No matching titles or cast found."}</div>
+                  )}
+                </div>
+              )}
             </div>
             {/* Mobile Search Toggle Button */}
             <button
@@ -271,44 +307,6 @@ export default function Header({
               <Search className="w-4 h-4" />
             </button>
           </>
-        )}
-            {showSearchSuggestions && searchQuery.trim() && (
-              <div className="absolute right-0 top-full mt-2 w-72 rounded-lg border border-white/10 bg-zinc-950/98 shadow-2xl shadow-black/60 overflow-hidden z-50">
-                {suggestionsLoading && searchSuggestions.length === 0 ? (
-                  <div className="px-3 py-3 text-[11px] text-zinc-500">{t.loadingSuggestions || "Loading suggestions..."}</div>
-                ) : searchSuggestions.length > 0 ? (
-                  <div className="max-h-96 overflow-y-auto py-1">
-                    {searchSuggestions.map((item) => (
-                      <button
-                        key={item.id}
-                        type="button"
-                        onMouseDown={(event) => {
-                          event.preventDefault();
-                          setSearchQuery(item.query || item.title);
-                          setShowSearchSuggestions(false);
-                        }}
-                        className="w-full px-2.5 py-2 text-left flex items-center gap-2.5 hover:bg-zinc-900 transition-colors"
-                      >
-                        {item.posterUrl ? (
-                          <img src={item.posterUrl} alt="" className="w-8 h-11 object-cover rounded bg-zinc-900 border border-zinc-800" />
-                        ) : (
-                          <span className="w-8 h-11 rounded bg-zinc-900 border border-zinc-800 flex items-center justify-center shrink-0">
-                            {getSuggestionIcon(item.type)}
-                          </span>
-                        )}
-                        <span className="min-w-0 flex-1">
-                          <span className="block text-xs font-bold text-zinc-100 truncate">{item.title}</span>
-                          <span className="block text-[10px] text-zinc-500 truncate">{item.subtitle}</span>
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="px-3 py-3 text-[11px] text-zinc-500">{t.noResultsFound || "No matching titles or cast found."}</div>
-                )}
-              </div>
-            )}
-          </div>
         )}
 
         {/* Premium Multi-Language Selector Dropdown */}

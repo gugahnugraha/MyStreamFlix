@@ -106,15 +106,16 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t }: 
     const handleFullscreenChange = () => {
       const isFs = !!document.fullscreenElement;
       setIsFullscreen(isFs);
+      const orientation = (screen as any).orientation || (window.screen as any).orientation;
       if (isFs) {
-        if (screen.orientation && typeof screen.orientation.lock === "function") {
-          screen.orientation.lock("landscape").catch((err) => {
+        if (orientation && typeof orientation.lock === "function") {
+          orientation.lock("landscape").catch((err: any) => {
             console.warn("Screen orientation lock failed:", err);
           });
         }
       } else {
-        if (screen.orientation && typeof screen.orientation.unlock === "function") {
-          screen.orientation.unlock();
+        if (orientation && typeof orientation.unlock === "function") {
+          orientation.unlock();
         }
       }
     };
