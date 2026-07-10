@@ -92,10 +92,13 @@ export async function getUsers(): Promise<User[]> {
   const prisma = getPrismaClient();
   if (prisma) {
     try {
-      const users = await prisma.user.findMany({
-        orderBy: { id: "asc" }
-      });
-      return users.map(mapPrismaUser);
+      const count = await prisma.user.count();
+      if (count > 0) {
+        const users = await prisma.user.findMany({
+          orderBy: { id: "asc" }
+        });
+        return users.map(mapPrismaUser);
+      }
     } catch (error) {
       console.warn("Failed to fetch users from Prisma. Fallback to in-memory.", error);
     }
@@ -435,38 +438,41 @@ export async function getMovies(filters?: {
   const prisma = getPrismaClient();
   if (prisma) {
     try {
-      const whereClause: any = {};
-      const { genre, search, sortBy, contentType } = filters || {};
-      
-      if (contentType && contentType !== "all") {
-        whereClause.contentType = contentType;
+      const count = await prisma.movie.count();
+      if (count > 0) {
+        const whereClause: any = {};
+        const { genre, search, sortBy, contentType } = filters || {};
+        
+        if (contentType && contentType !== "all") {
+          whereClause.contentType = contentType;
+        }
+        
+        if (genre && genre !== "All") {
+          whereClause.genres = { has: genre };
+        }
+        
+        if (search) {
+          whereClause.OR = [
+            { title: { contains: search, mode: "insensitive" } },
+            { description: { contains: search, mode: "insensitive" } }
+          ];
+        }
+        
+        let orderBy: any = { createdAt: "desc" };
+        if (sortBy === "rating") {
+          orderBy = { rating: "desc" };
+        } else if (sortBy === "year") {
+          orderBy = { releaseYear: "desc" };
+        } else if (sortBy === "views") {
+          orderBy = { views: "desc" };
+        }
+        
+        const movies = await prisma.movie.findMany({
+          where: whereClause,
+          orderBy
+        });
+        return movies.map(mapPrismaMovie);
       }
-      
-      if (genre && genre !== "All") {
-        whereClause.genres = { has: genre };
-      }
-      
-      if (search) {
-        whereClause.OR = [
-          { title: { contains: search, mode: "insensitive" } },
-          { description: { contains: search, mode: "insensitive" } }
-        ];
-      }
-      
-      let orderBy: any = { createdAt: "desc" };
-      if (sortBy === "rating") {
-        orderBy = { rating: "desc" };
-      } else if (sortBy === "year") {
-        orderBy = { releaseYear: "desc" };
-      } else if (sortBy === "views") {
-        orderBy = { views: "desc" };
-      }
-      
-      const movies = await prisma.movie.findMany({
-        where: whereClause,
-        orderBy
-      });
-      return movies.map(mapPrismaMovie);
     } catch (error) {
       console.warn("Failed to fetch movies from Prisma. Fallback to in-memory.", error);
     }
@@ -512,35 +518,39 @@ export async function getMovieById(id: string, incrementViews = false): Promise<
   const prisma = getPrismaClient();
   if (prisma) {
     try {
-      let movieDoc = null;
-      if (incrementViews) {
-        movieDoc = await prisma.movie.update({
-          where: { id },
-          data: { views: { increment: 1 } }
-        });
-      } else {
-        movieDoc = await prisma.movie.findUnique({
-          where: { id }
-        });
-      }
-      
-      if (movieDoc) {
-        const mappedMovie = mapPrismaMovie(movieDoc);
-        const reviews = await prisma.review.findMany({
-          where: { movieId: id },
-          orderBy: { createdAt: "desc" }
-        });
+      const count = await prisma.movie.count();
+      if (count > 0) {
+        let movieDoc = null;
+        if (incrementViews) {
+          movieDoc = await prisma.movie.update({
+            where: { id },
+            data: { views: { increment: 1 } }
+          });
+        } else {
+          movieDoc = await prisma.movie.findUnique({
+            where: { id }
+          });
+        }
         
-        return {
-          ...mappedMovie,
-          reviews: reviews.map(r => ({
-            id: r.id,
-            userName: r.userName,
-            rating: r.rating,
-            comment: r.comment,
-            date: r.date
-          }))
-        };
+        if (movieDoc) {
+          const mappedMovie = mapPrismaMovie(movieDoc);
+          const reviews = await prisma.review.findMany({
+            where: { movieId: id },
+            orderBy: { createdAt: "desc" }
+          });
+          
+          return {
+            ...mappedMovie,
+            reviews: reviews.map(r => ({
+              id: r.id,
+              userName: r.userName,
+              rating: r.rating,
+              comment: r.comment,
+              date: r.date
+            }))
+          };
+        }
+        return null;
       }
     } catch (error) {
       console.warn(`Failed fetching movie ${id} from Prisma. Fallback to in-memory.`, error);

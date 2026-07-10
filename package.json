@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "prisma generate && next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "db:setup": "prisma db push && node scripts/db-setup.js"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",
