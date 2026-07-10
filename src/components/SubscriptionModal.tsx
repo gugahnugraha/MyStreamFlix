@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { X, Check, CreditCard, Sparkles, Shield, Tv, Laptop, Smartphone, HelpCircle } from "lucide-react";
 import { User } from "../types";
 
@@ -23,6 +23,20 @@ export default function SubscriptionModal({ currentUser, onClose, onSuccess, t }
   const [cardExpiry, setCardExpiry] = useState("");
   const [cardCVV, setCardCVV] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
+  const [isLive, setIsLive] = useState(false);
+
+  useEffect(() => {
+    const fetchStatus = async () => {
+      try {
+        const res = await fetch("/api/subscription/status");
+        if (res.ok) {
+          const data = await res.json();
+          setIsLive(data.stripeActive || data.paypalActive);
+        }
+      } catch (e) {}
+    };
+    fetchStatus();
+  }, []);
 
   const plans = [
     {
@@ -158,9 +172,15 @@ export default function SubscriptionModal({ currentUser, onClose, onSuccess, t }
           <div>
             <h2 className="text-xl font-black text-white uppercase tracking-wider flex items-center gap-2">
               FlixSphere Pass
-              <span className="text-[10px] font-mono bg-red-600/10 text-red-500 border border-red-500/20 px-2 py-0.5 rounded-full lowercase tracking-normal">
-                SaaS Simulation
-              </span>
+              {isLive ? (
+                <span className="text-[10px] font-mono bg-emerald-600/10 text-emerald-500 border border-emerald-500/20 px-2 py-0.5 rounded-full lowercase tracking-normal">
+                  Live Payments (USD)
+                </span>
+              ) : (
+                <span className="text-[10px] font-mono bg-amber-500/10 text-amber-500 border border-amber-500/20 px-2 py-0.5 rounded-full lowercase tracking-normal animate-pulse">
+                  Sandbox Mode
+                </span>
+              )}
             </h2>
             <p className="text-xs text-zinc-400">{t.vipSubTitle || "Unlock the ultimate high-definition, ad-free cinema streaming experience."}</p>
           </div>

@@ -36,20 +36,15 @@
       "static/chunks/main-app.js",
       "static/chunks/app/api/user/history/route.js"
     ],
-    "/api/dashboard/stats/route": [
+    "/api/subscription/status/route": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/api/dashboard/stats/route.js"
+      "static/chunks/app/api/subscription/status/route.js"
     ],
-    "/api/users/route": [
+    "/api/subscription/paypal/checkout/route": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/api/users/route.js"
-    ],
-    "/api/auth/logout/route": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/api/auth/logout/route.js"
+      "static/chunks/app/api/subscription/paypal/checkout/route.js"
     ]
   }
 }
