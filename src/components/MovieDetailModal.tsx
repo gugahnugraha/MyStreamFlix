@@ -196,7 +196,7 @@ export default function MovieDetailModal({
         </button>
 
         {/* Compact interactive hero */}
-        <div className="relative min-h-[360px] md:min-h-[390px] w-full">
+        <div className="relative min-h-[360px] md:min-h-[390px] w-full flex flex-col justify-end">
           <img
             src={movie.backdropUrl}
             alt={movie.title}
@@ -206,7 +206,7 @@ export default function MovieDetailModal({
           <div className="absolute inset-0 bg-linear-to-t from-[#0b0b0d] via-[#0b0b0d]/70 to-black/20" />
           <div className="absolute inset-0 bg-linear-to-r from-black/82 via-black/34 to-transparent" />
 
-          <div className="absolute inset-x-0 bottom-0 p-5 md:p-7">
+          <div className="relative md:absolute md:inset-x-0 md:bottom-0 p-5 md:p-7 z-10 w-full mt-24 md:mt-0">
             <div className="flex flex-col md:flex-row md:items-end gap-5">
               <div className="group relative w-28 md:w-36 aspect-[2/3] shrink-0 rounded-lg overflow-hidden border border-white/15 bg-zinc-950 shadow-2xl shadow-black/60">
                 <img

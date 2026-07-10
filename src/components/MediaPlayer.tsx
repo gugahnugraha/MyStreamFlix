@@ -104,7 +104,19 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t }: 
   // Listen to fullscreen changes (e.g. from pressing Escape key)
   useEffect(() => {
     const handleFullscreenChange = () => {
-      setIsFullscreen(!!document.fullscreenElement);
+      const isFs = !!document.fullscreenElement;
+      setIsFullscreen(isFs);
+      if (isFs) {
+        if (screen.orientation && typeof screen.orientation.lock === "function") {
+          screen.orientation.lock("landscape").catch((err) => {
+            console.warn("Screen orientation lock failed:", err);
+          });
+        }
+      } else {
+        if (screen.orientation && typeof screen.orientation.unlock === "function") {
+          screen.orientation.unlock();
+        }
+      }
     };
 
     document.addEventListener("fullscreenchange", handleFullscreenChange);
@@ -354,7 +366,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t }: 
 
   return (
     <div 
-      className="fixed inset-0 z-50 bg-black flex flex-col md:flex-row select-none overflow-hidden"
+      className="fixed inset-0 z-50 bg-black flex flex-col landscape:flex-row md:flex-row select-none overflow-hidden"
       id="media-player-container"
     >
       {/* Primary Video Screen Area */}
@@ -562,7 +574,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t }: 
                   step={0.05}
                   value={isMuted ? 0 : volume}
                   onChange={handleVolumeChange}
-                  className="w-20 md:w-24 accent-red-600 bg-zinc-800 h-1 rounded-lg appearance-none cursor-pointer"
+                  className="hidden md:block w-20 md:w-24 accent-red-600 bg-zinc-800 h-1 rounded-lg appearance-none cursor-pointer"
                   id="hud-volume-slider"
                 />
               </div>
@@ -660,7 +672,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t }: 
 
       {/* Seasons / Episodes sidebar for TV Series */}
       {movie.contentType === "series" && movie.seasons && movie.seasons.length > 0 && (
-        <div className="w-full md:w-80 shrink-0 border-t md:border-t-0 md:border-l border-zinc-900 bg-zinc-950/95 flex flex-col h-1/3 md:h-full z-10 text-white select-none relative" id="episodes-sidebar">
+        <div className="w-full landscape:w-80 md:w-80 shrink-0 border-t landscape:border-t-0 landscape:border-l md:border-t-0 md:border-l border-zinc-900 bg-zinc-950/95 flex flex-col h-1/3 landscape:h-full md:h-full z-10 text-white select-none relative" id="episodes-sidebar">
           {/* Header */}
           <div className="p-4 border-b border-zinc-900 bg-black/40">
             <h3 className="text-sm font-extrabold tracking-wide uppercase text-zinc-400 mb-2">

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Film, Heart, LayoutDashboard, LogIn, LogOut, Search, Crown, Sparkles, Users, Globe, Clapperboard, Tv, UserRound, ChevronDown } from "lucide-react";
+import { Film, Heart, LayoutDashboard, LogIn, LogOut, Search, Crown, Sparkles, Users, Globe, Clapperboard, Tv, UserRound, ChevronDown, X } from "lucide-react";
 import { User, CMSSettings } from "../types";
 
 import { Movie } from "../types";
@@ -56,6 +56,7 @@ export default function Header({
   const [searchSuggestions, setSearchSuggestions] = useState<SearchSuggestion[]>([]);
   const [suggestionsLoading, setSuggestionsLoading] = useState(false);
   const [userThemeColor, setUserThemeColor] = useState<string | null>(null);
+  const [showMobileSearch, setShowMobileSearch] = useState(false);
 
   useEffect(() => {
     const handleThemeSync = () => {
@@ -242,22 +243,35 @@ export default function Header({
       <div className="flex items-center gap-3 sm:gap-4" id="header-actions">
         {/* Search Input */}
         {activeTab === "home" && (
-          <div className="relative hidden sm:block">
-            <Search className="absolute left-3 top-2.5 w-4 h-4 text-zinc-500 transition-colors duration-300" style={showSearchSuggestions ? { color: brandColor } : {}} />
-            <input
-              type="text"
-              placeholder={t.searchPlaceholder}
-              value={searchQuery}
-              onChange={(e) => {
-                setSearchQuery(e.target.value);
-                setShowSearchSuggestions(true);
-              }}
-              onFocus={() => setShowSearchSuggestions(true)}
-              onBlur={() => window.setTimeout(() => setShowSearchSuggestions(false), 120)}
-              className="w-32 sm:w-36 focus:w-56 focus:sm:w-64 focus:lg:w-80 hover:w-44 focus:hover:w-56 focus:sm:hover:w-64 focus:lg:hover:w-80 bg-white/[0.03] text-xs text-white pl-9 pr-4 py-2 rounded-full border border-white/10 focus:outline-hidden focus:ring-2 transition-all duration-300 ease-in-out placeholder:text-zinc-500"
-              style={showSearchSuggestions ? { borderColor: `${brandColor}80`, boxShadow: `0 0 0 2px ${brandColor}20` } : {}}
-              id="header-search-input"
-            />
+          <>
+            <div className="relative hidden sm:block">
+              <Search className="absolute left-3 top-2.5 w-4 h-4 text-zinc-500 transition-colors duration-300" style={showSearchSuggestions ? { color: brandColor } : {}} />
+              <input
+                type="text"
+                placeholder={t.searchPlaceholder}
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setShowSearchSuggestions(true);
+                }}
+                onFocus={() => setShowSearchSuggestions(true)}
+                onBlur={() => window.setTimeout(() => setShowSearchSuggestions(false), 120)}
+                className="w-32 sm:w-36 focus:w-56 focus:sm:w-64 focus:lg:w-80 hover:w-44 focus:hover:w-56 focus:sm:hover:w-64 focus:lg:hover:w-80 bg-white/[0.03] text-xs text-white pl-9 pr-4 py-2 rounded-full border border-white/10 focus:outline-hidden focus:ring-2 transition-all duration-300 ease-in-out placeholder:text-zinc-500"
+                style={showSearchSuggestions ? { borderColor: `${brandColor}80`, boxShadow: `0 0 0 2px ${brandColor}20` } : {}}
+                id="header-search-input"
+              />
+            </div>
+            {/* Mobile Search Toggle Button */}
+            <button
+              onClick={() => setShowMobileSearch(true)}
+              className="sm:hidden w-8 h-8 rounded-full bg-white/[0.03] border border-white/10 flex items-center justify-center text-zinc-300 hover:text-white cursor-pointer"
+              title={t.searchPlaceholder}
+              id="header-search-mobile-toggle"
+            >
+              <Search className="w-4 h-4" />
+            </button>
+          </>
+        )}
             {showSearchSuggestions && searchQuery.trim() && (
               <div className="absolute right-0 top-full mt-2 w-72 rounded-lg border border-white/10 bg-zinc-950/98 shadow-2xl shadow-black/60 overflow-hidden z-50">
                 {suggestionsLoading && searchSuggestions.length === 0 ? (
@@ -484,6 +498,69 @@ export default function Header({
           </button>
         )}
       </div>
+
+      {/* Mobile Search Overlay */}
+      {showMobileSearch && (
+        <div className="absolute inset-0 bg-[#070708] px-4 flex items-center gap-3 z-50 animate-in fade-in slide-in-from-top-1 duration-200">
+          <button
+            onClick={() => {
+              setShowMobileSearch(false);
+              setSearchQuery("");
+            }}
+            className="w-8 h-8 rounded-full bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-400 hover:text-white cursor-pointer"
+            id="mobile-search-close"
+          >
+            <X className="w-4.5 h-4.5" />
+          </button>
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-2.5 w-4 h-4 text-zinc-500" />
+            <input
+              type="text"
+              placeholder={t.searchPlaceholder}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-zinc-900 text-xs text-white pl-9 pr-4 py-2 rounded-full border border-zinc-800 focus:outline-hidden focus:ring-1 focus:ring-red-500 placeholder:text-zinc-500"
+              autoFocus
+              id="mobile-search-input"
+            />
+            {searchQuery.trim() && (
+              <div className="absolute left-0 right-0 top-full mt-2 bg-zinc-950/98 border border-white/10 rounded-lg shadow-2xl overflow-hidden z-50 max-h-80 overflow-y-auto">
+                {suggestionsLoading && searchSuggestions.length === 0 ? (
+                  <div className="px-3 py-3 text-[11px] text-zinc-500">{t.loadingSuggestions || "Loading suggestions..."}</div>
+                ) : searchSuggestions.length > 0 ? (
+                  <div className="py-1">
+                    {searchSuggestions.map((item) => (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => {
+                          setSearchQuery(item.query || item.title);
+                          setShowMobileSearch(false);
+                        }}
+                        className="w-full px-3 py-2.5 text-left flex items-center gap-2.5 hover:bg-zinc-900 border-b border-zinc-900 last:border-b-0 transition-colors"
+                      >
+                        {item.posterUrl ? (
+                          <img src={item.posterUrl} alt="" className="w-8 h-11 object-cover rounded bg-zinc-900 border border-zinc-800" />
+                        ) : (
+                          <span className="w-8 h-11 rounded bg-zinc-900 border border-zinc-800 flex items-center justify-center shrink-0">
+                            {getSuggestionIcon(item.type)}
+                          </span>
+                        )}
+                        <span className="min-w-0 flex-1">
+                          <span className="block text-xs font-bold text-zinc-100 truncate">{item.title}</span>
+                          <span className="block text-[10px] text-zinc-500 truncate">{item.subtitle}</span>
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="px-3 py-3 text-[11px] text-zinc-500">{t.noResultsFound || "No matching titles or cast found."}</div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </header>
   );
 }
