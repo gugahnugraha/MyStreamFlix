@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { subscribeUser } from "@/src/lib/data-service";
-import crypto from "crypto";
+import Stripe from "stripe";
 
 export const dynamic = "force-dynamic";
 
@@ -9,44 +9,27 @@ export async function POST(request: NextRequest) {
     const body = await request.text();
     const signature = request.headers.get("stripe-signature");
     const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+    const stripeSecret = process.env.STRIPE_SECRET_KEY;
 
-    // Skip validation if stripe webhook secret is default/not set
-    if (!signature || !webhookSecret || webhookSecret.includes("placeholder")) {
-      return NextResponse.json({ error: "Webhook signature credentials are missing in .env." }, { status: 400 });
+    if (!signature || !webhookSecret || webhookSecret.includes("placeholder") || !stripeSecret) {
+      return NextResponse.json({ error: "Webhook signature credentials or secrets are missing in .env." }, { status: 400 });
     }
 
-    // Manual, native validation of the Stripe webhook signature to remain dependency-free
-    const parts = signature.split(",");
-    const timestampPart = parts.find(p => p.startsWith("t="));
-    const signaturePart = parts.find(p => p.startsWith("v1="));
+    // Initialize official Stripe SDK client
+    const stripe = new Stripe(stripeSecret);
 
-    if (!timestampPart || !signaturePart) {
-      return NextResponse.json({ error: "Malformed stripe-signature header format." }, { status: 400 });
+    let event: Stripe.Event;
+
+    try {
+      // Validate signature securely using Stripe SDK
+      event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
+    } catch (err: any) {
+      return NextResponse.json({ error: `Stripe signature validation check failed: ${err.message}` }, { status: 401 });
     }
 
-    const timestamp = timestampPart.split("=")[1];
-    const stripeSig = signaturePart.split("=")[1];
-
-    const signedPayload = `${timestamp}.${body}`;
-    const expectedSig = crypto
-      .createHmac("sha256", webhookSecret)
-      .update(signedPayload)
-      .digest("hex");
-
-    // Timing-safe comparison to prevent timing verification attacks
-    const bufferStripeSig = Buffer.from(stripeSig, "utf-8");
-    const bufferExpectedSig = Buffer.from(expectedSig, "utf-8");
-
-    if (bufferStripeSig.length !== bufferExpectedSig.length || 
-        !crypto.timingSafeEqual(bufferStripeSig, bufferExpectedSig)) {
-      return NextResponse.json({ error: "Stripe signature validation check failed." }, { status: 401 });
-    }
-
-    const payload = JSON.parse(body);
-    
     // React to completed subscription checkout signals
-    if (payload.type === "checkout.session.completed") {
-      const session = payload.data.object;
+    if (event.type === "checkout.session.completed") {
+      const session = event.data.object as Stripe.Checkout.Session;
       const userId = session.metadata?.userId || session.client_reference_id;
       
       if (userId) {

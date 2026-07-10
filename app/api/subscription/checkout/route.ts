@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentSessionUser } from "@/src/lib/session";
+import Stripe from "stripe";
 
 export const dynamic = "force-dynamic";
 
@@ -37,33 +38,33 @@ export async function POST(request: NextRequest) {
 
     const origin = request.headers.get("origin") || "http://localhost:3000";
 
-    // Call official Stripe API directly with standard fetch for zero-npm weight dependency
-    const stripeResponse = await fetch("https://api.stripe.com/v1/checkout/sessions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${stripeSecret}`,
-        "Content-Type": "application/x-www-form-urlencoded",
+    // Initialize official Stripe SDK client
+    const stripe = new Stripe(stripeSecret);
+
+    // Call checkout session creation using official Stripe SDK
+    const session = await stripe.checkout.sessions.create({
+      mode: "subscription",
+      payment_method_types: ["card"], // Supports credit cards in USD
+      line_items: [
+        {
+          price: priceId,
+          quantity: 1,
+        },
+      ],
+      success_url: `${origin}/?checkout=success&plan=${planId}`,
+      cancel_url: `${origin}/?checkout=cancelled`,
+      client_reference_id: sessionUser.id,
+      metadata: {
+        userId: sessionUser.id,
+        planId: planId,
       },
-      body: new URLSearchParams({
-        "mode": "subscription",
-        "payment_method_types[0]": "card", // Support credit cards natively in USD
-        "line_items[0][price]": priceId,
-        "line_items[0][quantity]": "1",
-        "success_url": `${origin}/?checkout=success&plan=${planId}`,
-        "cancel_url": `${origin}/?checkout=cancelled`,
-        "client_reference_id": sessionUser.id,
-        "metadata[userId]": sessionUser.id,
-        "metadata[planId]": planId,
-      }).toString()
     });
 
-    const stripeData = await stripeResponse.json();
-
-    if (!stripeResponse.ok) {
-      throw new Error(stripeData.error?.message || "Stripe session creation failed.");
+    if (!session.url) {
+      throw new Error("Failed to generate Stripe checkout session URL.");
     }
 
-    return NextResponse.json({ url: stripeData.url });
+    return NextResponse.json({ url: session.url });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }

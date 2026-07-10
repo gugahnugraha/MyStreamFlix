@@ -113,6 +113,13 @@
       "static/chunks/main-app-1991340b86e54eb9.js",
       "static/chunks/app/api/auth/logout/route-9875830ba1f22e7c.js"
     ],
+    "/api/auth/me/route": [
+      "static/chunks/webpack-2324204d119887eb.js",
+      "static/chunks/4bd1b696-c023c6e3521b1417.js",
+      "static/chunks/255-3981a3d1f3561bd8.js",
+      "static/chunks/main-app-1991340b86e54eb9.js",
+      "static/chunks/app/api/auth/me/route-9875830ba1f22e7c.js"
+    ],
     "/api/auth/account/route": [
       "static/chunks/webpack-2324204d119887eb.js",
       "static/chunks/4bd1b696-c023c6e3521b1417.js",
@@ -126,20 +133,6 @@
       "static/chunks/255-3981a3d1f3561bd8.js",
       "static/chunks/main-app-1991340b86e54eb9.js",
       "static/chunks/app/api/auth/login/route-9875830ba1f22e7c.js"
-    ],
-    "/api/auth/me/route": [
-      "static/chunks/webpack-2324204d119887eb.js",
-      "static/chunks/4bd1b696-c023c6e3521b1417.js",
-      "static/chunks/255-3981a3d1f3561bd8.js",
-      "static/chunks/main-app-1991340b86e54eb9.js",
-      "static/chunks/app/api/auth/me/route-9875830ba1f22e7c.js"
-    ],
-    "/api/auth/subscribe/route": [
-      "static/chunks/webpack-2324204d119887eb.js",
-      "static/chunks/4bd1b696-c023c6e3521b1417.js",
-      "static/chunks/255-3981a3d1f3561bd8.js",
-      "static/chunks/main-app-1991340b86e54eb9.js",
-      "static/chunks/app/api/auth/subscribe/route-9875830ba1f22e7c.js"
     ],
     "/api/auth/register/route": [
       "static/chunks/webpack-2324204d119887eb.js",
@@ -162,6 +155,13 @@
       "static/chunks/main-app-1991340b86e54eb9.js",
       "static/chunks/app/api/dashboard/stats/route-9875830ba1f22e7c.js"
     ],
+    "/api/auth/subscribe/route": [
+      "static/chunks/webpack-2324204d119887eb.js",
+      "static/chunks/4bd1b696-c023c6e3521b1417.js",
+      "static/chunks/255-3981a3d1f3561bd8.js",
+      "static/chunks/main-app-1991340b86e54eb9.js",
+      "static/chunks/app/api/auth/subscribe/route-9875830ba1f22e7c.js"
+    ],
     "/api/subscription/checkout/route": [
       "static/chunks/webpack-2324204d119887eb.js",
       "static/chunks/4bd1b696-c023c6e3521b1417.js",
@@ -176,19 +176,19 @@
       "static/chunks/main-app-1991340b86e54eb9.js",
       "static/chunks/app/api/subscription/paypal/webhook/route-9875830ba1f22e7c.js"
     ],
-    "/api/subscription/paypal/checkout/route": [
-      "static/chunks/webpack-2324204d119887eb.js",
-      "static/chunks/4bd1b696-c023c6e3521b1417.js",
-      "static/chunks/255-3981a3d1f3561bd8.js",
-      "static/chunks/main-app-1991340b86e54eb9.js",
-      "static/chunks/app/api/subscription/paypal/checkout/route-9875830ba1f22e7c.js"
-    ],
     "/api/subscription/webhook/route": [
       "static/chunks/webpack-2324204d119887eb.js",
       "static/chunks/4bd1b696-c023c6e3521b1417.js",
       "static/chunks/255-3981a3d1f3561bd8.js",
       "static/chunks/main-app-1991340b86e54eb9.js",
       "static/chunks/app/api/subscription/webhook/route-9875830ba1f22e7c.js"
+    ],
+    "/api/subscription/paypal/checkout/route": [
+      "static/chunks/webpack-2324204d119887eb.js",
+      "static/chunks/4bd1b696-c023c6e3521b1417.js",
+      "static/chunks/255-3981a3d1f3561bd8.js",
+      "static/chunks/main-app-1991340b86e54eb9.js",
+      "static/chunks/app/api/subscription/paypal/checkout/route-9875830ba1f22e7c.js"
     ],
     "/api/user/favorites/route": [
       "static/chunks/webpack-2324204d119887eb.js",
