@@ -785,10 +785,22 @@ export default function AdminCMS({
                       <span className="text-[10px] font-mono font-semibold text-zinc-400 opacity-0 group-hover:opacity-100 transition-opacity">
                         {item.count}
                       </span>
-                      <div className="w-8 bg-zinc-900 group-hover:bg-red-600 rounded-sm relative overflow-hidden transition-colors" style={{ height: "110px" }}>
+                      <div 
+                        className="w-8 bg-zinc-900 rounded-sm relative overflow-hidden transition-all duration-300 cursor-pointer" 
+                        style={{ height: "110px" }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.backgroundColor = `${globalSettings.primaryColor}15`;
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.backgroundColor = "";
+                        }}
+                      >
                         <div 
-                          className="bg-red-600/35 h-full absolute bottom-0 left-0 right-0 transition-all duration-500" 
-                          style={{ height: `${percentage}%` }}
+                          className="h-full absolute bottom-0 left-0 right-0 transition-all duration-500" 
+                          style={{ 
+                            height: `${percentage}%`,
+                            backgroundColor: globalSettings.primaryColor
+                          }}
                         />
                       </div>
                       <span className="text-[10px] font-semibold text-zinc-500">{item.date}</span>
@@ -823,21 +835,187 @@ export default function AdminCMS({
             </div>
           </div>
 
-          {/* Genre Distribution Badges */}
-          <div className="bg-zinc-950 border border-zinc-900 p-5 rounded-xl space-y-3">
-            <h3 className="text-xs font-bold text-zinc-400 tracking-wider uppercase">Genre Saturation</h3>
-            <div className="flex flex-wrap gap-2">
-              {stats.genreDistribution.map((item, idx) => (
-                <div 
-                  key={idx} 
-                  className="px-3 py-1.5 rounded-lg bg-zinc-900 border border-zinc-850 flex items-center gap-2 text-xs font-semibold"
-                >
-                  <span className="text-zinc-300">{item.name}</span>
-                  <span className="px-1.5 py-0.2 rounded-sm bg-red-600/15 text-red-400 font-mono text-[10px]">
-                    {item.count} {t.cmsItems}
-                  </span>
+          {/* Genre Saturation Donut Chart */}
+          <div className="bg-zinc-950 border border-zinc-900 p-5 rounded-xl space-y-5">
+            <h3 className="text-xs font-bold text-zinc-400 tracking-wider uppercase">Genre Distribution Donut</h3>
+            {(() => {
+              const totalGenres = stats.genreDistribution.reduce((sum, g) => sum + g.count, 0);
+              const chartData = [...stats.genreDistribution]
+                .sort((a, b) => b.count - a.count)
+                .slice(0, 6);
+              
+              const palette = [
+                globalSettings.primaryColor,
+                "#38BDF8", // sky blue
+                "#F59E0B", // amber
+                "#10B981", // emerald
+                "#8B5CF6", // purple
+                "#EC4899"  // pink
+              ];
+              
+              let accumulatedPercent = 0;
+              
+              return (
+                <div className="flex flex-col lg:flex-row items-center gap-8">
+                  {/* SVG Donut */}
+                  <div className="relative w-36 h-36 flex items-center justify-center shrink-0">
+                    <svg className="w-full h-full transform -rotate-90" viewBox="0 0 42 42">
+                      {/* Background circle */}
+                      <circle
+                        cx="21"
+                        cy="21"
+                        r="15.915"
+                        fill="transparent"
+                        stroke="#18181b"
+                        strokeWidth="3.5"
+                      />
+                      {/* Segment circles */}
+                      {chartData.map((item, idx) => {
+                        const percent = totalGenres > 0 ? (item.count / totalGenres) * 100 : 0;
+                        const strokeDasharray = `${percent} ${100 - percent}`;
+                        const strokeDashoffset = 100 - accumulatedPercent;
+                        accumulatedPercent += percent;
+                        const color = palette[idx % palette.length];
+                        
+                        return (
+                          <circle
+                            key={idx}
+                            cx="21"
+                            cy="21"
+                            r="15.915"
+                            fill="transparent"
+                            stroke={color}
+                            strokeWidth="3.5"
+                            strokeDasharray={strokeDasharray}
+                            strokeDashoffset={strokeDashoffset}
+                            className="transition-all duration-700 hover:stroke-[4px] cursor-pointer"
+                          />
+                        );
+                      })}
+                    </svg>
+                    <div className="absolute text-center">
+                      <p className="text-2xl font-black text-white">{stats.totalMovies}</p>
+                      <p className="text-[8px] text-zinc-500 font-bold uppercase tracking-wider">Titles</p>
+                    </div>
+                  </div>
+
+                  {/* Legend and percentage list */}
+                  <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 w-full">
+                    {chartData.map((item, idx) => {
+                      const percent = totalGenres > 0 ? Math.round((item.count / totalGenres) * 100) : 0;
+                      const color = palette[idx % palette.length];
+                      return (
+                        <div key={idx} className="flex items-center gap-3 p-3 bg-zinc-900/30 border border-zinc-900 rounded-xl">
+                          <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: color }} />
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center justify-between text-xs">
+                              <span className="font-bold text-zinc-300 truncate">{item.name}</span>
+                              <span className="font-mono text-zinc-450 font-bold ml-2">{percent}%</span>
+                            </div>
+                            <div className="w-full bg-zinc-950 h-1.5 rounded-full mt-1.5 overflow-hidden">
+                              <div className="h-full rounded-full transition-all duration-500" style={{ width: `${percent}%`, backgroundColor: color }} />
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
-              ))}
+              );
+            })()}
+          </div>
+
+          {/* User Segmentation & Mode Splits */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* VIP Subscription Split */}
+            <div className="bg-zinc-950 border border-zinc-900 p-5 rounded-xl space-y-4">
+              <h3 className="text-xs font-bold text-zinc-400 tracking-wider uppercase">VIP Premium Conversion Ratio</h3>
+              {(() => {
+                const free = stats.subscriptionSplit?.free || 0;
+                const premium = stats.subscriptionSplit?.premium || 0;
+                const total = free + premium || 1;
+                const premiumPercent = Math.round((premium / total) * 100);
+                const freePercent = 100 - premiumPercent;
+                return (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-zinc-400 flex items-center gap-1.5">
+                        <span className="w-2.5 h-2.5 rounded-full bg-zinc-700" />
+                        Standard Free ({free})
+                      </span>
+                      <span className="text-amber-400 font-bold flex items-center gap-1.5">
+                        <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse" />
+                        VIP Premium ({premium})
+                      </span>
+                    </div>
+                    
+                    {/* Stacking progress bar */}
+                    <div className="h-3.5 w-full bg-zinc-900 rounded-lg overflow-hidden flex">
+                      <div 
+                        className="bg-zinc-700 h-full transition-all duration-500" 
+                        style={{ width: `${freePercent}%` }} 
+                        title={`Free: ${freePercent}%`}
+                      />
+                      <div 
+                        className="h-full transition-all duration-500" 
+                        style={{ 
+                          width: `${premiumPercent}%`, 
+                          backgroundColor: globalSettings.primaryColor 
+                        }}
+                        title={`VIP Premium: ${premiumPercent}%`}
+                      />
+                    </div>
+                    <p className="text-[10px] text-zinc-500 leading-relaxed">
+                      Currently <span className="text-white font-bold">{premiumPercent}%</span> of SaaS accounts have VIP access. 
+                      Increase promotion activities to drive conversion ratios.
+                    </p>
+                  </div>
+                );
+              })()}
+            </div>
+
+            {/* Profile split */}
+            <div className="bg-zinc-950 border border-zinc-900 p-5 rounded-xl space-y-4">
+              <h3 className="text-xs font-bold text-zinc-400 tracking-wider uppercase">Viewer Profile Splits</h3>
+              {(() => {
+                const adult = stats.profileSplit?.adult || 0;
+                const kids = stats.profileSplit?.kids || 0;
+                const total = adult + kids || 1;
+                const adultPercent = Math.round((adult / total) * 100);
+                const kidsPercent = 100 - adultPercent;
+                return (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-zinc-400 flex items-center gap-1.5">
+                        <span className="w-2.5 h-2.5 rounded-full bg-sky-500" />
+                        Adult Viewers ({adult})
+                      </span>
+                      <span className="text-pink-400 font-bold flex items-center gap-1.5">
+                        <span className="w-2.5 h-2.5 rounded-full bg-pink-500" />
+                        Kids Mode ({kids})
+                      </span>
+                    </div>
+                    
+                    {/* Stacking progress bar */}
+                    <div className="h-3.5 w-full bg-zinc-900 rounded-lg overflow-hidden flex">
+                      <div 
+                        className="bg-sky-500 h-full transition-all duration-500" 
+                        style={{ width: `${adultPercent}%` }} 
+                        title={`Adult Profiles: ${adultPercent}%`}
+                      />
+                      <div 
+                        className="bg-pink-500 h-full transition-all duration-500" 
+                        style={{ width: `${kidsPercent}%` }} 
+                        title={`Kids Mode Profiles: ${kidsPercent}%`}
+                      />
+                    </div>
+                    <p className="text-[10px] text-zinc-500 leading-relaxed">
+                      Sub-profiles are segmented into <span className="text-white font-bold">{kidsPercent}%</span> Kids-mode. 
+                      Modify content safety limits to align catalog listings.
+                    </p>
+                  </div>
+                );
+              })()}
             </div>
           </div>
         </div>

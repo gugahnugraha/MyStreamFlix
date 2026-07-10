@@ -100,6 +100,8 @@ export interface DashboardStats {
   recentViews: { date: string; count: number }[];
   genreDistribution: { name: string; count: number }[];
   topMovies: { id: string; title: string; views: number; rating: number }[];
+  profileSplit: { kids: number; adult: number };
+  subscriptionSplit: { free: number; premium: number };
 }
 
 export interface CMSSettings {

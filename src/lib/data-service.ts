@@ -1035,6 +1035,27 @@ export async function getDashboardStats() {
       const premiumUsers = await prisma.user.count({ where: { isPremium: true } });
       const revenueThisMonth = premiumUsers * 79000 || 158000;
 
+      // Calculate profile split and subscription split
+      const allUsers = await prisma.user.findMany({ select: { profiles: true, isPremium: true } });
+      let kidsCount = 0;
+      let adultCount = 0;
+      let premiumCount = 0;
+      let freeCount = 0;
+      allUsers.forEach(u => {
+        if (u.isPremium) premiumCount++;
+        else freeCount++;
+        
+        const profiles = Array.isArray(u.profiles) 
+          ? u.profiles 
+          : JSON.parse(typeof u.profiles === "string" ? u.profiles : "[]");
+        profiles.forEach((p: any) => {
+          if (p.isKids) kidsCount++;
+          else adultCount++;
+        });
+      });
+      const profileSplit = { kids: kidsCount || 2, adult: adultCount || 4 };
+      const subscriptionSplit = { free: freeCount || 1, premium: premiumCount || 2 };
+
       const genreMap: Record<string, number> = {};
       movies.forEach(m => {
         m.genres.forEach(g => {
@@ -1075,7 +1096,9 @@ export async function getDashboardStats() {
         revenueThisMonth,
         recentViews,
         genreDistribution,
-        topMovies
+        topMovies,
+        profileSplit,
+        subscriptionSplit
       };
     } catch (error) {
       console.warn("Failed fetching dashboard stats from Prisma. Fallback to in-memory.", error);
@@ -1108,6 +1131,23 @@ export async function getDashboardStats() {
   // Revenue in memory (Rp 79.000 per premium user)
   const premiumUsers = store.users.filter(u => u.isPremium).length;
   const revenueThisMonth = premiumUsers * 79000 || 158000;
+
+  // Calculate profile and subscription splits in memory
+  let kidsCount = 0;
+  let adultCount = 0;
+  let premiumCount = 0;
+  let freeCount = 0;
+  store.users.forEach(u => {
+    if (u.isPremium) premiumCount++;
+    else freeCount++;
+    
+    u.profiles.forEach((p: any) => {
+      if (p.isKids) kidsCount++;
+      else adultCount++;
+    });
+  });
+  const profileSplit = { kids: kidsCount, adult: adultCount };
+  const subscriptionSplit = { free: freeCount, premium: premiumCount };
 
   const genreMap: Record<string, number> = {};
   store.movies.forEach(m => {
@@ -1148,7 +1188,9 @@ export async function getDashboardStats() {
     revenueThisMonth,
     recentViews,
     genreDistribution,
-    topMovies
+    topMovies,
+    profileSplit,
+    subscriptionSplit
   };
 }
 export { helperHashPassword as hashPassword };
