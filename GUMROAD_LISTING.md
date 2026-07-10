@@ -20,6 +20,7 @@ Use this document to quickly fill in your product listing page on Gumroad, Lemon
 
 ## 🌟 What makes MyStreamFlix different? (The "Sales Hooks")
 *   **Zero Complex Database Setup Fallback**: Operates on a smart hybrid database model. Runs instantly locally via an in-memory data store with preloaded movie seed catalogs out of the box—perfect for demonstrating to clients or testing!
+*   **Smart Database Fallback & Seeding**: Running `npm run db:setup` initializes tables and registers **exactly 1 Admin Account** (`admin@streamcms.com` / `admin`). If the database has 0 movies, it automatically falls back to showing 100 local dummy movies in-memory, switching to database-only mode once you import content!
 *   **Plug-and-Play Stripe & PayPal Subscriptions (USD)**: Fully integrated out of the box! Supports Credit Cards via the official Stripe SDK and PayPal subscriptions. The website owner only has to copy their API keys into the `.env` file to go live.
 *   **Zero-Config Payment Sandbox**: If payment credentials are left blank in `.env`, the checkout automatically falls back to an interactive simulated credit card payment flow.
 *   **Instant TMDB (The Movie Database) Metadata Integrator**: Admin CMS lets you search titles and instantly auto-fill metadata—synopsis, poster/backdrop image links, release year, genres, directors, cast lists, and TV series season/episode schemas.
@@ -94,7 +95,7 @@ Use this document to quickly fill in your product listing page on Gumroad, Lemon
 A: No! MyStreamFlix runs on an optimized, highly-portable in-memory state engine out of the box, making it exceptionally easy to host on cost-effective virtual servers, local machines, or test setups. *Note: When deploying to production serverless environments like Vercel, a database connection is required to persist data between serverless cold starts.*
 
 **Q: Can I connect my own database if needed later?**
-A: Yes! The database backend uses Prisma ORM. Simply configure the `DATABASE_URL` environment variable to connect to Supabase, PostgreSQL, or MongoDB, and run `npx prisma db push` to initialize tables automatically.
+A: Yes! The database backend uses Prisma ORM. Simply configure the `DATABASE_URL` environment variable to connect to Supabase, PostgreSQL, or MongoDB, and run `npm run db:setup` to initialize tables, seed settings, and register exactly 1 Admin Account (`admin@streamcms.com` / `admin`).
 
 **Q: Is it easy to brand or customize the logo?**
 A: Absolutely. All styles are declared with Tailwind CSS. Plus, you can change the site name, logo text, primary brand color presets, and SEO settings directly from the Admin CMS panel!

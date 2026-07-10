@@ -32,6 +32,7 @@ export default function MovieDetailModal({
   const [similarMovies, setSimilarMovies] = useState<Movie[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [showTrailer, setShowTrailer] = useState(false);
 
   // Season and episode state inside the details dialog
   const [activeModalSeason, setActiveModalSeason] = useState<any>(null);
@@ -48,6 +49,7 @@ export default function MovieDetailModal({
   // Sync activeId when prop changes
   useEffect(() => {
     setActiveId(movieId);
+    setShowTrailer(false);
   }, [movieId]);
 
   // Review Form state
@@ -268,7 +270,8 @@ export default function MovieDetailModal({
                   {movie.description}
                 </p>
 
-                <div className="mt-5 flex flex-wrap items-center gap-2">                  <button
+                <div className="mt-5 flex flex-wrap items-center gap-2">
+                  <button
                     onClick={() => onPlay(movie)}
                     className="flex items-center gap-2 text-white font-bold text-xs px-5 py-2.5 rounded-md transition-all shadow-lg cursor-pointer hover:brightness-110 active:scale-95"
                     style={{ backgroundColor: "var(--theme-primary)", boxShadow: "0 14px 30px var(--theme-primary-20)" }}
@@ -277,6 +280,17 @@ export default function MovieDetailModal({
                     <Play className="w-4 h-4 fill-white" />
                     {t.watch || "Stream Now"}
                   </button>
+
+                  {movie.trailerUrl && (
+                    <button
+                      onClick={() => setShowTrailer(true)}
+                      className="h-10 px-4 flex items-center gap-2 rounded-md border border-white/20 bg-white/10 text-white font-bold text-xs hover:bg-white/20 active:scale-95 transition-all cursor-pointer shadow-lg"
+                      id="modal-trailer-btn"
+                    >
+                      <Film className="w-4 h-4" />
+                      {t.watchTrailer || "Watch Trailer"}
+                    </button>
+                  )}
  
                   <button
                     onClick={() => onToggleFavorite(movie.id)}
@@ -644,6 +658,28 @@ export default function MovieDetailModal({
           </div>
         )}
       </div>
+      
+      {/* Cinematic YouTube Trailer Player Overlay */}
+      {showTrailer && movie && movie.trailerUrl && (
+        <div className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4 md:p-8 backdrop-blur-md animate-fade-in-quick">
+          <div className="relative w-full max-w-4xl aspect-video bg-zinc-950 rounded-lg overflow-hidden border border-white/10 shadow-2xl">
+            <button
+              onClick={() => setShowTrailer(false)}
+              className="absolute top-4 right-4 z-10 w-9 h-9 rounded-full bg-black/60 text-white flex items-center justify-center hover:[background-color:var(--theme-primary)] transition-colors shadow-lg cursor-pointer border border-white/10"
+              title="Close Trailer"
+            >
+              <X className="w-4.5 h-4.5" />
+            </button>
+            <iframe
+              src={movie.trailerUrl}
+              title={`${movie.title} Trailer`}
+              className="w-full h-full border-0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+            ></iframe>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

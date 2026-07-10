@@ -13,7 +13,34 @@ export async function GET(
     if (!movie) {
       return NextResponse.json({ error: "Movie not found" }, { status: 404 });
     }
-    return NextResponse.json(movie);
+
+    // Determine fallback trailer search link
+    let trailerUrl = `https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(movie.title + " Official Trailer")}`;
+
+    // If tmdbId is set, fetch official trailer from TMDB
+    const apiKey = process.env.TMDB_API_KEY?.trim();
+    if (movie.tmdbId && apiKey && apiKey !== "MY_TMDB_API_KEY") {
+      try {
+        const mediaType = movie.tmdbMediaType === "series" ? "tv" : (movie.tmdbMediaType || "movie");
+        const tmdbUrl = `https://api.themoviedb.org/3/${mediaType}/${movie.tmdbId}/videos?api_key=${apiKey}&language=en-US`;
+        const res = await fetch(tmdbUrl);
+        if (res.ok) {
+          const data = await res.json();
+          const trailer = (data.results || []).find((v: any) => v.type === "Trailer" && v.site === "YouTube") ||
+                          (data.results || []).find((v: any) => v.site === "YouTube");
+          if (trailer?.key) {
+            trailerUrl = `https://www.youtube.com/embed/${trailer.key}?autoplay=1&rel=0`;
+          }
+        }
+      } catch (err) {
+        console.warn("Failed to fetch official trailer from TMDB:", err);
+      }
+    }
+
+    return NextResponse.json({
+      ...movie,
+      trailerUrl
+    });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }

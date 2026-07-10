@@ -62,6 +62,7 @@ export interface Movie {
   tier?: "free" | "vip" | "premium"; // content classification like Hotstar/Prime
   contentType?: "movie" | "series";
   seasons?: Season[];
+  trailerUrl?: string;
 }
 
 export interface UserProfile {

@@ -9,9 +9,11 @@ It features a gorgeous cinematic player, robust comment boards, real-time analyt
 ## ⚡ Key Highlights & Architecture
 
 - **Modern Next.js 15 Stack**: Designed with a serverless-ready Next.js App Router architecture for optimized performance.
-- **Hybrid Data Storage Engine (Zero-Config Fallback)**:
+- **Hybrid Data Storage Engine (Smart Fallback & Zero-Config)**:
   - **In-Memory Mode**: If no database is configured, the application runs instantly out-of-the-box using an in-memory data store. Perfect for local previews or zero-setup deployments!
-  - **Prisma Database Mode**: When a `DATABASE_URL` is supplied, the app automatically switches to database persistence. Compatible with **Supabase**, **MongoDB**, and **PostgreSQL**.
+  - **Database Mode with Smart Fallback**: When a `DATABASE_URL` is supplied, the app automatically switches to database persistence (supporting **Neon**, **Supabase**, **MongoDB**, and **PostgreSQL**).
+  - **Automatic Movie Fallback**: If your database is connected but has **0 movies**, the app automatically falls back to displaying the local 100 dummy movies. Once you import a movie, the app dynamically hides the dummy movies and displays only your database catalog.
+  - **Automatic User Fallback**: If the database has **0 users**, it falls back to the in-memory default accounts. To facilitate testing, the default admin account `admin@streamcms.com` remains login-accessible via fallback even when the database is active with other registered accounts.
 - **Stateful Multi-User Space & Secure Sessions**:
   - **Cryptographically Signed Cookies (HMAC SHA-256)**: Implements secure cookie verification preventing session hijacking or client-side user ID tampering.
   - **Session Persistence**: Sessions are robustly cached and persisted globally across Hot Module Replacement (HMR) reloads and browser refreshes.
@@ -95,7 +97,7 @@ The app will run automatically in **In-Memory Mode** since no `DATABASE_URL` is 
 To persist user registrations, catalogs, and watch history permanently, connect a database using Prisma ORM.
 
 > [!IMPORTANT]
-> `npx prisma db push` only **creates the table structure** (empty tables) in your database. It does **not** import any data. You fill the database yourself by adding movies via the Admin CMS after deployment.
+> Running `npm run db:setup` is the recommended way to initialize your database. It pushes the table schemas and seeds the default CMS settings and exactly **1 Admin Account** (`admin@streamcms.com` / `admin`). The movies database starts clean and empty, allowing you to manually import content via the Admin CMS.
 
 ### Option A: Neon.tech (PostgreSQL) - *Recommended for Vercel*
 Neon.tech offers a free serverless PostgreSQL database with a generous free tier, natively optimized for Vercel deployments.
@@ -108,11 +110,11 @@ Neon.tech offers a free serverless PostgreSQL database with a generous free tier
    DATABASE_URL="postgresql://user:password@ep-xxx.ap-southeast-1.aws.neon.tech/neondb?sslmode=require"
    TMDB_API_KEY="your_tmdb_key_here" # Optional
    ```
-3. **Create Tables (run once from your local machine)**:
+3. **Initialize Database (run once from your local machine)**:
    ```bash
-   npx prisma db push
+   npm run db:setup
    ```
-   This connects from your local machine to Neon.tech and creates all required tables. The database will be empty — ready for you to populate via the Admin CMS.
+   This connects from your local machine to Neon.tech, creates all required tables, seeds global settings, and registers exactly 1 Admin account (`admin@streamcms.com`).
 4. **Run Application**:
    Launch `npm run dev` — the app will now read/write directly to your Neon.tech database.
 
@@ -130,10 +132,9 @@ Supabase provides a free, robust PostgreSQL database ideal for serverless deploy
    SESSION_SECRET="your_custom_secure_session_secret_key" # Replace with a long random string
    TMDB_API_KEY="your_tmdb_key_here" # Optional
    ```
-3. **Deploy Schema**:
-   Run the Prisma migration tool to create the tables in Supabase:
+3. **Initialize Database (run once from your local machine)**:
    ```bash
-   npx prisma db push
+   npm run db:setup
    ```
 4. **Run Application**:
    Launch `npm run dev` to read/write directly to Supabase.
@@ -191,23 +192,22 @@ Follow this exact order for a clean first deployment:
 ```
 Step 1 → Get DATABASE_URL from Neon.tech (or Supabase)
 Step 2 → Update DATABASE_URL in your local .env file
-Step 3 → Run: npx prisma db push  (from your local machine)
+Step 3 → Run: npm run db:setup  (from your local machine)
 Step 4 → Push code to GitHub
 Step 5 → Import repository in Vercel Dashboard
 Step 6 → Set Environment Variables in Vercel (see below)
 Step 7 → Deploy!
 ```
 
-### ⚠️ Already Deployed to Vercel Before Running `prisma db push`?
+### ⚠️ Already Deployed to Vercel Before Running Setup?
 
-No problem — `prisma db push` and Vercel deployment are **independent operations**. You can run `prisma db push` at any time from your local machine:
+No problem — database initialization and Vercel deployment are **independent operations**. You can run database setup at any time from your local machine:
 
 1. Make sure your local `.env` has the correct `DATABASE_URL` (pointing to Neon.tech or Supabase).
 2. Run from your project folder in the terminal:
    ```bash
-   npx prisma db push
+   npm run db:setup
    ```
-   *(Use `npx prisma db push`, not `prisma db push` — Prisma is a local dev dependency, not a global CLI command.)*
 3. Go to **Vercel Dashboard → Project → Settings → Environment Variables** and add/update `DATABASE_URL` with the same connection string.
 4. Trigger a **Redeploy** in Vercel.
 
@@ -220,11 +220,11 @@ No problem — `prisma db push` and Vercel deployment are **independent operatio
 | `TMDB_API_KEY` | *(Optional)* API key from [themoviedb.org](https://www.themoviedb.org/settings/api) for movie suggestions |
 | `GEMINI_API_KEY` | *(Optional)* Gemini AI API key |
 
-### Understanding What `prisma db push` Does
+### Understanding What `db:setup` Does
 
 | Command | What it does |
 |---|---|
-| `npx prisma db push` | Creates **empty tables** in your database (schema sync). Runs from your local machine. |
+| `npm run db:setup` | Syncs database tables, seeds settings, and registers exactly **1 Admin Account** (`admin@streamcms.com` / `admin`). Movie table remains clean and empty. |
 | Add movie via Admin CMS | Saves movie data to the database — this is how you populate it. |
 | Import TMDB via CMS | Fetches movie metadata from TMDB and saves it directly to your database. |
 
@@ -290,7 +290,7 @@ When running in **In-Memory Mode**, use these credentials to log in and explore 
 - **Demo Viewer** — standard free-tier user, can browse free content, manage profiles, and subscribe.
 - **Premium Viewer** — subscriber-tier user with full premium catalog access, without admin privileges.
 
-*(Note: In database mode, these default accounts will automatically be generated in your database during the first run).*
+*(Note: In database mode, only the Admin account is seeded automatically to your database. Other accounts (like demo/premium) remain accessible via secure in-memory fallbacks if not registered in the database, allowing you to test standard client features instantly).*
 
 ---
 
