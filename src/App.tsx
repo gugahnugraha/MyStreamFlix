@@ -257,11 +257,13 @@ export default function App() {
 
   const handleLaunchStream = (movie: Movie) => {
     if (!currentUser) {
+      setSelectedMovie(null); // close detail modal so auth modal is not obscured
       setShowAuth(true);
       return;
     }
 
     if (movie.tier && movie.tier !== "free" && !currentUser.isPremium) {
+      setSelectedMovie(null); // close detail modal so subscription modal is not obscured
       setShowSubscription(true);
       return;
     }
