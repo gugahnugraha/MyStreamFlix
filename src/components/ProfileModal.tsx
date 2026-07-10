@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { X, Plus, Trash2, Baby, Check, Settings, Shield, Save, UserRound, KeyRound, Users, Calendar, Sparkles, Crown } from "lucide-react";
 import { User as UserType, UserProfile } from "../types";
 
@@ -15,6 +15,16 @@ interface ProfileModalProps {
   t?: any;
   initialMode?: "select" | "create" | "account";
 }
+
+const PRESET_COLORS = [
+  { name: "Netflix Red", value: "#E50914" },
+  { name: "Flix Gold", value: "#F5C518" },
+  { name: "Cinema Teal", value: "#00ADB5" },
+  { name: "Stream Purple", value: "#8B5CF6" },
+  { name: "Emerald Green", value: "#10B981" },
+  { name: "Neon Pink", value: "#EC4899" },
+  { name: "Electric Blue", value: "#3B82F6" },
+];
 
 export default function ProfileModal({ 
   currentUser, 
@@ -38,6 +48,48 @@ export default function ProfileModal({
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [activeColor, setActiveColor] = useState("#E50914");
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("user-theme-primary");
+      if (saved) {
+        setActiveColor(saved);
+      } else {
+        const root = document.documentElement;
+        const rootColor = root.style.getPropertyValue('--theme-primary') || "#E50914";
+        setActiveColor(rootColor.trim());
+      }
+    }
+  }, [currentUser]);
+
+  const handleUpdateThemeColor = (color: string) => {
+    if (typeof window !== "undefined") {
+      if (!color) {
+        localStorage.removeItem("user-theme-primary");
+        setActiveColor("#E50914");
+        window.dispatchEvent(new Event('themechange'));
+        return;
+      }
+      setActiveColor(color);
+      localStorage.setItem("user-theme-primary", color);
+      
+      const root = document.documentElement;
+      root.style.setProperty('--theme-primary', color);
+      const hex = color.replace('#', '');
+      const r = parseInt(hex.substring(0, 2), 16);
+      const g = parseInt(hex.substring(2, 4), 16);
+      const b = parseInt(hex.substring(4, 6), 16);
+      root.style.setProperty('--theme-primary-90', `rgba(${r}, ${g}, ${b}, 0.9)`);
+      root.style.setProperty('--theme-primary-80', `rgba(${r}, ${g}, ${b}, 0.8)`);
+      root.style.setProperty('--theme-primary-50', `rgba(${r}, ${g}, ${b}, 0.5)`);
+      root.style.setProperty('--theme-primary-30', `rgba(${r}, ${g}, ${b}, 0.3)`);
+      root.style.setProperty('--theme-primary-20', `rgba(${r}, ${g}, ${b}, 0.2)`);
+      root.style.setProperty('--theme-primary-10', `rgba(${r}, ${g}, ${b}, 0.1)`);
+      
+      window.dispatchEvent(new Event('themechange'));
+    }
+  };
 
   const sampleAvatars = [
     "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80", // Blue boy
@@ -455,7 +507,7 @@ export default function ProfileModal({
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   {/* Account Metadata info */}
                   <div className="rounded-xl border border-zinc-900 bg-zinc-950/60 p-4 space-y-3">
                     <h4 className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider flex items-center gap-1.5">
@@ -523,6 +575,61 @@ export default function ProfileModal({
                           UPGRADE TO VIP PREMIUM
                         </button>
                       )}
+                    </div>
+                  </div>
+
+                  {/* Personalization (Theme Color Picker) */}
+                  <div className="rounded-xl border border-zinc-900 bg-zinc-950/60 p-4 space-y-3 flex flex-col justify-between">
+                    <div>
+                      <h4 className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider flex items-center gap-1.5">
+                        <Sparkles className="w-3.5 h-3.5 text-zinc-500" />
+                        Theme Color Preference
+                      </h4>
+                      <p className="text-[10px] text-zinc-500 mt-1">
+                        Select a personal theme accent color to personalize your interface experience.
+                      </p>
+                      
+                      {/* Presets List */}
+                      <div className="flex flex-wrap gap-2 mt-3">
+                        {PRESET_COLORS.map((preset) => (
+                          <button
+                            key={preset.value}
+                            type="button"
+                            onClick={() => handleUpdateThemeColor(preset.value)}
+                            title={preset.name}
+                            className={`w-5 h-5 rounded-full border transition-all transform hover:scale-110 cursor-pointer ${
+                              activeColor.toLowerCase() === preset.value.toLowerCase()
+                                ? "border-white scale-105 shadow-md shadow-white/10"
+                                : "border-transparent"
+                            }`}
+                            style={{ backgroundColor: preset.value }}
+                          />
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="space-y-2 mt-3 border-t border-zinc-900/60 pt-2">
+                      {/* Custom Picker */}
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="color"
+                          value={activeColor}
+                          onChange={(e) => handleUpdateThemeColor(e.target.value)}
+                          className="w-5 h-5 bg-transparent border-0 cursor-pointer p-0 rounded-sm"
+                        />
+                        <span className="text-[9px] text-zinc-400 font-mono uppercase tracking-wider">
+                          Custom: {activeColor}
+                        </span>
+                      </div>
+                      
+                      {/* Reset Button */}
+                      <button
+                        type="button"
+                        onClick={() => handleUpdateThemeColor("")}
+                        className="w-full text-center bg-zinc-900 border border-zinc-800 text-[9px] hover:text-white font-bold py-1 rounded-md hover:bg-zinc-800 transition-colors cursor-pointer uppercase tracking-wider"
+                      >
+                        Reset to Default
+                      </button>
                     </div>
                   </div>
                 </div>

@@ -54,6 +54,21 @@ export default function App() {
     seoKeywords: ""
   });
 
+  const [userThemeColor, setUserThemeColor] = useState<string | null>(null);
+
+  useEffect(() => {
+    const handleThemeSync = () => {
+      if (typeof window !== "undefined") {
+        const stored = localStorage.getItem("user-theme-primary");
+        setUserThemeColor(stored);
+      }
+    };
+
+    handleThemeSync();
+    window.addEventListener('themechange', handleThemeSync);
+    return () => window.removeEventListener('themechange', handleThemeSync);
+  }, []);
+
   // UI Control Router State
   const [activeTab, setActiveTab] = useState<string>("home"); // home, favorites, admin
   const [showAuth, setShowAuth] = useState(false);
@@ -312,9 +327,9 @@ export default function App() {
   // Apply dynamic theme color to CSS variables
   useEffect(() => {
     const root = document.documentElement;
-    root.style.setProperty('--theme-primary', settings.primaryColor);
+    const color = userThemeColor || settings.primaryColor;
+    root.style.setProperty('--theme-primary', color);
     // Dynamically calculate RGBA versions
-    const color = settings.primaryColor;
     const hex = color.replace('#', '');
     const r = parseInt(hex.substring(0, 2), 16);
     const g = parseInt(hex.substring(2, 4), 16);
@@ -325,7 +340,7 @@ export default function App() {
     root.style.setProperty('--theme-primary-30', `rgba(${r}, ${g}, ${b}, 0.3)`);
     root.style.setProperty('--theme-primary-20', `rgba(${r}, ${g}, ${b}, 0.2)`);
     root.style.setProperty('--theme-primary-10', `rgba(${r}, ${g}, ${b}, 0.1)`);
-  }, [settings.primaryColor]);
+  }, [settings.primaryColor, userThemeColor]);
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col font-sans selection:text-white relative overflow-x-hidden pt-[65px]" id="app-root" style={{ ["selectionBackgroundColor" as any]: settings.primaryColor }}>
