@@ -29,7 +29,7 @@ export async function GET(
           const trailer = (data.results || []).find((v: any) => v.type === "Trailer" && v.site === "YouTube") ||
                           (data.results || []).find((v: any) => v.site === "YouTube");
           if (trailer?.key) {
-            trailerUrl = `https://www.youtube.com/embed/${trailer.key}?autoplay=1&rel=0`;
+            trailerUrl = `https://www.youtube.com/embed/${trailer.key}?rel=0`;
           }
         }
       } catch (err) {

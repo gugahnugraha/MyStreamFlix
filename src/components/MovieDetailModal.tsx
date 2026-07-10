@@ -32,7 +32,6 @@ export default function MovieDetailModal({
   const [similarMovies, setSimilarMovies] = useState<Movie[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [showTrailer, setShowTrailer] = useState(false);
 
   // Season and episode state inside the details dialog
   const [activeModalSeason, setActiveModalSeason] = useState<any>(null);
@@ -49,7 +48,6 @@ export default function MovieDetailModal({
   // Sync activeId when prop changes
   useEffect(() => {
     setActiveId(movieId);
-    setShowTrailer(false);
   }, [movieId]);
 
   // Review Form state
@@ -280,17 +278,6 @@ export default function MovieDetailModal({
                     <Play className="w-4 h-4 fill-white" />
                     {t.watch || "Stream Now"}
                   </button>
-
-                  {movie.trailerUrl && (
-                    <button
-                      onClick={() => setShowTrailer(true)}
-                      className="h-10 px-4 flex items-center gap-2 rounded-md border border-white/20 bg-white/10 text-white font-bold text-xs hover:bg-white/20 active:scale-95 transition-all cursor-pointer shadow-lg"
-                      id="modal-trailer-btn"
-                    >
-                      <Film className="w-4 h-4" />
-                      {t.watchTrailer || "Watch Trailer"}
-                    </button>
-                  )}
  
                   <button
                     onClick={() => onToggleFavorite(movie.id)}
@@ -341,7 +328,27 @@ export default function MovieDetailModal({
           {/* Left Column: Summary and Review Board */}
           <div className="md:col-span-2 space-y-6">
             {activeDetailTab === "overview" && (
-              <div className="space-y-5 animate-fade-in-quick">                <div className="cinema-panel rounded-lg p-4">
+              <div className="space-y-5 animate-fade-in-quick">
+                {/* Embedded Trailer Video Player */}
+                {movie.trailerUrl && (
+                  <div className="cinema-panel rounded-lg p-4 space-y-3">
+                    <h3 className="text-zinc-400 text-xs font-bold tracking-wider uppercase flex items-center gap-1.5">
+                      <Film className="w-3.5 h-3.5" />
+                      {t.watchTrailer || "Official Trailer"}
+                    </h3>
+                    <div className="rounded-lg overflow-hidden border border-white/10 bg-black aspect-video w-full">
+                      <iframe
+                        src={movie.trailerUrl}
+                        title={`${movie.title} Trailer`}
+                        className="w-full h-full border-0"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                      ></iframe>
+                    </div>
+                  </div>
+                )}
+
+                <div className="cinema-panel rounded-lg p-4">
                   <h3 className="text-zinc-400 text-xs font-bold tracking-wider uppercase mb-2">{t.synopsis || "Synopsis"}</h3>
                   <p className="text-zinc-200 text-sm leading-relaxed">{movie.description}</p>
                 </div>
@@ -658,28 +665,6 @@ export default function MovieDetailModal({
           </div>
         )}
       </div>
-      
-      {/* Cinematic YouTube Trailer Player Overlay */}
-      {showTrailer && movie && movie.trailerUrl && (
-        <div className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4 md:p-8 backdrop-blur-md animate-fade-in-quick">
-          <div className="relative w-full max-w-4xl aspect-video bg-zinc-950 rounded-lg overflow-hidden border border-white/10 shadow-2xl">
-            <button
-              onClick={() => setShowTrailer(false)}
-              className="absolute top-4 right-4 z-10 w-9 h-9 rounded-full bg-black/60 text-white flex items-center justify-center hover:[background-color:var(--theme-primary)] transition-colors shadow-lg cursor-pointer border border-white/10"
-              title="Close Trailer"
-            >
-              <X className="w-4.5 h-4.5" />
-            </button>
-            <iframe
-              src={movie.trailerUrl}
-              title={`${movie.title} Trailer`}
-              className="w-full h-full border-0"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-            ></iframe>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
