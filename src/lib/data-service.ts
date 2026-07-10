@@ -1031,9 +1031,9 @@ export async function getDashboardStats() {
       });
       const activeUsersToday = activeWatchers.length || Math.round(totalUsers * 0.45) || 5;
 
-      // Calculate monthly revenue from premium users (Rp 79.000 / premium user)
+      // Calculate monthly revenue from premium users ($5.99 / premium user)
       const premiumUsers = await prisma.user.count({ where: { isPremium: true } });
-      const revenueThisMonth = premiumUsers * 79000 || 158000;
+      const revenueThisMonth = premiumUsers * 5.99 || 11.98;
 
       // Calculate profile split and subscription split
       const allUsers = await prisma.user.findMany({ select: { profiles: true, isPremium: true } });
@@ -1128,9 +1128,9 @@ export async function getDashboardStats() {
   });
   const activeUsersToday = activeCount || Math.round(totalUsers * 0.45) || 5;
 
-  // Revenue in memory (Rp 79.000 per premium user)
+  // Revenue in memory ($5.99 per premium user)
   const premiumUsers = store.users.filter(u => u.isPremium).length;
-  const revenueThisMonth = premiumUsers * 79000 || 158000;
+  const revenueThisMonth = premiumUsers * 5.99 || 11.98;
 
   // Calculate profile and subscription splits in memory
   let kidsCount = 0;

@@ -172,6 +172,52 @@ Next.js is built by Vercel, making the deployment process incredibly easy:
 
 ---
 
+## 💳 Payment Gateway Integration (Stripe & PayPal - USD Only)
+
+MyStreamFlix has **Stripe** and **PayPal** subscription checkouts fully built into the codebase. 
+
+By default, the application runs in **Sandbox Simulation mode** (allowing mock checkout testing). To transition your portal to accept real USD payments, the website owner only needs to drop their account details into the `.env` file:
+
+### 1. Stripe Setup (Credit Cards)
+1. **API Keys**: Go to your [Stripe Dashboard](https://dashboard.stripe.com) -> **Developers** -> **API Keys**.
+2. **Copy Keys**: Copy your **Publishable key** and **Secret key** and paste them into `.env`:
+   ```env
+   NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY="pk_live_yourStripeKey..."
+   STRIPE_SECRET_KEY="sk_live_yourStripeSecret..."
+   ```
+3. **Subscription Products**: In Stripe Dashboard, create 3 recurring monthly products matching the pricing plans (VIP: `$2.99/mo`, Premium: `$5.99/mo`, Ultra: `$8.99/mo`). Copy their respective **Price IDs** (starting with `price_...`) and add them:
+   ```env
+   STRIPE_PRICE_ID_VIP="price_..."
+   STRIPE_PRICE_ID_PREMIUM="price_..."
+   STRIPE_PRICE_ID_ULTRA="price_..."
+   ```
+4. **Webhooks**: Go to Stripe -> **Developers** -> **Webhooks**. Click **Add endpoint** and point it to:
+   `https://yourdomain.com/api/subscription/webhook`
+   Select event: `checkout.session.completed`. Copy the generated **Signing secret** (`whsec_...`) and set it:
+   ```env
+   STRIPE_WEBHOOK_SECRET="whsec_..."
+   ```
+
+### 2. PayPal Setup (PayPal Express/VA)
+1. **API Keys**: Go to the [PayPal Developer Portal](https://developer.paypal.com) -> **Apps & Credentials**. Create a Live App.
+2. **Copy Keys**: Copy your **Client ID** and **Secret Key** and paste them:
+   ```env
+   PAYPAL_CLIENT_ID="your_paypal_client_id"
+   PAYPAL_CLIENT_SECRET="your_paypal_secret"
+   PAYPAL_MODE="live" # Change from "sandbox" to "live"
+   ```
+3. **Billing Plans**: In your PayPal Business portal, go to **Subscriptions** -> **Create Plan** for the 3 tiers. Copy their **Plan IDs** (starting with `p-...`) and add them:
+   ```env
+   PAYPAL_PLAN_ID_VIP="p-..."
+   PAYPAL_PLAN_ID_PREMIUM="p-..."
+   PAYPAL_PLAN_ID_ULTRA="p-..."
+   ```
+4. **Webhooks**: Create a Webhook pointing to:
+   `https://yourdomain.com/api/subscription/paypal/webhook`
+   Enable events: `BILLING.SUBSCRIPTION.ACTIVATED` and `PAYMENT.SALE.COMPLETED`.
+
+---
+
 ## 🛡️ Default Demo Accounts
 
 When running in **In-Memory Mode**, use these credentials to log in and explore different roles:

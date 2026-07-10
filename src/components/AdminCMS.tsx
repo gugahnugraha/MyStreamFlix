@@ -766,7 +766,7 @@ export default function AdminCMS({
               </div>
               <div>
                 <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">{t.cmsMonthlyRevenue}</p>
-                <p className="text-sm font-black text-white mt-0.5">Rp {stats.revenueThisMonth.toLocaleString()}</p>
+                <p className="text-sm font-black text-white mt-0.5">${stats.revenueThisMonth.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
               </div>
             </div>
           </div>
