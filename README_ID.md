@@ -176,10 +176,18 @@ Mendeploy Next.js ke Vercel sangatlah praktis:
 ## 🛡️ Informasi Akun Pengujian Default
 
 Gunakan kredensial berikut untuk masuk saat aplikasi berjalan dalam **Mode In-Memory**:
-- **Administrator**: Email `admin@streamcms.com` / Sandi: `admin`
-- **Demo Viewer**: Email `demo@viewer.com` / Sandi: `demo`
 
-*(Catatan: Saat database terhubung pertama kali, kedua akun pengujian ini akan otomatis dibuat pada database Anda agar sistem siap digunakan).*
+| Role | Email | Password | Tier | Akses |
+|---|---|---|---|---|
+| **Administrator** | `admin@streamcms.com` | `admin` | Premium VIP | CMS & Dasbor Admin Penuh |
+| **Demo Viewer** | `demo@viewer.com` | `demo` | Gratis | Terbatas konten gratis |
+| **Premium Viewer** | `premium@viewer.com` | `premium` | Premium VIP | Katalog premium penuh, tanpa admin |
+
+- **Admin** — memiliki akses penuh ke dasbor Admin CMS (CRUD katalog film, analitik, pengaturan situs).
+- **Demo Viewer** — pengguna tier gratis standar, dapat menjelajahi konten gratis, mengatur profil, dan berlangganan.
+- **Premium Viewer** — pengguna tier berlangganan dengan akses katalog premium penuh, tanpa hak akses admin.
+
+*(Catatan: Pada mode database, ketiga akun pengujian ini akan otomatis dibuat pada database Anda saat pertama kali aplikasi dijalankan).*
 
 ---
 
