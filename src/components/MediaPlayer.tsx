@@ -567,7 +567,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t }: 
 
       {/* Styled Caption Subtitle Overlay */}
       {currentCaption && (
-        <div className={`absolute left-1/2 -translate-x-1/2 px-6 py-2 rounded-md bg-black/85 border border-zinc-800/80 text-center max-w-2xl text-white text-sm md:text-base font-medium shadow-2xl transition-all duration-300 ${
+        <div className={`absolute left-1/2 -translate-x-1/2 text-center max-w-3xl text-white text-base md:text-xl font-bold select-none pointer-events-none drop-shadow-[0_2px_3px_rgba(0,0,0,1)] transition-all duration-300 ${
           showControls ? "bottom-32" : "bottom-12"
         }`}>
           {currentCaption}
