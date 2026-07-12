@@ -266,21 +266,24 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t }: 
     const processSubs = async () => {
       const list = await Promise.all(
         (movie.subtitles || []).map(async (sub) => {
-          // Check if it's an SRT subtitle file
-          const isSrt = sub.fileUrl.toLowerCase().endsWith(".srt") || sub.fileUrl.includes(".srt?");
-          if (isSrt) {
+          const isRemote = sub.fileUrl.startsWith("http://") || sub.fileUrl.startsWith("https://");
+          if (isRemote) {
             try {
-              const response = await fetch(sub.fileUrl);
-              if (!response.ok) throw new Error("Failed to fetch SRT file");
-              let srtText = await response.text();
+              const proxyUrl = `/api/subtitles?url=${encodeURIComponent(sub.fileUrl)}`;
+              const response = await fetch(proxyUrl);
+              if (!response.ok) throw new Error("Failed to fetch subtitle file");
+              let text = await response.text();
               
-              // Convert SRT formatting to WebVTT compatible layout
-              let vttText = srtText;
-              if (!vttText.trim().startsWith("WEBVTT")) {
-                vttText = "WEBVTT\n\n" + vttText;
+              let vttText = text;
+              const isSrt = sub.fileUrl.toLowerCase().includes(".srt") || (text.includes("-->") && !text.trim().startsWith("WEBVTT"));
+              if (isSrt) {
+                // Convert SRT formatting to WebVTT compatible layout
+                if (!vttText.trim().startsWith("WEBVTT")) {
+                  vttText = "WEBVTT\n\n" + vttText;
+                }
+                // Replace all comma decimal separators in timestamps with dot decimal separators
+                vttText = vttText.replace(/(\d{2}:\d{2}:\d{2}),(\d{3})/g, "$1.$2");
               }
-              // Replace all comma decimal separators in timestamps with dot decimal separators
-              vttText = vttText.replace(/(\d{2}:\d{2}:\d{2}),(\d{3})/g, "$1.$2");
               
               const blob = new Blob([vttText], { type: "text/vtt" });
               const blobUrl = URL.createObjectURL(blob);
@@ -290,7 +293,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t }: 
                 fileUrl: blobUrl
               };
             } catch (err) {
-              console.error("Failed converting SRT subtitle on the fly:", err);
+              console.error("Failed loading subtitle via proxy:", err);
               return sub;
             }
           }
@@ -459,7 +462,6 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t }: 
               setIsPlaying(true);
             }}
             id="video-core-element"
-            crossOrigin="anonymous"
           >
             {(processedSubtitles || []).map((sub) => (
               <track
