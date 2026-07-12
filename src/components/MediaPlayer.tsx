@@ -310,20 +310,47 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t }: 
     };
   }, [movie.subtitles]);
 
-  // Sync selected subtitle with native HTML5 text tracks
+  // Sync selected subtitle with native HTML5 text tracks and handle custom cues
   useEffect(() => {
     const video = videoRef.current;
     if (!video || isSimulating) return;
+
+    const handleCueChange = (e: Event) => {
+      const track = e.target as TextTrack;
+      if (track.activeCues && track.activeCues.length > 0) {
+        const activeCue = track.activeCues[0] as any;
+        setCurrentCaption(activeCue ? activeCue.text : "");
+      } else {
+        setCurrentCaption("");
+      }
+    };
+
     const tracks = video.textTracks;
+    setCurrentCaption("");
+
     for (let i = 0; i < tracks.length; i++) {
       const track = tracks[i];
       if (track.language === activeSubtitle) {
-        track.mode = "showing";
+        track.mode = "hidden"; // process cues but do not draw browser defaults
+        track.addEventListener("cuechange", handleCueChange);
+        
+        // Check if there is an active cue immediately
+        if (track.activeCues && track.activeCues.length > 0) {
+          const activeCue = track.activeCues[0] as any;
+          setCurrentCaption(activeCue ? activeCue.text : "");
+        }
       } else {
         track.mode = "disabled";
+        track.removeEventListener("cuechange", handleCueChange);
       }
     }
-  }, [activeSubtitle, isSimulating]);
+
+    return () => {
+      for (let i = 0; i < tracks.length; i++) {
+        tracks[i].removeEventListener("cuechange", handleCueChange);
+      }
+    };
+  }, [activeSubtitle, isSimulating, processedSubtitles]);
 
   // Player controls actions
   const handlePlayPause = () => {
@@ -540,7 +567,9 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t }: 
 
       {/* Styled Caption Subtitle Overlay */}
       {currentCaption && (
-        <div className="absolute bottom-20 left-1/2 -translate-x-1/2 px-6 py-2 rounded-md bg-black/80 border border-zinc-800 text-center max-w-2xl text-white text-sm md:text-base font-medium shadow-2xl transition-all duration-200">
+        <div className={`absolute left-1/2 -translate-x-1/2 px-6 py-2 rounded-md bg-black/85 border border-zinc-800/80 text-center max-w-2xl text-white text-sm md:text-base font-medium shadow-2xl transition-all duration-300 ${
+          showControls ? "bottom-32" : "bottom-12"
+        }`}>
           {currentCaption}
         </div>
       )}
