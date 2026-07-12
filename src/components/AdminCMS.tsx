@@ -7,7 +7,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { 
   BarChart3, Film, Settings, Plus, Edit, Trash2, Save, 
   Tv, Eye, Play, ShieldAlert, CheckCircle, TrendingUp, Users, RefreshCw, X, Search, Database,
-  CreditCard, UserCheck
+  CreditCard, UserCheck, Subtitles
 } from "lucide-react";
 import { Movie, DashboardStats, CMSSettings, Subtitle, User, Season, Episode } from "../types";
 
@@ -195,6 +195,25 @@ export default function AdminCMS({
   const [seasonsCount, setSeasonsCount] = useState(1);
   const [episodesPerSeason, setEpisodesPerSeason] = useState(5);
   const [seasons, setSeasons] = useState<Season[]>([]);
+  const [subtitles, setSubtitles] = useState<Subtitle[]>([]);
+
+  const handleAddSubtitle = () => {
+    const newSub: Subtitle = {
+      id: `sub-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      language: "id",
+      label: "Bahasa Indonesia",
+      fileUrl: ""
+    };
+    setSubtitles([...subtitles, newSub]);
+  };
+
+  const handleRemoveSubtitle = (subId: string) => {
+    setSubtitles(subtitles.filter(s => s.id !== subId));
+  };
+
+  const handleUpdateSubtitle = (subId: string, field: keyof Subtitle, value: string) => {
+    setSubtitles(subtitles.map(s => s.id === subId ? { ...s, [field]: value } : s));
+  };
 
   // Helpers to manage seasons and episodes
   const handleAddSeason = () => {
@@ -409,6 +428,7 @@ export default function AdminCMS({
     setSelectedTmdbMediaType(undefined);
     setTmdbResults([]);
     setTmdbError("");
+    setSubtitles([]);
     setShowForm(true);
   };
 
@@ -441,6 +461,7 @@ export default function AdminCMS({
     setSelectedTmdbMediaType(movie.tmdbMediaType);
     setTmdbResults([]);
     setTmdbError("");
+    setSubtitles(movie.subtitles || []);
     setShowForm(true);
   };
 
@@ -531,7 +552,8 @@ export default function AdminCMS({
       isFeatured,
       isBanner,
       contentType,
-      seasons: seasonsPayload
+      seasons: seasonsPayload,
+      subtitles
     };
 
     try {
@@ -1733,6 +1755,91 @@ export default function AdminCMS({
                       )}
                     </div>
                   )}
+
+                  {/* Subtitles Builder */}
+                  <div className="border-t border-zinc-900/80 pt-4 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h4 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
+                          <Subtitles className="w-4 h-4 text-red-500" />
+                          {t.cmsSubtitlesTitle || "Subtitle Captions Configuration"}
+                        </h4>
+                        <p className="text-[10px] text-zinc-500">
+                          {t.cmsSubtitlesDesc || "Add subtitle files (.vtt format) for localized text overlays."}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleAddSubtitle}
+                        className="px-2.5 py-1.5 bg-red-600/10 hover:bg-red-600/20 text-red-500 hover:text-red-400 border border-red-500/20 rounded text-[10px] font-bold flex items-center gap-1 transition-all cursor-pointer"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        {t.cmsAddSubtitle || "Add Subtitle Track"}
+                      </button>
+                    </div>
+
+                    {subtitles.length === 0 ? (
+                      <div className="text-center py-4 border border-dashed border-zinc-850 rounded-lg bg-zinc-950/20">
+                        <p className="text-[10px] text-zinc-500">{t.none || "None"}</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {subtitles.map((sub) => (
+                          <div key={sub.id} className="bg-zinc-900/30 border border-zinc-900 rounded p-3 space-y-2 relative group/sub">
+                            <div className="flex items-center justify-between">
+                              <span className="text-[9px] font-black text-zinc-500 font-mono uppercase">
+                                SUBTITLE TRACK
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveSubtitle(sub.id)}
+                                className="p-1 text-zinc-700 hover:text-red-500 transition-colors cursor-pointer"
+                                title="Remove Subtitle"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                              <div className="space-y-0.5">
+                                <label className="text-[9px] font-bold uppercase text-zinc-600">{t.cmsSubLangCode || "Lang Code"}</label>
+                                <input
+                                  type="text"
+                                  required
+                                  value={sub.language}
+                                  onChange={(e) => handleUpdateSubtitle(sub.id, "language", e.target.value)}
+                                  placeholder="e.g. id, en, es"
+                                  className="w-full bg-zinc-950 border border-zinc-900 p-2 rounded text-xs text-zinc-300 focus:outline-hidden focus:border-red-500/30"
+                                />
+                              </div>
+                              <div className="space-y-0.5">
+                                <label className="text-[9px] font-bold uppercase text-zinc-600">{t.cmsSubLabel || "Label"}</label>
+                                <input
+                                  type="text"
+                                  required
+                                  value={sub.label}
+                                  onChange={(e) => handleUpdateSubtitle(sub.id, "label", e.target.value)}
+                                  placeholder="e.g. Bahasa Indonesia"
+                                  className="w-full bg-zinc-950 border border-zinc-900 p-2 rounded text-xs text-zinc-300 focus:outline-hidden focus:border-red-500/30"
+                                />
+                              </div>
+                              <div className="space-y-0.5">
+                                <label className="text-[9px] font-bold uppercase text-zinc-600">{t.cmsSubFileUrl || "Subtitle File URL (.vtt) *"}</label>
+                                <input
+                                  type="url"
+                                  required
+                                  value={sub.fileUrl}
+                                  onChange={(e) => handleUpdateSubtitle(sub.id, "fileUrl", e.target.value)}
+                                  placeholder="https://storage.googleapis.com/...vtt"
+                                  className="w-full bg-zinc-950 border border-zinc-900 p-2 rounded text-xs text-zinc-300 focus:outline-hidden focus:border-red-500/30 font-mono"
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
 
                   <div className="grid grid-cols-2 gap-4 border-t border-zinc-900 pt-3">
                     <div className="flex items-center gap-2 py-1">

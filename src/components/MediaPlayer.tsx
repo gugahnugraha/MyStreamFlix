@@ -5,7 +5,7 @@
 
 import React, { useRef, useState, useEffect } from "react";
 import { Play, Pause, RotateCcw, RotateCw, Volume2, VolumeX, Maximize, Minimize, X, Subtitles, Settings } from "lucide-react";
-import { Movie } from "../types";
+import { Movie, Subtitle } from "../types";
 
 interface MediaPlayerProps {
   movie: Movie;
@@ -46,6 +46,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t }: 
   const [isMuted, setIsMuted] = useState(false);
   const [playbackRate, setPlaybackRate] = useState(1);
   const [activeSubtitle, setActiveSubtitle] = useState<string>("off");
+  const [processedSubtitles, setProcessedSubtitles] = useState<Subtitle[]>([]);
 
   // Keep duration in sync with active episode changes
   useEffect(() => {
@@ -258,6 +259,69 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t }: 
     }
   }, [currentTime, activeSubtitle]);
 
+  // Process SRT/VTT subtitles on-the-fly and generate safe Blob URLs
+  useEffect(() => {
+    let activeUrls: string[] = [];
+
+    const processSubs = async () => {
+      const list = await Promise.all(
+        (movie.subtitles || []).map(async (sub) => {
+          // Check if it's an SRT subtitle file
+          const isSrt = sub.fileUrl.toLowerCase().endsWith(".srt") || sub.fileUrl.includes(".srt?");
+          if (isSrt) {
+            try {
+              const response = await fetch(sub.fileUrl);
+              if (!response.ok) throw new Error("Failed to fetch SRT file");
+              let srtText = await response.text();
+              
+              // Convert SRT formatting to WebVTT compatible layout
+              let vttText = srtText;
+              if (!vttText.trim().startsWith("WEBVTT")) {
+                vttText = "WEBVTT\n\n" + vttText;
+              }
+              // Replace all comma decimal separators in timestamps with dot decimal separators
+              vttText = vttText.replace(/(\d{2}:\d{2}:\d{2}),(\d{3})/g, "$1.$2");
+              
+              const blob = new Blob([vttText], { type: "text/vtt" });
+              const blobUrl = URL.createObjectURL(blob);
+              activeUrls.push(blobUrl);
+              return {
+                ...sub,
+                fileUrl: blobUrl
+              };
+            } catch (err) {
+              console.error("Failed converting SRT subtitle on the fly:", err);
+              return sub;
+            }
+          }
+          return sub;
+        })
+      );
+      setProcessedSubtitles(list);
+    };
+
+    processSubs();
+
+    return () => {
+      activeUrls.forEach(url => URL.revokeObjectURL(url));
+    };
+  }, [movie.subtitles]);
+
+  // Sync selected subtitle with native HTML5 text tracks
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || isSimulating) return;
+    const tracks = video.textTracks;
+    for (let i = 0; i < tracks.length; i++) {
+      const track = tracks[i];
+      if (track.language === activeSubtitle) {
+        track.mode = "showing";
+      } else {
+        track.mode = "disabled";
+      }
+    }
+  }, [activeSubtitle, isSimulating]);
+
   // Player controls actions
   const handlePlayPause = () => {
     if (isSimulating) {
@@ -380,22 +444,34 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t }: 
           <video
             ref={videoRef}
             src={activeEpisode ? activeEpisode.videoUrl : movie.videoUrl}
-          className="w-full h-full max-h-screen object-contain"
-          onClick={handlePlayPause}
-          onTimeUpdate={() => {
-            if (videoRef.current) {
-              setCurrentTime(videoRef.current.currentTime);
-            }
-          }}
-          onEnded={() => setIsPlaying(false)}
-          onError={() => {
-            console.warn("Direct stream load failed. Engaging high-fidelity cinematic stream simulation.");
-            setHasError(true);
-            setIsSimulating(true);
-            setIsPlaying(true);
-          }}
-          id="video-core-element"
-        />
+            className="w-full h-full max-h-screen object-contain"
+            onClick={handlePlayPause}
+            onTimeUpdate={() => {
+              if (videoRef.current) {
+                setCurrentTime(videoRef.current.currentTime);
+              }
+            }}
+            onEnded={() => setIsPlaying(false)}
+            onError={() => {
+              console.warn("Direct stream load failed. Engaging high-fidelity cinematic stream simulation.");
+              setHasError(true);
+              setIsSimulating(true);
+              setIsPlaying(true);
+            }}
+            id="video-core-element"
+            crossOrigin="anonymous"
+          >
+            {(processedSubtitles || []).map((sub) => (
+              <track
+                key={sub.id}
+                src={sub.fileUrl}
+                kind="subtitles"
+                srcLang={sub.language}
+                label={sub.label}
+                default={activeSubtitle === sub.language}
+              />
+            ))}
+          </video>
       ) : (
         /* High-fidelity Cinematic Simulation Display */
         <div 
