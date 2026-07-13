@@ -23,7 +23,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t }: 
     if (movie.contentType === "series" && movie.seasons && movie.seasons.length > 0) {
       return movie.seasons[0];
     }
-    return null; u
+    return null;
   });
 
   const [activeEpisode, setActiveEpisode] = useState(() => {
@@ -204,6 +204,8 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t }: 
 
   // Generate mock subtitles matching active subtitle language
   useEffect(() => {
+    if (!isSimulating) return;
+
     if (activeSubtitle === "off") {
       setCurrentCaption("");
       return;
@@ -467,6 +469,14 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t }: 
       className="fixed inset-0 z-50 bg-black flex flex-col landscape:flex-row md:flex-row select-none overflow-hidden"
       id="media-player-container"
     >
+      <style>{`
+        video::cue, #video-core-element::cue {
+          background: transparent !important;
+          background-color: transparent !important;
+          color: #ffffff !important;
+          text-shadow: 0px 2px 4px rgba(0, 0, 0, 0.9), 0px 1px 2px rgba(0, 0, 0, 0.9);
+        }
+      `}</style>
       {/* Primary Video Screen Area */}
       <div
         ref={containerRef}
