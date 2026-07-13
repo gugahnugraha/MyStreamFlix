@@ -23,7 +23,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t }: 
     if (movie.contentType === "series" && movie.seasons && movie.seasons.length > 0) {
       return movie.seasons[0];
     }
-    return null;
+    return null; u
   });
 
   const [activeEpisode, setActiveEpisode] = useState(() => {
@@ -56,12 +56,12 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t }: 
       setDuration(movie.duration * 60 || 600);
     }
   }, [activeEpisode, movie.duration]);
-  
+
   // UI control states
   const [showControls, setShowControls] = useState(true);
   const [showSpeedMenu, setShowSpeedMenu] = useState(false);
   const [showSubtitleMenu, setShowSubtitleMenu] = useState(false);
-  
+
   // Custom mock caption display text
   const [currentCaption, setCurrentCaption] = useState("");
 
@@ -132,7 +132,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t }: 
     const video = videoRef.current;
     if (video) {
       video.volume = volume;
-      
+
       const handleLoadedMetadata = () => {
         setDuration(video.duration);
         if (initialProgress > 0 && initialProgress < video.duration - 5) {
@@ -259,6 +259,9 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t }: 
     }
   }, [currentTime, activeSubtitle]);
 
+  // Serialize subtitles array to detect actual content changes and avoid array reference mismatches
+  const subtitlesString = JSON.stringify(movie.subtitles || []);
+
   // Process SRT/VTT subtitles on-the-fly and generate safe Blob URLs
   useEffect(() => {
     let activeUrls: string[] = [];
@@ -273,7 +276,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t }: 
               const response = await fetch(proxyUrl);
               if (!response.ok) throw new Error("Failed to fetch subtitle file");
               let text = await response.text();
-              
+
               let vttText = text;
               const isSrt = sub.fileUrl.toLowerCase().includes(".srt") || (text.includes("-->") && !text.trim().startsWith("WEBVTT"));
               if (isSrt) {
@@ -284,7 +287,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t }: 
                 // Replace all comma decimal separators in timestamps with dot decimal separators
                 vttText = vttText.replace(/(\d{2}:\d{2}:\d{2}),(\d{3})/g, "$1.$2");
               }
-              
+
               const blob = new Blob([vttText], { type: "text/vtt" });
               const blobUrl = URL.createObjectURL(blob);
               activeUrls.push(blobUrl);
@@ -308,7 +311,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t }: 
     return () => {
       activeUrls.forEach(url => URL.revokeObjectURL(url));
     };
-  }, [movie.subtitles]);
+  }, [subtitlesString]);
 
   // Sync selected subtitle with native HTML5 text tracks and handle custom cues
   useEffect(() => {
@@ -333,7 +336,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t }: 
       if (track.language === activeSubtitle) {
         track.mode = "hidden"; // process cues but do not draw browser defaults
         track.addEventListener("cuechange", handleCueChange);
-        
+
         // Check if there is an active cue immediately
         if (track.activeCues && track.activeCues.length > 0) {
           const activeCue = track.activeCues[0] as any;
@@ -441,9 +444,9 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t }: 
     const container = containerRef.current;
     if (container) {
       if (!document.fullscreenElement) {
-        container.requestFullscreen().catch(() => {});
+        container.requestFullscreen().catch(() => { });
       } else {
-        document.exitFullscreen().catch(() => {});
+        document.exitFullscreen().catch(() => { });
       }
     }
   };
@@ -460,12 +463,12 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t }: 
   };
 
   return (
-    <div 
+    <div
       className="fixed inset-0 z-50 bg-black flex flex-col landscape:flex-row md:flex-row select-none overflow-hidden"
       id="media-player-container"
     >
       {/* Primary Video Screen Area */}
-      <div 
+      <div
         ref={containerRef}
         className="relative flex-1 h-full bg-black flex items-center justify-center overflow-hidden"
       >
@@ -501,282 +504,276 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t }: 
               />
             ))}
           </video>
-      ) : (
-        /* High-fidelity Cinematic Simulation Display */
-        <div 
-          className="relative w-full h-full flex items-center justify-center bg-zinc-950"
-          onClick={handlePlayPause}
-          id="simulation-display"
-        >
-          {/* Animated Zooming Background Backdrop */}
-          <div 
-            className="absolute inset-0 bg-cover bg-center opacity-30 blur-xs transition-transform duration-1000 scale-105"
-            style={{ 
-              backgroundImage: `url(${movie.backdropUrl})`,
-              transform: isPlaying ? `scale(${1.08 + Math.sin(currentTime / 10) * 0.03}) rotate(${Math.sin(currentTime / 20) * 0.5}deg)` : 'scale(1.05)'
-            }}
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/60 to-zinc-950" />
-
-          {/* Glowing Center Art Frame */}
-          <div className="relative z-10 flex flex-col items-center text-center p-6 max-w-lg">
-            <div className="relative w-48 h-72 md:w-56 md:h-80 rounded-xl overflow-hidden shadow-[0_0_50px_rgba(239,68,68,0.25)] border border-zinc-800 mb-6 group transition-all duration-500 hover:shadow-[0_0_70px_rgba(239,68,68,0.4)]">
-              <img 
-                src={movie.posterUrl} 
-                alt={movie.title}
-                className="w-full h-full object-cover"
-                referrerPolicy="no-referrer"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-transparent flex flex-col justify-end p-4">
-                <div className="flex items-center gap-1.5 self-start">
-                  <span className="px-2 py-0.5 rounded-sm bg-red-600 text-[10px] font-extrabold text-white uppercase tracking-wider">
-                    {t.simulated || "SIMULATED"}
-                  </span>
-                  <span className="px-2 py-0.5 rounded-sm bg-zinc-900/85 text-[10px] font-semibold text-zinc-300 uppercase tracking-wider">
-                    {movie.quality}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <span className="text-[11px] font-bold text-red-500 font-mono tracking-widest uppercase">
-                {t.interactiveStream || "Interactive Cinema Stream"}
-              </span>
-              <h2 className="text-2xl md:text-3xl font-extrabold text-white tracking-tight">
-                {movie.title} {activeEpisode ? ` - S${activeSeason?.seasonNumber}E${activeEpisode.episodeNumber}` : ""}
-              </h2>
-              <p className="text-xs text-zinc-400 max-w-sm leading-relaxed mt-1">
-                {activeEpisode?.description || movie.description || (t.simulationDesc || "Direct raw link loading is limited by sandboxed container headers. Playing simulated high-fidelity HLS timeline.")}
-              </p>
-              {isPlaying ? (
-                <div className="flex items-center justify-center gap-1.5 mt-4 text-emerald-500 text-xs font-mono font-semibold bg-emerald-500/10 px-3 py-1.5 rounded-full border border-emerald-500/20 shadow-xs animate-pulse">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                  {t.streamingQualityLabel || "Streaming @ 4K Ultra HD"}
-                </div>
-              ) : (
-                <div className="flex items-center justify-center gap-1.5 mt-4 text-zinc-400 text-xs font-mono font-semibold bg-zinc-800/30 px-3 py-1.5 rounded-full border border-zinc-800">
-                  <span className="w-2 h-2 rounded-full bg-zinc-500" />
-                  {t.pausedLabel || "Paused"}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Styled Caption Subtitle Overlay */}
-      {currentCaption && (
-        <div className={`absolute left-1/2 -translate-x-1/2 text-center max-w-3xl text-white text-base md:text-xl font-bold select-none pointer-events-none drop-shadow-[0_2px_3px_rgba(0,0,0,1)] transition-all duration-300 ${
-          showControls ? "bottom-32" : "bottom-12"
-        }`}>
-          {currentCaption}
-        </div>
-      )}
-
-      {/* HUD Controller Overlay Screen */}
-      <div 
-        className={`absolute inset-0 bg-linear-to-t from-black/90 via-black/20 to-black/80 flex flex-col justify-between p-4 md:p-8 transition-opacity duration-300 ${
-          showControls ? "opacity-100" : "opacity-0 pointer-events-none"
-        }`}
-        id="media-player-hud"
-      >
-        {/* Top Header Row */}
-        <div className="flex items-center justify-between w-full">
-          <div>
-            <p className="text-[10px] md:text-xs font-bold text-red-500 font-mono tracking-wider">
-              {t.nowStreaming || "NOW STREAMING"} • {movie.quality}
-            </p>
-            <h1 className="text-white text-base md:text-xl font-extrabold truncate max-w-md mt-0.5">
-              {movie.title} {activeEpisode ? ` • S${activeSeason?.seasonNumber}E${activeEpisode.episodeNumber}: ${activeEpisode.title}` : ""}
-            </h1>
-          </div>
-
-          <button
-            onClick={() => {
-              if (document.fullscreenElement) {
-                document.exitFullscreen().catch(() => {});
-              }
-              onClose();
-            }}
-            className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-zinc-900/80 hover:bg-red-600 text-white flex items-center justify-center border border-zinc-800 transition-colors shadow-lg cursor-pointer"
-            id="media-player-exit"
-            title={t.exitPlayer || "Exit Player"}
+        ) : (
+          /* High-fidelity Cinematic Simulation Display */
+          <div
+            className="relative w-full h-full flex items-center justify-center bg-zinc-950"
+            onClick={handlePlayPause}
+            id="simulation-display"
           >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        {/* Bottom Playback HUD panel */}
-        <div className="space-y-4">
-          {/* Progress Timeline Scrubber */}
-          <div className="flex items-center gap-3 w-full">
-            <span className="text-xs font-mono text-zinc-400 shrink-0">
-              {formatTime(currentTime)}
-            </span>
-
-            <input
-              type="range"
-              min={0}
-              max={duration || 100}
-              value={currentTime}
-              onChange={handleSeek}
-              className="w-full accent-red-600 bg-zinc-800 h-1 hover:h-1.5 rounded-lg appearance-none cursor-pointer transition-all"
-              id="media-progress-slider"
+            {/* Animated Zooming Background Backdrop */}
+            <div
+              className="absolute inset-0 bg-cover bg-center opacity-30 blur-xs transition-transform duration-1000 scale-105"
+              style={{
+                backgroundImage: `url(${movie.backdropUrl})`,
+                transform: isPlaying ? `scale(${1.08 + Math.sin(currentTime / 10) * 0.03}) rotate(${Math.sin(currentTime / 20) * 0.5}deg)` : 'scale(1.05)'
+              }}
             />
+            <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/60 to-zinc-950" />
 
-            <span className="text-xs font-mono text-zinc-400 shrink-0">
-              {formatTime(duration)}
-            </span>
-          </div>
-
-          {/* Controls Bar Row */}
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            {/* Play, Rewind, Forward controls */}
-            <div className="flex items-center gap-4">
-              <button
-                onClick={() => handleSkip(-10)}
-                className="text-zinc-300 hover:text-white transition-colors cursor-pointer"
-                title={t.rewind10s || "Rewind 10s"}
-              >
-                <RotateCcw className="w-5 h-5" />
-              </button>
-
-              <button
-                onClick={handlePlayPause}
-                className="w-12 h-12 rounded-full bg-white hover:scale-105 transition-transform flex items-center justify-center shadow-md cursor-pointer"
-                id="hud-play-btn"
-              >
-                {isPlaying ? (
-                  <Pause className="w-5 h-5 text-black fill-black" />
-                ) : (
-                  <Play className="w-5 h-5 text-black fill-black ml-0.5" />
-                )}
-              </button>
-
-              <button
-                onClick={() => handleSkip(10)}
-                className="text-zinc-300 hover:text-white transition-colors cursor-pointer"
-                title={t.forward10s || "Forward 10s"}
-              >
-                <RotateCw className="w-5 h-5" />
-              </button>
-
-              {/* Volume sliders */}
-              <div className="flex items-center gap-2 border-l border-zinc-800 pl-4">
-                <button
-                  onClick={handleMuteToggle}
-                  className="text-zinc-300 hover:text-white transition-colors cursor-pointer"
-                  id="hud-mute-btn"
-                >
-                  {isMuted ? (
-                    <VolumeX className="w-5 h-5 text-red-500" />
-                  ) : (
-                    <Volume2 className="w-5 h-5" />
-                  )}
-                </button>
-                <input
-                  type="range"
-                  min={0}
-                  max={1}
-                  step={0.05}
-                  value={isMuted ? 0 : volume}
-                  onChange={handleVolumeChange}
-                  className="hidden md:block w-20 md:w-24 accent-red-600 bg-zinc-800 h-1 rounded-lg appearance-none cursor-pointer"
-                  id="hud-volume-slider"
+            {/* Glowing Center Art Frame */}
+            <div className="relative z-10 flex flex-col items-center text-center p-6 max-w-lg">
+              <div className="relative w-48 h-72 md:w-56 md:h-80 rounded-xl overflow-hidden shadow-[0_0_50px_rgba(239,68,68,0.25)] border border-zinc-800 mb-6 group transition-all duration-500 hover:shadow-[0_0_70px_rgba(239,68,68,0.4)]">
+                <img
+                  src={movie.posterUrl}
+                  alt={movie.title}
+                  className="w-full h-full object-cover"
+                  referrerPolicy="no-referrer"
                 />
+                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-transparent flex flex-col justify-end p-4">
+                  <div className="flex items-center gap-1.5 self-start">
+                    <span className="px-2 py-0.5 rounded-sm bg-red-600 text-[10px] font-extrabold text-white uppercase tracking-wider">
+                      {t.simulated || "SIMULATED"}
+                    </span>
+                    <span className="px-2 py-0.5 rounded-sm bg-zinc-900/85 text-[10px] font-semibold text-zinc-300 uppercase tracking-wider">
+                      {movie.quality}
+                    </span>
+                  </div>
+                </div>
               </div>
-            </div>
 
-            {/* Utility Subtitles, Speed and Fullscreen */}
-            <div className="flex items-center gap-4 relative">
-              {/* Playback speed selector */}
-              <div className="relative">
-                <button
-                  onClick={() => { setShowSpeedMenu(!showSpeedMenu); setShowSubtitleMenu(false); }}
-                  className="flex items-center gap-1 text-zinc-300 hover:text-white text-xs font-semibold px-2 py-1 bg-zinc-900/80 border border-zinc-800 rounded-md cursor-pointer"
-                  title={t.playbackSpeed || "Playback Speed"}
-                >
-                  <Settings className="w-4 h-4" />
-                  <span>{playbackRate}x</span>
-                </button>
-
-                {showSpeedMenu && (
-                  <div className="absolute bottom-10 right-0 w-24 bg-zinc-950 border border-zinc-800 p-1 rounded-md shadow-2xl flex flex-col gap-0.5">
-                    {[0.5, 1, 1.25, 1.5, 2].map((r) => (
-                      <button
-                        key={r}
-                        onClick={() => handleSpeedSelect(r)}
-                        className={`text-left text-xs px-2 py-1.5 rounded-sm hover:bg-zinc-900 transition-colors ${
-                          playbackRate === r ? "text-red-500 font-bold bg-red-500/10" : "text-zinc-400"
-                        }`}
-                      >
-                        {r}x
-                      </button>
-                    ))}
+              <div className="space-y-2">
+                <span className="text-[11px] font-bold text-red-500 font-mono tracking-widest uppercase">
+                  {t.interactiveStream || "Interactive Cinema Stream"}
+                </span>
+                <h2 className="text-2xl md:text-3xl font-extrabold text-white tracking-tight">
+                  {movie.title} {activeEpisode ? ` - S${activeSeason?.seasonNumber}E${activeEpisode.episodeNumber}` : ""}
+                </h2>
+                <p className="text-xs text-zinc-400 max-w-sm leading-relaxed mt-1">
+                  {activeEpisode?.description || movie.description || (t.simulationDesc || "Direct raw link loading is limited by sandboxed container headers. Playing simulated high-fidelity HLS timeline.")}
+                </p>
+                {isPlaying ? (
+                  <div className="flex items-center justify-center gap-1.5 mt-4 text-emerald-500 text-xs font-mono font-semibold bg-emerald-500/10 px-3 py-1.5 rounded-full border border-emerald-500/20 shadow-xs animate-pulse">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                    {t.streamingQualityLabel || "Streaming @ 4K Ultra HD"}
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center gap-1.5 mt-4 text-zinc-400 text-xs font-mono font-semibold bg-zinc-800/30 px-3 py-1.5 rounded-full border border-zinc-800">
+                    <span className="w-2 h-2 rounded-full bg-zinc-500" />
+                    {t.pausedLabel || "Paused"}
                   </div>
                 )}
               </div>
+            </div>
+          </div>
+        )}
 
-              {/* Captions Subtitle trigger */}
-              {movie.subtitles.length > 0 && (
+        {/* Styled Caption Subtitle Overlay */}
+        {currentCaption && (
+          <div className={`absolute left-1/2 -translate-x-1/2 text-center max-w-3xl text-white text-base md:text-xl font-bold select-none pointer-events-none drop-shadow-[0_2px_3px_rgba(0,0,0,1)] transition-all duration-300 ${showControls ? "bottom-32" : "bottom-12"
+            }`}>
+            {currentCaption}
+          </div>
+        )}
+
+        {/* HUD Controller Overlay Screen */}
+        <div
+          className={`absolute inset-0 bg-linear-to-t from-black/90 via-black/20 to-black/80 flex flex-col justify-between p-4 md:p-8 transition-opacity duration-300 ${showControls ? "opacity-100" : "opacity-0 pointer-events-none"
+            }`}
+          id="media-player-hud"
+        >
+          {/* Top Header Row */}
+          <div className="flex items-center justify-between w-full">
+            <div>
+              <p className="text-[10px] md:text-xs font-bold text-red-500 font-mono tracking-wider">
+                {t.nowStreaming || "NOW STREAMING"} • {movie.quality}
+              </p>
+              <h1 className="text-white text-base md:text-xl font-extrabold truncate max-w-md mt-0.5">
+                {movie.title} {activeEpisode ? ` • S${activeSeason?.seasonNumber}E${activeEpisode.episodeNumber}: ${activeEpisode.title}` : ""}
+              </h1>
+            </div>
+
+            <button
+              onClick={() => {
+                if (document.fullscreenElement) {
+                  document.exitFullscreen().catch(() => { });
+                }
+                onClose();
+              }}
+              className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-zinc-900/80 hover:bg-red-600 text-white flex items-center justify-center border border-zinc-800 transition-colors shadow-lg cursor-pointer"
+              id="media-player-exit"
+              title={t.exitPlayer || "Exit Player"}
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          {/* Bottom Playback HUD panel */}
+          <div className="space-y-4">
+            {/* Progress Timeline Scrubber */}
+            <div className="flex items-center gap-3 w-full">
+              <span className="text-xs font-mono text-zinc-400 shrink-0">
+                {formatTime(currentTime)}
+              </span>
+
+              <input
+                type="range"
+                min={0}
+                max={duration || 100}
+                value={currentTime}
+                onChange={handleSeek}
+                className="w-full accent-red-600 bg-zinc-800 h-1 hover:h-1.5 rounded-lg appearance-none cursor-pointer transition-all"
+                id="media-progress-slider"
+              />
+
+              <span className="text-xs font-mono text-zinc-400 shrink-0">
+                {formatTime(duration)}
+              </span>
+            </div>
+
+            {/* Controls Bar Row */}
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              {/* Play, Rewind, Forward controls */}
+              <div className="flex items-center gap-4">
+                <button
+                  onClick={() => handleSkip(-10)}
+                  className="text-zinc-300 hover:text-white transition-colors cursor-pointer"
+                  title={t.rewind10s || "Rewind 10s"}
+                >
+                  <RotateCcw className="w-5 h-5" />
+                </button>
+
+                <button
+                  onClick={handlePlayPause}
+                  className="w-12 h-12 rounded-full bg-white hover:scale-105 transition-transform flex items-center justify-center shadow-md cursor-pointer"
+                  id="hud-play-btn"
+                >
+                  {isPlaying ? (
+                    <Pause className="w-5 h-5 text-black fill-black" />
+                  ) : (
+                    <Play className="w-5 h-5 text-black fill-black ml-0.5" />
+                  )}
+                </button>
+
+                <button
+                  onClick={() => handleSkip(10)}
+                  className="text-zinc-300 hover:text-white transition-colors cursor-pointer"
+                  title={t.forward10s || "Forward 10s"}
+                >
+                  <RotateCw className="w-5 h-5" />
+                </button>
+
+                {/* Volume sliders */}
+                <div className="flex items-center gap-2 border-l border-zinc-800 pl-4">
+                  <button
+                    onClick={handleMuteToggle}
+                    className="text-zinc-300 hover:text-white transition-colors cursor-pointer"
+                    id="hud-mute-btn"
+                  >
+                    {isMuted ? (
+                      <VolumeX className="w-5 h-5 text-red-500" />
+                    ) : (
+                      <Volume2 className="w-5 h-5" />
+                    )}
+                  </button>
+                  <input
+                    type="range"
+                    min={0}
+                    max={1}
+                    step={0.05}
+                    value={isMuted ? 0 : volume}
+                    onChange={handleVolumeChange}
+                    className="hidden md:block w-20 md:w-24 accent-red-600 bg-zinc-800 h-1 rounded-lg appearance-none cursor-pointer"
+                    id="hud-volume-slider"
+                  />
+                </div>
+              </div>
+
+              {/* Utility Subtitles, Speed and Fullscreen */}
+              <div className="flex items-center gap-4 relative">
+                {/* Playback speed selector */}
                 <div className="relative">
                   <button
-                    onClick={() => { setShowSubtitleMenu(!showSubtitleMenu); setShowSpeedMenu(false); }}
-                    className={`flex items-center gap-1 text-xs font-semibold px-2 py-1 border rounded-md cursor-pointer ${
-                      activeSubtitle !== "off" 
-                        ? "bg-red-600/10 border-red-500 text-red-400" 
-                        : "bg-zinc-900/80 border-zinc-800 text-zinc-300 hover:text-white"
-                    }`}
-                    title={t.toggleCaptions || "Toggle Captions"}
+                    onClick={() => { setShowSpeedMenu(!showSpeedMenu); setShowSubtitleMenu(false); }}
+                    className="flex items-center gap-1 text-zinc-300 hover:text-white text-xs font-semibold px-2 py-1 bg-zinc-900/80 border border-zinc-800 rounded-md cursor-pointer"
+                    title={t.playbackSpeed || "Playback Speed"}
                   >
-                    <Subtitles className="w-4 h-4" />
-                    <span>{t.toggleCaptions || "Captions"}</span>
+                    <Settings className="w-4 h-4" />
+                    <span>{playbackRate}x</span>
                   </button>
 
-                  {showSubtitleMenu && (
-                    <div className="absolute bottom-10 right-0 w-32 bg-zinc-950 border border-zinc-800 p-1 rounded-md shadow-2xl flex flex-col gap-0.5">
-                      <button
-                        onClick={() => handleSubtitleSelect("off")}
-                        className={`text-left text-xs px-2 py-1.5 rounded-sm hover:bg-zinc-900 transition-colors ${
-                          activeSubtitle === "off" ? "text-red-500 font-bold bg-red-500/10" : "text-zinc-400"
-                        }`}
-                      >
-                        {t.noneOff || "Off (None)"}
-                      </button>
-                      {movie.subtitles.map((sub) => (
+                  {showSpeedMenu && (
+                    <div className="absolute bottom-10 right-0 w-24 bg-zinc-950 border border-zinc-800 p-1 rounded-md shadow-2xl flex flex-col gap-0.5">
+                      {[0.5, 1, 1.25, 1.5, 2].map((r) => (
                         <button
-                          key={sub.id}
-                          onClick={() => handleSubtitleSelect(sub.language)}
-                          className={`text-left text-xs px-2 py-1.5 rounded-sm hover:bg-zinc-900 transition-colors ${
-                            activeSubtitle === sub.language ? "text-red-500 font-bold bg-red-500/10" : "text-zinc-400"
-                          }`}
+                          key={r}
+                          onClick={() => handleSpeedSelect(r)}
+                          className={`text-left text-xs px-2 py-1.5 rounded-sm hover:bg-zinc-900 transition-colors ${playbackRate === r ? "text-red-500 font-bold bg-red-500/10" : "text-zinc-400"
+                            }`}
                         >
-                          {sub.label}
+                          {r}x
                         </button>
                       ))}
                     </div>
                   )}
                 </div>
-              )}
 
-              {/* Fullscreen control */}
-              <button
-                onClick={toggleFullscreen}
-                className="text-zinc-300 hover:text-white transition-colors cursor-pointer"
-                title={isFullscreen ? (t.exitFullscreen || "Exit Fullscreen") : (t.toggleFullscreen || "Toggle Fullscreen")}
-              >
-                {isFullscreen ? (
-                  <Minimize className="w-5 h-5" />
-                ) : (
-                  <Maximize className="w-5 h-5" />
+                {/* Captions Subtitle trigger */}
+                {movie.subtitles.length > 0 && (
+                  <div className="relative">
+                    <button
+                      onClick={() => { setShowSubtitleMenu(!showSubtitleMenu); setShowSpeedMenu(false); }}
+                      className={`flex items-center gap-1 text-xs font-semibold px-2 py-1 border rounded-md cursor-pointer ${activeSubtitle !== "off"
+                        ? "bg-red-600/10 border-red-500 text-red-400"
+                        : "bg-zinc-900/80 border-zinc-800 text-zinc-300 hover:text-white"
+                        }`}
+                      title={t.toggleCaptions || "Toggle Captions"}
+                    >
+                      <Subtitles className="w-4 h-4" />
+                      <span>{t.toggleCaptions || "Captions"}</span>
+                    </button>
+
+                    {showSubtitleMenu && (
+                      <div className="absolute bottom-10 right-0 w-32 bg-zinc-950 border border-zinc-800 p-1 rounded-md shadow-2xl flex flex-col gap-0.5">
+                        <button
+                          onClick={() => handleSubtitleSelect("off")}
+                          className={`text-left text-xs px-2 py-1.5 rounded-sm hover:bg-zinc-900 transition-colors ${activeSubtitle === "off" ? "text-red-500 font-bold bg-red-500/10" : "text-zinc-400"
+                            }`}
+                        >
+                          {t.noneOff || "Off (None)"}
+                        </button>
+                        {movie.subtitles.map((sub) => (
+                          <button
+                            key={sub.id}
+                            onClick={() => handleSubtitleSelect(sub.language)}
+                            className={`text-left text-xs px-2 py-1.5 rounded-sm hover:bg-zinc-900 transition-colors ${activeSubtitle === sub.language ? "text-red-500 font-bold bg-red-500/10" : "text-zinc-400"
+                              }`}
+                          >
+                            {sub.label}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 )}
-              </button>
+
+                {/* Fullscreen control */}
+                <button
+                  onClick={toggleFullscreen}
+                  className="text-zinc-300 hover:text-white transition-colors cursor-pointer"
+                  title={isFullscreen ? (t.exitFullscreen || "Exit Fullscreen") : (t.toggleFullscreen || "Toggle Fullscreen")}
+                >
+                  {isFullscreen ? (
+                    <Minimize className="w-5 h-5" />
+                  ) : (
+                    <Maximize className="w-5 h-5" />
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
 
       {/* Seasons / Episodes sidebar for TV Series */}
       {movie.contentType === "series" && movie.seasons && movie.seasons.length > 0 && (
@@ -820,11 +817,10 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t }: 
                     setActiveEpisode(ep);
                     setCurrentTime(0);
                   }}
-                  className={`w-full text-left p-3 rounded-lg border transition-all flex flex-col gap-1 cursor-pointer ${
-                    isCurrent
-                      ? "bg-red-600/10 border-red-600 shadow-[0_0_15px_rgba(220,38,38,0.15)]"
-                      : "bg-zinc-900/40 border-zinc-900 hover:bg-zinc-900 hover:border-zinc-800"
-                  }`}
+                  className={`w-full text-left p-3 rounded-lg border transition-all flex flex-col gap-1 cursor-pointer ${isCurrent
+                    ? "bg-red-600/10 border-red-600 shadow-[0_0_15px_rgba(220,38,38,0.15)]"
+                    : "bg-zinc-900/40 border-zinc-900 hover:bg-zinc-900 hover:border-zinc-800"
+                    }`}
                 >
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] font-bold text-red-500">
