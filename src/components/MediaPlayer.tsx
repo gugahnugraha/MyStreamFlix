@@ -14,6 +14,59 @@ interface MediaPlayerProps {
   t?: any;
 }
 
+interface Cue {
+  start: number;
+  end: number;
+  text: string;
+}
+
+function parseSubtitles(text: string): Cue[] {
+  const cues: Cue[] = [];
+  const normalizedText = text.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+  const blocks = normalizedText.split(/\n\n+/);
+  
+  const parseTimeToSeconds = (timeStr: string): number => {
+    const match = timeStr.trim().match(/(?:(\d+):)?(\d+):(\d+)[.,](\d+)/);
+    if (!match) return 0;
+    const hours = parseInt(match[1] || "0", 10);
+    const minutes = parseInt(match[2], 10);
+    const seconds = parseInt(match[3], 10);
+    const msStr = match[4].padEnd(3, "0").substring(0, 3);
+    const ms = parseInt(msStr, 10);
+    return hours * 3600 + minutes * 60 + seconds + ms / 1000;
+  };
+
+  for (const block of blocks) {
+    const lines = block.trim().split("\n");
+    if (lines.length < 2) continue;
+    
+    let timeLineIndex = -1;
+    for (let i = 0; i < lines.length; i++) {
+      if (lines[i].includes("-->")) {
+        timeLineIndex = i;
+        break;
+      }
+    }
+    
+    if (timeLineIndex === -1) continue;
+    
+    const timeParts = lines[timeLineIndex].split("-->");
+    if (timeParts.length !== 2) continue;
+    
+    const start = parseTimeToSeconds(timeParts[0]);
+    const end = parseTimeToSeconds(timeParts[1]);
+    
+    const textLines = lines.slice(timeLineIndex + 1);
+    const cueText = textLines.join("\n").replace(/<[^>]+>/g, "").trim();
+    
+    if (cueText) {
+      cues.push({ start, end, text: cueText });
+    }
+  }
+  
+  return cues;
+}
+
 export default function MediaPlayer({ movie, initialProgress = 0, onClose, t }: MediaPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -47,6 +100,9 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t }: 
   const [playbackRate, setPlaybackRate] = useState(1);
   const [activeSubtitle, setActiveSubtitle] = useState<string>("off");
   const [processedSubtitles, setProcessedSubtitles] = useState<Subtitle[]>([]);
+  const [parsedSubtitlesMap, setParsedSubtitlesMap] = useState<Record<string, Cue[]>>({});
+
+  const activeSubtitleObj = (movie.subtitles || []).find(s => s.language === activeSubtitle);
 
   // Keep duration in sync with active episode changes
   useEffect(() => {
@@ -202,109 +258,125 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t }: 
     return () => clearInterval(interval);
   }, [isPlaying, isSimulating, currentTime, duration, movie.id]);
 
-  // Generate mock subtitles matching active subtitle language
+  // Sync caption text based on current playback time and selected subtitle language
   useEffect(() => {
-    if (!isSimulating) return;
-
     if (activeSubtitle === "off") {
       setCurrentCaption("");
       return;
     }
 
-    const t = Math.round(currentTime);
-    const captionsMap: Record<string, Record<number, string>> = {
-      en: {
-        2: "This is a demonstration of the FlixSphere HLS Player.",
-        6: "Now showcasing pristine video compression & sound mixing.",
-        10: "Feel free to scrub anywhere to trigger instant resume points.",
-        15: "FlixSphere delivers marketplace-quality content rendering.",
-        25: "Enjoy the high-fidelity cinematic experience."
-      },
-      es: {
-        2: "Esta es una demostración del reproductor HLS de FlixSphere.",
-        6: "Ahora se muestra compresión de video y mezcla de sonido impecables.",
-        10: "Siéntase libre de avanzar para activar puntos de reanudación.",
-        15: "FlixSphere ofrece renderizado de contenido de calidad comercial.",
-        25: "Disfrute de la experiencia cinematográfica de alta fidelidad."
-      },
-      fr: {
-        2: "Ceci est une démonstration du lecteur HLS de FlixSphere.",
-        6: "Présentation d'une compression vidéo et d'un mixage audio exceptionnels.",
-        10: "N'hésitez pas à naviguer pour tester la reprise de lecture.",
-        15: "FlixSphere offre un rendu de contenu digne du marché.",
-        25: "Profitez de l'expérience cinématographique haute fidélité."
-      },
-      id: {
-        2: "Ini adalah demonstrasi dari FlixSphere HLS Player.",
-        6: "Menampilkan kompresi video murni & pencampuran suara yang luar biasa.",
-        10: "Silakan geser waktu (scrub) untuk mencoba fitur resume instan.",
-        15: "FlixSphere menyajikan rendering konten berkualitas pasar premium.",
-        25: "Nikmati pengalaman sinematik dengan fidelitas tinggi."
-      }
-    };
+    // 1. Try to display dynamic subtitles
+    const cues = parsedSubtitlesMap[activeSubtitle];
+    if (cues && cues.length > 0) {
+      const activeCue = cues.find(cue => currentTime >= cue.start && currentTime <= cue.end);
+      setCurrentCaption(activeCue ? activeCue.text : "");
+      return;
+    }
 
-    const activeCap = captionsMap[activeSubtitle];
-    if (activeCap) {
-      // Find caption that matches nearest rounded seconds
-      const matched = Object.keys(activeCap)
-        .map(Number)
-        .sort((a, b) => b - a)
-        .find(sec => t >= sec && t < sec + 4);
+    // 2. Fallback to hardcoded mock captions if in simulation mode and no dynamic cues found
+    if (isSimulating) {
+      const t = Math.round(currentTime);
+      const captionsMap: Record<string, Record<number, string>> = {
+        en: {
+          2: "This is a demonstration of the FlixSphere HLS Player.",
+          6: "Now showcasing pristine video compression & sound mixing.",
+          10: "Feel free to scrub anywhere to trigger instant resume points.",
+          15: "FlixSphere delivers marketplace-quality content rendering.",
+          25: "Enjoy the high-fidelity cinematic experience."
+        },
+        es: {
+          2: "Esta es una demostración del reproductor HLS de FlixSphere.",
+          6: "Ahora se muestra compresión de video y mezcla de sonido impecables.",
+          10: "Siéntase libre de avanzar para activar puntos de reanudación.",
+          15: "FlixSphere ofrece renderizado de contenido de calidad comercial.",
+          25: "Disfrute de la experiencia cinematográfica de alta fidelidad."
+        },
+        fr: {
+          2: "Ceci est une démonstration du lecteur HLS de FlixSphere.",
+          6: "Présentation d'une compression vidéo et d'un mixage audio exceptionnels.",
+          10: "N'hésitez pas à naviguer pour tester la reprise de lecture.",
+          15: "FlixSphere offre un rendu de contenu digne du marché.",
+          25: "Profitez de l'expérience cinématographique haute fidélité."
+        },
+        id: {
+          2: "Ini adalah demonstrasi dari FlixSphere HLS Player.",
+          6: "Menampilkan kompresi video murni & pencampuran suara yang luar biasa.",
+          10: "Silakan geser waktu (scrub) untuk mencoba fitur resume instan.",
+          15: "FlixSphere menyajikan rendering konten berkualitas pasar premium.",
+          25: "Nikmati pengalaman sinematik dengan fidelitas tinggi."
+        }
+      };
 
-      if (matched !== undefined) {
-        setCurrentCaption(activeCap[matched]);
+      const activeCap = captionsMap[activeSubtitle];
+      if (activeCap) {
+        const matched = Object.keys(activeCap)
+          .map(Number)
+          .sort((a, b) => b - a)
+          .find(sec => t >= sec && t < sec + 4);
+
+        if (matched !== undefined) {
+          setCurrentCaption(activeCap[matched]);
+        } else {
+          setCurrentCaption("");
+        }
       } else {
         setCurrentCaption("");
       }
     } else {
       setCurrentCaption("");
     }
-  }, [currentTime, activeSubtitle]);
+  }, [currentTime, activeSubtitle, parsedSubtitlesMap, isSimulating]);
 
   // Serialize subtitles array to detect actual content changes and avoid array reference mismatches
   const subtitlesString = JSON.stringify(movie.subtitles || []);
 
-  // Process SRT/VTT subtitles on-the-fly and generate safe Blob URLs
+  // Process SRT/VTT subtitles on-the-fly and generate safe Blob URLs, plus parse cues for local state
   useEffect(() => {
     let activeUrls: string[] = [];
+    const map: Record<string, Cue[]> = {};
 
     const processSubs = async () => {
       const list = await Promise.all(
         (movie.subtitles || []).map(async (sub) => {
-          const isRemote = sub.fileUrl.startsWith("http://") || sub.fileUrl.startsWith("https://");
-          if (isRemote) {
-            try {
-              const proxyUrl = `/api/subtitles?url=${encodeURIComponent(sub.fileUrl)}`;
-              const response = await fetch(proxyUrl);
-              if (!response.ok) throw new Error("Failed to fetch subtitle file");
-              let text = await response.text();
+          try {
+            const isRemote = sub.fileUrl.startsWith("http://") || sub.fileUrl.startsWith("https://");
+            const fetchUrl = isRemote
+              ? `/api/subtitles?url=${encodeURIComponent(sub.fileUrl)}`
+              : sub.fileUrl;
 
-              let vttText = text;
-              const isSrt = sub.fileUrl.toLowerCase().includes(".srt") || (text.includes("-->") && !text.trim().startsWith("WEBVTT"));
-              if (isSrt) {
-                // Convert SRT formatting to WebVTT compatible layout
-                if (!vttText.trim().startsWith("WEBVTT")) {
-                  vttText = "WEBVTT\n\n" + vttText;
-                }
-                // Replace all comma decimal separators in timestamps with dot decimal separators
-                vttText = vttText.replace(/(\d{2}:\d{2}:\d{2}),(\d{3})/g, "$1.$2");
+            const response = await fetch(fetchUrl);
+            if (!response.ok) throw new Error("Failed to fetch subtitle file");
+            const text = await response.text();
+
+            // Parse cues for JS overlay rendering
+            const cues = parseSubtitles(text);
+            map[sub.language] = cues;
+
+            let vttText = text;
+            const isSrt = sub.fileUrl.toLowerCase().includes(".srt") || (text.includes("-->") && !text.trim().startsWith("WEBVTT"));
+            if (isSrt) {
+              // Convert SRT formatting to WebVTT compatible layout
+              if (!vttText.trim().startsWith("WEBVTT")) {
+                vttText = "WEBVTT\n\n" + vttText;
               }
-
-              const blob = new Blob([vttText], { type: "text/vtt" });
-              const blobUrl = URL.createObjectURL(blob);
-              activeUrls.push(blobUrl);
-              return {
-                ...sub,
-                fileUrl: blobUrl
-              };
-            } catch (err) {
-              console.error("Failed loading subtitle via proxy:", err);
-              return sub;
+              // Replace all comma decimal separators in timestamps with dot decimal separators
+              vttText = vttText.replace(/(\d{2}:\d{2}:\d{2}),(\d{3})/g, "$1.$2");
             }
+
+            const blob = new Blob([vttText], { type: "text/vtt" });
+            const blobUrl = URL.createObjectURL(blob);
+            activeUrls.push(blobUrl);
+            return {
+              ...sub,
+              fileUrl: blobUrl
+            };
+          } catch (err) {
+            console.error("Failed loading subtitle:", err);
+            return sub;
           }
-          return sub;
         })
       );
+      setParsedSubtitlesMap(map);
       setProcessedSubtitles(list);
     };
 
@@ -315,46 +387,15 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t }: 
     };
   }, [subtitlesString]);
 
-  // Sync selected subtitle with native HTML5 text tracks and handle custom cues
+  // Disable native text tracks rendering to avoid double subtitles display
   useEffect(() => {
     const video = videoRef.current;
     if (!video || isSimulating) return;
 
-    const handleCueChange = (e: Event) => {
-      const track = e.target as TextTrack;
-      if (track.activeCues && track.activeCues.length > 0) {
-        const activeCue = track.activeCues[0] as any;
-        setCurrentCaption(activeCue ? activeCue.text : "");
-      } else {
-        setCurrentCaption("");
-      }
-    };
-
     const tracks = video.textTracks;
-    setCurrentCaption("");
-
     for (let i = 0; i < tracks.length; i++) {
-      const track = tracks[i];
-      if (track.language === activeSubtitle) {
-        track.mode = "hidden"; // process cues but do not draw browser defaults
-        track.addEventListener("cuechange", handleCueChange);
-
-        // Check if there is an active cue immediately
-        if (track.activeCues && track.activeCues.length > 0) {
-          const activeCue = track.activeCues[0] as any;
-          setCurrentCaption(activeCue ? activeCue.text : "");
-        }
-      } else {
-        track.mode = "disabled";
-        track.removeEventListener("cuechange", handleCueChange);
-      }
+      tracks[i].mode = "disabled";
     }
-
-    return () => {
-      for (let i = 0; i < tracks.length; i++) {
-        tracks[i].removeEventListener("cuechange", handleCueChange);
-      }
-    };
   }, [activeSubtitle, isSimulating, processedSubtitles]);
 
   // Player controls actions
@@ -740,7 +781,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t }: 
                       title={t.toggleCaptions || "Toggle Captions"}
                     >
                       <Subtitles className="w-4 h-4" />
-                      <span>{t.toggleCaptions || "Captions"}</span>
+                      <span>{activeSubtitleObj ? `${t.toggleCaptions || "Captions"}: ${activeSubtitleObj.label}` : (t.toggleCaptions || "Captions")}</span>
                     </button>
 
                     {showSubtitleMenu && (
