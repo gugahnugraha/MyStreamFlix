@@ -99,7 +99,6 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t }: 
   const [isMuted, setIsMuted] = useState(false);
   const [playbackRate, setPlaybackRate] = useState(1);
   const [activeSubtitle, setActiveSubtitle] = useState<string>("off");
-  const [processedSubtitles, setProcessedSubtitles] = useState<Subtitle[]>([]);
   const [parsedSubtitlesMap, setParsedSubtitlesMap] = useState<Record<string, Cue[]>>({});
 
   const activeSubtitleObj = (movie.subtitles || []).find(s => s.language === activeSubtitle);
@@ -330,13 +329,11 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t }: 
   // Serialize subtitles array to detect actual content changes and avoid array reference mismatches
   const subtitlesString = JSON.stringify(movie.subtitles || []);
 
-  // Process SRT/VTT subtitles on-the-fly and generate safe Blob URLs, plus parse cues for local state
+  // Process SRT/VTT subtitles on-the-fly and parse cues for local state
   useEffect(() => {
-    let activeUrls: string[] = [];
-    const map: Record<string, Cue[]> = {};
-
     const processSubs = async () => {
-      const list = await Promise.all(
+      const map: Record<string, Cue[]> = {};
+      await Promise.all(
         (movie.subtitles || []).map(async (sub) => {
           try {
             const isRemote = sub.fileUrl.startsWith("http://") || sub.fileUrl.startsWith("https://");
@@ -351,52 +348,16 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t }: 
             // Parse cues for JS overlay rendering
             const cues = parseSubtitles(text);
             map[sub.language] = cues;
-
-            let vttText = text;
-            const isSrt = sub.fileUrl.toLowerCase().includes(".srt") || (text.includes("-->") && !text.trim().startsWith("WEBVTT"));
-            if (isSrt) {
-              // Convert SRT formatting to WebVTT compatible layout
-              if (!vttText.trim().startsWith("WEBVTT")) {
-                vttText = "WEBVTT\n\n" + vttText;
-              }
-              // Replace all comma decimal separators in timestamps with dot decimal separators
-              vttText = vttText.replace(/(\d{2}:\d{2}:\d{2}),(\d{3})/g, "$1.$2");
-            }
-
-            const blob = new Blob([vttText], { type: "text/vtt" });
-            const blobUrl = URL.createObjectURL(blob);
-            activeUrls.push(blobUrl);
-            return {
-              ...sub,
-              fileUrl: blobUrl
-            };
           } catch (err) {
             console.error("Failed loading subtitle:", err);
-            return sub;
           }
         })
       );
       setParsedSubtitlesMap(map);
-      setProcessedSubtitles(list);
     };
 
     processSubs();
-
-    return () => {
-      activeUrls.forEach(url => URL.revokeObjectURL(url));
-    };
   }, [subtitlesString]);
-
-  // Disable native text tracks rendering to avoid double subtitles display
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!video || isSimulating) return;
-
-    const tracks = video.textTracks;
-    for (let i = 0; i < tracks.length; i++) {
-      tracks[i].mode = "disabled";
-    }
-  }, [activeSubtitle, isSimulating, processedSubtitles]);
 
   // Player controls actions
   const handlePlayPause = () => {
@@ -543,18 +504,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t }: 
               setIsPlaying(true);
             }}
             id="video-core-element"
-          >
-            {(processedSubtitles || []).map((sub) => (
-              <track
-                key={sub.id}
-                src={sub.fileUrl}
-                kind="subtitles"
-                srcLang={sub.language}
-                label={sub.label}
-                default={activeSubtitle === sub.language}
-              />
-            ))}
-          </video>
+          />
         ) : (
           /* High-fidelity Cinematic Simulation Display */
           <div
@@ -781,7 +731,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t }: 
                       title={t.toggleCaptions || "Toggle Captions"}
                     >
                       <Subtitles className="w-4 h-4" />
-                      <span>{activeSubtitleObj ? `${t.toggleCaptions || "Captions"}: ${activeSubtitleObj.label}` : (t.toggleCaptions || "Captions")}</span>
+                      <span>{activeSubtitleObj ? activeSubtitleObj.label : (t.toggleCaptions || "Toggle Captions")}</span>
                     </button>
 
                     {showSubtitleMenu && (
