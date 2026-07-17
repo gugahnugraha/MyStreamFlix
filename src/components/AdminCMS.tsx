@@ -197,166 +197,6 @@ export default function AdminCMS({
   const [seasons, setSeasons] = useState<Season[]>([]);
   const [subtitles, setSubtitles] = useState<Subtitle[]>([]);
 
-  // Upload states and handlers
-  const [uploading, setUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
-  const [uploadingEpisodeId, setUploadingEpisodeId] = useState<string | null>(null);
-  const [episodeUploadProgress, setEpisodeUploadProgress] = useState<Record<string, number>>({});
-  const [isDragging, setIsDragging] = useState(false);
-  const [draggingEpisodeId, setDraggingEpisodeId] = useState<string | null>(null);
-
-  const uploadVideoFile = (file: File) => {
-    if (!file) return;
-    setUploading(true);
-    setUploadProgress(0);
-    
-    const xhr = new XMLHttpRequest();
-    const formData = new FormData();
-    formData.append("file", file);
-    
-    xhr.upload.onprogress = (event) => {
-      if (event.lengthComputable) {
-        const percentComplete = Math.round((event.loaded / event.total) * 100);
-        setUploadProgress(percentComplete);
-      }
-    };
-    
-    xhr.onload = () => {
-      if (xhr.status >= 200 && xhr.status < 300) {
-        try {
-          const response = JSON.parse(xhr.responseText);
-          setVideoUrl(response.url);
-        } catch (e) {
-          alert("Upload parsing failed");
-        }
-      } else {
-        let errMsg = "Upload failed";
-        try {
-          const response = JSON.parse(xhr.responseText);
-          errMsg = response.error || errMsg;
-        } catch (e) {}
-        alert(errMsg);
-        setUploadProgress(null);
-      }
-      setUploading(false);
-    };
-    
-    xhr.onerror = () => {
-      alert("Network upload error");
-      setUploading(false);
-      setUploadProgress(null);
-    };
-    
-    xhr.open("POST", "/api/upload?folder=movies");
-    xhr.send(formData);
-  };
-
-  const handleVideoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) uploadVideoFile(file);
-  };
-
-  const uploadEpisodeVideoFile = (file: File, seasonId: string, episodeId: string) => {
-    if (!file) return;
-    setUploadingEpisodeId(episodeId);
-    setEpisodeUploadProgress((prev) => ({ ...prev, [episodeId]: 0 }));
-    
-    const xhr = new XMLHttpRequest();
-    const formData = new FormData();
-    formData.append("file", file);
-    
-    xhr.upload.onprogress = (event) => {
-      if (event.lengthComputable) {
-        const percentComplete = Math.round((event.loaded / event.total) * 100);
-        setEpisodeUploadProgress((prev) => ({ ...prev, [episodeId]: percentComplete }));
-      }
-    };
-    
-    xhr.onload = () => {
-      if (xhr.status >= 200 && xhr.status < 300) {
-        try {
-          const response = JSON.parse(xhr.responseText);
-          handleUpdateEpisode(seasonId, episodeId, "videoUrl", response.url);
-        } catch (e) {
-          alert("Upload parsing failed");
-        }
-      } else {
-        let errMsg = "Upload failed";
-        try {
-          const response = JSON.parse(xhr.responseText);
-          errMsg = response.error || errMsg;
-        } catch (e) {}
-        alert(errMsg);
-        setEpisodeUploadProgress((prev) => {
-          const copy = { ...prev };
-          delete copy[episodeId];
-          return copy;
-        });
-      }
-      setUploadingEpisodeId(null);
-    };
-    
-    xhr.onerror = () => {
-      alert("Network upload error");
-      setUploadingEpisodeId(null);
-      setEpisodeUploadProgress((prev) => {
-         const copy = { ...prev };
-         delete copy[episodeId];
-         return copy;
-      });
-    };
-    
-    xhr.open("POST", "/api/upload?folder=series");
-    xhr.send(formData);
-  };
-
-  const handleEpisodeVideoUpload = (e: React.ChangeEvent<HTMLInputElement>, seasonId: string, episodeId: string) => {
-    const file = e.target.files?.[0];
-    if (file) uploadEpisodeVideoFile(file, seasonId, episodeId);
-  };
-
-  const handleMovieDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(true);
-  };
-
-  const handleMovieDragLeave = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-  };
-
-  const handleMovieDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-    const file = e.dataTransfer.files?.[0];
-    if (file && file.type.startsWith("video/")) {
-      uploadVideoFile(file);
-    } else {
-      alert("Please drop a valid video file.");
-    }
-  };
-
-  const handleEpisodeDragOver = (e: React.DragEvent, episodeId: string) => {
-    e.preventDefault();
-    setDraggingEpisodeId(episodeId);
-  };
-
-  const handleEpisodeDragLeave = (e: React.DragEvent) => {
-    e.preventDefault();
-    setDraggingEpisodeId(null);
-  };
-
-  const handleEpisodeDrop = (e: React.DragEvent, seasonId: string, episodeId: string) => {
-    e.preventDefault();
-    setDraggingEpisodeId(null);
-    const file = e.dataTransfer.files?.[0];
-    if (file && file.type.startsWith("video/")) {
-      uploadEpisodeVideoFile(file, seasonId, episodeId);
-    } else {
-      alert("Please drop a valid video file.");
-    }
-  };
-
   const handleAddSubtitle = () => {
     const newSub: Subtitle = {
       id: `sub-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
@@ -1658,74 +1498,15 @@ export default function AdminCMS({
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1 col-span-2">
                       <label className="text-[10px] font-bold uppercase text-zinc-500">{t.cmsVideoSourceUrl}</label>
-                      
-                      {!videoUrl && !uploading && (
-                        <div
-                          onDragOver={handleMovieDragOver}
-                          onDragLeave={handleMovieDragLeave}
-                          onDrop={handleMovieDrop}
-                          className={`relative border-2 border-dashed rounded-xl p-8 flex flex-col items-center justify-center gap-2 cursor-pointer transition-all ${
-                            isDragging 
-                              ? "border-red-500 bg-red-500/5" 
-                              : "border-zinc-800 bg-zinc-950/40 hover:border-zinc-700 hover:bg-zinc-950/60"
-                          }`}
-                          onClick={() => document.getElementById("movie-file-upload")?.click()}
-                        >
-                          <Play className={`w-8 h-8 ${isDragging ? "text-red-500 animate-pulse" : "text-zinc-500"}`} />
-                          <p className="text-xs text-zinc-400 text-center font-medium">
-                            {t.cmsDropzoneText}
-                          </p>
-                          <span className="text-[10px] text-zinc-600 font-mono">Supports MP4, MKV, AVI, etc.</span>
-                          <input
-                            type="file"
-                            id="movie-file-upload"
-                            accept="video/*"
-                            onChange={handleVideoUpload}
-                            className="hidden"
-                          />
-                        </div>
-                      )}
-
-                      {uploading && (
-                        <div className="border border-zinc-850 bg-zinc-950 p-6 rounded-xl space-y-4">
-                          <div className="flex items-center justify-between text-xs">
-                            <span className="text-zinc-400 font-medium flex items-center gap-2">
-                              <div className="w-3 h-3 border-2 border-red-500 border-t-transparent rounded-full animate-spin" />
-                              {t.cmsUploading}
-                            </span>
-                            <span className="font-bold text-red-500 font-mono">{uploadProgress}%</span>
-                          </div>
-                          <div className="w-full bg-zinc-900 h-2 rounded-full overflow-hidden border border-zinc-850">
-                            <div 
-                              className="bg-red-600 h-full rounded-full transition-all duration-300 shadow-[0_0_8px_rgba(239,68,68,0.5)]" 
-                              style={{ width: `${uploadProgress || 0}%` }}
-                            />
-                          </div>
-                        </div>
-                      )}
-
-                      {videoUrl && !uploading && (
-                        <div className="border border-zinc-800 bg-zinc-950 p-4 rounded-xl flex items-center justify-between gap-4">
-                          <div className="flex items-center gap-3 overflow-hidden">
-                            <div className="p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 shrink-0">
-                              <CheckCircle className="w-5 h-5" />
-                            </div>
-                            <div className="overflow-hidden min-w-0">
-                              <p className="text-xs font-bold text-white leading-none">{t.cmsUploadSuccess}</p>
-                              <p className="text-[10px] text-zinc-500 truncate font-mono mt-1">{videoUrl}</p>
-                            </div>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => setVideoUrl("")}
-                            className="px-3 py-1.5 bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 hover:border-zinc-750 text-[11px] font-bold text-white rounded-lg transition-all shrink-0 cursor-pointer"
-                          >
-                            {t.cmsChangeVideo}
-                          </button>
-                        </div>
-                      )}
-                      
-                      <input type="hidden" required value={videoUrl} />
+                      <input
+                        type="text"
+                        required
+                        placeholder="e.g. https://pub-e7ecd47498224d3fbfd74c81dd22c504.r2.dev/movies/film.mp4"
+                        value={videoUrl}
+                        onChange={(e) => setVideoUrl(e.target.value)}
+                        className="w-full bg-zinc-900 border border-zinc-850 p-2.5 rounded text-xs focus:outline-hidden focus:border-red-500/50"
+                        id="form-input-video"
+                      />
                     </div>
                     <div className="space-y-1">
                       <label className="text-[10px] font-bold uppercase text-zinc-500">{t.cmsPosterFrameUrl}</label>
@@ -1945,71 +1726,14 @@ export default function AdminCMS({
 
                                     <div className="space-y-0.5">
                                       <label className="text-[9px] font-bold uppercase text-zinc-600">{t.cmsEpisodeVideoUrl}</label>
-                                      
-                                      {!ep.videoUrl && uploadingEpisodeId !== ep.id && (
-                                        <div
-                                          onDragOver={(e) => handleEpisodeDragOver(e, ep.id)}
-                                          onDragLeave={handleEpisodeDragLeave}
-                                          onDrop={(e) => handleEpisodeDrop(e, season.id, ep.id)}
-                                          className={`relative border border-dashed rounded-lg p-4 flex flex-col items-center justify-center gap-1 cursor-pointer transition-all ${
-                                            draggingEpisodeId === ep.id 
-                                              ? "border-red-500 bg-red-500/5" 
-                                              : "border-zinc-800 bg-zinc-950/40 hover:border-zinc-700 hover:bg-zinc-950/60"
-                                          }`}
-                                          onClick={() => document.getElementById(`ep-file-upload-${ep.id}`)?.click()}
-                                        >
-                                          <Play className={`w-5 h-5 ${draggingEpisodeId === ep.id ? "text-red-500 animate-pulse" : "text-zinc-600"}`} />
-                                          <p className="text-[10px] text-zinc-500 text-center font-medium leading-snug">
-                                            {t.cmsDropzoneText}
-                                          </p>
-                                          <input
-                                            type="file"
-                                            id={`ep-file-upload-${ep.id}`}
-                                            accept="video/*"
-                                            onChange={(e) => handleEpisodeVideoUpload(e, season.id, ep.id)}
-                                            className="hidden"
-                                          />
-                                        </div>
-                                      )}
-
-                                      {uploadingEpisodeId === ep.id && (
-                                        <div className="border border-zinc-850 bg-zinc-950 p-3 rounded-lg space-y-2">
-                                          <div className="flex items-center justify-between text-[10px]">
-                                            <span className="text-zinc-500 font-medium flex items-center gap-1.5">
-                                              <div className="w-2.5 h-2.5 border-2 border-red-500 border-t-transparent rounded-full animate-spin" />
-                                              {t.cmsUploading}
-                                            </span>
-                                            <span className="font-bold text-red-500 font-mono">{episodeUploadProgress[ep.id] || 0}%</span>
-                                          </div>
-                                          <div className="w-full bg-zinc-900 h-1.5 rounded-full overflow-hidden border border-zinc-850">
-                                            <div 
-                                              className="bg-red-600 h-full rounded-full transition-all duration-300" 
-                                              style={{ width: `${episodeUploadProgress[ep.id] || 0}%` }}
-                                            />
-                                          </div>
-                                        </div>
-                                      )}
-
-                                      {ep.videoUrl && uploadingEpisodeId !== ep.id && (
-                                        <div className="border border-zinc-850 bg-zinc-950 p-2.5 rounded-lg flex items-center justify-between gap-3">
-                                          <div className="flex items-center gap-2 overflow-hidden min-w-0">
-                                            <div className="p-1.5 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 shrink-0">
-                                              <CheckCircle className="w-4 h-4" />
-                                            </div>
-                                            <div className="overflow-hidden min-w-0">
-                                              <p className="text-[10px] font-bold text-white leading-none">{t.cmsUploadSuccess}</p>
-                                              <p className="text-[9px] text-zinc-500 truncate font-mono mt-0.5">{ep.videoUrl}</p>
-                                            </div>
-                                          </div>
-                                          <button
-                                            type="button"
-                                            onClick={() => handleUpdateEpisode(season.id, ep.id, "videoUrl", "")}
-                                            className="px-2 py-1 bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 hover:border-zinc-750 text-[10px] font-bold text-white rounded-md transition-all shrink-0 cursor-pointer"
-                                          >
-                                            {t.cmsChangeVideo}
-                                          </button>
-                                        </div>
-                                      )}
+                                      <input
+                                        type="text"
+                                        required
+                                        value={ep.videoUrl}
+                                        onChange={(e) => handleUpdateEpisode(season.id, ep.id, "videoUrl", e.target.value)}
+                                        placeholder="e.g. https://pub-e7ecd47498224d3fbfd74c81dd22c504.r2.dev/series/episode.mp4"
+                                        className="w-full bg-zinc-950 border border-zinc-900 p-1.5 rounded text-[11px] text-zinc-300 focus:outline-hidden focus:border-red-500/30 font-mono"
+                                      />
                                     </div>
 
                                     <div className="space-y-0.5">
