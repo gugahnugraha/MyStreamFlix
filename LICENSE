@@ -1,0 +1,70 @@
+MyStreamFlix — Proprietary Software License Agreement
+======================================================
+
+Copyright (c) 2026 MyStreamFlix. All Rights Reserved.
+
+This software and its associated source code, documentation, and assets
+(collectively, the "Software") are the proprietary property of the author.
+By purchasing and downloading this Software, you ("Licensee") agree to be
+bound by the terms of this License Agreement.
+
+------------------------------------------------------------------------
+
+1. GRANT OF LICENSE
+
+   Upon purchase, the Licensee is granted a non-exclusive, non-transferable
+   license to use the Software under ONE of the following tiers, depending
+   on the license purchased at checkout:
+
+   a) PERSONAL LICENSE
+      - You may install, modify, and run the Software on your own devices
+        for personal, educational, or portfolio purposes.
+      - You may NOT use the Software to build commercial products or services
+        for paying clients or customers.
+      - You may NOT redistribute, resell, sublicense, or share the source
+        code in any form (free or paid) on any public or private platform.
+
+   b) COMMERCIAL LICENSE
+      - You may install, modify, brand, and deploy the Software as a
+        commercial product or service (e.g., a streaming portal for clients).
+      - You may deploy the Software on multiple domains/servers for your own
+        commercial use or for a single client project per license purchased.
+      - You may NOT redistribute, resell, sublicense, or share the original
+        source code on any marketplace, repository, or public platform.
+      - You may NOT claim authorship of the original Software.
+
+2. RESTRICTIONS
+
+   Regardless of the license tier purchased:
+   - You may NOT redistribute, publish, or share the source code on GitHub,
+     GitLab, npm, or any other public or private code-sharing platform.
+   - You may NOT resell, sublicense, or repackage the Software as a template
+     or boilerplate for sale on any marketplace (e.g., Gumroad, ThemeForest,
+     CodeCanyon, Lemon Squeezy, etc.).
+   - You may NOT remove or alter this license file, copyright notices, or
+     attribution headers within the source code.
+
+3. OWNERSHIP
+
+   The Software is licensed, not sold. The author retains full ownership,
+   intellectual property rights, and copyright over the original source code,
+   design, and architecture.
+
+4. NO WARRANTY
+
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+   OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+   FITNESS FOR A PARTICULAR PURPOSE, AND NONINFRINGEMENT. IN NO EVENT SHALL
+   THE AUTHOR BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER LIABILITY ARISING
+   FROM THE USE OF THE SOFTWARE.
+
+5. TERMINATION
+
+   This license is effective until terminated. It will terminate automatically
+   if the Licensee fails to comply with any term of this Agreement. Upon
+   termination, the Licensee must destroy all copies of the Software.
+
+------------------------------------------------------------------------
+
+For questions, support, or commercial licensing inquiries, contact the author
+at the email address provided on the marketplace listing page.

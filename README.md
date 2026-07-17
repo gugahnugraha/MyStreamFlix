@@ -1,177 +1,267 @@
-# 🎬 MyStreamFlix - Premium Cinematic Video-on-Demand (VoD) & CMS SaaS Framework
+<p align="center">
+  <img src="https://img.shields.io/badge/Next.js-15-black?style=for-the-badge&logo=next.js" alt="Next.js 15" />
+  <img src="https://img.shields.io/badge/React-19-61DAFB?style=for-the-badge&logo=react&logoColor=white" alt="React 19" />
+  <img src="https://img.shields.io/badge/TypeScript-5.8-3178C6?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript" />
+  <img src="https://img.shields.io/badge/Tailwind_CSS-v4-06B6D4?style=for-the-badge&logo=tailwindcss&logoColor=white" alt="Tailwind CSS v4" />
+  <img src="https://img.shields.io/badge/Prisma-ORM-2D3748?style=for-the-badge&logo=prisma&logoColor=white" alt="Prisma ORM" />
+  <img src="https://img.shields.io/badge/Stripe-Payments-635BFF?style=for-the-badge&logo=stripe&logoColor=white" alt="Stripe" />
+  <img src="https://img.shields.io/badge/PayPal-Subscriptions-003087?style=for-the-badge&logo=paypal&logoColor=white" alt="PayPal" />
+  <img src="https://img.shields.io/badge/License-Proprietary-red?style=for-the-badge" alt="License" />
+</p>
 
-MyStreamFlix is a high-performance, beautiful, full-stack streaming portal and SaaS template designed with a premium, sleek dark user interface. Built with **Next.js 15 (App Router)** and **Prisma ORM**, it is optimized for developers looking to launch their own streaming platform, video library, course site, or digital media store on Vercel.
+# 🎬 MyStreamFlix
 
-It features a gorgeous cinematic player, robust comment boards, real-time analytics dashboards, and a complete administrative CMS.
+### Premium Cinematic Video-on-Demand (VoD) & CMS SaaS Boilerplate
 
----
+> **Launch your own beautifully designed, serverless-ready cinematic streaming portal in under 5 minutes.**
 
-## ⚡ Key Highlights & Architecture
-
-- **Modern Next.js 15 Stack**: Designed with a serverless-ready Next.js App Router architecture for optimized performance.
-- **Hybrid Data Storage Engine (Smart Fallback & Zero-Config)**:
-  - **In-Memory Mode**: If no database is configured, the application runs instantly out-of-the-box using an in-memory data store. Perfect for local previews or zero-setup deployments!
-  - **Database Mode with Smart Fallback**: When a `DATABASE_URL` is supplied, the app automatically switches to database persistence (supporting **Neon**, **Supabase**, **MongoDB**, and **PostgreSQL**).
-  - **Automatic Movie Fallback**: If your database is connected but has **0 movies**, the app automatically falls back to displaying the local 100 dummy movies. Once you import a movie, the app dynamically hides the dummy movies and displays only your database catalog.
-  - **Automatic User Fallback**: If the database has **0 users**, it falls back to the in-memory default accounts. To facilitate testing, the default admin account `admin@streamcms.com` remains login-accessible via fallback even when the database is active with other registered accounts.
-- **Stateful Multi-User Space & Secure Sessions**:
-  - **Cryptographically Signed Cookies (HMAC SHA-256)**: Implements secure cookie verification preventing session hijacking or client-side user ID tampering.
-  - **Session Persistence**: Sessions are robustly cached and persisted globally across Hot Module Replacement (HMR) reloads and browser refreshes.
-  - **Personalization**: Allows users to manage multiple profiles (including Kids zones), maintain personalized favorites/watchlists, watch histories, and review logs.
-- **Tailwind CSS v4 & Motion**: Sleek, hardware-accelerated animations (`fadeInScale`, `slideUpText`) for that smooth, premium streaming experience.
-- **Storage Agnostic**: Stream video directly via secure URLs from Amazon S3, Cloudflare R2, BunnyCDN, Google Cloud Storage, or simple public drives.
+MyStreamFlix is a production-ready, full-stack streaming platform and content management system built with **Next.js 15**, **React 19**, **Prisma ORM**, and **Tailwind CSS v4**. It features a premium dark cinematic theme, an advanced video player, a complete admin CMS, Stripe & PayPal subscription payments, and a hybrid zero-config data engine — all deployable to **Vercel** with one click.
 
 ---
 
-## 🚀 Key Features Built-In
+## ⚡ Architecture Highlights
 
-### 1. Advanced Fullscreen Video Player
-- **Scoped Fullscreen Experience**: Pressing the fullscreen button expands only the video screen panel (hiding the TV Series episodes/seasons sidebar) for an immersive experience.
-- **Custom HUD Control Overlays**: Includes dynamic Play/Pause toggle, playback speed controller, volume levels, mute toggle, progress scrubbing timeline, and close action.
-- **Event-Driven Synchronization**: Auto-syncs fullscreen states (updating Maximize/Minimize icons) dynamically when exiting using standard escape keys.
-- **Multi-Language Subtitles**: Mock subtitle overlay supporting English, Indonesian, Spanish, and French.
+| Feature | Detail |
+|---|---|
+| **Framework** | Next.js 15 App Router (serverless-ready) |
+| **Frontend** | React 19 + TypeScript 5.8 |
+| **Styling** | Tailwind CSS v4 + Motion (hardware-accelerated animations) |
+| **Database** | Prisma ORM — PostgreSQL, Supabase, MongoDB, Neon.tech |
+| **Auth** | HMAC SHA-256 cryptographically signed cookies |
+| **Payments** | Stripe SDK + PayPal Subscriptions (USD) |
+| **I18n** | English, Indonesian, Spanish (3 languages) |
+| **Storage** | Storage-agnostic: S3, Cloudflare R2, BunnyCDN, GCS, or any public URL |
 
-### 2. Administrative CMS & Catalog CRUD
-- **Advanced Sorting**: Sort the movie catalog by Recently Added, Title (A-Z/Z-A), Release Year (Newest/Oldest), and Popularity (Views/Likes).
-- **Aesthetic Search & Filtering**: Real-time filtering by content type (Movies vs TV Series) and text search (title, genres, director, cast).
-- **Optimized Catalog Table**: Features a vertical scrollbar with a sticky header wrapper (`max-h-[550px]`) for seamless navigation through large databases.
-- **TV Series Builder**: Dynamic input controls for seasons, episodes, video links, and custom runtimes.
-- **Overview Analytics**: Visual stats tracker counting total titles, aggregated views, likes, and premium tier ratios.
+### Hybrid Data Engine (Zero-Config Smart Fallback)
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│                    MyStreamFlix Engine                        │
+│                                                              │
+│  DATABASE_URL set?                                           │
+│  ├── NO  → In-Memory Mode (instant, zero-setup)             │
+│  └── YES → Database Mode                                    │
+│            ├── 0 movies? → Show 100 dummy movies fallback   │
+│            ├── 0 users?  → Load default demo accounts       │
+│            └── Data exists → Use database exclusively       │
+└──────────────────────────────────────────────────────────────┘
+```
+
+- **In-Memory Mode**: No database needed. Runs instantly out-of-the-box with pre-loaded content. Perfect for local previews and demos.
+- **Database Mode**: When `DATABASE_URL` is configured, automatically switches to persistent storage with smart fallbacks for empty tables.
+- **Admin Fallback**: The default admin account (`admin@streamcms.com`) remains accessible via secure fallback even when other users exist in the database.
 
 ---
 
-## 📂 Folder Structure
+## 🚀 Features
 
-```text
-├── prisma/
-│   ├── schema.prisma          # Default SQL (Supabase/PostgreSQL) Schema
-│   └── schema.mongodb.prisma  # MongoDB Schema Variant
-├── app/                       # Next.js App Router (pages and API routes)
-│   ├── api/                   # Serverless REST endpoints
-│   ├── layout.tsx             # Root page wrapper and font imports
-│   ├── page.tsx               # Client orchestrator entrypoint
-│   └── globals.css            # Stylesheet (Tailwind v4 theme configurations)
+### 🎥 Advanced Fullscreen Video Player
+- **Scoped Fullscreen**: Expands only the video panel (hides episode sidebar) for immersive playback
+- **Custom HUD Controls**: Play/Pause, playback speed, volume, mute, progress scrubbing, and close
+- **Keyboard Sync**: Auto-syncs fullscreen state when exiting via Escape key
+- **Multi-Language Subtitles**: Interactive subtitle overlay in EN, ID, ES, FR
+- **Cinema Fallback**: If a stream fails, transitions into an atmospheric cinema simulation with working controls
+
+### 🛠️ Admin CMS & Catalog Management
+- **Full CRUD**: Create, edit, and delete movies and TV series with rich metadata
+- **TMDB Integrator**: Search and auto-import movie metadata (posters, backdrops, cast, genres, seasons/episodes) directly from The Movie Database
+- **TV Series Builder**: Dynamic input controls for seasons, episodes, video links, and custom runtimes
+- **Advanced Sorting**: By Recently Added, Title (A-Z/Z-A), Release Year, Popularity
+- **Content Filtering**: Real-time search and filter by content type (Movies vs TV Series)
+- **Optimized Table**: Sticky header with vertical scroll for large catalogs
+
+### 📊 Real-Time Analytics Dashboard
+- **Key Metrics**: Total titles, aggregated views, likes, active watchers (24h), watch hours, monthly revenue
+- **Visual Charts**: Views trend graph, Top Genres SVG donut chart
+- **Demographic Splits**: Adult vs Kids profiles, Free vs Premium subscribers (live progress bars)
+- **Auto-Calculated Revenue**: Dynamically recalculated based on premium user count
+
+### 👥 Multi-User & Profile System
+- **Secure Sessions**: HMAC SHA-256 signed cookies preventing session hijacking
+- **Multi-Profile**: Up to 5 profiles per account (including age-gated Kids mode)
+- **Personalization**: Favorites/watchlist, watch history with resume progress, review history
+- **Role-Based Access**: Admin (full CMS + dashboard) and User (viewer) roles
+- **User Management**: Admins can promote users to admin or remove accounts
+
+### 💳 Subscription Payments (Stripe & PayPal)
+- **Stripe Checkout**: Credit/debit card payments via official Stripe SDK
+- **PayPal Subscriptions**: Express checkout and recurring billing
+- **Three Tiers**: VIP ($2.99/mo), Premium ($5.99/mo), Ultra ($8.99/mo)
+- **Webhook Handlers**: Secure async payment processing with auto account upgrades
+- **Sandbox Mode**: Auto-detects empty API keys and falls back to interactive simulated checkout
+
+### 🌍 Internationalization (i18n)
+- **3 Languages**: English, Indonesian, Spanish
+- **Full Coverage**: All UI strings, form labels, error messages, and CMS controls
+- **Easy to Extend**: Single `translations.ts` file — add new languages by copying the existing structure
+
+### 🎨 Premium UI/UX
+- **Dark Cinematic Theme**: Netflix-inspired premium dark interface
+- **Fluid Animations**: Hardware-accelerated `fadeInScale` and `slideUpText` transitions
+- **Responsive Design**: Optimized for desktop, tablet, and mobile
+- **Interactive Footer**: Newsletter subscription, social links, navigation, copyright
+
+---
+
+## 📂 Project Structure
+
+```
+MyStreamFlix/
+├── app/                          # Next.js App Router
+│   ├── api/                      # 30 Serverless REST API Routes
+│   │   ├── auth/                 #   Login, Register, Logout, Profiles, Roles
+│   │   ├── movies/               #   CRUD, Reviews
+│   │   ├── subscription/         #   Stripe & PayPal Checkout + Webhooks
+│   │   ├── tmdb/                 #   Search & Metadata Import
+│   │   ├── user/                 #   Favorites, Watch History
+│   │   ├── users/                #   User Management (Admin)
+│   │   ├── dashboard/            #   Analytics Stats
+│   │   ├── search/               #   Suggestions
+│   │   ├── settings/             #   CMS Settings
+│   │   └── subtitles/            #   Subtitle Files
+│   ├── globals.css               # Tailwind v4 Theme Configuration
+│   ├── layout.tsx                # Root Layout with Metadata
+│   └── page.tsx                  # Client Entrypoint
 ├── src/
-│   ├── components/            # UI Components (Header, MediaPlayer, AdminCMS, etc.)
-│   ├── lib/                   # Utilities, Session, Prisma, and In-Memory Stores
-│   │   ├── db.ts              # Prisma Client Instantiator
-│   │   ├── in-memory-db.ts    # Global Mock Data Store (persisted across reloads)
-│   │   ├── data-service.ts    # Unified Hybrid Data Access Layer (DAL)
-│   │   └── tmdb.ts            # TMDB suggestions provider
-│   ├── types.ts               # Unified TypeScript Interfaces
-│   └── translations.ts        # EN / ID / ES Localization dictionary
+│   ├── components/               # 11 React Components
+│   │   ├── AdminCMS.tsx          #   Full Admin Dashboard & CMS
+│   │   ├── MediaPlayer.tsx       #   Advanced Video Player
+│   │   ├── Header.tsx            #   Navigation & Auth
+│   │   ├── Footer.tsx            #   Premium Footer
+│   │   ├── MovieCard.tsx         #   Movie Grid Card
+│   │   ├── MovieCarousel.tsx     #   Hero Banner Carousel
+│   │   ├── MovieDetailModal.tsx  #   Movie Info & Reviews
+│   │   ├── MovieRow.tsx          #   Horizontal Scroll Row
+│   │   ├── AuthModal.tsx         #   Login/Register Modal
+│   │   ├── ProfileModal.tsx      #   Profile Manager
+│   │   └── SubscriptionModal.tsx #   Payment & Plan Selection
+│   ├── lib/
+│   │   ├── data-service.ts       #   Hybrid Data Access Layer (DAL)
+│   │   ├── db.ts                 #   Prisma Client Instantiator
+│   │   ├── in-memory-db.ts       #   Global In-Memory Store
+│   │   ├── session.ts            #   Cookie Session Management
+│   │   ├── tmdb.ts               #   TMDB API Client
+│   │   └── dummy-movies.json     #   100 Pre-loaded Sample Movies
+│   ├── App.tsx                   # Main Application Orchestrator
+│   ├── types.ts                  # TypeScript Interfaces
+│   └── translations.ts           # i18n Dictionary (EN/ID/ES)
+├── prisma/
+│   ├── schema.prisma             # Default PostgreSQL Schema
+│   └── schema.mongodb.prisma     # MongoDB Schema Variant
+├── scripts/
+│   └── db-setup.js               # Database Initialization & Seeding
+├── public/
+│   └── uploads/                  # Local Upload Directory
+├── .env.example                  # Environment Variables Template
+├── .gitignore                    # Git Ignore Rules
+├── LICENSE                       # Software License Agreement
+├── CHANGELOG.md                  # Version History
+├── package.json                  # Dependencies & Scripts
+├── tsconfig.json                 # TypeScript Configuration
+├── next.config.ts                # Next.js Configuration
+└── postcss.config.mjs            # PostCSS / Tailwind Setup
 ```
 
 ---
 
-## 🛠️ Installation & Getting Started
+## 🛠️ Quick Start (5 Minutes)
 
 ### Prerequisites
-Make sure you have:
-- **Node.js** (Version 18.x or above)
-- **npm** (comes packaged with Node)
+- **Node.js** 18.x or above
+- **npm** (comes with Node.js)
 
-### Step 1: Extract and Navigate
-Navigate to the root directory of the application:
+### Step 1: Extract & Install
+
 ```bash
+# Extract the ZIP file, then navigate to the project folder
 cd MyStreamFlix
-```
 
-### Step 2: Install Dependencies
-```bash
+# Install all dependencies
 npm install
 ```
 
-### Step 3: Run Locally (In-Memory Fallback)
-Start the development server:
+### Step 2: Configure Environment
+
+```bash
+# Copy the example environment file
+cp .env.example .env     # macOS/Linux
+copy .env.example .env   # Windows
+```
+
+Edit `.env` and configure the variables you need (all are optional for local development — the app works out of the box with defaults).
+
+### Step 3: Run Locally
+
 ```bash
 npm run dev
 ```
-Open **`http://localhost:3000`** in your browser.
-The app will run automatically in **In-Memory Mode** since no `DATABASE_URL` is configured in `.env`. You can explore, log in as admin, create profiles, watch movies, and upload contents!
+
+Open **http://localhost:3000** — the app runs immediately in **In-Memory Mode**!
+
+### Default Demo Accounts
+
+| Role | Email | Password | Access |
+|---|---|---|---|
+| **Admin** | `admin@streamcms.com` | `admin` | Full CMS & Dashboard |
+| **Viewer** | `demo@viewer.com` | `demo` | Free tier content |
+| **Premium** | `premium@viewer.com` | `premium` | Full premium catalog |
 
 ---
 
-## 🗄️ Database Integration Guide (Neon.tech, Supabase, PostgreSQL, MongoDB)
+## 🗄️ Database Setup (Optional — For Production)
 
-To persist user registrations, catalogs, and watch history permanently, connect a database using Prisma ORM.
+The app works without a database, but for production deployment you'll want persistent storage.
 
 > [!IMPORTANT]
-> Running `npm run db:setup` is the recommended way to initialize your database. It pushes the table schemas and seeds the default CMS settings and exactly **1 Admin Account** (`admin@streamcms.com` / `admin`). The movies database starts clean and empty, allowing you to manually import content via the Admin CMS.
+> Running `npm run db:setup` pushes the table schema and seeds **1 Admin Account** (`admin@streamcms.com` / `admin`). The movie catalog starts empty — populate it via the Admin CMS.
 
-### Option A: Neon.tech (PostgreSQL) - *Recommended for Vercel*
-Neon.tech offers a free serverless PostgreSQL database with a generous free tier, natively optimized for Vercel deployments.
+### Option A: Neon.tech (PostgreSQL) — *Recommended for Vercel*
 
-1. **Create a project on [Neon.tech](https://neon.tech)**:
-   - Sign up, create a new project.
-   - From your project dashboard, go to **Connection Details** and copy the **Connection String** (starts with `postgresql://...`).
-2. **Configure your `.env`**:
+1. Create a project on [neon.tech](https://neon.tech) and copy the Connection String
+2. Set in `.env`:
    ```env
-   DATABASE_URL="postgresql://user:password@ep-xxx.ap-southeast-1.aws.neon.tech/neondb?sslmode=require"
-   TMDB_API_KEY="your_tmdb_key_here" # Optional
+   DATABASE_URL="postgresql://user:password@ep-xxx.aws.neon.tech/neondb?sslmode=require"
    ```
-3. **Initialize Database (run once from your local machine)**:
+3. Initialize:
    ```bash
    npm run db:setup
    ```
-   This connects from your local machine to Neon.tech, creates all required tables, seeds global settings, and registers exactly 1 Admin account (`admin@streamcms.com`).
-4. **Run Application**:
-   Launch `npm run dev` — the app will now read/write directly to your Neon.tech database.
-
----
 
 ### Option B: Supabase (PostgreSQL)
-Supabase provides a free, robust PostgreSQL database ideal for serverless deployments on Vercel.
 
-1. **Get the connection string**:
-   - Go to your Supabase project dashboard -> **Project Settings** -> **Database**.
-   - Copy the **Transaction** connection string (usually starts with `postgres://...` or `postgresql://...`). Make sure to use the correct port (usually `6543` for connection pooling) and append `?pgbouncer=true`.
-2. **Configure your `.env`**:
+1. Get the connection string from **Project Settings → Database**
+2. Set in `.env`:
    ```env
-   DATABASE_URL="postgresql://postgres.[username]:[password]@aws-0-us-east-1.pooler.supabase.com:6543/postgres?pgbouncer=true"
-   SESSION_SECRET="your_custom_secure_session_secret_key" # Replace with a long random string
-   TMDB_API_KEY="your_tmdb_key_here" # Optional
+   DATABASE_URL="postgresql://postgres.[ref]:[password]@aws-0-region.pooler.supabase.com:6543/postgres?pgbouncer=true"
    ```
-3. **Initialize Database (run once from your local machine)**:
+3. Initialize:
    ```bash
    npm run db:setup
    ```
-4. **Run Application**:
-   Launch `npm run dev` to read/write directly to Supabase.
 
----
+### Option C: Generic PostgreSQL
 
-### Option B: Generic PostgreSQL
-Works with Amazon RDS, DigitalOcean Databases, Render, or a local PostgreSQL instance.
+Works with Amazon RDS, DigitalOcean, Render, or local PostgreSQL.
 
-1. **Configure `.env`**:
-   ```env
-   DATABASE_URL="postgresql://[username]:[password]@[host]:5432/[database_name]"
-   ```
-2. **Run Migrations**:
-   Generate SQL migrations and apply them:
+```env
+DATABASE_URL="postgresql://[user]:[password]@[host]:5432/[database]"
+```
+```bash
+npx prisma migrate dev --name init
+```
+
+### Option D: MongoDB Atlas
+
+1. Replace the schema file:
    ```bash
-   npx prisma migrate dev --name init
+   cp prisma/schema.mongodb.prisma prisma/schema.prisma       # macOS/Linux
+   copy prisma\schema.mongodb.prisma prisma\schema.prisma     # Windows
    ```
-
----
-
-### Option C: MongoDB (Atlas)
-MongoDB is a flexible document database that works perfectly with MyStreamFlix.
-
-1. **Prepare MongoDB Schema**:
-   Because MongoDB has unique primary key rules (`_id` representation), replace the default schema with our pre-configured MongoDB schema:
-   ```bash
-   copy prisma\schema.mongodb.prisma prisma\schema.prisma
-   ```
-   *(On macOS/Linux: `cp prisma/schema.mongodb.prisma prisma/schema.prisma`)*
-2. **Configure `.env`**:
-   Get your MongoDB Connection URI from MongoDB Atlas (make sure database name is specified):
+2. Set in `.env`:
    ```env
-   DATABASE_URL="mongodb+srv://[username]:[password]@cluster.mongodb.net/mystreamflix?retryWrites=true&w=majority"
+   DATABASE_URL="mongodb+srv://[user]:[password]@cluster.mongodb.net/mystreamflix?retryWrites=true&w=majority"
    ```
-3. **Generate Prisma Client**:
-   Since MongoDB doesn't use relational migrations, simply push the schema structure:
+3. Push schema:
    ```bash
    npx prisma db push
    ```
@@ -180,122 +270,177 @@ MongoDB is a flexible document database that works perfectly with MyStreamFlix.
 
 ## 🚀 Deploying to Vercel
 
-Next.js is built by Vercel, making the deployment process incredibly easy.
-
 > [!WARNING]
-> When deploying to Vercel, **you must use a real database**. In-memory mode is transient and will reset on every cold start due to Vercel's serverless container cycling architecture.
+> When deploying to Vercel, **you must use a real database**. In-memory mode resets on every serverless cold start.
 
-### ✅ Recommended Order (New Deployment)
-
-Follow this exact order for a clean first deployment:
+### Deployment Checklist
 
 ```
-Step 1 → Get DATABASE_URL from Neon.tech (or Supabase)
-Step 2 → Update DATABASE_URL in your local .env file
-Step 3 → Run: npm run db:setup  (from your local machine)
-Step 4 → Push code to GitHub
-Step 5 → Import repository in Vercel Dashboard
-Step 6 → Set Environment Variables in Vercel (see below)
-Step 7 → Deploy!
+1. Get DATABASE_URL from Neon.tech or Supabase
+2. Set DATABASE_URL in your local .env
+3. Run: npm run db:setup (from your local machine)
+4. Push code to GitHub
+5. Import repository in Vercel Dashboard
+6. Set Environment Variables in Vercel (see table below)
+7. Deploy!
 ```
 
-### ⚠️ Already Deployed to Vercel Before Running Setup?
+### Environment Variables for Vercel
 
-No problem — database initialization and Vercel deployment are **independent operations**. You can run database setup at any time from your local machine:
-
-1. Make sure your local `.env` has the correct `DATABASE_URL` (pointing to Neon.tech or Supabase).
-2. Run from your project folder in the terminal:
-   ```bash
-   npm run db:setup
-   ```
-3. Go to **Vercel Dashboard → Project → Settings → Environment Variables** and add/update `DATABASE_URL` with the same connection string.
-4. Trigger a **Redeploy** in Vercel.
-
-### Required Environment Variables in Vercel
-
-| Variable | Description |
-|---|---|
-| `DATABASE_URL` | Your Neon.tech, Supabase, PostgreSQL, or MongoDB connection string |
-| `SESSION_SECRET` | A secure random string to cryptographically sign session cookies |
-| `TMDB_API_KEY` | *(Optional)* API key from [themoviedb.org](https://www.themoviedb.org/settings/api) for movie suggestions |
-| `GEMINI_API_KEY` | *(Optional)* Gemini AI API key |
-
-### Understanding What `db:setup` Does
-
-| Command | What it does |
-|---|---|
-| `npm run db:setup` | Syncs database tables, seeds settings, and registers exactly **1 Admin Account** (`admin@streamcms.com` / `admin`). Movie table remains clean and empty. |
-| Add movie via Admin CMS | Saves movie data to the database — this is how you populate it. |
-| Import TMDB via CMS | Fetches movie metadata from TMDB and saves it directly to your database. |
+| Variable | Required | Description |
+|---|---|---|
+| `DATABASE_URL` | ✅ | Database connection string |
+| `SESSION_SECRET` | ✅ | Random string for cookie signing. Generate with: `node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"` |
+| `TMDB_API_KEY` | ❌ | [TMDB API key](https://www.themoviedb.org/settings/api) for movie search suggestions |
 
 ---
 
-## 💳 Payment Gateway Integration (Stripe & PayPal - USD Only)
+## 💳 Payment Setup (Stripe & PayPal)
 
-MyStreamFlix has **Stripe** and **PayPal** subscription checkouts fully built into the codebase. 
+By default, payments run in **Sandbox Mode** (simulated checkout). To accept real USD payments:
 
-By default, the application runs in **Sandbox Simulation mode** (allowing mock checkout testing). To transition your portal to accept real USD payments, the website owner only needs to drop their account details into the `.env` file:
+### Stripe (Credit/Debit Cards)
 
-### 1. Stripe Setup (Credit Cards)
-1. **API Keys**: Go to your [Stripe Dashboard](https://dashboard.stripe.com) -> **Developers** -> **API Keys**.
-2. **Copy Keys**: Copy your **Publishable key** and **Secret key** and paste them into `.env`:
+1. Get API keys from [Stripe Dashboard](https://dashboard.stripe.com) → Developers → API Keys
+2. Create 3 recurring monthly products (VIP: $2.99, Premium: $5.99, Ultra: $8.99) and copy Price IDs
+3. Create a Webhook endpoint pointing to `https://yourdomain.com/api/subscription/webhook` (event: `checkout.session.completed`)
+4. Add to `.env`:
    ```env
-   NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY="pk_live_yourStripeKey..."
-   STRIPE_SECRET_KEY="sk_live_yourStripeSecret..."
-   ```
-3. **Subscription Products**: In Stripe Dashboard, create 3 recurring monthly products matching the pricing plans (VIP: `$2.99/mo`, Premium: `$5.99/mo`, Ultra: `$8.99/mo`). Copy their respective **Price IDs** (starting with `price_...`) and add them:
-   ```env
+   NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY="pk_live_..."
+   STRIPE_SECRET_KEY="sk_live_..."
+   STRIPE_WEBHOOK_SECRET="whsec_..."
    STRIPE_PRICE_ID_VIP="price_..."
    STRIPE_PRICE_ID_PREMIUM="price_..."
    STRIPE_PRICE_ID_ULTRA="price_..."
    ```
-4. **Webhooks**: Go to Stripe -> **Developers** -> **Webhooks**. Click **Add endpoint** and point it to:
-   `https://yourdomain.com/api/subscription/webhook`
-   Select event: `checkout.session.completed`. Copy the generated **Signing secret** (`whsec_...`) and set it:
-   ```env
-   STRIPE_WEBHOOK_SECRET="whsec_..."
-   ```
 
-### 2. PayPal Setup (PayPal Express/VA)
-1. **API Keys**: Go to the [PayPal Developer Portal](https://developer.paypal.com) -> **Apps & Credentials**. Create a Live App.
-2. **Copy Keys**: Copy your **Client ID** and **Secret Key** and paste them:
+### PayPal (PayPal Express & Subscriptions)
+
+1. Create a Live App in [PayPal Developer Portal](https://developer.paypal.com) → Apps & Credentials
+2. Create 3 Subscription Plans in your PayPal Business portal and copy Plan IDs
+3. Create a Webhook pointing to `https://yourdomain.com/api/subscription/paypal/webhook` (events: `BILLING.SUBSCRIPTION.ACTIVATED`, `PAYMENT.SALE.COMPLETED`)
+4. Add to `.env`:
    ```env
-   PAYPAL_CLIENT_ID="your_paypal_client_id"
-   PAYPAL_CLIENT_SECRET="your_paypal_secret"
-   PAYPAL_MODE="live" # Change from "sandbox" to "live"
-   ```
-3. **Billing Plans**: In your PayPal Business portal, go to **Subscriptions** -> **Create Plan** for the 3 tiers. Copy their **Plan IDs** (starting with `p-...`) and add them:
-   ```env
+   PAYPAL_CLIENT_ID="your_client_id"
+   PAYPAL_CLIENT_SECRET="your_secret"
+   PAYPAL_MODE="live"
    PAYPAL_PLAN_ID_VIP="p-..."
    PAYPAL_PLAN_ID_PREMIUM="p-..."
    PAYPAL_PLAN_ID_ULTRA="p-..."
    ```
-4. **Webhooks**: Create a Webhook pointing to:
-   `https://yourdomain.com/api/subscription/paypal/webhook`
-   Enable events: `BILLING.SUBSCRIPTION.ACTIVATED` and `PAYMENT.SALE.COMPLETED`.
 
 ---
 
-## 🛡️ Default Demo Accounts
+## 🔧 Available Scripts
 
-When running in **In-Memory Mode**, use these credentials to log in and explore different roles:
-
-| Role | Email | Password | Tier | Access |
-|---|---|---|---|---|
-| **Administrator** | `admin@streamcms.com` | `admin` | Premium VIP | Full CMS & Admin Dashboard |
-| **Demo Viewer** | `demo@viewer.com` | `demo` | Free | Limited to free content |
-| **Premium Viewer** | `premium@viewer.com` | `premium` | Premium VIP | Full premium catalog, no admin |
-
-- **Admin** — has access to the full Admin CMS dashboard (movie catalog CRUD, analytics, site settings).
-- **Demo Viewer** — standard free-tier user, can browse free content, manage profiles, and subscribe.
-- **Premium Viewer** — subscriber-tier user with full premium catalog access, without admin privileges.
-
-*(Note: In database mode, only the Admin account is seeded automatically to your database. Other accounts (like demo/premium) remain accessible via secure in-memory fallbacks if not registered in the database, allowing you to test standard client features instantly).*
+| Command | Description |
+|---|---|
+| `npm run dev` | Start development server on `http://localhost:3000` |
+| `npm run build` | Generate Prisma client and build for production |
+| `npm start` | Start production server |
+| `npm run lint` | Run Next.js linter |
+| `npm run db:setup` | Push database schema + seed admin account & CMS settings |
+| `npm run package` | Create distribution ZIP file |
 
 ---
 
-## 📄 License & Distribution Notes
+## 🔒 Environment Variables Reference
 
-Purchasing this product grants you a **Personal License** or **Commercial License** depending on your selection at checkout:
-- **Personal License**: Allowed to run on your own devices for learning, modification, or personal use. Reselling or distributing this source code on public platforms is strictly prohibited.
-- **Commercial License**: Permitted to modify, brand, and deploy as a commercial portal for clients or active web platforms.
+| Variable | Default | Description |
+|---|---|---|
+| `APP_URL` | — | Public URL where the app is hosted |
+| `DATABASE_URL` | `placeholder` | Database connection string (PostgreSQL / MongoDB) |
+| `SESSION_SECRET` | Built-in key | Secret for HMAC SHA-256 cookie signing |
+| `TMDB_API_KEY` | — | TMDB v3 API key for movie metadata search |
+| `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | `placeholder` | Stripe publishable key |
+| `STRIPE_SECRET_KEY` | `placeholder` | Stripe secret key |
+| `STRIPE_WEBHOOK_SECRET` | `placeholder` | Stripe webhook signing secret |
+| `STRIPE_PRICE_ID_VIP` | `placeholder` | Stripe Price ID for VIP tier |
+| `STRIPE_PRICE_ID_PREMIUM` | `placeholder` | Stripe Price ID for Premium tier |
+| `STRIPE_PRICE_ID_ULTRA` | `placeholder` | Stripe Price ID for Ultra tier |
+| `PAYPAL_CLIENT_ID` | `placeholder` | PayPal app client ID |
+| `PAYPAL_CLIENT_SECRET` | `placeholder` | PayPal app secret |
+| `PAYPAL_MODE` | `sandbox` | `sandbox` or `live` |
+| `PAYPAL_PLAN_ID_VIP` | `placeholder` | PayPal Plan ID for VIP tier |
+| `PAYPAL_PLAN_ID_PREMIUM` | `placeholder` | PayPal Plan ID for Premium tier |
+| `PAYPAL_PLAN_ID_ULTRA` | `placeholder` | PayPal Plan ID for Ultra tier |
+
+---
+
+## ❓ FAQ
+
+<details>
+<summary><strong>Do I need a database to run this locally?</strong></summary>
+No! MyStreamFlix runs instantly out-of-the-box using an in-memory data engine with 100 pre-loaded sample movies. No database setup required for local development or demos.
+</details>
+
+<details>
+<summary><strong>Which databases are supported?</strong></summary>
+PostgreSQL (Neon.tech, Supabase, Amazon RDS, DigitalOcean, local), and MongoDB Atlas. The project includes Prisma schema files for both.
+</details>
+
+<details>
+<summary><strong>Can I rebrand this with my own logo and colors?</strong></summary>
+Yes! Change the site name, logo text, primary color, and SEO settings directly from the Admin CMS panel — no code editing needed. For deeper customization, all styles use Tailwind CSS.
+</details>
+
+<details>
+<summary><strong>How do payments work without Stripe/PayPal keys?</strong></summary>
+The system auto-detects empty/placeholder API keys and falls back to an interactive simulated credit card checkout. This lets you demo the full payment flow without any real payment accounts.
+</details>
+
+<details>
+<summary><strong>Can I add more languages?</strong></summary>
+Yes. Open <code>src/translations.ts</code> and add a new language object following the existing EN/ID/ES structure. The app will automatically include it in the language switcher.
+</details>
+
+<details>
+<summary><strong>Where do I host my videos?</strong></summary>
+MyStreamFlix is storage-agnostic. Paste any direct video URL (MP4, HLS) from Amazon S3, Cloudflare R2, BunnyCDN, Google Cloud Storage, or any public file host into the Admin CMS when adding a movie.
+</details>
+
+<details>
+<summary><strong>What happens if a video stream fails?</strong></summary>
+The player automatically transitions into an atmospheric cinema simulation with working playback controls, speed adjustment, and subtitles — ensuring visitors never see a broken screen.
+</details>
+
+<details>
+<summary><strong>Is this a one-time purchase?</strong></summary>
+Yes. You pay once and receive the full source code with lifetime access. No recurring fees or subscriptions.
+</details>
+
+---
+
+## 🛡️ Technology Stack
+
+| Layer | Technology |
+|---|---|
+| **Runtime** | Node.js 18+ |
+| **Framework** | Next.js 15 (App Router) |
+| **UI Library** | React 19 |
+| **Language** | TypeScript 5.8 |
+| **Styling** | Tailwind CSS v4 + Motion |
+| **Database ORM** | Prisma 6 |
+| **Payments** | Stripe SDK + PayPal REST API |
+| **Auth** | HMAC SHA-256 signed HTTP-only cookies |
+| **Icons** | Lucide React |
+| **Deployment** | Vercel (optimized) |
+
+---
+
+## 📄 License
+
+This software is distributed under a **Proprietary License**. See [LICENSE](./LICENSE) for full details.
+
+| License Tier | Use Case | Price |
+|---|---|---|
+| **Personal** | Learning, portfolios, personal media hubs | $24.99 – $29.99 |
+| **Commercial** | Client projects, commercial streaming portals | $79.00 – $99.00 |
+
+**Redistribution, resale, or public sharing of the source code is strictly prohibited.**
+
+---
+
+<p align="center">
+  <strong>MyStreamFlix v1.0.0</strong> — Built with ❤️ using Next.js 15, React 19, and Prisma ORM
+</p>

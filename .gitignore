@@ -1,10 +1,49 @@
+# Dependencies
 node_modules/
+
+# Build output
 build/
 dist/
-coverage/
-.DS_Store
-*.log
-.env*
-!.env.example
 .next/
-.vercel
+out/
+
+# TypeScript cache
+tsconfig.tsbuildinfo
+
+# Environment files (contain secrets)
+.env
+.env.local
+.env.production
+.env.staging
+!.env.example
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# IDE / Editor
+*.code-workspace
+.vscode/
+.idea/
+
+# Vercel
+.vercel/
+
+# Distribution archives
+*.zip
+*.tar.gz
+
+# Upload artifacts
+public/uploads/*
+!public/uploads/.gitkeep
+
+# AI Studio / Metadata
+metadata.json
+assets/
+
+# Test coverage
+coverage/
