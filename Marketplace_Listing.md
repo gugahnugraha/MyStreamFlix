@@ -92,7 +92,7 @@ Use this document to quickly fill in your product listing page on Gumroad, Lemon
 ### **📋 Frequently Asked Questions (FAQ)**
 
 **Q: Do I need a database server like PostgreSQL or MongoDB to run this?**
-A: No! MyStreamFlix runs on an optimized, highly-portable in-memory state engine out of the box, making it exceptionally easy to host on cost-effective virtual servers, local machines, or test setups. *Note: When deploying to production serverless environments like Vercel, a database connection is required to persist data between serverless cold starts.*
+A: Yes, a database is required for production deployments to persist your data, but you can run and test the project completely database-free using the built-in in-memory fallback (loaded with dummy metadata for testing and trials).
 
 **Q: Can I connect my own database if needed later?**
 A: Yes! The database backend uses Prisma ORM. Simply configure the `DATABASE_URL` environment variable to connect to Supabase, PostgreSQL, or MongoDB, and run `npm run db:setup` to initialize tables, seed settings, and register exactly 1 Admin Account (`admin@streamcms.com` / `admin`).
