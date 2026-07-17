@@ -108,6 +108,7 @@ export interface DashboardStats {
 export interface CMSSettings {
   siteName: string;
   logoText: string;
+  logoUrl?: string;
   primaryColor: string;
   enableComments: boolean;
   enableRatings: boolean;

@@ -7,7 +7,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { 
   BarChart3, Film, Settings, Plus, Edit, Trash2, Save, 
   Tv, Eye, Play, ShieldAlert, CheckCircle, TrendingUp, Users, RefreshCw, X, Search, Database,
-  CreditCard, UserCheck, Subtitles
+  CreditCard, UserCheck, Subtitles, Upload
 } from "lucide-react";
 import { Movie, DashboardStats, CMSSettings, Subtitle, User, Season, Episode } from "../types";
 
@@ -77,6 +77,8 @@ export default function AdminCMS({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [draggingLogo, setDraggingLogo] = useState(false);
 
   // Sync settings state with prop
   useEffect(() => {
@@ -91,6 +93,65 @@ export default function AdminCMS({
     const newSettings = { ...settings, [key]: value };
     setSettings(newSettings);
     onUpdateGlobalSettings(newSettings);
+  };
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement> | React.DragEvent<HTMLDivElement>, isDropped = false) => {
+    let file: File | null = null;
+    if (isDropped) {
+      const dragEvent = e as React.DragEvent<HTMLDivElement>;
+      dragEvent.preventDefault();
+      if (dragEvent.dataTransfer.files && dragEvent.dataTransfer.files.length > 0) {
+        file = dragEvent.dataTransfer.files[0];
+      }
+    } else {
+      const changeEvent = e as React.ChangeEvent<HTMLInputElement>;
+      if (changeEvent.target.files && changeEvent.target.files.length > 0) {
+        file = changeEvent.target.files[0];
+      }
+    }
+
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      alert("Please upload an image file (PNG, JPG, SVG, etc.).");
+      return;
+    }
+
+    setUploadingLogo(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const res = await fetch("/api/upload?folder=branding", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to upload logo.");
+      }
+
+      const data = await res.json();
+      updateSettingsField("logoUrl", data.url);
+    } catch (err: any) {
+      alert(err.message || "Logo upload failed.");
+    } finally {
+      setUploadingLogo(false);
+    }
+  };
+
+  const handleLogoDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDraggingLogo(true);
+  };
+
+  const handleLogoDragLeave = () => {
+    setDraggingLogo(false);
+  };
+
+  const handleLogoDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    handleLogoUpload(e, true);
+    setDraggingLogo(false);
   };
 
   const [userThemeColor, setUserThemeColor] = useState<string | null>(null);
@@ -1940,6 +2001,64 @@ export default function AdminCMS({
                   className="w-full bg-zinc-900 border border-zinc-850 p-2.5 rounded text-xs focus:outline-hidden"
                   id="settings-input-logotext"
                 />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold uppercase text-zinc-500">{t.cmsLogoUploadLabel || "Logo Image (Optional)"}</label>
+                
+                {settings.logoUrl ? (
+                  <div className="flex items-center gap-4 bg-zinc-900 border border-zinc-850 p-3 rounded-lg">
+                    <div className="bg-zinc-950 p-2 rounded border border-zinc-800 flex items-center justify-center min-w-[60px] h-[40px] max-w-[120px] overflow-hidden">
+                      <img src={settings.logoUrl} alt="Logo Preview" className="max-h-full max-w-full object-contain" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[10px] text-zinc-400 truncate font-mono">{settings.logoUrl}</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => updateSettingsField("logoUrl", "")}
+                      className="px-2.5 py-1.5 bg-zinc-950 hover:bg-zinc-850 border border-zinc-800 hover:border-zinc-750 text-[10px] font-bold text-red-500 rounded-md transition-colors cursor-pointer"
+                    >
+                      {t.cmsChangeVideo ? t.cmsChangeVideo : "Remove"}
+                    </button>
+                  </div>
+                ) : (
+                  <div>
+                    <div
+                      onDragOver={handleLogoDragOver}
+                      onDragLeave={handleLogoDragLeave}
+                      onDrop={handleLogoDrop}
+                      onClick={() => document.getElementById("logo-file-picker")?.click()}
+                      className={`relative border border-dashed rounded-lg p-5 flex flex-col items-center justify-center gap-1.5 cursor-pointer transition-all ${
+                        draggingLogo 
+                          ? "border-red-500 bg-red-500/5" 
+                          : "border-zinc-800 bg-zinc-900 hover:border-zinc-700 hover:bg-zinc-850/60"
+                      }`}
+                    >
+                      {uploadingLogo ? (
+                        <>
+                          <div className="w-5 h-5 border-2 border-red-500 border-t-transparent rounded-full animate-spin" />
+                          <p className="text-[10px] text-zinc-400 font-bold">{t.cmsLogoUploadUploading || "Uploading logo..."}</p>
+                        </>
+                      ) : (
+                        <>
+                          <Upload className={`w-5 h-5 ${draggingLogo ? "text-red-500 animate-bounce" : "text-zinc-500"}`} />
+                          <p className="text-[10px] text-zinc-400 font-bold text-center leading-snug">
+                            {t.cmsLogoUploadDragText || "Drag & drop logo file here, or click to browse"}
+                          </p>
+                          <p className="text-[8px] text-zinc-500">Supports PNG, SVG, JPG (transparent recommended)</p>
+                        </>
+                      )}
+                    </div>
+                    <input
+                      type="file"
+                      id="logo-file-picker"
+                      accept="image/*"
+                      onChange={handleLogoUpload}
+                      className="hidden"
+                    />
+                  </div>
+                )}
               </div>
  
               <div className="space-y-2">

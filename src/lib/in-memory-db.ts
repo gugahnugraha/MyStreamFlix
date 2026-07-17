@@ -67,6 +67,7 @@ const defaultUsers: User[] = [
 const defaultSettings: CMSSettings = {
   siteName: "FlixSphere",
   logoText: "FLIXSPHERE",
+  logoUrl: "",
   primaryColor: "#E50914", // Netflix Red
   enableComments: true,
   enableRatings: true,

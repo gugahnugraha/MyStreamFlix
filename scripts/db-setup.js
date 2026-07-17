@@ -23,6 +23,7 @@ async function main() {
     singletonKey: "global",
     siteName: "FlixSphere",
     logoText: "FLIXSPHERE",
+    logoUrl: "",
     primaryColor: "#E50914",
     enableComments: true,
     enableRatings: true,

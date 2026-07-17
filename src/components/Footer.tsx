@@ -65,7 +65,11 @@ export default function Footer({
               <Film className="w-4.5 h-4.5 text-white" />
             </div>
             <span className="text-lg font-black tracking-wider text-white">
-              {settings.logoText || "FLIXSPHERE"}
+              {settings.logoUrl ? (
+                <img src={settings.logoUrl} alt={settings.logoText || "Logo"} className="max-h-6 object-contain" />
+              ) : (
+                settings.logoText || "FLIXSPHERE"
+              )}
             </span>
           </div>
           <p className="text-xs text-zinc-400 leading-relaxed max-w-sm">

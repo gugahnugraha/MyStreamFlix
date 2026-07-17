@@ -163,7 +163,11 @@ export default function Header({
           <Film className="w-5 h-5 text-white group-hover:animate-pulse" />
         </div>
         <span className="text-xl font-bold tracking-wider text-white font-sans flex items-center gap-1.5">
-          <span style={{ color: brandColor }}>{settings.logoText}</span>
+          {settings.logoUrl ? (
+            <img src={settings.logoUrl} alt={settings.logoText || "Logo"} className="max-h-7 object-contain" />
+          ) : (
+            <span style={{ color: brandColor }}>{settings.logoText}</span>
+          )}
           {currentUser?.isPremium && (
             <span className="text-[9px] bg-amber-500/10 text-amber-500 border border-amber-500/20 px-1.5 py-0.5 rounded-sm font-black tracking-widest uppercase flex items-center gap-1">
               <Crown className="w-2.5 h-2.5 fill-amber-500 shrink-0" />

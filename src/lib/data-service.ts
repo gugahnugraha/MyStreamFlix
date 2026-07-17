@@ -22,6 +22,7 @@ export async function getSettings(): Promise<CMSSettings> {
         return {
           siteName: settings.siteName,
           logoText: settings.logoText,
+          logoUrl: settings.logoUrl || "",
           primaryColor: settings.primaryColor,
           enableComments: settings.enableComments,
           enableRatings: settings.enableRatings,
@@ -52,6 +53,7 @@ export async function updateSettings(data: Partial<CMSSettings>): Promise<CMSSet
       return {
         siteName: settings.siteName,
         logoText: settings.logoText,
+        logoUrl: settings.logoUrl || "",
         primaryColor: settings.primaryColor,
         enableComments: settings.enableComments,
         enableRatings: settings.enableRatings,

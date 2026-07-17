@@ -57,6 +57,7 @@ model CMSSettings {
   singletonKey   String  @id @map("_id") @default("global")
   siteName       String
   logoText       String
+  logoUrl        String?
   primaryColor   String  @default("#E50914")
   enableComments Boolean @default(true)
   enableRatings  Boolean @default(true)
