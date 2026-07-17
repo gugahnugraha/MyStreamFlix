@@ -11,6 +11,7 @@
     "package": "powershell -Command \"Compress-Archive -Path app, prisma, src, scripts, .env.example, .gitignore, next-env.d.ts, next.config.ts, package.json, package-lock.json, postcss.config.mjs, tsconfig.json, README.md, README_ID.md, Marketplace_Listing.md -DestinationPath MyStreamFlix.zip -Force\""
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1089.0",
     "@google/genai": "^2.4.0",
     "@prisma/client": "^6.0.0",
     "lucide-react": "^0.546.0",
