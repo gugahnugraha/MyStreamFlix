@@ -7,7 +7,8 @@
     "build": "prisma generate && next build",
     "start": "next start",
     "lint": "next lint",
-    "db:setup": "prisma db push && node scripts/db-setup.js"
+    "db:setup": "prisma db push && node scripts/db-setup.js",
+    "package": "powershell -Command \"Compress-Archive -Path app, prisma, src, scripts, .env.example, .gitignore, next-env.d.ts, next.config.ts, package.json, package-lock.json, postcss.config.mjs, tsconfig.json, README.md, README_ID.md, Marketplace_Listing.md -DestinationPath MyStreamFlix.zip -Force\""
   },
   "dependencies": {
     "@google/genai": "^2.4.0",
