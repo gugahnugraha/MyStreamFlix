@@ -1,111 +1,72 @@
-# Panduan Pembuatan APK Android (MyStreamFlix)
+# Panduan Pembuatan APK Android via GitHub Actions & Capacitor
 
-Panduan ini berisi langkah-langkah praktis dan mudah untuk mengubah project **MyStreamFlix** menjadi file **APK Android** menggunakan **Capacitor**.
-
----
-
-## 📱 Ringkasan Arsitektur
-
-Karena MyStreamFlix berbasis **Next.js** (dengan Database Prisma, API Route, Auth, & Streaming), terdapat **2 Metode** pembuatan APK:
-
-1. **Metode 1: Online / Live Web App (Rekomendasi Utama)** ⭐️
-   - Aplikasi Android membuka URL Web yang sudah di-deploy (misal ke Vercel atau Server milik Anda).
-   - **Kelebihan**: Semua fitur backend (Database, Streaming, Payment, Auth) berjalan 100% normal tanpa kendala CORS / Prisma di HP.
-2. **Metode 2: Offline / Static Export**
-   - Web di-export menjadi file statis (`out/`) lalu dimasukkan ke dalam APK.
-   - **Catatan**: API backend harus diarahkan ke URL server publik agar fitur login/database tetap bisa diakses.
+Dengan **GitHub Actions**, Anda **tidak perlu meng-install Android Studio atau Java** di laptop/komputer Anda! GitHub akan secara otomatis mengkompilasi file **APK** setiap kali Anda melakukan `push` kode ke GitHub.
 
 ---
 
-## 🛠️ Persyaratan Utama (Prerequisites)
+## ⚡️ Cara Kerja Otomatis di GitHub Actions
 
-Sebelum melakukan build APK, pastikan perangkat Anda memiliki:
-1. **Android Studio** (Sudah termasuk JDK & Android SDK)
-   - Download di [developer.android.com/studio](https://developer.android.com/studio)
-2. **Node.js** (Sudah terinstal di project ini).
+Workflow GitHub Actions sudah disiapkan di file [`.github/workflows/build-apk.yml`](file:///.github/workflows/build-apk.yml).
 
----
-
-## 🚀 Langkah Build APK via Android Studio (Paling Mudah)
-
-### Langkah 1: Opsi Konfigurasi (`capacitor.config.ts`)
-
-Buka file `capacitor.config.ts` di root project.
-
-- **Jika Menggunakan Server Live (Vercel / Hosting Anda):**
-  ```typescript
-  import type { CapacitorConfig } from '@capacitor/cli';
-
-  const config: CapacitorConfig = {
-    appId: 'com.mystreamflix.app',
-    appName: 'MyStreamFlix',
-    webDir: 'out',
-    server: {
-      url: 'https://mystreamflix.vercel.app', // Ganti dengan URL Vercel/Server Anda
-      cleartext: true
-    }
-  };
-
-  export default config;
-  ```
-
-- **Jika Menggunakan Static Build / Offline:**
-  1. Di file `next.config.ts`, tambahkan `output: 'export'`:
-     ```typescript
-     const nextConfig = {
-       output: 'export',
-       reactStrictMode: true,
-     };
-     ```
-  2. Jalankan perintah di terminal:
-     ```bash
-     npm run build
-     ```
-  3. Sinkronkan ke folder Android:
-     ```bash
-     npm run cap:sync
-     ```
+Setiap kali Anda menekan **Push** ke cabang `main` atau `master`:
+1. GitHub Actions akan otomatis aktif.
+2. Memasang Java 21 & Android SDK di cloud server GitHub.
+3. Menjalankan `npm install` & `npx cap sync android`.
+4. Mengompilasi project Android dengan Gradle menjadi file **`app-debug.apk`**.
+5. Mengunggah file APK ke tab **Actions** di repository GitHub Anda sehingga bisa langsung di-download!
 
 ---
 
-### Langkah 2: Buka Project Android di Android Studio
+## 🚀 3 Langkah Mudah Menggunakan GitHub Actions
 
-Jalankan perintah ini di terminal project:
+### Langkah 1: Push Kode ke Repository GitHub Anda
+Gunakan Git Desktop, VS Code Git UI, atau terminal untuk melakukan commit & push:
 ```bash
-npm run cap:open
+git add .
+git commit -m "Update konfigurasi Capacitor dan GitHub Workflow"
+git push origin main
 ```
-*Atau buka aplikasi **Android Studio** manual -> Pilihm `Open Project` -> Buka folder `c:\Users\hp\Documents\Dev\MyStreamFlix\android`.*
 
 ---
 
-### Langkah 3: Generate File APK di Android Studio
-
-1. Tunggu Android Studio selesai mendownload Gradle dependencies (terlihat status `Gradle Syncing...` di pojok bawah).
-2. Di menu atas Android Studio, klik **Build** > **Build Bundle(s) / APK(s)** > **Build APK(s)**.
-3. Tunggu hingga proses build selesai.
-4. Ketika muncul notifikasi `"Build APK(s): APK(s) generated successfully"`, klik **locate**.
-5. File `app-debug.apk` Anda siap diinstall ke smartphone Android! 📱🎉
+### Langkah 2: Lihat Proses Build di GitHub
+1. Buka repository **MyStreamFlix** Anda di GitHub browser (`https://github.com/USERNAME/MyStreamFlix`).
+2. Klik tab **Actions** di bagian atas menu GitHub.
+3. Anda akan melihat workflow bernama **`Build Android APK with Capacitor`** sedang berjalan (berwarna kuning 🟡 lalu berubah hijau 🟢 saat selesai).
 
 ---
 
-## ⚡️ Alternatif: Build APK via Terminal / Command Line
-
-Jika Anda memasang Java JDK (JDK 17/21) dan menambahkan `JAVA_HOME` ke Environment Variables Windows:
-
-1. **Jalankan Build Gradle:**
-   ```bash
-   cd android
-   .\gradlew.bat assembleDebug
-   ```
-2. **Lokasi File APK Hasil Build:**
-   `android/app/build/outputs/apk/debug/app-debug.apk`
+### Langkah 3: Download File APK
+1. Klik pada nama workflow yang telah selesai (bercentang hijau 🟢).
+2. Gulir ke bagian paling bawah ke bagian **Artifacts**.
+3. Klik file **`MyStreamFlix-Android-APK`** untuk mendownload file `.zip` yang berisi **`app-debug.apk`**.
+4. Ekstrak `.zip` tersebut dan install `.apk` ke HP Android Anda! 📱🎉
 
 ---
 
-## 🔒 Menghasilkan APK Production (Signed Release APK)
+## ⚙️ Mengubah Server URL Aplikasi (Opsional)
 
-Untuk keperluan rilis ke Google Play Store atau distribusi resmi:
-1. Di Android Studio, klik **Build** > **Generate Signed Bundle / APK...**
-2. Pilih **APK** > **Next**.
-3. Buat atau pilih **Key store path** (.jks file).
-4. Pilih **release** build variant lalu klik **Create**.
+Jika Anda mengganti domain Vercel / server hosting Anda, cukup ubah file [`capacitor.config.ts`](file:///capacitor.config.ts):
+
+```typescript
+import type { CapacitorConfig } from '@capacitor/cli';
+
+const config: CapacitorConfig = {
+  appId: 'com.mystreamflix.app',
+  appName: 'MyStreamFlix',
+  webDir: 'public',
+  server: {
+    url: 'https://domain-anda.com', // Ubah ke URL Web App Anda
+    cleartext: true
+  },
+  android: {
+    allowMixedContent: true,
+    captureInput: true,
+    backgroundColor: '#09090b'
+  }
+};
+
+export default config;
+```
+
+Setelah di-save dan di-push ke GitHub, APK baru akan otomatis di-build dengan URL terbaru tersebut!
