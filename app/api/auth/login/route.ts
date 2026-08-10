@@ -8,6 +8,8 @@ export const dynamic = "force-dynamic";
 export async function POST(request: NextRequest) {
   try {
     const { email, password } = await request.json();
+    
+    // Check if the user already exists in the database
     let user = await getUserByEmail(email);
 
     if (user) {
@@ -32,7 +34,9 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Auto-create viewer account if user not found (as in original server.ts)
+    // Auto-create viewer account if user not found. 
+    // This allows for a frictionless demo experience where entering any email signs you up automatically.
+    // For a strict production environment, you might want to remove this and require a separate registration page.
     const newId = `usr-${Date.now()}`;
     const username = email.split("@")[0];
     const newUser: User = {

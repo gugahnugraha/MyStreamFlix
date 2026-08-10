@@ -1,8 +1,14 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { Film, Heart, LayoutDashboard, LogIn, LogOut, Search, Crown, Sparkles, Users, Globe, Clapperboard, Tv, UserRound, ChevronDown, X } from "lucide-react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { Film, Heart, LayoutDashboard, LogIn, LogOut, Search, Crown, Sparkles, Users, Globe, Clapperboard, Tv, UserRound, ChevronDown, X, Check } from "lucide-react";
 import { User, CMSSettings } from "../types";
 
 import { Movie } from "../types";
+
+const LANG_OPTIONS = [
+  { code: "id", label: "Bahasa" },
+  { code: "en", label: "English" },
+  { code: "es", label: "Español" },
+] as const;
 
 type SearchSuggestion = {
   id: string;
@@ -31,6 +37,8 @@ interface HeaderProps {
   onLanguageChange: (lang: "en" | "id" | "es") => void;
   t: any;
   movies: Movie[];
+  showMobileSearch?: boolean;
+  setShowMobileSearch?: (show: boolean) => void;
 }
 
 export default function Header({
@@ -50,32 +58,62 @@ export default function Header({
   onLanguageChange,
   t,
   movies,
+  showMobileSearch: externalShowMobileSearch,
+  setShowMobileSearch: externalSetShowMobileSearch,
 }: HeaderProps) {
   const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const profileMenuRef = useRef<HTMLDivElement>(null);
+  const [showLangMenu, setShowLangMenu] = useState(false);
+  const langMenuRef = useRef<HTMLDivElement>(null);
   const [showSearchSuggestions, setShowSearchSuggestions] = useState(false);
   const [searchSuggestions, setSearchSuggestions] = useState<SearchSuggestion[]>([]);
   const [suggestionsLoading, setSuggestionsLoading] = useState(false);
-  const [userThemeColor, setUserThemeColor] = useState<string | null>(null);
-  const [showMobileSearch, setShowMobileSearch] = useState(false);
+  const [internalShowMobileSearch, setInternalShowMobileSearch] = useState(false);
+  const showMobileSearch = externalShowMobileSearch !== undefined ? externalShowMobileSearch : internalShowMobileSearch;
+  const setShowMobileSearch = externalSetShowMobileSearch || setInternalShowMobileSearch;
 
+  // Global Outside Click / Touch Tap Listener for Profile Dropdown Menu
   useEffect(() => {
-    const handleThemeSync = () => {
-      if (typeof window !== "undefined") {
-        const stored = localStorage.getItem("user-theme-primary");
-        setUserThemeColor(stored);
+    if (!showProfileMenu) return;
+
+    const handleClickOutside = (event: MouseEvent | TouchEvent) => {
+      if (profileMenuRef.current && !profileMenuRef.current.contains(event.target as Node)) {
+        setShowProfileMenu(false);
       }
     };
 
-    handleThemeSync();
-    window.addEventListener('themechange', handleThemeSync);
-    return () => window.removeEventListener('themechange', handleThemeSync);
-  }, []);
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("touchstart", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("touchstart", handleClickOutside);
+    };
+  }, [showProfileMenu]);
+
+  // Global Outside Click / Touch Tap Listener for Language Dropdown Menu
+  useEffect(() => {
+    if (!showLangMenu) return;
+
+    const handleClickOutside = (event: MouseEvent | TouchEvent) => {
+      if (langMenuRef.current && !langMenuRef.current.contains(event.target as Node)) {
+        setShowLangMenu(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("touchstart", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("touchstart", handleClickOutside);
+    };
+  }, [showLangMenu]);
 
   // Dynamic profile calculation matching Prime/Disney+
   const activeProfile = currentUser?.profiles?.find(p => p.id === currentUser.activeProfileId);
   const profileAvatar = activeProfile?.avatar || currentUser?.profileImage || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80";
-  const profileName = activeProfile?.name || currentUser?.name;
-  const brandColor = userThemeColor || settings?.primaryColor || "#E50914";
+  const rawProfileName = activeProfile?.name || currentUser?.name || "";
+  const profileName = rawProfileName.replace(/\s*\(Adult\)/gi, "");
+  const brandColor = "#00ADB5";
   const localSuggestions = useMemo<SearchSuggestion[]>(() => {
     const q = searchQuery.trim().toLowerCase();
     if (!q) return [];
@@ -160,11 +198,14 @@ export default function Header({
         id="header-brand-logo"
       >
         <div className="w-9 h-9 rounded-lg flex items-center justify-center shadow-lg group-hover:scale-110 transition-all duration-300 ring-1 ring-white/10" style={{ backgroundColor: brandColor, boxShadow: `0 12px 28px ${brandColor}38` }}>
-          <Film className="w-5 h-5 text-white group-hover:animate-pulse" />
+          <svg className="w-5 h-5 text-white transition-transform duration-300 group-hover:scale-110" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="2" y="3" width="20" height="18" rx="5" ry="5" />
+            <polygon points="10 8.5 16 12 10 15.5 10 8.5" fill="currentColor" stroke="none" />
+          </svg>
         </div>
-        <span className="text-xl font-bold tracking-wider text-white font-sans flex items-center gap-1.5">
+        <span className="flex text-sm sm:text-xl font-extrabold tracking-wider text-white font-sans items-center gap-1.5">
           {settings.logoUrl ? (
-            <img src={settings.logoUrl} alt={settings.logoText || "Logo"} className="max-h-7 object-contain" />
+            <img src={settings.logoUrl} alt={settings.logoText || "Logo"} className="max-h-6 sm:max-h-7 object-contain" />
           ) : (
             <span style={{ color: brandColor }}>{settings.logoText}</span>
           )}
@@ -301,37 +342,72 @@ export default function Header({
                 </div>
               )}
             </div>
-            {/* Mobile Search Toggle Button */}
+            {/* Mobile Search Toggle Button - Clean White Icon */}
             <button
               onClick={() => setShowMobileSearch(true)}
-              className="sm:hidden w-8 h-8 rounded-full bg-white/[0.03] border border-white/10 flex items-center justify-center text-zinc-300 hover:text-white cursor-pointer"
+              className="sm:hidden w-9.5 h-9.5 rounded-full bg-white/[0.08] border border-white/15 flex items-center justify-center text-white hover:bg-white/15 cursor-pointer transition-all duration-200 active:scale-90 shadow-md"
               title={t.searchPlaceholder}
               id="header-search-mobile-toggle"
             >
-              <Search className="w-4 h-4" />
+              <Search className="w-5 h-5 text-white" />
             </button>
           </>
         )}
 
-        {/* Premium Multi-Language Selector Dropdown */}
-        <div className="flex items-center gap-1.5 bg-white/[0.04] border border-white/10 rounded-md px-2 py-1.5 text-xs text-zinc-300">
-          <Globe className="w-3.5 h-3.5 text-zinc-500 shrink-0" />
-          <select
-            value={currentLanguage}
-            onChange={(e) => onLanguageChange(e.target.value as any)}
-            className="bg-transparent text-[11px] sm:text-xs font-bold text-zinc-200 focus:outline-hidden cursor-pointer"
-            title="Language"
-          >
-            <option value="en" className="bg-zinc-950 text-white">🇬🇧 EN</option>
-            <option value="id" className="bg-zinc-950 text-white">🇮🇩 ID</option>
-            <option value="es" className="bg-zinc-950 text-white">🇪🇸 ES</option>
-          </select>
-        </div>
+
+
+        {/* Minimalist Desktop Language Dropdown */}
+        {(() => {
+          const currentLangObj = LANG_OPTIONS.find(l => l.code === currentLanguage) || LANG_OPTIONS[0];
+          return (
+            <div className="relative hidden sm:block" ref={langMenuRef}>
+              <button
+                onClick={() => setShowLangMenu(prev => !prev)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 hover:border-white/20 text-zinc-200 hover:text-white transition-all cursor-pointer text-xs font-bold active:scale-95 shadow-xs"
+                title="Select Language"
+                id="header-desktop-lang-dropdown-trigger"
+                aria-expanded={showLangMenu}
+                aria-haspopup="true"
+              >
+                <Globe className="w-3.5 h-3.5" style={{ color: brandColor }} />
+                <span className="font-bold text-xs">{currentLangObj.label}</span>
+                <ChevronDown className={`w-3.5 h-3.5 text-zinc-400 transition-transform duration-200 ${showLangMenu ? "rotate-180" : ""}`} />
+              </button>
+
+              {/* Dropdown Menu List */}
+              {showLangMenu && (
+                <div className="absolute right-0 top-full mt-2 w-36 bg-[#111112]/98 backdrop-blur-xl border border-white/[0.08] rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.7)] p-1 z-50 animate-in fade-in zoom-in-95 duration-150">
+                  {LANG_OPTIONS.map((opt) => {
+                    const isActive = currentLanguage === opt.code;
+                    return (
+                      <button
+                        key={opt.code}
+                        onClick={() => {
+                          onLanguageChange(opt.code);
+                          setShowLangMenu(false);
+                        }}
+                        className={`w-full text-left px-3 py-2 text-xs font-bold rounded-lg flex items-center justify-between transition-colors cursor-pointer ${
+                          isActive 
+                            ? "bg-white/[0.08] text-white" 
+                            : "text-zinc-400 hover:text-white hover:bg-white/[0.05]"
+                        }`}
+                        style={isActive ? { color: brandColor } : undefined}
+                      >
+                        <span>{opt.label}</span>
+                        {isActive && <Check className="w-3.5 h-3.5 text-[#00ADB5]" />}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          );
+        })()}
 
         {/* User Account / Auth Trigger */}
         {currentUser ? (
-          <div className="relative">
-          <button
+          <div className="relative" ref={profileMenuRef}>
+            <button
               onClick={() => setShowProfileMenu(prev => !prev)}
               className="flex items-center gap-2 focus:outline-hidden cursor-pointer group"
               id="header-profile-menu-trigger"
@@ -342,7 +418,7 @@ export default function Header({
                 <img
                   src={profileAvatar}
                   alt={profileName}
-                  className="w-8 h-8 rounded-md object-cover border transition-colors"
+                  className="w-8 h-8 rounded-full object-cover border transition-colors"
                   style={{ borderColor: showProfileMenu ? brandColor : "rgba(255,255,255,0.15)" }}
                 />
                 {activeProfile?.isKids && (
@@ -354,19 +430,11 @@ export default function Header({
               <span className="hidden md:inline text-xs font-semibold text-zinc-200 group-hover:text-white transition-colors">
                 {profileName}
               </span>
-              <ChevronDown
-                className={`w-3.5 h-3.5 text-zinc-500 transition-transform duration-200 ${showProfileMenu ? "rotate-180" : ""}`}
-              />
             </button>
 
             {/* Account Dropdown */}
             {showProfileMenu && (
-              <>
-                <div
-                  className="fixed inset-0 z-[49]"
-                  onClick={() => setShowProfileMenu(false)}
-                />
-                <div className="absolute right-0 top-full mt-2.5 w-60 bg-[#111112]/98 backdrop-blur-xl border border-white/[0.08] rounded-xl shadow-[0_24px_60px_rgba(0,0,0,0.7)] p-1.5 z-50 origin-top-right animate-in fade-in zoom-in-95 slide-in-from-top-2 duration-200">
+              <div className="absolute right-0 top-full mt-2.5 w-60 bg-[#111112]/98 backdrop-blur-xl border border-white/[0.08] rounded-xl shadow-[0_24px_60px_rgba(0,0,0,0.7)] p-1.5 z-50 origin-top-right animate-in fade-in zoom-in-95 slide-in-from-top-2 duration-200">
                   <div className="px-3 py-2.5 border-b border-zinc-900">
                     <div className="flex items-center gap-1.5">
                       <p className="text-xs font-bold text-white truncate max-w-[140px]">{profileName}</p>
@@ -440,34 +508,6 @@ export default function Header({
                     )}
                   </div>
 
-                  {/* Mobile Nav Links Inside Dropdown */}
-                  <div className="block md:hidden border-b border-zinc-900 py-1">
-                    <button
-                      onClick={() => { setActiveTab("home"); onSelectContentType("all"); setShowProfileMenu(false); }}
-                      className="w-full text-left px-3 py-1.5 text-xs text-zinc-300 hover:bg-zinc-900 rounded-md transition-colors"
-                    >
-                      {t.browse}
-                    </button>
-                    <button
-                      onClick={() => { setActiveTab("home"); onSelectContentType("movie"); setShowProfileMenu(false); }}
-                      className="w-full text-left px-3 py-1.5 text-xs text-zinc-300 hover:bg-zinc-900 rounded-md transition-colors"
-                    >
-                      {t.movies || "Movies"}
-                    </button>
-                    <button
-                      onClick={() => { setActiveTab("home"); onSelectContentType("series"); setShowProfileMenu(false); }}
-                      className="w-full text-left px-3 py-1.5 text-xs text-zinc-300 hover:bg-zinc-900 rounded-md transition-colors"
-                    >
-                      {t.tvSeries || "Series"}
-                    </button>
-                    <button
-                      onClick={() => { setActiveTab("favorites"); setShowProfileMenu(false); }}
-                      className="w-full text-left px-3 py-1.5 text-xs text-zinc-300 hover:bg-zinc-900 rounded-md transition-colors"
-                    >
-                      {t.myList}
-                    </button>
-                  </div>
-
                   <button
                     onClick={() => { onLogout(); setShowProfileMenu(false); }}
                     className="w-full text-left px-3 py-2 text-xs text-zinc-400 hover:text-white rounded-md flex items-center gap-2 transition-colors mt-1 cursor-pointer"
@@ -485,7 +525,6 @@ export default function Header({
                     {t.signOut}
                   </button>
                 </div>
-              </>
             )}
           </div>
         ) : (
@@ -515,13 +554,13 @@ export default function Header({
             <X className="w-4.5 h-4.5" />
           </button>
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-2.5 w-4 h-4 text-zinc-500" />
+            <Search className="absolute left-3 top-2.5 w-4 h-4 text-zinc-400" />
             <input
               type="text"
               placeholder={t.searchPlaceholder}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-zinc-900 text-xs text-white pl-9 pr-4 py-2 rounded-full border border-zinc-800 focus:outline-hidden focus:ring-1 focus:ring-red-500 placeholder:text-zinc-500"
+              className="w-full bg-zinc-900 text-xs text-white pl-9 pr-4 py-2 rounded-full border border-zinc-800 focus:outline-hidden focus:border-[#00ADB5] focus:ring-1 focus:ring-[#00ADB5]/50 placeholder:text-zinc-500 transition-all"
               autoFocus
               id="mobile-search-input"
             />

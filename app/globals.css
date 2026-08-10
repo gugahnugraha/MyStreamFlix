@@ -344,12 +344,32 @@ input[type="range"]::-webkit-slider-thumb:hover {
 }
 
 /* Hide scrollbars completely for horizontal shelves */
-.scrollbar-none {
+.scrollbar-none, .no-scrollbar {
   -ms-overflow-style: none; /* IE and Edge */
   scrollbar-width: none; /* Firefox */
 }
-.scrollbar-none::-webkit-scrollbar {
+.scrollbar-none::-webkit-scrollbar, .no-scrollbar::-webkit-scrollbar {
   display: none; /* Chrome, Safari and Opera */
 }
 
+/* Mobile-first Touch Scrolling & Helpers */
+.touch-scroll-x {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x mandatory;
+}
 
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 1rem);
+}
+
+.mb-safe {
+  margin-bottom: env(safe-area-inset-bottom, 1rem);
+}
+
+/* Prevent auto-zoom on mobile input focus */
+@media (max-width: 639px) {
+  input, select, textarea {
+    font-size: 16px !important;
+  }
+}

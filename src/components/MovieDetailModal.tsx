@@ -180,12 +180,12 @@ export default function MovieDetailModal({
   ] as const;
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/85 backdrop-blur-md flex justify-center p-4 md:py-10" id="detail-modal">
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/90 backdrop-blur-md flex justify-center p-0 sm:p-4 md:py-10" id="detail-modal">
       {/* Background click to dismiss */}
       <div className="fixed inset-0 -z-10" onClick={onClose} />
 
       {/* Main Card Container */}
-      <div className="cinema-surface rounded-lg overflow-hidden w-full max-w-5xl shadow-2xl relative flex flex-col h-fit">
+      <div className="cinema-surface rounded-none sm:rounded-2xl overflow-hidden w-full max-w-5xl shadow-2xl relative flex flex-col min-h-screen sm:min-h-0 h-fit pb-safe">
         {/* Close Button */}
         <button
           onClick={onClose}

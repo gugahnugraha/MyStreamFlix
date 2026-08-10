@@ -30,7 +30,7 @@ const defaultUsers: User[] = [
     createdAt: new Date().toISOString(),
     isPremium: true,
     profiles: [
-      { id: "prof-1", name: "Admin (Adult)", avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80", isKids: false },
+      { id: "prof-1", name: "Admin", avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80", isKids: false },
       { id: "prof-2", name: "Junior (Kids)", avatar: "https://images.unsplash.com/photo-1607990283143-e81e7a2c93ab?w=150&auto=format&fit=crop&q=80", isKids: true }
     ],
     activeProfileId: "prof-1"
@@ -44,7 +44,7 @@ const defaultUsers: User[] = [
     createdAt: new Date().toISOString(),
     isPremium: false,
     profiles: [
-      { id: "prof-3", name: "Demo (Adult)", avatar: "https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=150&auto=format&fit=crop&q=80", isKids: false },
+      { id: "prof-3", name: "Demo", avatar: "https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=150&auto=format&fit=crop&q=80", isKids: false },
       { id: "prof-4", name: "Kids Mode", avatar: "https://images.unsplash.com/photo-1501196354995-cbb51c65aaea?w=150&auto=format&fit=crop&q=80", isKids: true }
     ],
     activeProfileId: "prof-3"
@@ -58,7 +58,7 @@ const defaultUsers: User[] = [
     createdAt: new Date().toISOString(),
     isPremium: true,
     profiles: [
-      { id: "prof-5", name: "Premium (Adult)", avatar: "https://images.unsplash.com/photo-1544723795-3fb6469f5b39?w=150&auto=format&fit=crop&q=80", isKids: false }
+      { id: "prof-5", name: "Premium", avatar: "https://images.unsplash.com/photo-1544723795-3fb6469f5b39?w=150&auto=format&fit=crop&q=80", isKids: false }
     ],
     activeProfileId: "prof-5"
   }
@@ -68,7 +68,7 @@ const defaultSettings: CMSSettings = {
   siteName: "FlixSphere",
   logoText: "FLIXSPHERE",
   logoUrl: "",
-  primaryColor: "#E50914", // Netflix Red
+  primaryColor: "#00ADB5", // Fixed Cyan Accent
   enableComments: true,
   enableRatings: true,
   maintenanceMode: false,

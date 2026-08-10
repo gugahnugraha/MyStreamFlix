@@ -9,6 +9,7 @@ import {
   ArrowUpDown, ListVideo, HelpCircle, Flame, Compass, Tv, Clapperboard
 } from "lucide-react";
 import Header from "./components/Header";
+import MobileBottomNav from "./components/MobileBottomNav";
 import MovieCard from "./components/MovieCard";
 import MovieCarousel from "./components/MovieCarousel";
 import MovieRow from "./components/MovieRow";
@@ -24,6 +25,7 @@ import { getTranslation, LanguageCode } from "./translations";
 
 export default function App() {
   // Language Localization State
+  // This state holds the currently selected language for the UI (e.g., "en", "id", "es").
   const [currentLanguage, setCurrentLanguage] = useState<LanguageCode>("en");
 
   // Load language preference on client mount
@@ -41,11 +43,12 @@ export default function App() {
   };
 
   // Authentication & Configuration State
+  // currentUser stores the logged-in user data. If null, the user is a guest.
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [settings, setSettings] = useState<CMSSettings>({
     siteName: "FlixSphere",
     logoText: "FLIXSPHERE",
-    primaryColor: "#E50914",
+    primaryColor: "#00ADB5",
     enableComments: true,
     enableRatings: true,
     maintenanceMode: false,
@@ -54,22 +57,8 @@ export default function App() {
     seoKeywords: ""
   });
 
-  const [userThemeColor, setUserThemeColor] = useState<string | null>(null);
-
-  useEffect(() => {
-    const handleThemeSync = () => {
-      if (typeof window !== "undefined") {
-        const stored = localStorage.getItem("user-theme-primary");
-        setUserThemeColor(stored);
-      }
-    };
-
-    handleThemeSync();
-    window.addEventListener('themechange', handleThemeSync);
-    return () => window.removeEventListener('themechange', handleThemeSync);
-  }, []);
-
   // UI Control Router State
+  // activeTab acts as a simple client-side router for the SPA interface.
   const [activeTab, setActiveTab] = useState<string>("home"); // home, favorites, admin
   const [showAuth, setShowAuth] = useState(false);
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
@@ -81,6 +70,7 @@ export default function App() {
   // Catalog, Search, Filters
   const [movies, setMovies] = useState<Movie[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
+  const [showMobileSearch, setShowMobileSearch] = useState(false);
   const [selectedGenre, setSelectedGenre] = useState("All");
   const [selectedContentType, setSelectedContentType] = useState<"all" | "movie" | "series">("all");
   const [sortBy, setSortBy] = useState("recent");
@@ -93,8 +83,17 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  // Auto-scroll to top on navigation tab or content type filter switch
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  }, [activeTab, selectedContentType]);
+
   // ==========================================
   // APIS / FETCH CONTROLLERS
+  // These functions communicate with the Next.js API routes (located in app/api)
+  // to retrieve settings, user sessions, movies, and personalization data.
   // ==========================================
 
   const fetchGlobalSettings = async () => {
@@ -324,23 +323,18 @@ export default function App() {
     ? watchHistory.filter((h) => isKidsFriendly(h.movie)) 
     : watchHistory;
 
-  // Apply dynamic theme color to CSS variables
+  // Apply static theme color #00ADB5 to CSS variables
   useEffect(() => {
     const root = document.documentElement;
-    const color = userThemeColor || settings.primaryColor;
+    const color = "#00ADB5";
     root.style.setProperty('--theme-primary', color);
-    // Dynamically calculate RGBA versions
-    const hex = color.replace('#', '');
-    const r = parseInt(hex.substring(0, 2), 16);
-    const g = parseInt(hex.substring(2, 4), 16);
-    const b = parseInt(hex.substring(4, 6), 16);
-    root.style.setProperty('--theme-primary-90', `rgba(${r}, ${g}, ${b}, 0.9)`);
-    root.style.setProperty('--theme-primary-80', `rgba(${r}, ${g}, ${b}, 0.8)`);
-    root.style.setProperty('--theme-primary-50', `rgba(${r}, ${g}, ${b}, 0.5)`);
-    root.style.setProperty('--theme-primary-30', `rgba(${r}, ${g}, ${b}, 0.3)`);
-    root.style.setProperty('--theme-primary-20', `rgba(${r}, ${g}, ${b}, 0.2)`);
-    root.style.setProperty('--theme-primary-10', `rgba(${r}, ${g}, ${b}, 0.1)`);
-  }, [settings.primaryColor, userThemeColor]);
+    root.style.setProperty('--theme-primary-90', 'rgba(0, 173, 181, 0.9)');
+    root.style.setProperty('--theme-primary-80', 'rgba(0, 173, 181, 0.8)');
+    root.style.setProperty('--theme-primary-50', 'rgba(0, 173, 181, 0.5)');
+    root.style.setProperty('--theme-primary-30', 'rgba(0, 173, 181, 0.3)');
+    root.style.setProperty('--theme-primary-20', 'rgba(0, 173, 181, 0.2)');
+    root.style.setProperty('--theme-primary-10', 'rgba(0, 173, 181, 0.1)');
+  }, []);
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col font-sans selection:text-white relative overflow-x-hidden pt-[65px]" id="app-root" style={{ ["selectionBackgroundColor" as any]: settings.primaryColor }}>
@@ -366,6 +360,8 @@ export default function App() {
         onLanguageChange={handleLanguageChange}
         t={t}
         movies={displayedMovies}
+        showMobileSearch={showMobileSearch}
+        setShowMobileSearch={setShowMobileSearch}
       />
 
       {/* Main Container Viewport switch */}
@@ -396,6 +392,7 @@ export default function App() {
             globalSettings={settings}
             onUpdateGlobalSettings={setSettings}
             t={t}
+            onSelectMovie={setSelectedMovie}
           />
         ) : activeTab === "favorites" ? (
           /* MY FAVORITE WATCHLIST FEED */
@@ -556,8 +553,8 @@ export default function App() {
               /* DEDICATED CATALOG VIEW FOR MOVIES / TV SERIES (NO CAROUSEL) */
               <div className="px-4 md:px-8 max-w-7xl mx-auto space-y-10 pb-16 pt-6 animate-fade-in-quick">
                 
-                {/* Immersive Tagline Header instead of Carousel */}
-                <div className="apple-header-panel py-10 px-8 rounded-3xl shadow-3xl relative overflow-hidden">
+                {/* Immersive Tagline Header instead of Carousel (Hidden on mobile) */}
+                <div className="hidden md:block apple-header-panel py-10 px-8 rounded-3xl shadow-3xl relative overflow-hidden">
                   <div className="apple-header-glow" style={{ background: `radial-gradient(circle, var(--theme-primary-30) 0%, transparent 70%)` }} />
                   <span className="text-[10px] uppercase font-black tracking-widest px-2.5 py-1 rounded-md bg-white/[0.04] border border-white/10" style={{ color: settings.primaryColor }}>
                     {selectedContentType === "movie" ? (t.moviesCatalog || "Movies Catalog") : (t.tvSeriesCollections || "TV Series Collections")}
@@ -735,6 +732,30 @@ export default function App() {
         onOpenAuth={() => setShowAuth(true)}
         t={t}
       />
+
+      {/* Mobile Bottom Navigation Bar - Hidden when video player is open */}
+      {!activeStream && (
+        <MobileBottomNav
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          selectedContentType={selectedContentType}
+          onSelectContentType={setSelectedContentType}
+          currentUser={currentUser}
+          onOpenAuth={() => setShowAuth(true)}
+          onOpenMobileSearch={() => setShowMobileSearch(true)}
+          onOpenSubscription={() => setShowSubscription(true)}
+          onOpenProfileSwitcher={(mode) => {
+            setProfileModalMode(mode || "select");
+            setShowProfileSwitcher(true);
+          }}
+          onLogout={handleLogout}
+          currentLanguage={currentLanguage}
+          onLanguageChange={handleLanguageChange}
+          onCloseActiveStream={() => setActiveStream(null)}
+          favoritesCount={favorites.length}
+          t={t}
+        />
+      )}
     </div>
   );
 }

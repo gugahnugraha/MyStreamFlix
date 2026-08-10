@@ -58,7 +58,7 @@ model CMSSettings {
   siteName       String
   logoText       String
   logoUrl        String?
-  primaryColor   String  @default("#E50914")
+  primaryColor   String  @default("#00ADB5")
   enableComments Boolean @default(true)
   enableRatings  Boolean @default(true)
   maintenanceMode Boolean @default(false)

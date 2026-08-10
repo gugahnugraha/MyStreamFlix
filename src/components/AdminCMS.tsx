@@ -17,17 +17,31 @@ interface AdminCMSProps {
   globalSettings: CMSSettings;
   onUpdateGlobalSettings: (settings: CMSSettings) => void;
   t: any;
+  onSelectMovie?: (movie: Movie) => void;
 }
 
-const PRESET_COLORS = [
-  { name: "Flix Red", value: "#E50914" },
-  { name: "Royal Blue", value: "#007AFF" },
-  { name: "Apple Purple", value: "#AF52DE" },
-  { name: "Vibrant Pink", value: "#FF2D55" },
-  { name: "Sunset Orange", value: "#FF9500" },
-  { name: "Forest Green", value: "#34C759" },
-  { name: "Neon Teal", value: "#00C7BE" }
-];
+
+
+const normalizeCdnUrl = (url: string | undefined): string => {
+  if (!url) return "";
+  const trimmed = url.trim();
+  if (!trimmed) return "";
+  const cdnBase = "https://cdn.mystreamflix.biz.id";
+
+  if (trimmed.startsWith("/")) {
+    if (trimmed.startsWith("/uploads/")) return trimmed;
+    return `${cdnBase}${trimmed}`;
+  }
+
+  if (!trimmed.startsWith("http://") && !trimmed.startsWith("https://") && !trimmed.startsWith("blob:") && !trimmed.startsWith("data:")) {
+    return `${cdnBase}/${trimmed}`;
+  }
+
+  if (trimmed.includes(".r2.dev/")) {
+    return trimmed.replace(/^https?:\/\/[^\/]+\.r2\.dev/, cdnBase);
+  }
+  return trimmed;
+};
 
 type TmdbSearchResult = {
   id: string;
@@ -68,13 +82,38 @@ export default function AdminCMS({
   movies, 
   globalSettings, 
   onUpdateGlobalSettings,
-  t
+  t,
+  onSelectMovie,
 }: AdminCMSProps) {
   const [activeSubTab, setActiveSubTab] = useState<"analytics" | "catalog" | "settings" | "users">("analytics");
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [settings, setSettings] = useState<CMSSettings | null>(globalSettings || null);
   const [usersList, setUsersList] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Custom Modal Dialog States (replacing native browser alert/confirm)
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    actionLabel?: string;
+    onConfirm: () => void;
+  } | null>(null);
+
+  const [alertDialog, setAlertDialog] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+  } | null>(null);
+
+  const showAlert = (message: string, title: string = "Notice") => {
+    setAlertDialog({ isOpen: true, title, message });
+  };
+
+  const showConfirm = (message: string, onConfirm: () => void, title: string = "Confirmation", actionLabel: string = "Confirm") => {
+    setConfirmDialog({ isOpen: true, title, message, onConfirm, actionLabel });
+  };
+
   const [error, setError] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
   const [uploadingLogo, setUploadingLogo] = useState(false);
@@ -95,6 +134,8 @@ export default function AdminCMS({
     onUpdateGlobalSettings(newSettings);
   };
 
+  // Handle image uploads for the Site Logo. This sends the file to the Next.js
+  // API route /api/upload which stores it and returns a public URL.
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement> | React.DragEvent<HTMLDivElement>, isDropped = false) => {
     let file: File | null = null;
     if (isDropped) {
@@ -113,7 +154,7 @@ export default function AdminCMS({
     if (!file) return;
 
     if (!file.type.startsWith("image/")) {
-      alert("Please upload an image file (PNG, JPG, SVG, etc.).");
+      showAlert("Please upload an image file (PNG, JPG, SVG, etc.).");
       return;
     }
 
@@ -134,7 +175,7 @@ export default function AdminCMS({
       const data = await res.json();
       updateSettingsField("logoUrl", data.url);
     } catch (err: any) {
-      alert(err.message || "Logo upload failed.");
+      showAlert(err.message || "Logo upload failed.");
     } finally {
       setUploadingLogo(false);
     }
@@ -154,29 +195,37 @@ export default function AdminCMS({
     setDraggingLogo(false);
   };
 
-  const [userThemeColor, setUserThemeColor] = useState<string | null>(null);
+  const [uploadingPoster, setUploadingPoster] = useState(false);
+  const [uploadingBackdrop, setUploadingBackdrop] = useState(false);
 
-  useEffect(() => {
-    const handleThemeSync = () => {
-      if (typeof window !== "undefined") {
-        const stored = localStorage.getItem("user-theme-primary");
-        setUserThemeColor(stored);
-      }
-    };
+  const handleGenericFileUpload = async (file: File, folder: string, onSuccess: (url: string) => void, setBusy?: (b: boolean) => void) => {
+    if (setBusy) setBusy(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await fetch(`/api/upload?folder=${folder}`, {
+        method: "POST",
+        body: formData,
+      });
+      if (!res.ok) throw new Error("Upload failed.");
+      const data = await res.json();
+      onSuccess(data.url);
+    } catch (err: any) {
+      showAlert(err.message || "Failed to upload file to Cloudflare R2.");
+    } finally {
+      if (setBusy) setBusy(false);
+    }
+  };
 
-    handleThemeSync();
-    window.addEventListener('themechange', handleThemeSync);
-    return () => window.removeEventListener('themechange', handleThemeSync);
-  }, []);
-
-  // Get brand color from settings when loaded
-  const brandColor = userThemeColor || settings?.primaryColor || "#E50914";
+  const brandColor = "#00ADB5";
 
   // Catalog Filter / Sort States
   const [catalogSearch, setCatalogSearch] = useState("");
   const [catalogFilterType, setCatalogFilterType] = useState<"all" | "movie" | "series">("all");
   const [catalogSortBy, setCatalogSortBy] = useState<string>("recent");
 
+  // Filter and sort the movie catalog locally to avoid unnecessary API calls
+  // when the user types in the search bar or changes the sort dropdown.
   const filteredAndSortedMovies = useMemo(() => {
     let result = [...movies];
 
@@ -498,9 +547,9 @@ export default function AdminCMS({
     setEditingMovieId(movie.id);
     setTitle(movie.title);
     setDescription(movie.description);
-    setPosterUrl(movie.posterUrl);
-    setBackdropUrl(movie.backdropUrl);
-    setVideoUrl(movie.videoUrl);
+    setPosterUrl(normalizeCdnUrl(movie.posterUrl));
+    setBackdropUrl(normalizeCdnUrl(movie.backdropUrl));
+    setVideoUrl(normalizeCdnUrl(movie.videoUrl));
     setDuration(movie.duration);
     setReleaseYear(movie.releaseYear);
     setRating(movie.rating);
@@ -516,13 +565,18 @@ export default function AdminCMS({
     setContentType(movie.contentType || "movie");
     setSeasonsCount(movie.seasons?.length || 1);
     setEpisodesPerSeason(movie.seasons?.[0]?.episodes?.length || 5);
-    setSeasons(movie.seasons || []);
+    setSeasons(
+      (movie.seasons || []).map((s) => ({
+        ...s,
+        episodes: (s.episodes || []).map((e) => ({ ...e, videoUrl: normalizeCdnUrl(e.videoUrl) }))
+      }))
+    );
     setTmdbQuery(movie.title);
     setSelectedTmdbId(movie.tmdbId);
     setSelectedTmdbMediaType(movie.tmdbMediaType);
     setTmdbResults([]);
     setTmdbError("");
-    setSubtitles(movie.subtitles || []);
+    setSubtitles((movie.subtitles || []).map((sub) => ({ ...sub, fileUrl: normalizeCdnUrl(sub.fileUrl) })));
     setShowForm(true);
   };
 
@@ -569,24 +623,30 @@ export default function AdminCMS({
     }
   };
 
-  const handleDeleteMovie = async (movieId: string) => {
-    if (!window.confirm(t.cmsDeleteMovieConfirm)) return;
-    try {
-      const res = await fetch(`/api/movies/${movieId}`, { method: "DELETE" });
-      if (!res.ok) throw new Error(t.cmsDeletedMovie);
-      
-      setSuccessMsg(t.cmsDeletedMovie);
-      onRefreshMovies();
-      setTimeout(() => setSuccessMsg(""), 3500);
-    } catch (err: any) {
-      alert(err.message || t.cmsFailedSave);
-    }
+  const handleDeleteMovie = (movieId: string) => {
+    showConfirm(
+      t.cmsDeleteMovieConfirm || "Are you sure you want to delete this title?",
+      async () => {
+        try {
+          const res = await fetch(`/api/movies/${movieId}`, { method: "DELETE" });
+          if (!res.ok) throw new Error(t.cmsDeletedMovie);
+          
+          setSuccessMsg(t.cmsDeletedMovie);
+          onRefreshMovies();
+          setTimeout(() => setSuccessMsg(""), 3500);
+        } catch (err: any) {
+          showAlert(err.message || t.cmsFailedSave);
+        }
+      },
+      "Delete Title",
+      "Delete"
+    );
   };
 
   const handleSaveMovie = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim() || !videoUrl.trim()) {
-      alert(t.cmsTitleVideoRequired);
+      showAlert(t.cmsTitleVideoRequired);
       return;
     }
 
@@ -640,7 +700,7 @@ export default function AdminCMS({
       onRefreshMovies();
       setTimeout(() => setSuccessMsg(""), 3500);
     } catch (err: any) {
-      alert(err.message || "Save operation failed.");
+      showAlert(err.message || "Save operation failed.");
     }
   };
 
@@ -659,7 +719,7 @@ export default function AdminCMS({
       setSuccessMsg(t.cmsSettingsSaved);
       setTimeout(() => setSuccessMsg(""), 3500);
     } catch (err: any) {
-      alert(err.message || "Settings update failed.");
+      showAlert(err.message || "Settings update failed.");
     }
   };
 
@@ -685,30 +745,36 @@ export default function AdminCMS({
         setUsersList(usersData);
       }
     } catch (err: any) {
-      alert(err.message || "Role shift failed.");
+      showAlert(err.message || "Role shift failed.");
     }
   };
 
-  const handleDeleteUser = async (userId: string) => {
-    if (!window.confirm(t.cmsDeleteUserConfirm)) return;
-    try {
-      const res = await fetch(`/api/users/${userId}`, { method: "DELETE" });
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || "Failed to delete account.");
-      }
-      setSuccessMsg(t.cmsUserDeleted);
-      setTimeout(() => setSuccessMsg(""), 3500);
-      
-      // Refresh user base list
-      const usersRes = await fetch("/api/users");
-      if (usersRes.ok) {
-        const usersData = await usersRes.json();
-        setUsersList(usersData);
-      }
-    } catch (err: any) {
-      alert(err.message || "User deletion failed.");
-    }
+  const handleDeleteUser = (userId: string) => {
+    showConfirm(
+      t.cmsDeleteUserConfirm || "Are you sure you want to delete this user account?",
+      async () => {
+        try {
+          const res = await fetch(`/api/users/${userId}`, { method: "DELETE" });
+          if (!res.ok) {
+            const data = await res.json();
+            throw new Error(data.error || "Failed to delete account.");
+          }
+          setSuccessMsg(t.cmsUserDeleted);
+          setTimeout(() => setSuccessMsg(""), 3500);
+          
+          // Refresh user base list
+          const usersRes = await fetch("/api/users");
+          if (usersRes.ok) {
+            const usersData = await usersRes.json();
+            setUsersList(usersData);
+          }
+        } catch (err: any) {
+          showAlert(err.message || "User deletion failed.");
+        }
+      },
+      "Delete User Account",
+      "Delete User"
+    );
   };
 
   if (loading && !stats) {
@@ -739,7 +805,7 @@ export default function AdminCMS({
         </div>
 
         {/* Dashboard sub tabs controls */}
-        <div className="flex items-center gap-1.5 bg-zinc-950 p-1 rounded-lg border border-zinc-900" id="cms-subtabs">
+        <div className="flex items-center gap-1.5 bg-zinc-950 p-1 rounded-lg border border-zinc-900 overflow-x-auto max-w-full scrollbar-none" id="cms-subtabs">
           <button
             onClick={() => setActiveSubTab("analytics")}
             className={`flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-md transition-all cursor-pointer ${
@@ -1225,12 +1291,20 @@ export default function AdminCMS({
                           <img 
                             src={m.posterUrl} 
                             alt={m.title} 
-                            className="w-8 h-12 rounded object-cover border border-zinc-800 shrink-0"
+                            onClick={() => onSelectMovie && onSelectMovie(m)}
+                            className="w-8 h-12 rounded object-cover border border-zinc-800 shrink-0 cursor-pointer hover:scale-105 transition-transform"
                             referrerPolicy="no-referrer"
+                            title="Click to view details"
                           />
                           <div>
                             <div className="flex items-center gap-1.5">
-                              <p className="font-bold text-zinc-200 text-xs">{m.title}</p>
+                              <button
+                                onClick={() => onSelectMovie && onSelectMovie(m)}
+                                className="font-bold text-zinc-200 text-xs hover:text-[#00ADB5] hover:underline transition-colors text-left cursor-pointer"
+                                title="Click to view details"
+                              >
+                                {m.title}
+                              </button>
                               <span className={`px-1 rounded-sm text-[8px] font-black uppercase tracking-wider ${
                                 m.contentType === "series" ? "bg-red-600/10 text-red-500 border border-red-500/20" : "bg-blue-600/10 text-blue-500 border border-blue-500/20"
                               }`}>
@@ -1556,38 +1630,94 @@ export default function AdminCMS({
                     />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1 col-span-2">
-                      <label className="text-[10px] font-bold uppercase text-zinc-500">{t.cmsVideoSourceUrl}</label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-1 col-span-1 md:col-span-2">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <label className="text-[10px] font-bold uppercase text-zinc-500">{t.cmsVideoSourceUrl}</label>
+                        <div className="flex items-center gap-3">
+                          {videoUrl.includes(".r2.dev") && (
+                            <button
+                              type="button"
+                              onClick={() => setVideoUrl(normalizeCdnUrl(videoUrl))}
+                              className="text-[10px] text-amber-400 font-bold hover:underline cursor-pointer flex items-center gap-1"
+                              title="Convert to custom domain cdn.mystreamflix.biz.id"
+                            >
+                              ⚡ Convert to cdn.mystreamflix.biz.id
+                            </button>
+                          )}
+                          <label className="text-[10px] text-red-400 font-bold hover:underline cursor-pointer flex items-center gap-1">
+                            <Upload className="w-3 h-3" /> Upload Video to R2
+                            <input
+                              type="file"
+                              accept="video/*"
+                              className="hidden"
+                              onChange={(e) => {
+                                if (e.target.files && e.target.files[0]) {
+                                  handleGenericFileUpload(e.target.files[0], "videos", (url) => setVideoUrl(url));
+                                }
+                              }}
+                            />
+                          </label>
+                        </div>
+                      </div>
                       <input
                         type="text"
                         required
-                        placeholder="e.g. https://pub-e7ecd47498224d3fbfd74c81dd22c504.r2.dev/movies/film.mp4"
+                        placeholder="e.g. https://cdn.mystreamflix.biz.id/movies/film.mp4"
                         value={videoUrl}
                         onChange={(e) => setVideoUrl(e.target.value)}
                         className="w-full bg-zinc-900 border border-zinc-850 p-2.5 rounded text-xs focus:outline-hidden focus:border-red-500/50"
                         id="form-input-video"
                       />
                     </div>
+                    
                     <div className="space-y-1">
-                      <label className="text-[10px] font-bold uppercase text-zinc-500">{t.cmsPosterFrameUrl}</label>
+                      <div className="flex items-center justify-between">
+                        <label className="text-[10px] font-bold uppercase text-zinc-500">{t.cmsPosterFrameUrl}</label>
+                        <label className="text-[10px] text-red-400 font-bold hover:underline cursor-pointer flex items-center gap-1">
+                          <Upload className="w-3 h-3" /> Upload Poster
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(e) => {
+                              if (e.target.files && e.target.files[0]) {
+                                handleGenericFileUpload(e.target.files[0], "posters", (url) => setPosterUrl(url), setUploadingPoster);
+                              }
+                            }}
+                          />
+                        </label>
+                      </div>
                       <input
                         type="url"
-                        placeholder="https://images.unsplash.com/...poster.jpg"
+                        placeholder="https://cdn.mystreamflix.biz.id/posters/poster.jpg"
                         value={posterUrl}
                         onChange={(e) => setPosterUrl(e.target.value)}
                         className="w-full bg-zinc-900 border border-zinc-850 p-2.5 rounded text-xs focus:outline-hidden focus:border-red-500/50"
                         id="form-input-poster"
                       />
                     </div>
-                  </div>
 
-                  <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1">
-                      <label className="text-[10px] font-bold uppercase text-zinc-500">{t.cmsBackdropUrl}</label>
+                      <div className="flex items-center justify-between">
+                        <label className="text-[10px] font-bold uppercase text-zinc-500">{t.cmsBackdropUrl}</label>
+                        <label className="text-[10px] text-red-400 font-bold hover:underline cursor-pointer flex items-center gap-1">
+                          <Upload className="w-3 h-3" /> Upload Backdrop
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(e) => {
+                              if (e.target.files && e.target.files[0]) {
+                                handleGenericFileUpload(e.target.files[0], "backdrops", (url) => setBackdropUrl(url), setUploadingBackdrop);
+                              }
+                            }}
+                          />
+                        </label>
+                      </div>
                       <input
                         type="url"
-                        placeholder="https://images.unsplash.com/...backdrop.jpg"
+                        placeholder="https://cdn.mystreamflix.biz.id/backdrops/backdrop.jpg"
                         value={backdropUrl}
                         onChange={(e) => setBackdropUrl(e.target.value)}
                         className="w-full bg-zinc-900 border border-zinc-850 p-2.5 rounded text-xs focus:outline-hidden focus:border-red-500/50"
@@ -1884,14 +2014,29 @@ export default function AdminCMS({
                                   className="w-full bg-zinc-950 border border-zinc-900 p-2 rounded text-xs text-zinc-300 focus:outline-hidden focus:border-red-500/30"
                                 />
                               </div>
-                              <div className="space-y-0.5">
-                                <label className="text-[9px] font-bold uppercase text-zinc-600">{t.cmsSubFileUrl || "Subtitle File URL (.vtt) *"}</label>
+                               <div className="space-y-0.5">
+                                <div className="flex items-center justify-between">
+                                  <label className="text-[9px] font-bold uppercase text-zinc-600">{t.cmsSubFileUrl || "Subtitle File URL (.vtt) *"}</label>
+                                  <label className="text-[9px] text-red-400 font-bold hover:underline cursor-pointer flex items-center gap-0.5">
+                                    <Upload className="w-2.5 h-2.5" /> Upload File
+                                    <input
+                                      type="file"
+                                      accept=".vtt,.srt,text/vtt,text/plain"
+                                      className="hidden"
+                                      onChange={(e) => {
+                                        if (e.target.files && e.target.files[0]) {
+                                          handleGenericFileUpload(e.target.files[0], "subtitles", (url) => handleUpdateSubtitle(sub.id, "fileUrl", url));
+                                        }
+                                      }}
+                                    />
+                                  </label>
+                                </div>
                                 <input
                                   type="url"
                                   required
                                   value={sub.fileUrl}
                                   onChange={(e) => handleUpdateSubtitle(sub.id, "fileUrl", e.target.value)}
-                                  placeholder="https://storage.googleapis.com/...vtt"
+                                  placeholder="https://cdn.mystreamflix.biz.id/subtitles/indonesia.vtt"
                                   className="w-full bg-zinc-950 border border-zinc-900 p-2 rounded text-xs text-zinc-300 focus:outline-hidden focus:border-red-500/30 font-mono"
                                 />
                               </div>
@@ -2063,56 +2208,14 @@ export default function AdminCMS({
  
               <div className="space-y-2">
                 <label className="text-[10px] font-bold uppercase text-zinc-500 block">{t.cmsThemeColor}</label>
-                <div className="flex flex-wrap items-center gap-3">
-                  {/* Preset Colors */}
-                  {PRESET_COLORS.map((preset) => (
-                    <button
-                      key={preset.value}
-                      type="button"
-                      onClick={() => updateSettingsField("primaryColor", preset.value)}
-                      className={`w-8 h-8 rounded-full cursor-pointer transition-all hover:scale-110 active:scale-95 shadow-md flex items-center justify-center border-2 ${
-                        settings.primaryColor.toLowerCase() === preset.value.toLowerCase()
-                          ? "border-white ring-2 ring-white/20 scale-105"
-                          : "border-transparent hover:border-zinc-500"
-                      }`}
-                      style={{ backgroundColor: preset.value }}
-                      title={preset.name}
-                    >
-                      {settings.primaryColor.toLowerCase() === preset.value.toLowerCase() && (
-                        <div className="w-1.5 h-1.5 bg-white rounded-full" />
-                      )}
-                    </button>
-                  ))}
- 
-                  {/* Custom Color Selector (Color Wheel) */}
-                  <div className="relative w-8 h-8 rounded-full border-2 border-transparent hover:border-zinc-500 transition-all hover:scale-110 active:scale-95 shadow-md flex items-center justify-center overflow-hidden"
-                    style={{ background: "conic-gradient(from 0deg, red, yellow, green, blue, purple, red)" }}
-                    title="Custom Color Picker"
-                  >
-                    <input
-                      type="color"
-                      value={settings.primaryColor}
-                      onChange={(e) => updateSettingsField("primaryColor", e.target.value)}
-                      className="opacity-0 absolute inset-0 w-full h-full cursor-pointer"
-                    />
-                    {!PRESET_COLORS.some(p => p.value.toLowerCase() === settings.primaryColor.toLowerCase()) && (
-                      <div className="w-1.5 h-1.5 bg-white rounded-full mix-blend-difference" />
-                    )}
-                  </div>
- 
-                  {/* HEX Input */}
-                  <input
-                    type="text"
-                    value={settings.primaryColor}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      if (val.startsWith("#") && val.length <= 7) {
-                        updateSettingsField("primaryColor", val);
-                      }
-                    }}
-                    className="bg-zinc-900 border border-zinc-850 px-3 py-1.5 rounded-lg text-xs focus:outline-hidden font-mono text-zinc-300 w-24 tracking-wider uppercase text-center"
-                    placeholder="#HEX"
+                <div className="flex items-center gap-3">
+                  <div 
+                    className="w-6 h-6 rounded-full border border-white/20 shadow-md flex items-center justify-center shrink-0"
+                    style={{ backgroundColor: "#00ADB5" }}
                   />
+                  <span className="text-xs font-mono text-cyan-400 font-bold tracking-wider uppercase bg-cyan-950/40 border border-cyan-800/40 px-3 py-1 rounded-md">
+                    #00ADB5 (Fixed System Accent)
+                  </span>
                 </div>
               </div>
             </div>
@@ -2307,6 +2410,79 @@ export default function AdminCMS({
                   )}
                 </tbody>
               </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Custom Confirmation Modal Dialog */}
+      {confirmDialog && confirmDialog.isOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
+          <div className="bg-zinc-950 border border-zinc-800 w-full max-w-md rounded-2xl p-6 shadow-2xl space-y-4 text-left">
+            <div className="flex items-center justify-between border-b border-zinc-900 pb-3">
+              <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                <ShieldAlert className="w-5 h-5 text-amber-500" />
+                {confirmDialog.title}
+              </h3>
+              <button
+                onClick={() => setConfirmDialog(null)}
+                className="text-zinc-500 hover:text-white p-1 rounded-md transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <p className="text-xs text-zinc-300 leading-relaxed font-medium">
+              {confirmDialog.message}
+            </p>
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                onClick={() => setConfirmDialog(null)}
+                className="px-4 py-2 text-xs font-semibold text-zinc-400 hover:text-white hover:bg-zinc-900 rounded-lg transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  const cb = confirmDialog.onConfirm;
+                  setConfirmDialog(null);
+                  if (cb) cb();
+                }}
+                className="px-4 py-2 text-xs font-bold text-white bg-red-600 hover:bg-red-700 rounded-lg shadow-lg transition-all cursor-pointer"
+              >
+                {confirmDialog.actionLabel || "Confirm"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Custom Alert Modal Dialog */}
+      {alertDialog && alertDialog.isOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
+          <div className="bg-zinc-950 border border-zinc-800 w-full max-w-md rounded-2xl p-6 shadow-2xl space-y-4 text-left">
+            <div className="flex items-center justify-between border-b border-zinc-900 pb-3">
+              <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                <ShieldAlert className="w-5 h-5 text-[#00ADB5]" />
+                {alertDialog.title}
+              </h3>
+              <button
+                onClick={() => setAlertDialog(null)}
+                className="text-zinc-500 hover:text-white p-1 rounded-md transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <p className="text-xs text-zinc-300 leading-relaxed font-medium">
+              {alertDialog.message}
+            </p>
+            <div className="flex items-center justify-end pt-2">
+              <button
+                onClick={() => setAlertDialog(null)}
+                className="px-5 py-2 text-xs font-bold text-black rounded-lg shadow-lg transition-all cursor-pointer"
+                style={{ backgroundColor: "#00ADB5" }}
+              >
+                OK
+              </button>
             </div>
           </div>
         </div>

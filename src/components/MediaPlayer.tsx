@@ -144,6 +144,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t }: 
     if (container) {
       container.addEventListener("mousemove", resetTimer);
       container.addEventListener("click", resetTimer);
+      container.addEventListener("touchstart", resetTimer);
     }
 
     resetTimer();
@@ -153,6 +154,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t }: 
       if (container) {
         container.removeEventListener("mousemove", resetTimer);
         container.removeEventListener("click", resetTimer);
+        container.removeEventListener("touchstart", resetTimer);
       }
     };
   }, [isPlaying]);
@@ -335,6 +337,8 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t }: 
       const map: Record<string, Cue[]> = {};
       await Promise.all(
         (movie.subtitles || []).map(async (sub) => {
+          if (!sub.fileUrl || !sub.fileUrl.trim()) return;
+
           try {
             const isRemote = sub.fileUrl.startsWith("http://") || sub.fileUrl.startsWith("https://");
             const fetchUrl = isRemote
@@ -342,14 +346,17 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t }: 
               : sub.fileUrl;
 
             const response = await fetch(fetchUrl);
-            if (!response.ok) throw new Error("Failed to fetch subtitle file");
+            if (!response.ok) {
+              console.warn(`Subtitle file fetch returned status ${response.status} for ${sub.language}`);
+              return;
+            }
             const text = await response.text();
 
             // Parse cues for JS overlay rendering
             const cues = parseSubtitles(text);
             map[sub.language] = cues;
           } catch (err) {
-            console.error("Failed loading subtitle:", err);
+            console.warn(`Failed loading subtitle for ${sub.language}:`, err);
           }
         })
       );
@@ -439,6 +446,14 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t }: 
     }
   };
 
+  const handleScreenClick = () => {
+    if (isPlaying) {
+      setShowControls((prev) => !prev);
+    } else {
+      handlePlayPause();
+    }
+  };
+
   const handleSubtitleSelect = (lang: string) => {
     setActiveSubtitle(lang);
     setShowSubtitleMenu(false);
@@ -461,16 +476,14 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t }: 
     const m = Math.floor((seconds % 3600) / 60);
     const s = Math.floor(seconds % 60);
 
-    const pad = (n: number) => n.toString().padStart(2, "0");
-    if (h > 0) return `${h}:${pad(m)}:${pad(s)}`;
-    return `${pad(m)}:${pad(s)}`;
+    if (h > 0) {
+      return `${h}:${m < 10 ? "0" : ""}${m}:${s < 10 ? "0" : ""}${s}`;
+    }
+    return `${m < 10 ? "0" : ""}${m}:${s < 10 ? "0" : ""}${s}`;
   };
 
   return (
-    <div
-      className="fixed inset-0 z-50 bg-black flex flex-col landscape:flex-row md:flex-row select-none overflow-hidden"
-      id="media-player-container"
-    >
+    <div className="fixed inset-0 z-[100] bg-black flex flex-col justify-between overflow-hidden" id="media-player-root">
       <style>{`
         video::cue, #video-core-element::cue {
           background: transparent !important;
@@ -490,7 +503,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t }: 
             ref={videoRef}
             src={activeEpisode ? activeEpisode.videoUrl : movie.videoUrl}
             className="w-full h-full max-h-screen object-contain"
-            onClick={handlePlayPause}
+            onClick={handleScreenClick}
             onTimeUpdate={() => {
               if (videoRef.current) {
                 setCurrentTime(videoRef.current.currentTime);
@@ -509,7 +522,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t }: 
           /* High-fidelity Cinematic Simulation Display */
           <div
             className="relative w-full h-full flex items-center justify-center bg-zinc-950"
-            onClick={handlePlayPause}
+            onClick={handleScreenClick}
             id="simulation-display"
           >
             {/* Animated Zooming Background Backdrop */}
@@ -551,19 +564,8 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t }: 
                   {movie.title} {activeEpisode ? ` - S${activeSeason?.seasonNumber}E${activeEpisode.episodeNumber}` : ""}
                 </h2>
                 <p className="text-xs text-zinc-400 max-w-sm leading-relaxed mt-1">
-                  {activeEpisode?.description || movie.description || (t.simulationDesc || "Direct raw link loading is limited by sandboxed container headers. Playing simulated high-fidelity HLS timeline.")}
+                  {movie.description}
                 </p>
-                {isPlaying ? (
-                  <div className="flex items-center justify-center gap-1.5 mt-4 text-emerald-500 text-xs font-mono font-semibold bg-emerald-500/10 px-3 py-1.5 rounded-full border border-emerald-500/20 shadow-xs animate-pulse">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                    {t.streamingQualityLabel || "Streaming @ 4K Ultra HD"}
-                  </div>
-                ) : (
-                  <div className="flex items-center justify-center gap-1.5 mt-4 text-zinc-400 text-xs font-mono font-semibold bg-zinc-800/30 px-3 py-1.5 rounded-full border border-zinc-800">
-                    <span className="w-2 h-2 rounded-full bg-zinc-500" />
-                    {t.pausedLabel || "Paused"}
-                  </div>
-                )}
               </div>
             </div>
           </div>
@@ -584,7 +586,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t }: 
           id="media-player-hud"
         >
           {/* Top Header Row */}
-          <div className="flex items-center justify-between w-full">
+          <div className="flex items-center justify-between w-full z-10">
             <div>
               <p className="text-[10px] md:text-xs font-bold text-red-500 font-mono tracking-wider">
                 {t.nowStreaming || "NOW STREAMING"} • {movie.quality}
@@ -601,11 +603,56 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t }: 
                 }
                 onClose();
               }}
-              className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-zinc-900/80 hover:bg-red-600 text-white flex items-center justify-center border border-zinc-800 transition-colors shadow-lg cursor-pointer"
+              className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-zinc-900/80 hover:bg-red-600 text-white flex items-center justify-center border border-zinc-800 transition-colors shadow-lg cursor-pointer z-20"
               id="media-player-exit"
               title={t.exitPlayer || "Exit Player"}
             >
               <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          {/* Large Center Play/Pause & Skip Overlay Controls for Touch */}
+          <div className="absolute inset-0 flex items-center justify-center gap-6 sm:gap-10 pointer-events-none z-10">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleSkip(-10);
+              }}
+              title={t.rewind10s || "Rewind 10s"}
+              className={`w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-black/60 backdrop-blur-md border border-white/20 text-white flex items-center justify-center shadow-xl pointer-events-auto transition-all duration-300 transform active:scale-90 hover:bg-white/20 ${
+                showControls ? "opacity-100 scale-100" : "opacity-0 scale-75 pointer-events-none"
+              }`}
+            >
+              <RotateCcw className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+            </button>
+
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handlePlayPause();
+              }}
+              className={`w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-black/70 backdrop-blur-md border border-white/30 text-white flex items-center justify-center shadow-2xl pointer-events-auto transition-all duration-300 transform active:scale-90 hover:bg-white/20 ${
+                showControls ? "opacity-100 scale-100" : "opacity-0 scale-75 pointer-events-none"
+              }`}
+            >
+              {isPlaying ? (
+                <Pause className="w-8 h-8 sm:w-10 sm:h-10 text-white fill-white" />
+              ) : (
+                <Play className="w-8 h-8 sm:w-10 sm:h-10 text-white fill-white ml-1" />
+              )}
+            </button>
+
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleSkip(10);
+              }}
+              title={t.forward10s || "Forward 10s"}
+              className={`w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-black/60 backdrop-blur-md border border-white/20 text-white flex items-center justify-center shadow-xl pointer-events-auto transition-all duration-300 transform active:scale-90 hover:bg-white/20 ${
+                showControls ? "opacity-100 scale-100" : "opacity-0 scale-75 pointer-events-none"
+              }`}
+            >
+              <RotateCw className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
             </button>
           </div>
 
@@ -632,44 +679,51 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t }: 
               </span>
             </div>
 
-            {/* Controls Bar Row */}
-            <div className="flex flex-wrap items-center justify-between gap-4">
-              {/* Play, Rewind, Forward controls */}
-              <div className="flex items-center gap-4">
-                <button
-                  onClick={() => handleSkip(-10)}
-                  className="text-zinc-300 hover:text-white transition-colors cursor-pointer"
-                  title={t.rewind10s || "Rewind 10s"}
-                >
-                  <RotateCcw className="w-5 h-5" />
-                </button>
+            {/* Controls Bar Row - Symmetrical & Responsive */}
+            <div className="flex items-center justify-between gap-4 py-1">
+              {/* Left Section: Playback Controls (when Fullscreen) & Volume */}
+              <div className="flex items-center gap-3 md:gap-4">
+                {/* Fullscreen bottom playback control buttons */}
+                {isFullscreen && (
+                  <div className="flex items-center gap-2 pr-2 border-r border-zinc-800/80">
+                    <button
+                      onClick={() => handleSkip(-10)}
+                      className="text-zinc-300 hover:text-white transition-all transform active:scale-90 p-1 cursor-pointer"
+                      title={t.rewind10s || "Rewind 10s"}
+                    >
+                      <RotateCcw className="w-4 h-4 md:w-5 md:h-5" />
+                    </button>
 
-                <button
-                  onClick={handlePlayPause}
-                  className="w-12 h-12 rounded-full bg-white hover:scale-105 transition-transform flex items-center justify-center shadow-md cursor-pointer"
-                  id="hud-play-btn"
-                >
-                  {isPlaying ? (
-                    <Pause className="w-5 h-5 text-black fill-black" />
-                  ) : (
-                    <Play className="w-5 h-5 text-black fill-black ml-0.5" />
-                  )}
-                </button>
+                    <button
+                      onClick={handlePlayPause}
+                      className="w-8 h-8 rounded-full bg-white text-black hover:scale-105 transition-all flex items-center justify-center shadow-md cursor-pointer active:scale-95"
+                      id="hud-play-btn"
+                      title={isPlaying ? "Pause" : "Play"}
+                    >
+                      {isPlaying ? (
+                        <Pause className="w-4 h-4 text-black fill-black" />
+                      ) : (
+                        <Play className="w-4 h-4 text-black fill-black ml-0.5" />
+                      )}
+                    </button>
 
-                <button
-                  onClick={() => handleSkip(10)}
-                  className="text-zinc-300 hover:text-white transition-colors cursor-pointer"
-                  title={t.forward10s || "Forward 10s"}
-                >
-                  <RotateCw className="w-5 h-5" />
-                </button>
+                    <button
+                      onClick={() => handleSkip(10)}
+                      className="text-zinc-300 hover:text-white transition-all transform active:scale-90 p-1 cursor-pointer"
+                      title={t.forward10s || "Forward 10s"}
+                    >
+                      <RotateCw className="w-4 h-4 md:w-5 md:h-5" />
+                    </button>
+                  </div>
+                )}
 
-                {/* Volume sliders */}
-                <div className="flex items-center gap-2 border-l border-zinc-800 pl-4">
+                {/* Volume Controls */}
+                <div className="flex items-center gap-2">
                   <button
                     onClick={handleMuteToggle}
-                    className="text-zinc-300 hover:text-white transition-colors cursor-pointer"
+                    className="text-zinc-300 hover:text-white transition-colors cursor-pointer p-1"
                     id="hud-mute-btn"
+                    title={isMuted ? "Unmute" : "Mute"}
                   >
                     {isMuted ? (
                       <VolumeX className="w-5 h-5 text-red-500" />
@@ -690,26 +744,26 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t }: 
                 </div>
               </div>
 
-              {/* Utility Subtitles, Speed and Fullscreen */}
-              <div className="flex items-center gap-4 relative">
+              {/* Right Section: Utility Subtitles, Speed and Fullscreen */}
+              <div className="flex items-center gap-3 relative">
                 {/* Playback speed selector */}
                 <div className="relative">
                   <button
                     onClick={() => { setShowSpeedMenu(!showSpeedMenu); setShowSubtitleMenu(false); }}
-                    className="flex items-center gap-1 text-zinc-300 hover:text-white text-xs font-semibold px-2 py-1 bg-zinc-900/80 border border-zinc-800 rounded-md cursor-pointer"
+                    className="flex items-center gap-1.5 text-zinc-300 hover:text-white text-xs font-semibold px-2.5 py-1 bg-zinc-900/80 border border-zinc-800 rounded-lg transition-colors cursor-pointer"
                     title={t.playbackSpeed || "Playback Speed"}
                   >
-                    <Settings className="w-4 h-4" />
+                    <Settings className="w-3.5 h-3.5" />
                     <span>{playbackRate}x</span>
                   </button>
 
                   {showSpeedMenu && (
-                    <div className="absolute bottom-10 right-0 w-24 bg-zinc-950 border border-zinc-800 p-1 rounded-md shadow-2xl flex flex-col gap-0.5">
+                    <div className="absolute bottom-10 right-0 w-28 bg-zinc-950 border border-zinc-800 p-1.5 rounded-xl shadow-2xl flex flex-col gap-0.5 z-50">
                       {[0.5, 1, 1.25, 1.5, 2].map((r) => (
                         <button
                           key={r}
                           onClick={() => handleSpeedSelect(r)}
-                          className={`text-left text-xs px-2 py-1.5 rounded-sm hover:bg-zinc-900 transition-colors ${playbackRate === r ? "text-red-500 font-bold bg-red-500/10" : "text-zinc-400"
+                          className={`text-left text-xs px-2.5 py-1.5 rounded-md hover:bg-zinc-900 transition-colors ${playbackRate === r ? "text-red-500 font-bold bg-red-500/10" : "text-zinc-400"
                             }`}
                         >
                           {r}x
@@ -724,21 +778,21 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t }: 
                   <div className="relative">
                     <button
                       onClick={() => { setShowSubtitleMenu(!showSubtitleMenu); setShowSpeedMenu(false); }}
-                      className={`flex items-center gap-1 text-xs font-semibold px-2 py-1 border rounded-md cursor-pointer ${activeSubtitle !== "off"
-                        ? "bg-red-600/10 border-red-500 text-red-400"
+                      className={`flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 border rounded-lg transition-colors cursor-pointer ${activeSubtitle !== "off"
+                        ? "bg-red-600/10 border-red-500 text-red-400 font-bold"
                         : "bg-zinc-900/80 border-zinc-800 text-zinc-300 hover:text-white"
                         }`}
                       title={t.toggleCaptions || "Toggle Captions"}
                     >
-                      <Subtitles className="w-4 h-4" />
+                      <Subtitles className="w-3.5 h-3.5" />
                       <span>{activeSubtitleObj ? activeSubtitleObj.label : (t.toggleCaptions || "Toggle Captions")}</span>
                     </button>
 
                     {showSubtitleMenu && (
-                      <div className="absolute bottom-10 right-0 w-32 bg-zinc-950 border border-zinc-800 p-1 rounded-md shadow-2xl flex flex-col gap-0.5">
+                      <div className="absolute bottom-10 right-0 w-36 bg-zinc-950 border border-zinc-800 p-1.5 rounded-xl shadow-2xl flex flex-col gap-0.5 z-50">
                         <button
                           onClick={() => handleSubtitleSelect("off")}
-                          className={`text-left text-xs px-2 py-1.5 rounded-sm hover:bg-zinc-900 transition-colors ${activeSubtitle === "off" ? "text-red-500 font-bold bg-red-500/10" : "text-zinc-400"
+                          className={`text-left text-xs px-2.5 py-1.5 rounded-md hover:bg-zinc-900 transition-colors ${activeSubtitle === "off" ? "text-red-500 font-bold bg-red-500/10" : "text-zinc-400"
                             }`}
                         >
                           {t.noneOff || "Off (None)"}
@@ -747,7 +801,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t }: 
                           <button
                             key={sub.id}
                             onClick={() => handleSubtitleSelect(sub.language)}
-                            className={`text-left text-xs px-2 py-1.5 rounded-sm hover:bg-zinc-900 transition-colors ${activeSubtitle === sub.language ? "text-red-500 font-bold bg-red-500/10" : "text-zinc-400"
+                            className={`text-left text-xs px-2.5 py-1.5 rounded-md hover:bg-zinc-900 transition-colors ${activeSubtitle === sub.language ? "text-red-500 font-bold bg-red-500/10" : "text-zinc-400"
                               }`}
                           >
                             {sub.label}
@@ -761,11 +815,11 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t }: 
                 {/* Fullscreen control */}
                 <button
                   onClick={toggleFullscreen}
-                  className="text-zinc-300 hover:text-white transition-colors cursor-pointer"
+                  className="text-zinc-300 hover:text-white transition-colors cursor-pointer p-1 hover:scale-105 active:scale-95"
                   title={isFullscreen ? (t.exitFullscreen || "Exit Fullscreen") : (t.toggleFullscreen || "Toggle Fullscreen")}
                 >
                   {isFullscreen ? (
-                    <Minimize className="w-5 h-5" />
+                    <Minimize className="w-5 h-5 text-red-500" />
                   ) : (
                     <Maximize className="w-5 h-5" />
                   )}

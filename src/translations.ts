@@ -259,9 +259,9 @@ export const translations = {
 
     // Admin CMS — Tabs
     cmsTabAnalytics: "Analytics",
-    cmsTabCatalog: "Catalog CRUD",
+    cmsTabCatalog: "Catalog",
     cmsTabSettings: "Settings",
-    cmsTabUsers: "User Base",
+    cmsTabUsers: "User Management",
 
     // Admin CMS — Header
     cmsSystemConsole: "SYSTEM CONSOLE",
@@ -676,9 +676,9 @@ export const translations = {
 
     // Admin CMS — Tabs
     cmsTabAnalytics: "Analitik",
-    cmsTabCatalog: "Kelola Katalog",
+    cmsTabCatalog: "Katalog",
     cmsTabSettings: "Pengaturan",
-    cmsTabUsers: "Basis Pengguna",
+    cmsTabUsers: "Manajemen Pengguna",
 
     // Admin CMS — Header
     cmsSystemConsole: "KONSOL SISTEM",
@@ -1093,9 +1093,9 @@ export const translations = {
 
     // Admin CMS — Tabs
     cmsTabAnalytics: "Analíticas",
-    cmsTabCatalog: "CRUD Catálogo",
+    cmsTabCatalog: "Catálogo",
     cmsTabSettings: "Configuración",
-    cmsTabUsers: "Base de Usuarios",
+    cmsTabUsers: "Gestión de Usuarios",
 
     // Admin CMS — Header
     cmsSystemConsole: "CONSOLA DEL SISTEMA",

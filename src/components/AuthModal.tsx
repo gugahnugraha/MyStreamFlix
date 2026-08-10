@@ -121,7 +121,7 @@ export default function AuthModal({ onClose, onSuccess, t }: AuthModalProps) {
                 placeholder="Jane Doe"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="w-full bg-zinc-900 border border-zinc-850 p-2.5 rounded text-xs text-white focus:outline-hidden focus:border-red-500/50"
+                className="w-full bg-zinc-900 border border-zinc-850 p-2.5 rounded text-xs text-white focus:outline-hidden focus:border-[#00ADB5]/50"
                 id="auth-input-name"
               />
             </div>
@@ -135,7 +135,7 @@ export default function AuthModal({ onClose, onSuccess, t }: AuthModalProps) {
               placeholder="you@example.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full bg-zinc-900 border border-zinc-850 p-2.5 rounded text-xs text-white focus:outline-hidden focus:border-red-500/50"
+              className="w-full bg-zinc-900 border border-zinc-850 p-2.5 rounded text-xs text-white focus:outline-hidden focus:border-[#00ADB5]/50"
               id="auth-input-email"
             />
           </div>
@@ -160,7 +160,7 @@ export default function AuthModal({ onClose, onSuccess, t }: AuthModalProps) {
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full bg-zinc-900 border border-zinc-850 p-2.5 rounded text-xs text-white focus:outline-hidden focus:border-red-500/50"
+                className="w-full bg-zinc-900 border border-zinc-850 p-2.5 rounded text-xs text-white focus:outline-hidden focus:border-[#00ADB5]/50"
                 id="auth-input-password"
               />
             </div>

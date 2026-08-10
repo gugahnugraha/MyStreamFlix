@@ -19,22 +19,7 @@ export default function Footer({
   onOpenAuth,
   t,
 }: FooterProps) {
-  const [userThemeColor, setUserThemeColor] = useState<string | null>(null);
-
-  useEffect(() => {
-    const handleThemeSync = () => {
-      if (typeof window !== "undefined") {
-        const stored = localStorage.getItem("user-theme-primary");
-        setUserThemeColor(stored);
-      }
-    };
-
-    handleThemeSync();
-    window.addEventListener('themechange', handleThemeSync);
-    return () => window.removeEventListener('themechange', handleThemeSync);
-  }, []);
-
-  const brandColor = userThemeColor || settings.primaryColor || "#E50914";
+  const brandColor = "#00ADB5";
 
   const handleNav = (tab: string, type?: "all" | "movie" | "series") => {
     setActiveTab(tab);
@@ -47,7 +32,7 @@ export default function Footer({
   return (
     <footer className="relative bg-[#070708] border-t border-zinc-900/80 pt-16 pb-8 px-4 md:px-8 mt-auto overflow-hidden">
       {/* Decorative top ambient glow matching site theme */}
-      <div 
+      <div
         className="absolute top-0 left-1/2 -translate-x-1/2 w-[80%] h-[1px] opacity-30 blur-xs"
         style={{
           background: `linear-gradient(90deg, transparent, ${brandColor}, transparent)`
@@ -58,8 +43,8 @@ export default function Footer({
         {/* Brand & Tagline Block */}
         <div className="space-y-4">
           <div className="flex items-center gap-2 cursor-pointer group" onClick={() => handleNav("home", "all")}>
-            <div 
-              className="w-8 h-8 rounded-lg flex items-center justify-center shadow-lg transition-transform group-hover:scale-105 duration-300 ring-1 ring-white/10" 
+            <div
+              className="w-8 h-8 rounded-lg flex items-center justify-center shadow-lg transition-transform group-hover:scale-105 duration-300 ring-1 ring-white/10"
               style={{ backgroundColor: brandColor }}
             >
               <Film className="w-4.5 h-4.5 text-white" />
@@ -110,32 +95,32 @@ export default function Footer({
           </h4>
           <ul className="space-y-2 text-xs">
             <li>
-              <button 
-                onClick={() => handleNav("home", "all")} 
+              <button
+                onClick={() => handleNav("home", "all")}
                 className="text-zinc-400 hover:text-white transition-colors cursor-pointer"
               >
                 {t.browse || "Home Library"}
               </button>
             </li>
             <li>
-              <button 
-                onClick={() => handleNav("home", "movie")} 
+              <button
+                onClick={() => handleNav("home", "movie")}
                 className="text-zinc-400 hover:text-white transition-colors cursor-pointer"
               >
                 {t.movies || "Movies Catalog"}
               </button>
             </li>
             <li>
-              <button 
-                onClick={() => handleNav("home", "series")} 
+              <button
+                onClick={() => handleNav("home", "series")}
                 className="text-zinc-400 hover:text-white transition-colors cursor-pointer"
               >
                 {t.tvSeries || "TV Series Collection"}
               </button>
             </li>
             <li>
-              <button 
-                onClick={() => handleNav("favorites")} 
+              <button
+                onClick={() => handleNav("favorites")}
                 className="text-zinc-400 hover:text-white transition-colors cursor-pointer"
               >
                 {t.myList || "My Pinned Watchlist"}
@@ -151,8 +136,8 @@ export default function Footer({
           </h4>
           <ul className="space-y-2 text-xs">
             <li>
-              <button 
-                onClick={onOpenSubscription} 
+              <button
+                onClick={onOpenSubscription}
                 className="text-amber-500 hover:text-amber-400 transition-colors cursor-pointer flex items-center gap-1 font-bold"
               >
                 {t.subscribeVip || "Join VIP Premium"}
@@ -172,7 +157,7 @@ export default function Footer({
               </a>
             </li>
             <li>
-              <button 
+              <button
                 onClick={onOpenAuth}
                 className="text-zinc-400 hover:text-white transition-colors cursor-pointer"
               >
@@ -200,9 +185,9 @@ export default function Footer({
               <Mail className="w-3.5 h-3.5 text-zinc-500" />
               press@flixsphere.org
             </li>
-            <li className="pt-2 text-[10px] text-zinc-600 border-t border-zinc-900/60 leading-relaxed">
+            {/* <li className="pt-2 text-[10px] text-zinc-600 border-t border-zinc-900/60 leading-relaxed">
               Sandbox model presentation interface constructed for portfolio testing.
-            </li>
+            </li> */}
           </ul>
         </div>
       </div>

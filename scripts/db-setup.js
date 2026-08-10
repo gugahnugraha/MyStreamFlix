@@ -24,7 +24,7 @@ async function main() {
     siteName: "FlixSphere",
     logoText: "FLIXSPHERE",
     logoUrl: "",
-    primaryColor: "#E50914",
+    primaryColor: "#00ADB5",
     enableComments: true,
     enableRatings: true,
     maintenanceMode: false,
@@ -53,7 +53,7 @@ async function main() {
     createdAt: new Date().toISOString(),
     isPremium: true,
     profiles: [
-      { id: "prof-1", name: "Admin (Adult)", avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80", isKids: false },
+      { id: "prof-1", name: "Admin", avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80", isKids: false },
       { id: "prof-2", name: "Junior (Kids)", avatar: "https://images.unsplash.com/photo-1607990283143-e81e7a2c93ab?w=150&auto=format&fit=crop&q=80", isKids: true }
     ],
     activeProfileId: "prof-1",

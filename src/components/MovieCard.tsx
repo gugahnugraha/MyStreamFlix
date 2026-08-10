@@ -49,7 +49,7 @@ export default function MovieCard({ movie, progress, onSelect, onPlay, t }: Movi
           <button
             onClick={(e) => {
               e.stopPropagation();
-              onPlay(movie);
+              onSelect(movie);
             }}
             className="w-11 h-11 rounded-full text-white flex items-center justify-center shadow-2xl scale-75 group-hover:scale-100 hover:!scale-110 active:!scale-95 transition-all duration-300 cursor-pointer border border-white/20"
             style={{ backgroundColor: "var(--theme-primary)", boxShadow: "0 10px 25px var(--theme-primary-40)" }}

@@ -391,18 +391,50 @@ export async function deleteUserProfile(userId: string, profileId: string): Prom
   return null;
 }
 
-// ==========================================
-// MOVIE CATALOG OPERATIONS
-// ==========================================
+export function normalizeCdnUrl(url: string | undefined): string {
+  if (!url) return "";
+  const trimmed = url.trim();
+  if (!trimmed) return "";
+
+  const cdnBase = (process.env.R2_PUBLIC_URL || process.env.NEXT_PUBLIC_CDN_URL || "https://cdn.mystreamflix.biz.id").replace(/\/$/, "");
+
+  // Relative path starting with "/" e.g. "/movies/Fall.2022.mp4"
+  if (trimmed.startsWith("/")) {
+    if (trimmed.startsWith("/uploads/")) {
+      return trimmed;
+    }
+    return `${cdnBase}${trimmed}`;
+  }
+
+  // Relative path without leading slash e.g. "movies/Fall.2022.mp4"
+  if (!trimmed.startsWith("http://") && !trimmed.startsWith("https://") && !trimmed.startsWith("blob:") && !trimmed.startsWith("data:")) {
+    return `${cdnBase}/${trimmed}`;
+  }
+
+  // Old Cloudflare r2.dev domain e.g. "https://pub-xxx.r2.dev/movies/Fall.2022.mp4"
+  if (trimmed.includes(".r2.dev/")) {
+    return trimmed.replace(/^https?:\/\/[^\/]+\.r2\.dev/, cdnBase);
+  }
+
+  return trimmed;
+}
 
 function mapPrismaMovie(movie: any): Movie {
+  const subtitlesRaw = Array.isArray(movie.subtitles) 
+    ? (movie.subtitles as any as Subtitle[]) 
+    : JSON.parse(typeof movie.subtitles === "string" ? movie.subtitles : "[]");
+
+  const seasonsRaw = Array.isArray(movie.seasons) 
+    ? (movie.seasons as any as Season[]) 
+    : JSON.parse(typeof movie.seasons === "string" ? movie.seasons : "[]");
+
   return {
     id: movie.id,
     title: movie.title,
     description: movie.description,
-    posterUrl: movie.posterUrl,
-    backdropUrl: movie.backdropUrl,
-    videoUrl: movie.videoUrl,
+    posterUrl: normalizeCdnUrl(movie.posterUrl),
+    backdropUrl: normalizeCdnUrl(movie.backdropUrl),
+    videoUrl: normalizeCdnUrl(movie.videoUrl),
     duration: movie.duration,
     releaseYear: movie.releaseYear,
     rating: movie.rating,
@@ -411,9 +443,7 @@ function mapPrismaMovie(movie: any): Movie {
     genres: movie.genres,
     cast: movie.cast,
     directors: movie.directors,
-    subtitles: Array.isArray(movie.subtitles) 
-      ? (movie.subtitles as any as Subtitle[]) 
-      : JSON.parse(typeof movie.subtitles === "string" ? movie.subtitles : "[]"),
+    subtitles: subtitlesRaw.map((s) => ({ ...s, fileUrl: normalizeCdnUrl(s.fileUrl) })),
     country: movie.country,
     language: movie.language,
     views: movie.views,
@@ -425,9 +455,10 @@ function mapPrismaMovie(movie: any): Movie {
     tmdbMediaType: (movie.tmdbMediaType as any) || undefined,
     tier: (movie.tier as any) || undefined,
     contentType: (movie.contentType as any) || undefined,
-    seasons: Array.isArray(movie.seasons) 
-      ? (movie.seasons as any as Season[]) 
-      : JSON.parse(typeof movie.seasons === "string" ? movie.seasons : "[]")
+    seasons: seasonsRaw.map((s) => ({
+      ...s,
+      episodes: (s.episodes || []).map((e) => ({ ...e, videoUrl: normalizeCdnUrl(e.videoUrl) }))
+    }))
   };
 }
 

@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect } from "react";
-import { X, Plus, Trash2, Baby, Check, Settings, Shield, Save, UserRound, KeyRound, Users, Calendar, Sparkles, Crown } from "lucide-react";
+import { X, Plus, Trash2, Baby, Check, Settings, Shield, ShieldAlert, Save, UserRound, KeyRound, Users, Calendar, Sparkles, Crown } from "lucide-react";
 import { User as UserType, UserProfile } from "../types";
 
 interface ProfileModalProps {
@@ -48,48 +48,6 @@ export default function ProfileModal({
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
-  const [activeColor, setActiveColor] = useState("#E50914");
-
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("user-theme-primary");
-      if (saved) {
-        setActiveColor(saved);
-      } else {
-        const root = document.documentElement;
-        const rootColor = root.style.getPropertyValue('--theme-primary') || "#E50914";
-        setActiveColor(rootColor.trim());
-      }
-    }
-  }, [currentUser]);
-
-  const handleUpdateThemeColor = (color: string) => {
-    if (typeof window !== "undefined") {
-      if (!color) {
-        localStorage.removeItem("user-theme-primary");
-        setActiveColor("#E50914");
-        window.dispatchEvent(new Event('themechange'));
-        return;
-      }
-      setActiveColor(color);
-      localStorage.setItem("user-theme-primary", color);
-      
-      const root = document.documentElement;
-      root.style.setProperty('--theme-primary', color);
-      const hex = color.replace('#', '');
-      const r = parseInt(hex.substring(0, 2), 16);
-      const g = parseInt(hex.substring(2, 4), 16);
-      const b = parseInt(hex.substring(4, 6), 16);
-      root.style.setProperty('--theme-primary-90', `rgba(${r}, ${g}, ${b}, 0.9)`);
-      root.style.setProperty('--theme-primary-80', `rgba(${r}, ${g}, ${b}, 0.8)`);
-      root.style.setProperty('--theme-primary-50', `rgba(${r}, ${g}, ${b}, 0.5)`);
-      root.style.setProperty('--theme-primary-30', `rgba(${r}, ${g}, ${b}, 0.3)`);
-      root.style.setProperty('--theme-primary-20', `rgba(${r}, ${g}, ${b}, 0.2)`);
-      root.style.setProperty('--theme-primary-10', `rgba(${r}, ${g}, ${b}, 0.1)`);
-      
-      window.dispatchEvent(new Event('themechange'));
-    }
-  };
 
   const sampleAvatars = [
     "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80", // Blue boy
@@ -159,12 +117,9 @@ export default function ProfileModal({
     }
   };
 
-  const handleDeleteProfile = async (e: React.MouseEvent, profileId: string) => {
-    e.stopPropagation(); // Avoid triggering profile selection on click
-    if (!window.confirm(t.confirmDeleteProfile || "Are you sure you want to delete this profile? All personalized lists will be cleared.")) {
-      return;
-    }
+  const [profileToDelete, setProfileToDelete] = useState<string | null>(null);
 
+  const confirmAndExecuteDeleteProfile = async (profileId: string) => {
     try {
       const res = await fetch(`/api/auth/profile/${profileId}`, {
         method: "DELETE"
@@ -178,7 +133,14 @@ export default function ProfileModal({
       }
     } catch (err) {
       setErrorMessage(t.netErrorDeleteProfile || "Network error deleting profile.");
+    } finally {
+      setProfileToDelete(null);
     }
+  };
+
+  const handleDeleteProfile = (e: React.MouseEvent, profileId: string) => {
+    e.stopPropagation();
+    setProfileToDelete(profileId);
   };
 
   const handleUpdateAccount = async (e: React.FormEvent) => {
@@ -215,7 +177,7 @@ export default function ProfileModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-md" id="profile-modal-container">
-      <div className="relative w-full max-w-2xl bg-zinc-950 border border-zinc-900 rounded-2xl shadow-2xl overflow-hidden p-6 md:p-8" id="profile-modal-card">
+      <div className="relative w-full max-w-md md:max-w-lg bg-zinc-950 border border-zinc-900 rounded-2xl shadow-2xl overflow-hidden p-4 md:p-6 my-auto max-h-[90vh] overflow-y-auto" id="profile-modal-card">
         
         {/* Close Button */}
         <button 
@@ -233,35 +195,35 @@ export default function ProfileModal({
         )}
 
         {mode === "select" ? (
-          <div className="space-y-8 animate-in fade-in duration-300">
-            <div className="text-center space-y-1.5">
-              <h2 className="text-2xl font-black text-white tracking-wide">{t?.manageProfiles || "Who's watching?"}</h2>
+          <div className="space-y-6 animate-in fade-in duration-300">
+            <div className="text-center space-y-1">
+              <h2 className="text-xl font-black text-white tracking-wide">{t?.manageProfiles || "Who's watching?"}</h2>
               <p className="text-xs text-zinc-500">{t?.selectProfileDesc || "Select a profile to customize your experience."}</p>
             </div>
 
             {/* Profile Grid */}
-            <div className="flex flex-wrap justify-center items-center gap-8 py-4">
+            <div className="flex flex-wrap justify-center items-center gap-6 py-2">
               {currentUser.profiles?.map((profile) => {
                 const isActive = currentUser.activeProfileId === profile.id;
                 return (
                   <div 
                     key={profile.id}
                     onClick={() => handleSelectProfile(profile.id)}
-                    className="group relative flex flex-col items-center gap-3 cursor-pointer"
+                    className="group relative flex flex-col items-center gap-2.5 cursor-pointer"
                     id={`profile-item-${profile.id}`}
                   >
                     <div className="relative">
                       <img 
                         src={profile.avatar} 
                         alt={profile.name}
-                        className={`w-24 h-24 rounded-2xl object-cover transition-all duration-300 border-2 ${
+                        className={`w-20 h-20 rounded-full object-cover transition-all duration-300 border-2 ${
                           isActive 
-                            ? "border-red-600 scale-105 shadow-lg shadow-red-950/30" 
+                            ? "border-red-500 scale-105 shadow-lg shadow-red-950/30" 
                             : "border-transparent group-hover:border-zinc-500 group-hover:scale-105"
                         }`}
                       />
                       {profile.isKids && (
-                        <span className="absolute -top-2 -right-2 bg-yellow-500 text-black text-[9px] font-black px-1.5 py-0.5 rounded-md flex items-center gap-0.5 shadow-md">
+                        <span className="absolute -top-1 -right-1 bg-yellow-500 text-black text-[9px] font-black px-1.5 py-0.5 rounded-full flex items-center gap-0.5 shadow-md">
                           <Baby className="w-2.5 h-2.5" />
                           KIDS
                         </span>
@@ -275,8 +237,8 @@ export default function ProfileModal({
                       )}
                     </div>
 
-                    <div className="flex items-center gap-1.5 text-sm font-semibold text-zinc-400 group-hover:text-white transition-colors">
-                      <span className="truncate max-w-[100px]">{profile.name}</span>
+                    <div className="flex items-center gap-1.5 text-xs font-semibold text-zinc-400 group-hover:text-white transition-colors">
+                      <span className="truncate max-w-[90px]">{profile.name}</span>
                     </div>
 
                     {/* Delete Icon (only if it is not the only profile) */}
@@ -284,7 +246,7 @@ export default function ProfileModal({
                       <button
                         onClick={(e) => handleDeleteProfile(e, profile.id)}
                         title={t?.deleteProfile || "Delete Profile"}
-                        className="opacity-0 group-hover:opacity-100 absolute -top-2 -left-2 bg-zinc-900 border border-zinc-800 p-1 rounded-md text-zinc-500 hover:text-red-500 hover:bg-zinc-800 transition-all shadow-md cursor-pointer"
+                        className="opacity-0 group-hover:opacity-100 absolute -top-1 -left-1 bg-zinc-900 border border-zinc-800 p-1 rounded-full text-zinc-500 hover:text-red-500 hover:bg-zinc-800 transition-all shadow-md cursor-pointer"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
@@ -297,11 +259,11 @@ export default function ProfileModal({
               {(currentUser.profiles?.length || 0) < 5 && (
                 <div 
                   onClick={() => setMode("create")}
-                  className="flex flex-col items-center gap-3 cursor-pointer group"
+                  className="flex flex-col items-center gap-2.5 cursor-pointer group"
                   id="profile-item-add"
                 >
-                  <div className="w-24 h-24 rounded-2xl bg-zinc-900/40 border border-zinc-800/80 hover:border-zinc-700 flex items-center justify-center transition-all group-hover:scale-105">
-                    <Plus className="w-8 h-8 text-zinc-500 group-hover:text-white transition-colors" />
+                  <div className="w-20 h-20 rounded-full bg-zinc-900/40 border border-zinc-800/80 hover:border-zinc-700 flex items-center justify-center transition-all group-hover:scale-105">
+                    <Plus className="w-7 h-7 text-zinc-500 group-hover:text-white transition-colors" />
                   </div>
                   <span className="text-xs font-semibold text-zinc-500 group-hover:text-zinc-300">{t?.addProfileBtn || "Add Profile"}</span>
                 </div>
@@ -346,7 +308,7 @@ export default function ProfileModal({
                   placeholder="e.g. Sarah, Kids Corner"
                   value={profileName}
                   onChange={(e) => setProfileName(e.target.value)}
-                  className="w-full bg-zinc-900 border border-zinc-800 text-xs text-white rounded-lg px-3.5 py-2.5 focus:outline-hidden focus:border-red-500/50"
+                  className="w-full bg-zinc-900 border border-zinc-800 text-xs text-white rounded-lg px-3.5 py-2.5 focus:outline-hidden focus:border-[#00ADB5]/50"
                 />
               </div>
 
@@ -378,7 +340,7 @@ export default function ProfileModal({
                       src={avUrl}
                       alt="Avatar candidate"
                       onClick={() => setSelectedAvatar(avUrl)}
-                      className={`w-12 h-12 rounded-lg object-cover cursor-pointer border-2 transition-all ${
+                      className={`w-12 h-12 rounded-full object-cover cursor-pointer border-2 transition-all ${
                         selectedAvatar === avUrl ? "border-red-500 scale-105" : "border-zinc-800 hover:border-zinc-600"
                       }`}
                     />
@@ -469,7 +431,7 @@ export default function ProfileModal({
                     <img
                       src={accountAvatar || currentUser.profileImage || selectedAvatar}
                       alt={accountName}
-                      className="w-20 h-20 rounded-xl object-cover border border-zinc-800"
+                      className="w-20 h-20 rounded-full object-cover border border-zinc-800"
                     />
                     <span className="text-[9px] text-zinc-500 font-mono tracking-widest uppercase">Preview</span>
                   </div>
@@ -481,7 +443,7 @@ export default function ProfileModal({
                           value={accountName}
                           required
                           onChange={(e) => setAccountName(e.target.value)}
-                          className="w-full bg-zinc-900 border border-zinc-800 text-xs text-white rounded-lg px-3.5 py-2.5 focus:outline-hidden focus:border-red-500/50"
+                          className="w-full bg-zinc-900 border border-zinc-800 text-xs text-white rounded-lg px-3.5 py-2.5 focus:outline-hidden focus:border-[#00ADB5]/50"
                         />
                       </div>
                       <div className="space-y-1">
@@ -491,7 +453,7 @@ export default function ProfileModal({
                           required
                           value={accountEmail}
                           onChange={(e) => setAccountEmail(e.target.value)}
-                          className="w-full bg-zinc-900 border border-zinc-800 text-xs text-white rounded-lg px-3.5 py-2.5 focus:outline-hidden focus:border-red-500/50"
+                          className="w-full bg-zinc-900 border border-zinc-800 text-xs text-white rounded-lg px-3.5 py-2.5 focus:outline-hidden focus:border-[#00ADB5]/50"
                         />
                       </div>
                     </div>
@@ -501,7 +463,7 @@ export default function ProfileModal({
                         value={accountAvatar}
                         onChange={(e) => setAccountAvatar(e.target.value)}
                         placeholder="https://..."
-                        className="w-full bg-zinc-900 border border-zinc-800 text-xs text-white rounded-lg px-3.5 py-2.5 focus:outline-hidden focus:border-red-500/50"
+                        className="w-full bg-zinc-900 border border-zinc-800 text-xs text-white rounded-lg px-3.5 py-2.5 focus:outline-hidden focus:border-[#00ADB5]/50"
                       />
                     </div>
                   </div>
@@ -578,60 +540,7 @@ export default function ProfileModal({
                     </div>
                   </div>
 
-                  {/* Personalization (Theme Color Picker) */}
-                  <div className="rounded-xl border border-zinc-900 bg-zinc-950/60 p-4 space-y-3 flex flex-col justify-between">
-                    <div>
-                      <h4 className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider flex items-center gap-1.5">
-                        <Sparkles className="w-3.5 h-3.5 text-zinc-500" />
-                        Theme Color Preference
-                      </h4>
-                      <p className="text-[10px] text-zinc-500 mt-1">
-                        Select a personal theme accent color to personalize your interface experience.
-                      </p>
-                      
-                      {/* Presets List */}
-                      <div className="flex flex-wrap gap-2 mt-3">
-                        {PRESET_COLORS.map((preset) => (
-                          <button
-                            key={preset.value}
-                            type="button"
-                            onClick={() => handleUpdateThemeColor(preset.value)}
-                            title={preset.name}
-                            className={`w-5 h-5 rounded-full border transition-all transform hover:scale-110 cursor-pointer ${
-                              activeColor.toLowerCase() === preset.value.toLowerCase()
-                                ? "border-white scale-105 shadow-md shadow-white/10"
-                                : "border-transparent"
-                            }`}
-                            style={{ backgroundColor: preset.value }}
-                          />
-                        ))}
-                      </div>
-                    </div>
 
-                    <div className="space-y-2 mt-3 border-t border-zinc-900/60 pt-2">
-                      {/* Custom Picker */}
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="color"
-                          value={activeColor}
-                          onChange={(e) => handleUpdateThemeColor(e.target.value)}
-                          className="w-5 h-5 bg-transparent border-0 cursor-pointer p-0 rounded-sm"
-                        />
-                        <span className="text-[9px] text-zinc-400 font-mono uppercase tracking-wider">
-                          Custom: {activeColor}
-                        </span>
-                      </div>
-                      
-                      {/* Reset Button */}
-                      <button
-                        type="button"
-                        onClick={() => handleUpdateThemeColor("")}
-                        className="w-full text-center bg-zinc-900 border border-zinc-800 text-[9px] hover:text-white font-bold py-1 rounded-md hover:bg-zinc-800 transition-colors cursor-pointer uppercase tracking-wider"
-                      >
-                        Reset to Default
-                      </button>
-                    </div>
-                  </div>
                 </div>
               </div>
             )}
@@ -656,7 +565,7 @@ export default function ProfileModal({
                         placeholder="••••••••"
                         value={currentPassword}
                         onChange={(e) => setCurrentPassword(e.target.value)}
-                        className="w-full bg-zinc-900 border border-zinc-800 text-xs text-white rounded-lg px-3.5 py-2.5 focus:outline-hidden focus:border-red-500/50"
+                        className="w-full bg-zinc-900 border border-zinc-800 text-xs text-white rounded-lg px-3.5 py-2.5 focus:outline-hidden focus:border-[#00ADB5]/50"
                       />
                     </div>
                     <div className="space-y-1">
@@ -666,7 +575,7 @@ export default function ProfileModal({
                         placeholder="Minimum 6 characters"
                         value={newPassword}
                         onChange={(e) => setNewPassword(e.target.value)}
-                        className="w-full bg-zinc-900 border border-zinc-800 text-xs text-white rounded-lg px-3.5 py-2.5 focus:outline-hidden focus:border-red-500/50"
+                        className="w-full bg-zinc-900 border border-zinc-800 text-xs text-white rounded-lg px-3.5 py-2.5 focus:outline-hidden focus:border-[#00ADB5]/50"
                       />
                     </div>
                   </div>
@@ -789,6 +698,43 @@ export default function ProfileModal({
               </div>
             )}
           </form>
+        )}
+
+        {/* Custom Delete Profile Confirmation Modal */}
+        {profileToDelete && (
+          <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
+            <div className="bg-zinc-950 border border-zinc-800 w-full max-w-sm rounded-2xl p-6 shadow-2xl space-y-4 text-left">
+              <div className="flex items-center justify-between border-b border-zinc-900 pb-3">
+                <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                  <ShieldAlert className="w-5 h-5 text-amber-500" />
+                  {t?.confirmDeleteProfileTitle || "Delete Profile"}
+                </h3>
+                <button
+                  onClick={() => setProfileToDelete(null)}
+                  className="text-zinc-500 hover:text-white p-1 rounded-md transition-colors cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              <p className="text-xs text-zinc-300 leading-relaxed font-medium">
+                {t?.confirmDeleteProfile || "Are you sure you want to delete this profile? All personalized lists will be cleared."}
+              </p>
+              <div className="flex items-center justify-end gap-3 pt-2">
+                <button
+                  onClick={() => setProfileToDelete(null)}
+                  className="px-4 py-2 text-xs font-semibold text-zinc-400 hover:text-white hover:bg-zinc-900 rounded-lg transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => confirmAndExecuteDeleteProfile(profileToDelete)}
+                  className="px-4 py-2 text-xs font-bold text-white bg-red-600 hover:bg-red-700 rounded-lg shadow-lg transition-all cursor-pointer"
+                >
+                  Delete Profile
+                </button>
+              </div>
+            </div>
+          </div>
         )}
       </div>
     </div>

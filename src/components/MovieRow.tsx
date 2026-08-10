@@ -106,12 +106,12 @@ export default function MovieRow({ title, icon, items, onSelect, onPlay, t }: Mo
           className="flex gap-6 overflow-x-auto py-4 px-1.5 -mx-1.5 scrollbar-none scroll-smooth snap-x"
         >
           {items.map((item) => (
-            <div key={item.movie.id} className="w-64 shrink-0 snap-start">
+            <div key={item.movie.id} className="w-[72vw] sm:w-64 shrink-0 snap-start">
               <MovieCard
                 movie={item.movie}
                 progress={item.progress}
                 onSelect={onSelect}
-                onPlay={onPlay}
+                onPlay={onSelect}
                 t={t}
               />
             </div>
