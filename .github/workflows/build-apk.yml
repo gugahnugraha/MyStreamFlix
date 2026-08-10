@@ -14,24 +14,23 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: '20'
 
-      - name: Set up JDK 17
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'zulu'
-          java-version: '17'
-
-      - name: Install Dependencies & Capacitor
+      - name: Create Capacitor Config & Android Platform
         run: |
-          npm install @capacitor/core @capacitor/android
-          npm install -D @capacitor/cli
-
-      - name: Create Capacitor Config & Add Android Platform
-        run: |
+          npm install @capacitor/core@latest @capacitor/android@latest @capacitor/cli@latest
           cat << 'EOF' > capacitor.config.json
           {
             "appId": "com.mystreamflix.app",
@@ -49,14 +48,15 @@ jobs:
           }
           EOF
           npx cap add android
+          npx cap sync android
 
       - name: Grant Execute Permission for Gradle
         run: chmod +x android/gradlew
 
-      - name: Build Android APK with Gradle
+      - name: Build Android APK
         run: |
           cd android
-          ./gradlew assembleDebug --stacktrace
+          ./gradlew assembleDebug --no-daemon
 
       - name: Upload Android APK Artifact
         uses: actions/upload-artifact@v4
