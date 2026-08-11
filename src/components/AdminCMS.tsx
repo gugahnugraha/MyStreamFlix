@@ -28,12 +28,12 @@ interface AdminCMSProps {
   onSelectMovie?: (movie: Movie) => void;
 }
 
+const DEFAULT_POSTER = "https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?auto=format&fit=crop&w=300&q=80";
 
-
-const normalizeCdnUrl = (url: string | undefined): string => {
-  if (!url) return "";
+const normalizeCdnUrl = (url: string | undefined | null, fallbackUrl: string = DEFAULT_POSTER): string => {
+  if (!url) return fallbackUrl;
   const trimmed = url.trim();
-  if (!trimmed) return "";
+  if (!trimmed) return fallbackUrl;
   const cdnBase = "https://cdn.mystreamflix.biz.id";
 
   if (trimmed.startsWith("/")) {
