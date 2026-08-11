@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.os.Build;
 import android.view.View;
 
+import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.core.view.WindowInsetsControllerCompat;
 
@@ -81,8 +82,7 @@ public class ImmersiveModePlugin extends Plugin {
         if (activity == null) return;
         View decor = activity.getWindow().getDecorView();
         if (Build.VERSION.SDK_INT >= 30) {
-            WindowInsetsControllerCompat controller =
-                WindowInsetsControllerCompat.toWindowInsetsController(activity.getWindow(), decor);
+            WindowInsetsControllerCompat controller = ViewCompat.getWindowInsetsController(decor);
             if (controller != null) {
                 controller.hide(WindowInsetsCompat.Type.systemBars());
                 controller.setSystemBarsBehavior(
@@ -105,8 +105,7 @@ public class ImmersiveModePlugin extends Plugin {
         if (activity == null) return;
         View decor = activity.getWindow().getDecorView();
         if (Build.VERSION.SDK_INT >= 30) {
-            WindowInsetsControllerCompat controller =
-                WindowInsetsControllerCompat.toWindowInsetsController(activity.getWindow(), decor);
+            WindowInsetsControllerCompat controller = ViewCompat.getWindowInsetsController(decor);
             if (controller != null) {
                 controller.show(WindowInsetsCompat.Type.systemBars());
             }
