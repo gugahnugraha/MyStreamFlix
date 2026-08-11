@@ -305,6 +305,201 @@ export default function App() {
     if (item) return { progress: item.progress, duration: item.duration };
     return undefined;
   };
+    try {
+      const res = await fetch("/api/auth/me");
+      if (res.ok) {
+        const data = await res.json();
+        setCurrentUser(data.user);
+      }
+    } catch (e) {
+      console.warn("Auth session fetch error:", e);
+    }
+  };
+
+  const fetchCatalogMovies = async () => {
+    try {
+      setLoading(true);
+      setError("");
+      
+      const queryParams = new URLSearchParams();
+      if (selectedContentType && selectedContentType !== "all") queryParams.append("contentType", selectedContentType);
+      if (selectedGenre && selectedGenre !== "All") queryParams.append("genre", selectedGenre);
+      if (searchQuery) queryParams.append("search", searchQuery);
+      if (sortBy) queryParams.append("sortBy", sortBy);
+
+      const res = await fetch(`/api/movies?${queryParams.toString()}`);
+      if (!res.ok) throw new Error("Could not retrieve catalog titles.");
+      
+      const data = await res.json();
+      setMovies(data);
+    } catch (err: any) {
+      setError(err.message || "An unexpected error occurred loading movies.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchUserPersonalization = async () => {
+    if (!currentUser) {
+      setFavorites([]);
+      setWatchHistory([]);
+      return;
+    }
+
+    try {
+      // Favorites list
+      const favRes = await fetch("/api/user/favorites");
+      if (favRes.ok) {
+        const favData = await favRes.json();
+        setFavorites(favData);
+      }
+
+      // History / Resume Points list
+      const histRes = await fetch("/api/user/history");
+      if (histRes.ok) {
+        const histData = await histRes.json();
+        setWatchHistory(histData);
+      }
+    } catch (e) {
+      console.warn("Failed syncing user lists:", e);
+    }
+  };
+
+  // Lifecycle boot synchronization
+  useEffect(() => {
+    fetchGlobalSettings();
+    fetchSession();
+  }, []);
+
+  // Sync catalog whenever filtering/sorting shifts
+  useEffect(() => {
+    fetchCatalogMovies();
+  }, [selectedGenre, searchQuery, sortBy, selectedContentType]);
+
+  // Sync user watchlist whenever user logs in, logs out, or views refresh
+  useEffect(() => {
+    fetchUserPersonalization();
+  }, [currentUser]);
+
+  // Revert settings if leaving admin mode without saving
+  useEffect(() => {
+    if (activeTab !== "admin") {
+      fetchGlobalSettings();
+    }
+  }, [activeTab]);
+
+
+  // ==========================================
+  // INTERACTION FLOW ACTIONS
+  // ==========================================
+
+  const handleAuthSuccess = (user: User) => {
+    setCurrentUser(user);
+    setActiveTab("home");
+  };
+
+  const handleLogout = async () => {
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+      setCurrentUser(null);
+      setActiveTab("home");
+    } catch (e) {
+      console.error("Logout error:", e);
+    }
+  };
+
+  // Interactive role-bypass controller for marketplace simulation
+  const handleToggleTestingRole = async () => {
+    try {
+      const res = await fetch("/api/auth/toggle-role", { method: "POST" });
+      if (res.ok) {
+        const data = await res.json();
+        setCurrentUser(data.user);
+        
+        // Return user to home tab if they demote themselves out of admin CMS
+        if (data.user.role !== "admin" && activeTab === "admin") {
+          setActiveTab("home");
+        }
+      }
+    } catch (err) {
+      console.error("Testing toggle error:", err);
+    }
+  };
+
+  const handleToggleFavorite = async (movieId: string) => {
+    if (!currentUser) {
+      setShowAuth(true);
+      return;
+    }
+
+    const isFav = favorites.some((m) => m.id === movieId);
+    const method = isFav ? "DELETE" : "POST";
+    const url = isFav ? `/api/user/favorites/${movieId}` : "/api/user/favorites";
+
+    try {
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: isFav ? undefined : JSON.stringify({ movieId })
+      });
+
+      if (res.ok) {
+        // Refetch watchlist
+        fetchUserPersonalization();
+        // Update local likes counts dynamically in movie lists if matches
+        setMovies((prev) => 
+          prev.map((mov) => {
+            if (mov.id === movieId) {
+              return { ...mov, likes: isFav ? Math.max(0, mov.likes - 1) : mov.likes + 1 };
+            }
+            return mov;
+          })
+        );
+        if (selectedMovie && selectedMovie.id === movieId) {
+          setSelectedMovie((prev) => prev ? {
+            ...prev,
+            likes: isFav ? Math.max(0, prev.likes - 1) : prev.likes + 1
+          } : null);
+        }
+      }
+    } catch (err) {
+      console.error("Favorite toggle error:", err);
+    }
+  };
+
+  const handleLaunchStream = (movie: Movie) => {
+    if (!currentUser) {
+      setSelectedMovie(null); // close detail modal so auth modal is not obscured
+      setShowAuth(true);
+      return;
+    }
+
+    if (movie.tier && movie.tier !== "free" && !currentUser.isPremium) {
+      setSelectedMovie(null); // close detail modal so subscription modal is not obscured
+      setShowSubscription(true);
+      return;
+    }
+
+    setSelectedMovie(null); // close details modal
+    setActiveStream(movie); // open player
+  };
+
+  const handleCloseStream = () => {
+    setActiveStream(null);
+    // Reload history to reflect saved resume checkpoints
+    fetchUserPersonalization();
+  };
+
+  const isFavorite = (movieId: string) => {
+    return favorites.some((m) => m.id === movieId);
+  };
+
+  // Get matching progress for a film
+  const getProgressOfMovie = (movieId: string) => {
+    const item = watchHistory.find((h) => h.movieId === movieId);
+    if (item) return { progress: item.progress, duration: item.duration };
+    return undefined;
+  };
 
   // Kids Mode content filters matching active profile rating
   const activeProfile = currentUser?.profiles?.find((p) => p.id === currentUser.activeProfileId);
@@ -316,13 +511,14 @@ export default function App() {
     return isSafeRating || isSafeGenre;
   };
 
-  const displayedMovies = isKidsMode ? movies.filter(isKidsFriendly) : movies;
+  const nonLiveTvMovies = movies.filter(m => m.contentType !== "livetv" && !m.id.startsWith("tv-"));
+  const displayedMovies = isKidsMode ? nonLiveTvMovies.filter(isKidsFriendly) : nonLiveTvMovies;
   const bannerMovies = displayedMovies.filter((m) => m.isBanner);
   const featuredMovies = displayedMovies.filter((m) => m.isFeatured);
-  const displayedFavorites = isKidsMode ? favorites.filter(isKidsFriendly) : favorites;
-  const displayedWatchHistory = isKidsMode 
+  const displayedFavorites = (isKidsMode ? favorites.filter(isKidsFriendly) : favorites).filter(m => m.contentType !== "livetv" && !m.id.startsWith("tv-"));
+  const displayedWatchHistory = (isKidsMode 
     ? watchHistory.filter((h) => isKidsFriendly(h.movie)) 
-    : watchHistory;
+    : watchHistory).filter(h => h.movie && h.movie.contentType !== "livetv" && !h.movie.id.startsWith("tv-"));
 
   // Apply static theme color #00ADB5 to CSS variables
   useEffect(() => {

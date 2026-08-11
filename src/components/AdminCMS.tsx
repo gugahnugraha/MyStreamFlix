@@ -2112,12 +2112,13 @@ export default function AdminCMS({
                   </div>
                   </section>
                 </div>
-                          </div>
-                 </form>
-               </div>
+              </form>
+            </div>
           )}
         </div>
       )}
+
+
 
       {/* SUB-TAB VIEWPORT 2.5: LIVE TV CHANNELS MANAGEMENT */}
       {activeSubTab === "livetv" && (
