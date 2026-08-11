@@ -3,6 +3,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 import React, { useState, useEffect, useMemo } from "react";
 import { 
   BarChart3, Film, Settings, Plus, Edit, Trash2, Save, 
@@ -11,6 +16,7 @@ import {
 } from "lucide-react";
 import { Movie, DashboardStats, CMSSettings, Subtitle, User, Season, Episode } from "../types";
 import IPTVScanner from "./IPTVScanner";
+import MediaPlayer from "./MediaPlayer";
 
 interface AdminCMSProps {
   onRefreshMovies: () => void;
@@ -138,6 +144,38 @@ export default function AdminCMS({
   const [channelHealth, setChannelHealth] = useState<Record<string, ChannelHealthStatus>>({});
   const [healthCheckRunning, setHealthCheckRunning] = useState(false);
   const [lastHealthCheck, setLastHealthCheck] = useState<string | null>(null);
+  const [liveTvStatusFilter, setLiveTvStatusFilter] = useState<"all" | "online" | "offline">("all");
+  const [previewMovie, setPreviewMovie] = useState<Movie | null>(null);
+
+  const handleRemoveOfflineChannels = () => {
+    const offlineIds = Object.entries(channelHealth)
+      .filter(([_, v]) => v.status === "offline" || v.status === "error")
+      .map(([id]) => id);
+
+    if (offlineIds.length === 0) {
+      showAlert("No offline channels detected.");
+      return;
+    }
+
+    showConfirm(
+      `Are you sure you want to remove all ${offlineIds.length} offline/broken channels from database?`,
+      async () => {
+        try {
+          for (const id of offlineIds) {
+            await fetch(`/api/movies/${id}`, { method: "DELETE" }).catch(() => {});
+          }
+          setSuccessMsg(`Successfully removed ${offlineIds.length} offline channels.`);
+          setChannelHealth({});
+          onRefreshMovies();
+          setTimeout(() => setSuccessMsg(""), 3500);
+        } catch (err: any) {
+          showAlert(err.message || "Failed removing offline channels.");
+        }
+      },
+      "Remove Offline Channels",
+      "Remove All Offline"
+    );
+  };
 
   const runHealthCheck = async () => {
     const liveTvChannels = movies.filter(m => m.contentType === "livetv" || m.id.startsWith("tv-"));
@@ -147,7 +185,6 @@ export default function AdminCMS({
     }
 
     setHealthCheckRunning(true);
-    // Set all channels to "checking" state
     const checkingState: Record<string, ChannelHealthStatus> = {};
     liveTvChannels.forEach(ch => {
       checkingState[ch.id] = { status: "checking" };
@@ -184,7 +221,6 @@ export default function AdminCMS({
       setTimeout(() => setSuccessMsg(""), 5000);
     } catch (err: any) {
       showAlert(err.message || "Health check failed.");
-      // Reset all to error
       const errorState: Record<string, ChannelHealthStatus> = {};
       liveTvChannels.forEach(ch => {
         errorState[ch.id] = { status: "error", error: "Health check API unreachable" };
@@ -210,8 +246,7 @@ export default function AdminCMS({
     onUpdateGlobalSettings(newSettings);
   };
 
-  // Handle image uploads for the Site Logo. This sends the file to the Next.js
-  // API route /api/upload which stores it and returns a public URL.
+  // Handle image uploads for the Site Logo
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement> | React.DragEvent<HTMLDivElement>, isDropped = false) => {
     let file: File | null = null;
     if (isDropped) {
@@ -967,7 +1002,7 @@ export default function AdminCMS({
             id="subtab-livetv"
           >
             <Radio className="w-3.5 h-3.5 text-red-400" />
-            <span>🔴 Live TV Channels ({movies.filter(m => m.contentType === "livetv").length})</span>
+            <span>🔴 Live TV</span>
           </button>
           <button
             onClick={() => setActiveSubTab("users")}
@@ -1009,317 +1044,148 @@ export default function AdminCMS({
       {/* SUB-TAB VIEWPORT 1: ANALYTICS */}
       {activeSubTab === "analytics" && stats && (
         <div className="space-y-6" id="cms-analytics-panel">
-          {/* Dashboard metric grid tiles */}
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-            <div className="bg-zinc-950 border border-zinc-900 p-4 rounded-xl flex items-center gap-4">
-              <div className="w-10 h-10 rounded-lg bg-red-600/10 flex items-center justify-center text-red-500">
-                <Film className="w-5 h-5" />
-              </div>
+
+          {/* Real-time Performance Top Header Banner */}
+          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-zinc-950 via-zinc-900 to-zinc-950 border border-zinc-800/80 p-6 shadow-2xl">
+            <div className="absolute top-0 right-0 w-96 h-96 bg-[#00ADB5]/10 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20" />
+            <div className="absolute bottom-0 left-1/3 w-64 h-64 bg-red-600/10 rounded-full blur-3xl pointer-events-none" />
+
+            <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div>
-                <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">{t.cmsCatalogTitles}</p>
-                <p className="text-lg font-black text-white mt-0.5">{stats.totalMovies}</p>
-              </div>
-            </div>
-
-            <div className="bg-zinc-950 border border-zinc-900 p-4 rounded-xl flex items-center gap-4">
-              <div className="w-10 h-10 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-500">
-                <Eye className="w-5 h-5" />
-              </div>
-              <div>
-                <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">{t.cmsTotalViews}</p>
-                <p className="text-lg font-black text-white mt-0.5">{stats.totalViews.toLocaleString()}</p>
-              </div>
-            </div>
-
-            <div className="bg-zinc-950 border border-zinc-900 p-4 rounded-xl flex items-center gap-4">
-              <div className="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-500">
-                <TrendingUp className="w-5 h-5" />
-              </div>
-              <div>
-                <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">{t.cmsWatchHours}</p>
-                <p className="text-lg font-black text-white mt-0.5">{stats.totalWatchTime.toLocaleString()} hrs</p>
-              </div>
-            </div>
-
-            <div className="bg-zinc-950 border border-zinc-900 p-4 rounded-xl flex items-center gap-4">
-              <div className="w-10 h-10 rounded-lg bg-purple-500/10 flex items-center justify-center text-purple-500">
-                <Users className="w-5 h-5" />
-              </div>
-              <div>
-                <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">{t.cmsSaasSignups}</p>
-                <p className="text-lg font-black text-white mt-0.5">{stats.totalUsers}</p>
-              </div>
-            </div>
-
-            <div className="bg-zinc-950 border border-zinc-900 p-4 rounded-xl flex items-center gap-4">
-              <div className="w-10 h-10 rounded-lg bg-sky-500/10 flex items-center justify-center text-sky-500">
-                <UserCheck className="w-5 h-5" />
-              </div>
-              <div>
-                <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">{t.cmsActiveUsersToday}</p>
-                <p className="text-lg font-black text-white mt-0.5">{stats.activeUsersToday}</p>
-              </div>
-            </div>
-
-            <div className="bg-zinc-950 border border-zinc-900 p-4 rounded-xl flex items-center gap-4">
-              <div className="w-10 h-10 rounded-lg bg-pink-500/10 flex items-center justify-center text-pink-500">
-                <CreditCard className="w-5 h-5" />
-              </div>
-              <div>
-                <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">{t.cmsMonthlyRevenue}</p>
-                <p className="text-sm font-black text-white mt-0.5">${stats.revenueThisMonth.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
-              </div>
-            </div>
-          </div>
-
-          {/* SVG Graphs and charts row */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Views over time bar chart */}
-            <div className="bg-zinc-950 border border-zinc-900 rounded-xl p-5 space-y-4">
-              <h3 className="text-xs font-bold text-zinc-400 tracking-wider uppercase">{t.cmsAudienceTraffic}</h3>
-              <div className="h-44 w-full flex items-end justify-between pt-4">
-                {stats.recentViews.map((item, idx) => {
-                  const maxCount = Math.max(...stats!.recentViews.map(v => v.count));
-                  const percentage = Math.round((item.count / maxCount) * 100);
-                  return (
-                    <div key={idx} className="flex flex-col items-center gap-2 flex-1 group">
-                      <span className="text-[10px] font-mono font-semibold text-zinc-400 opacity-0 group-hover:opacity-100 transition-opacity">
-                        {item.count}
-                      </span>
-                      <div 
-                        className="w-8 bg-zinc-900 rounded-sm relative overflow-hidden transition-all duration-300 cursor-pointer" 
-                        style={{ height: "110px" }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.backgroundColor = `${globalSettings.primaryColor}15`;
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.backgroundColor = "";
-                        }}
-                      >
-                        <div 
-                          className="h-full absolute bottom-0 left-0 right-0 transition-all duration-500" 
-                          style={{ 
-                            height: `${percentage}%`,
-                            backgroundColor: globalSettings.primaryColor
-                          }}
-                        />
-                      </div>
-                      <span className="text-[10px] font-semibold text-zinc-500">{item.date}</span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Top performing movies table */}
-            <div className="bg-zinc-950 border border-zinc-900 rounded-xl p-5 space-y-4">
-              <h3 className="text-xs font-bold text-zinc-400 tracking-wider uppercase">{t.cmsEngagementLeaders}</h3>
-              <div className="space-y-3.5" id="engagement-leaderboard">
-                {stats.topMovies.map((m, idx) => (
-                  <div key={m.id} className="flex items-center justify-between border-b border-zinc-900 pb-2.5 last:border-0 last:pb-0">
-                    <div className="flex items-center gap-2.5">
-                      <span className="w-5 h-5 rounded-full bg-zinc-900 text-[10px] font-black text-red-500 flex items-center justify-center border border-zinc-850">
-                        {idx + 1}
-                      </span>
-                      <p className="text-xs font-bold text-zinc-200 truncate max-w-44 md:max-w-64">{m.title}</p>
-                    </div>
-
-                    <div className="flex items-center gap-4 text-xs">
-                      <span className="text-zinc-500 font-mono">{m.views.toLocaleString()} {t.cmsViews}</span>
-                      <span className="px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400 font-bold text-[10px]">
-                        ★ {m.rating}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Genre Saturation Donut Chart */}
-          <div className="bg-zinc-950 border border-zinc-900 p-5 rounded-xl space-y-5">
-            <h3 className="text-xs font-bold text-zinc-400 tracking-wider uppercase">Genre Distribution Donut</h3>
-            {(() => {
-              const totalGenres = stats.genreDistribution.reduce((sum, g) => sum + g.count, 0);
-              const chartData = [...stats.genreDistribution]
-                .sort((a, b) => b.count - a.count)
-                .slice(0, 6);
-              
-              const palette = [
-                globalSettings.primaryColor,
-                "#38BDF8", // sky blue
-                "#F59E0B", // amber
-                "#10B981", // emerald
-                "#8B5CF6", // purple
-                "#EC4899"  // pink
-              ];
-              
-              let accumulatedPercent = 0;
-              
-              return (
-                <div className="flex flex-col lg:flex-row items-center gap-8">
-                  {/* SVG Donut */}
-                  <div className="relative w-36 h-36 flex items-center justify-center shrink-0">
-                    <svg className="w-full h-full transform -rotate-90" viewBox="0 0 42 42">
-                      {/* Background circle */}
-                      <circle
-                        cx="21"
-                        cy="21"
-                        r="15.915"
-                        fill="transparent"
-                        stroke="#18181b"
-                        strokeWidth="3.5"
-                      />
-                      {/* Segment circles */}
-                      {chartData.map((item, idx) => {
-                        const percent = totalGenres > 0 ? (item.count / totalGenres) * 100 : 0;
-                        const strokeDasharray = `${percent} ${100 - percent}`;
-                        const strokeDashoffset = 100 - accumulatedPercent;
-                        accumulatedPercent += percent;
-                        const color = palette[idx % palette.length];
-                        
-                        return (
-                          <circle
-                            key={idx}
-                            cx="21"
-                            cy="21"
-                            r="15.915"
-                            fill="transparent"
-                            stroke={color}
-                            strokeWidth="3.5"
-                            strokeDasharray={strokeDasharray}
-                            strokeDashoffset={strokeDashoffset}
-                            className="transition-all duration-700 hover:stroke-[4px] cursor-pointer"
-                          />
-                        );
-                      })}
-                    </svg>
-                    <div className="absolute text-center">
-                      <p className="text-2xl font-black text-white">{stats.totalMovies}</p>
-                      <p className="text-[8px] text-zinc-500 font-bold uppercase tracking-wider">Titles</p>
-                    </div>
-                  </div>
-
-                  {/* Legend and percentage list */}
-                  <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 w-full">
-                    {chartData.map((item, idx) => {
-                      const percent = totalGenres > 0 ? Math.round((item.count / totalGenres) * 100) : 0;
-                      const color = palette[idx % palette.length];
-                      return (
-                        <div key={idx} className="flex items-center gap-3 p-3 bg-zinc-900/30 border border-zinc-900 rounded-xl">
-                          <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: color }} />
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-center justify-between text-xs">
-                              <span className="font-bold text-zinc-300 truncate">{item.name}</span>
-                              <span className="font-mono text-zinc-450 font-bold ml-2">{percent}%</span>
-                            </div>
-                            <div className="w-full bg-zinc-950 h-1.5 rounded-full mt-1.5 overflow-hidden">
-                              <div className="h-full rounded-full transition-all duration-500" style={{ width: `${percent}%`, backgroundColor: color }} />
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
+                <div className="flex items-center gap-2 mb-1.5">
+                  <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-[10px] font-extrabold uppercase tracking-wider flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+                    Sistem Real-Time Active
+                  </span>
+                  <span className="text-[10px] font-mono text-zinc-500">Live Telemetry Data</span>
                 </div>
-              );
-            })()}
-          </div>
+                <h2 className="text-xl font-black text-white tracking-tight">Platform Analytics & Insights Dashboard</h2>
+                <p className="text-xs text-zinc-400 mt-1 max-w-2xl">
+                  Ringkasan statistik penonton, performa tayangan TV & katalog film, tingkat konversi VIP, dan analisis trafik penonton secara real-time.
+                </p>
+              </div>
 
-          {/* User Segmentation & Mode Splits */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* VIP Subscription Split */}
-            <div className="bg-zinc-950 border border-zinc-900 p-5 rounded-xl space-y-4">
-              <h3 className="text-xs font-bold text-zinc-400 tracking-wider uppercase">VIP Premium Conversion Ratio</h3>
-              {(() => {
-                const free = stats.subscriptionSplit?.free || 0;
-                const premium = stats.subscriptionSplit?.premium || 0;
-                const total = free + premium || 1;
-                const premiumPercent = Math.round((premium / total) * 100);
-                const freePercent = 100 - premiumPercent;
-                return (
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-zinc-400 flex items-center gap-1.5">
-                        <span className="w-2.5 h-2.5 rounded-full bg-zinc-700" />
-                        Standard Free ({free})
-                      </span>
-                      <span className="text-amber-400 font-bold flex items-center gap-1.5">
-                        <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse" />
-                        VIP Premium ({premium})
-                      </span>
-                    </div>
-                    
-                    {/* Stacking progress bar */}
-                    <div className="h-3.5 w-full bg-zinc-900 rounded-lg overflow-hidden flex">
-                      <div 
-                        className="bg-zinc-700 h-full transition-all duration-500" 
-                        style={{ width: `${freePercent}%` }} 
-                        title={`Free: ${freePercent}%`}
-                      />
-                      <div 
-                        className="h-full transition-all duration-500" 
-                        style={{ 
-                          width: `${premiumPercent}%`, 
-                          backgroundColor: globalSettings.primaryColor 
-                        }}
-                        title={`VIP Premium: ${premiumPercent}%`}
-                      />
-                    </div>
-                    <p className="text-[10px] text-zinc-500 leading-relaxed">
-                      Currently <span className="text-white font-bold">{premiumPercent}%</span> of SaaS accounts have VIP access. 
-                      Increase promotion activities to drive conversion ratios.
-                    </p>
-                  </div>
-                );
-              })()}
-            </div>
-
-            {/* Profile split */}
-            <div className="bg-zinc-950 border border-zinc-900 p-5 rounded-xl space-y-4">
-              <h3 className="text-xs font-bold text-zinc-400 tracking-wider uppercase">Viewer Profile Splits</h3>
-              {(() => {
-                const adult = stats.profileSplit?.adult || 0;
-                const kids = stats.profileSplit?.kids || 0;
-                const total = adult + kids || 1;
-                const adultPercent = Math.round((adult / total) * 100);
-                const kidsPercent = 100 - adultPercent;
-                return (
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-zinc-400 flex items-center gap-1.5">
-                        <span className="w-2.5 h-2.5 rounded-full bg-sky-500" />
-                        Adult Viewers ({adult})
-                      </span>
-                      <span className="text-pink-400 font-bold flex items-center gap-1.5">
-                        <span className="w-2.5 h-2.5 rounded-full bg-pink-500" />
-                        Kids Mode ({kids})
-                      </span>
-                    </div>
-                    
-                    {/* Stacking progress bar */}
-                    <div className="h-3.5 w-full bg-zinc-900 rounded-lg overflow-hidden flex">
-                      <div 
-                        className="bg-sky-500 h-full transition-all duration-500" 
-                        style={{ width: `${adultPercent}%` }} 
-                        title={`Adult Profiles: ${adultPercent}%`}
-                      />
-                      <div 
-                        className="bg-pink-500 h-full transition-all duration-500" 
-                        style={{ width: `${kidsPercent}%` }} 
-                        title={`Kids Mode Profiles: ${kidsPercent}%`}
-                      />
-                    </div>
-                    <p className="text-[10px] text-zinc-500 leading-relaxed">
-                      Sub-profiles are segmented into <span className="text-white font-bold">{kidsPercent}%</span> Kids-mode. 
-                      Modify content safety limits to align catalog listings.
-                    </p>
-                  </div>
-                );
-              })()}
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  onClick={refreshStats}
+                  className="flex items-center gap-2 px-4 py-2 bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-white text-xs font-bold rounded-xl transition-all cursor-pointer shadow-lg active:scale-95"
+                >
+                  <RefreshCw className="w-3.5 h-3.5 text-[#00ADB5]" />
+                  Refresh Telemetry
+                </button>
+              </div>
             </div>
           </div>
-        </div>
+
+          {/* 6 Grid Hero Stat Tiles */}
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+            {/* Tile 1: Total Titles */}
+            <div className="group relative bg-zinc-950/80 backdrop-blur-md border border-zinc-900 hover:border-red-500/40 p-4 rounded-2xl transition-all duration-300 hover:shadow-[0_0_20px_rgba(220,38,38,0.15)] flex flex-col justify-between">
+              <div className="flex items-center justify-between">
+                <div className="w-10 h-10 rounded-xl bg-red-600/15 border border-red-500/30 flex items-center justify-center text-red-500 shadow-inner group-hover:scale-110 transition-transform">
+                  <Film className="w-5 h-5" />
+                </div>
+                <span className="text-[9px] font-bold text-red-400 bg-red-950/60 border border-red-500/30 px-1.5 py-0.5 rounded-md">
+                  Katalog
+                </span>
+              </div>
+              <div className="mt-3">
+                <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">{t.cmsCatalogTitles}</p>
+                <p className="text-2xl font-black text-white mt-0.5 tracking-tight">{stats.totalMovies}</p>
+                <p className="text-[10px] text-emerald-400 font-medium mt-1 flex items-center gap-1">
+                  <TrendingUp className="w-3 h-3" /> +12% bulan ini
+                </p>
+              </div>
+            </div>
+
+            {/* Tile 2: Total Views */}
+            <div className="group relative bg-zinc-950/80 backdrop-blur-md border border-zinc-900 hover:border-amber-500/40 p-4 rounded-2xl transition-all duration-300 hover:shadow-[0_0_20px_rgba(245,158,11,0.15)] flex flex-col justify-between">
+              <div className="flex items-center justify-between">
+                <div className="w-10 h-10 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-500 shadow-inner group-hover:scale-110 transition-transform">
+                  <Eye className="w-5 h-5" />
+                </div>
+                <span className="text-[9px] font-bold text-amber-400 bg-amber-950/60 border border-amber-500/30 px-1.5 py-0.5 rounded-md">
+                  Tayangan
+                </span>
+              </div>
+              <div className="mt-3">
+                <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">{t.cmsTotalViews}</p>
+                <p className="text-2xl font-black text-white mt-0.5 tracking-tight">{stats.totalViews.toLocaleString()}</p>
+                <p className="text-[10px] text-amber-400 font-medium mt-1 flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" /> Akumulasi Total
+                </p>
+              </div>
+            </div>
+
+            {/* Tile 3: Total Watch Hours */}
+            <div className="group relative bg-zinc-950/80 backdrop-blur-md border border-zinc-900 hover:border-emerald-500/40 p-4 rounded-2xl transition-all duration-300 hover:shadow-[0_0_20px_rgba(16,185,129,0.15)] flex flex-col justify-between">
+              <div className="flex items-center justify-between">
+                <div className="w-10 h-10 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-500 shadow-inner group-hover:scale-110 transition-transform">
+                  <TrendingUp className="w-5 h-5" />
+                </div>
+                <span className="text-[9px] font-bold text-emerald-400 bg-emerald-950/60 border border-emerald-500/30 px-1.5 py-0.5 rounded-md">
+                  Waktu
+                </span>
+              </div>
+              <div className="mt-3">
+                <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">{t.cmsWatchHours}</p>
+                <p className="text-2xl font-black text-white mt-0.5 tracking-tight">{stats.totalWatchTime.toLocaleString()}</p>
+                <p className="text-[10px] text-zinc-400 font-medium mt-1">
+                  ~{(stats.totalWatchTime / (stats.totalViews || 1)).toFixed(1)} jam / tayang
+                </p>
+              </div>
+            </div>
+
+            {/* Tile 4: SaaS Users */}
+            <div className="group relative bg-zinc-950/80 backdrop-blur-md border border-zinc-900 hover:border-purple-500/40 p-4 rounded-2xl transition-all duration-300 hover:shadow-[0_0_20px_rgba(139,92,246,0.15)] flex flex-col justify-between">
+              <div className="flex items-center justify-between">
+                <div className="w-10 h-10 rounded-xl bg-purple-500/15 border border-purple-500/30 flex items-center justify-center text-purple-500 shadow-inner group-hover:scale-110 transition-transform">
+                  <Users className="w-5 h-5" />
+                </div>
+                <span className="text-[9px] font-bold text-purple-400 bg-purple-950/60 border border-purple-500/30 px-1.5 py-0.5 rounded-md">
+                  Pengguna
+                </span>
+              </div>
+              <div className="mt-3">
+                <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">{t.cmsSaasSignups}</p>
+                <p className="text-2xl font-black text-white mt-0.5 tracking-tight">{stats.totalUsers}</p>
+                <p className="text-[10px] text-purple-400 font-medium mt-1">
+                  Account Terdaftar
+                </p>
+              </div>
+            </div>
+
+            {/* Tile 5: Active Users Today */}
+            <div className="group relative bg-zinc-950/80 backdrop-blur-md border border-zinc-900 hover:border-sky-500/40 p-4 rounded-2xl transition-all duration-300 hover:shadow-[0_0_20px_rgba(56,189,248,0.15)] flex flex-col justify-between">
+              <div className="flex items-center justify-between">
+                <div className="w-10 h-10 rounded-xl bg-sky-500/15 border border-sky-500/30 flex items-center justify-center text-sky-500 shadow-inner group-hover:scale-110 transition-transform">
+                  <UserCheck className="w-5 h-5" />
+                </div>
+                <span className="text-[9px] font-bold text-sky-400 bg-sky-950/60 border border-sky-500/30 px-1.5 py-0.5 rounded-md flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-sky-400 animate-ping" /> Live
+                </span>
+              </div>
+              <div className="mt-3">
+                <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">{t.cmsActiveUsersToday}</p>
+                <p className="text-2xl font-black text-white mt-0.5 tracking-tight">{stats.activeUsersToday}</p>
+                <p className="text-[10px] text-sky-400 font-medium mt-1">
+                  Online Hari Ini
+                </p>
+              </div>
+            </div>
+
+            {/* Tile 6: Monthly Revenue */}
+            <div className="group relative bg-zinc-950/80 backdrop-blur-md border border-zinc-900 hover:border-pink-500/40 p-4 rounded-2xl transition-all duration-300 hover:shadow-[0_0_20px_rgba(236,72,153,0.15)] flex flex-col justify-between">
+              <div className="flex items-center justify-between">
+                <div className="w-10 h-10 rounded-xl bg-pink-500/15 border border-pink-500/30 flex items-center justify-center text-pink-500 shadow-inner group-hover:scale-110 transition-transform">
+                  <CreditCard className="w-5 h-5" />
+                </div>
+                <span className="text-[9px] font-bold text-pink-400 bg-pink-950/60 border border-pink-500/30 px-1.5 py-0.5 rounded-md">
+                  Estimasi MRR
+                </span>
+              </div>
+              <div className="mt-3">
+                <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">{t.cmsMonthlyRevenue}</p>
       )}
 
       {/* SUB-TAB VIEWPORT 2: CATALOG MANAGEMENT */}
@@ -2240,8 +2106,6 @@ export default function AdminCMS({
         </div>
       )}
 
-
-
       {/* SUB-TAB VIEWPORT 2.5: LIVE TV CHANNELS MANAGEMENT */}
       {activeSubTab === "livetv" && (
         <div className="space-y-6" id="cms-livetv-panel">
@@ -2251,11 +2115,11 @@ export default function AdminCMS({
               <div className="flex items-center gap-2">
                 <Radio className="w-4 h-4 text-red-500" />
                 <h3 className="text-sm font-black text-white uppercase tracking-wider">
-                  Manajemen Saluran Live TV
+                  Live TV Channels Management
                 </h3>
               </div>
               <p className="text-xs text-zinc-400 mt-1">
-                Kelola siaran langsung HLS (.m3u8) & DASH (.mpd) resmi, logo saluran, kategori, dan URL stream.
+                Manage HLS (.m3u8) & DASH (.mpd) live streams, station logos, categories, and stream URLs.
               </p>
             </div>
 
@@ -2276,7 +2140,7 @@ export default function AdminCMS({
                 ) : (
                   <Activity className="w-4 h-4" />
                 )}
-                <span>{healthCheckRunning ? "Checking..." : "Check All Status"}</span>
+                <span>{healthCheckRunning ? (t?.buffering || "Checking...") : (t?.healthCheckBtn || "Check All Status")}</span>
               </button>
 
               {/* Add Channel Button */}
@@ -2284,14 +2148,14 @@ export default function AdminCMS({
                 onClick={() => {
                   handleOpenCreate();
                   setContentType("livetv");
-                  setTitle("Nama Saluran TV Baru");
+                  setTitle("New TV Channel");
                   setVideoUrl("https://ott-balancer.tvri.go.id/live/eds/Nasional/hls/Nasional.m3u8");
                   setGenres(["News"]);
                 }}
                 className="flex items-center gap-2 bg-red-600 hover:bg-red-500 text-white font-bold text-xs px-4 py-2.5 rounded-lg shadow-lg shadow-red-600/20 transition-all cursor-pointer"
               >
                 <Plus className="w-4 h-4" />
-                <span>Tambah Saluran</span>
+                <span>{t?.addChannelBtn || "Add Channel"}</span>
               </button>
             </div>
           </div>
@@ -2302,13 +2166,27 @@ export default function AdminCMS({
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
                   <Activity className="w-4 h-4 text-emerald-400" />
-                  <h4 className="text-xs font-bold text-white uppercase tracking-wider">Stream Health Monitor</h4>
+                  <h4 className="text-xs font-bold text-white uppercase tracking-wider">{t?.streamHealthMonitor || "Stream Health Monitor"}</h4>
                 </div>
-                {lastHealthCheck && (
-                  <span className="text-[10px] text-zinc-500 font-mono">
-                    Last checked: {new Date(lastHealthCheck).toLocaleString()}
-                  </span>
-                )}
+                
+                <div className="flex items-center gap-3 flex-wrap">
+                  {lastHealthCheck && (
+                    <span className="text-[10px] text-zinc-500 font-mono">
+                      Last checked: {new Date(lastHealthCheck).toLocaleString()}
+                    </span>
+                  )}
+                  {/* Remove Offline Channels Bulk Action Button */}
+                  {Object.values(channelHealth).some(s => s.status === "offline" || s.status === "error") && (
+                    <button
+                      onClick={handleRemoveOfflineChannels}
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-red-600 hover:bg-red-500 text-white font-bold text-xs rounded-lg transition-all shadow-md cursor-pointer active:scale-95"
+                      id="remove-offline-channels-btn"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span>Nonaktifkan / Hapus Channel Offline ({Object.values(channelHealth).filter(s => s.status === "offline" || s.status === "error").length})</span>
+                    </button>
+                  )}
+                </div>
               </div>
 
               {/* Health stats tiles */}
@@ -2384,7 +2262,7 @@ export default function AdminCMS({
                         <Activity className="w-4 h-4 text-sky-400 shrink-0" />
                         <div>
                           <p className="text-lg font-black text-sky-400 leading-none">{avgResponseTime > 0 ? `${Math.round(avgResponseTime)}ms` : "—"}</p>
-                          <p className="text-[9px] text-sky-400/60 font-bold uppercase mt-0.5">Avg Latency</p>
+                          <p className="text-[9px] text-sky-400/60 font-bold uppercase mt-0.5">{t?.avgLatency || "Avg Latency"}</p>
                         </div>
                       </div>
                     </div>
@@ -2394,22 +2272,61 @@ export default function AdminCMS({
             </div>
           )}
 
+          {/* Status Filter Bar */}
+          <div className="flex items-center justify-between gap-3 bg-zinc-950 border border-zinc-900 p-3 rounded-xl">
+            <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Filter Channel Status:</span>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setLiveTvStatusFilter("all")}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  liveTvStatusFilter === "all" ? "bg-zinc-800 text-white border border-zinc-700" : "text-zinc-500 hover:text-zinc-300"
+                }`}
+              >
+                Semua Saluran ({movies.filter(m => m.contentType === "livetv" || m.id.startsWith("tv-")).length})
+              </button>
+              <button
+                onClick={() => setLiveTvStatusFilter("online")}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  liveTvStatusFilter === "online" ? "bg-emerald-950/80 text-emerald-300 border border-emerald-500/40" : "text-zinc-500 hover:text-zinc-300"
+                }`}
+              >
+                🟢 Online Only
+              </button>
+              <button
+                onClick={() => setLiveTvStatusFilter("offline")}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  liveTvStatusFilter === "offline" ? "bg-red-950/80 text-red-300 border border-red-500/40" : "text-zinc-500 hover:text-zinc-300"
+                }`}
+              >
+                🔴 Offline / Rusak Only
+              </button>
+            </div>
+          </div>
+
           {/* Live TV Channels Grid Table */}
           <div className="bg-zinc-950 border border-zinc-900 rounded-xl overflow-hidden shadow-lg">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs border-collapse">
                 <thead>
                   <tr className="bg-zinc-900/90 text-zinc-400 font-extrabold uppercase border-b border-zinc-800 tracking-wider">
-                    <th className="py-3.5 px-4">Saluran TV</th>
+                    <th className="py-3.5 px-4">{t?.channelList || "TV Channel"}</th>
                     <th className="py-3.5 px-4">URL Stream (HLS/DASH)</th>
                     <th className="py-3.5 px-4">Format</th>
                     <th className="py-3.5 px-4">Status</th>
                     <th className="py-3.5 px-4">Stats</th>
-                    <th className="py-3.5 px-4 text-right">Aksi</th>
+                    <th className="py-3.5 px-4 text-right">{t?.cmsColActions || "Actions"}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-zinc-900">
-                  {movies.filter(m => m.contentType === "livetv" || m.id.startsWith("tv-")).map((channel) => {
+                  {movies
+                    .filter(m => m.contentType === "livetv" || m.id.startsWith("tv-"))
+                    .filter(ch => {
+                      const status = channelHealth[ch.id]?.status;
+                      if (liveTvStatusFilter === "online") return status === "online";
+                      if (liveTvStatusFilter === "offline") return status === "offline" || status === "error";
+                      return true;
+                    })
+                    .map((channel) => {
                     const health = channelHealth[channel.id];
                     return (
                     <tr key={channel.id} className="hover:bg-zinc-900/50 transition-colors">
@@ -2499,7 +2416,15 @@ export default function AdminCMS({
                       </td>
 
                       <td className="py-3.5 px-4 text-right">
-                        <div className="flex items-center justify-end gap-2">
+                        <div className="flex items-center justify-end gap-1.5">
+                          {/* Test Stream Play Button */}
+                          <button
+                            onClick={() => setPreviewMovie(channel)}
+                            className="p-2 rounded-lg bg-zinc-900 hover:bg-[#00ADB5]/20 text-[#00ADB5] border border-zinc-800 transition-colors cursor-pointer"
+                            title="Test Stream Play"
+                          >
+                            <Play className="w-3.5 h-3.5 fill-[#00ADB5]" />
+                          </button>
                           <button
                             onClick={() => handleOpenEdit(channel)}
                             className="p-2 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-white transition-all cursor-pointer"
@@ -2987,6 +2912,46 @@ export default function AdminCMS({
           </div>
         </div>
       )}
+      {/* Custom Confirmation Modal Dialog */}
+      {confirmDialog && confirmDialog.isOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
+          <div className="bg-zinc-950 border border-zinc-800 w-full max-w-md rounded-2xl p-6 shadow-2xl space-y-4 text-left">
+            <div className="flex items-center justify-between border-b border-zinc-900 pb-3">
+              <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                <ShieldAlert className="w-5 h-5 text-amber-500" />
+                {confirmDialog.title}
+              </h3>
+              <button
+                onClick={() => setConfirmDialog(null)}
+                className="text-zinc-500 hover:text-white p-1 rounded-md transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <p className="text-xs text-zinc-300 leading-relaxed font-medium">
+              {confirmDialog.message}
+            </p>
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                onClick={() => setConfirmDialog(null)}
+                className="px-4 py-2 text-xs font-semibold text-zinc-400 hover:text-white hover:bg-zinc-900 rounded-lg transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  const cb = confirmDialog.onConfirm;
+                  setConfirmDialog(null);
+                  if (cb) cb();
+                }}
+                className="px-4 py-2 text-xs font-bold text-white bg-red-600 hover:bg-red-700 rounded-lg shadow-lg transition-all cursor-pointer"
+              >
+                {confirmDialog.actionLabel || "Confirm"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Custom Alert Modal Dialog */}
       {alertDialog && alertDialog.isOpen && (
@@ -3018,6 +2983,15 @@ export default function AdminCMS({
             </div>
           </div>
         </div>
+      )}
+
+      {/* Stream Test Preview Modal */}
+      {previewMovie && (
+        <MediaPlayer
+          movie={previewMovie}
+          onClose={() => setPreviewMovie(null)}
+          t={t}
+        />
       )}
     </div>
   );

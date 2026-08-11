@@ -112,6 +112,40 @@ export default function IPTVScanner({ brandColor, onImportChannel }: IPTVScanner
   const [dynamicSourceValue, setDynamicSourceValue] = useState("id");
   const [scanLimit, setScanLimit] = useState(250);
   const [showScanner, setShowScanner] = useState(false);
+  const [preImportHealth, setPreImportHealth] = useState<Record<string, { status: "online" | "offline"; responseTime?: number }>>({});
+  const [isCheckingPreImportHealth, setIsCheckingPreImportHealth] = useState(false);
+
+  const runPreImportHealthCheck = async () => {
+    if (scanResults.length === 0) return;
+    setIsCheckingPreImportHealth(true);
+    try {
+      const channelsToCheck = scanResults.slice(0, 100).map(ch => ({ id: ch.streamUrl, url: ch.streamUrl }));
+      const res = await fetch("/api/livetv/health", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ channels: channelsToCheck }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const healthMap: Record<string, { status: "online" | "offline"; responseTime?: number }> = {};
+        (data.results || []).forEach((r: any) => {
+          healthMap[r.id] = { status: r.status === "online" ? "online" : "offline", responseTime: r.responseTime };
+        });
+        setPreImportHealth(healthMap);
+      }
+    } catch {
+      // Ignore errors in health check
+    } finally {
+      setIsCheckingPreImportHealth(false);
+    }
+  };
+
+  const selectOnlyOnlineChannels = () => {
+    const onlineUrls = filteredResults
+      .filter(ch => preImportHealth[ch.streamUrl]?.status === "online")
+      .map(ch => ch.streamUrl);
+    setSelectedChannels(new Set(onlineUrls));
+  };
 
   const handleScan = useCallback(async () => {
     if (!sourceUrl.trim()) return;
@@ -369,7 +403,30 @@ export default function IPTVScanner({ brandColor, onImportChannel }: IPTVScanner
                   </p>
                 </div>
 
-                <div className="flex items-center gap-2 shrink-0">
+                <div className="flex items-center gap-2 shrink-0 flex-wrap">
+                  <button
+                    onClick={runPreImportHealthCheck}
+                    disabled={isCheckingPreImportHealth}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs font-bold rounded-lg transition-all cursor-pointer disabled:opacity-50"
+                  >
+                    {isCheckingPreImportHealth ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-400" />
+                    ) : (
+                      <RefreshCw className="w-3.5 h-3.5 text-emerald-400" />
+                    )}
+                    {isCheckingPreImportHealth ? "Cek Stream..." : "Cek Health Stream"}
+                  </button>
+
+                  {Object.keys(preImportHealth).length > 0 && (
+                    <button
+                      onClick={selectOnlyOnlineChannels}
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-950/80 hover:bg-emerald-900/90 text-emerald-300 border border-emerald-500/40 text-xs font-bold rounded-lg transition-all cursor-pointer"
+                    >
+                      <Check className="w-3.5 h-3.5 text-emerald-400" />
+                      Pilih Stream Online Only
+                    </button>
+                  )}
+
                   <button
                     onClick={toggleSelectAll}
                     className="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs font-bold rounded-lg transition-all cursor-pointer"

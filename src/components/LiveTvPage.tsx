@@ -151,7 +151,7 @@ export default function LiveTvPage({
   };
 
   // Channel Categories & Regions
-  const categories = ["All", "News", "Entertainment", "Science", "Business", "Culture", "Local ID"];
+  const categories = ["All", "News", "Entertainment", "Sports", "Kids", "Science", "Business", "Culture", "Local ID"];
   const regions = ["All", "Asia", "Indonesia", "Europe", "Americas", "Middle East", "Oceania"];
 
   // Filtered channel list
@@ -164,17 +164,21 @@ export default function LiveTvPage({
     // Category filter
     if (selectedCategory !== "All") {
       if (selectedCategory === "Local ID") {
-        if (!(ch.country === "Indonesia" || ch.id.startsWith("tv-"))) return false;
+        if (!(ch.country === "Indonesia" || ch.id.startsWith("tv-") || ch.genres.some(g => ["Local ID", "Indonesia", "Nasional"].includes(g)))) return false;
       } else if (selectedCategory === "News") {
-        if (!ch.genres.some(g => ["News", "Business", "Finance"].includes(g))) return false;
+        if (!ch.genres.some(g => ["News", "Business", "Finance", "Berita", "Informasi"].includes(g))) return false;
       } else if (selectedCategory === "Entertainment") {
-        if (!ch.genres.some(g => ["Entertainment", "Comedy", "K-Drama", "Culture"].includes(g))) return false;
+        if (!ch.genres.some(g => ["Entertainment", "Comedy", "Music", "Hiburan", "Variety"].includes(g))) return false;
+      } else if (selectedCategory === "Sports") {
+        if (!ch.genres.some(g => ["Sports", "Olahraga", "Soccer"].includes(g))) return false;
+      } else if (selectedCategory === "Kids") {
+        if (!ch.genres.some(g => ["Kids", "Animation", "Anak", "Family"].includes(g))) return false;
       } else if (selectedCategory === "Science") {
-        if (!ch.genres.some(g => ["Science", "Education", "Documentary"].includes(g))) return false;
+        if (!ch.genres.some(g => ["Science", "Education", "Documentary", "Sains"].includes(g))) return false;
       } else if (selectedCategory === "Business") {
-        if (!ch.genres.some(g => ["Business", "Finance"].includes(g))) return false;
+        if (!ch.genres.some(g => ["Business", "Finance", "Bisnis"].includes(g))) return false;
       } else if (selectedCategory === "Culture") {
-        if (!ch.genres.some(g => ["Culture", "K-Drama", "Documentary"].includes(g))) return false;
+        if (!ch.genres.some(g => ["Culture", "Budaya", "Religious", "Agama", "Documentary"].includes(g))) return false;
       }
     }
 
@@ -210,14 +214,14 @@ export default function LiveTvPage({
               <span className="relative inline-flex rounded-full h-3 w-3 bg-red-600" />
             </span>
             <span className="text-xs font-black tracking-widest text-red-500 uppercase">
-              LIVE BROADCAST CENTER
+              {t?.liveTvCenter || "LIVE BROADCAST CENTER"}
             </span>
           </div>
           <h1 className="text-2xl md:text-4xl font-black tracking-tight text-white mt-1">
-            Live TV — Free-to-Air Worldwide
+            {t?.liveTvTitle || "Live TV — Free-to-Air Worldwide"}
           </h1>
           <p className="text-xs text-zinc-400 mt-1">
-            Siaran langsung 24/7 gratis dari stasiun TV di seluruh dunia — berita, hiburan, sains, olahraga, dan kebudayaan.
+            {t?.liveTvSubTitle || "Free 24/7 live streaming from TV stations worldwide — news, entertainment, science, sports, & culture."}
           </p>
         </div>
 
@@ -226,7 +230,7 @@ export default function LiveTvPage({
           <Search className="w-4 h-4 text-zinc-400 absolute left-3 top-1/2 -translate-y-1/2" />
           <input
             type="text"
-            placeholder="Cari saluran TV..."
+            placeholder={t?.searchTvPlaceholder || "Search TV channels..."}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full bg-zinc-900/90 border border-white/10 rounded-xl pl-9 pr-4 py-2 text-xs text-white placeholder-zinc-500 focus:outline-hidden focus:border-red-500 transition-all"
@@ -275,7 +279,7 @@ export default function LiveTvPage({
             {isBuffering && !streamError && (
               <div className="absolute inset-0 bg-black/60 backdrop-blur-xs flex flex-col items-center justify-center z-10 space-y-3">
                 <div className="w-10 h-10 border-3 border-red-600 border-t-transparent rounded-full animate-spin" />
-                <span className="text-xs text-zinc-300 font-medium">Menghubungkan ke siaran langsung...</span>
+                <span className="text-xs text-zinc-300 font-medium">{t?.connectingLive || "Connecting to live broadcast..."}</span>
               </div>
             )}
 
@@ -284,9 +288,9 @@ export default function LiveTvPage({
               <div className="absolute inset-0 bg-zinc-950/90 flex flex-col items-center justify-center z-30 space-y-3 px-6 text-center">
                 <AlertCircle className="w-12 h-12 text-red-500 animate-pulse" />
                 <div className="space-y-1">
-                  <h4 className="text-sm font-bold text-white">Sinyal Siaran Terputus</h4>
+                  <h4 className="text-sm font-bold text-white">{t?.signalLost || "Broadcast Signal Lost"}</h4>
                   <p className="text-xs text-zinc-400 max-w-xs">
-                    Stasiun TV sedang offline atau mengalami kendala server streaming.
+                    {t?.signalLostDesc || "TV station is currently offline or experiencing stream server issues."}
                   </p>
                 </div>
                 <button
@@ -301,7 +305,7 @@ export default function LiveTvPage({
                   className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-bold transition-all shadow-lg cursor-pointer"
                 >
                   <RefreshCw className="w-3.5 h-3.5" />
-                  Coba Sambung Ulang
+                  {t?.reconnectBtn || "Try Reconnecting"}
                 </button>
               </div>
             )}
@@ -345,16 +349,16 @@ export default function LiveTvPage({
                 <button
                   onClick={handleShareChannel}
                   className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs font-semibold backdrop-blur-md flex items-center gap-1.5 transition-all cursor-pointer"
-                  title="Bagikan Tautan"
+                  title={t?.shareLink || "Share Link"}
                 >
                   {copiedLink ? <Check className="w-3.5 h-3.5 text-green-400" /> : <Share2 className="w-3.5 h-3.5" />}
-                  <span className="hidden sm:inline">{copiedLink ? "Tersalin!" : "Bagikan"}</span>
+                  <span className="hidden sm:inline">{copiedLink ? (t?.copied || "Copied!") : (t?.shareLink || "Share Link")}</span>
                 </button>
 
                 <button
                   onClick={toggleFullscreen}
                   className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-md text-white flex items-center justify-center transition-all cursor-pointer"
-                  title="Layar Penuh"
+                  title={t?.toggleFullscreen || "Fullscreen"}
                 >
                   <Maximize className="w-4 h-4" />
                 </button>
@@ -377,13 +381,13 @@ export default function LiveTvPage({
                   <h2 className="text-lg font-black text-white tracking-tight flex items-center gap-2">
                     {activeChannel?.title}
                     <span className="text-[10px] font-bold text-emerald-400 bg-emerald-950/60 border border-emerald-500/30 px-2 py-0.5 rounded-full uppercase">
-                      Official HD Stream
+                      {t?.officialHdStream || "Official HD Stream"}
                     </span>
                   </h2>
                   <div className="flex items-center gap-2 text-xs text-zinc-400 mt-0.5">
                     <span>{activeChannel?.country || "Indonesia"}</span>
                     <span>•</span>
-                    <span className="text-zinc-300 font-medium">Bahasa Indonesia</span>
+                    <span className="text-zinc-300 font-medium">{activeChannel?.language || "Global"}</span>
                     <span>•</span>
                     <span className="text-red-400 font-bold uppercase">{activeChannel?.quality || "Full HD"}</span>
                   </div>
@@ -396,7 +400,7 @@ export default function LiveTvPage({
                   className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold text-zinc-300 flex items-center gap-1.5 transition-all cursor-pointer"
                 >
                   <Info className="w-3.5 h-3.5" />
-                  <span>Detail Stasiun</span>
+                  <span>{t?.stationDetails || "Station Details"}</span>
                 </button>
               )}
             </div>
@@ -414,10 +418,10 @@ export default function LiveTvPage({
             <div className="flex items-center gap-2">
               <Tv className="w-4 h-4 text-red-500" />
               <h3 className="text-sm font-black text-white uppercase tracking-wider">
-                Daftar Saluran ({filteredChannels.length})
+                {t?.channelList || "Channel List"} ({filteredChannels.length})
               </h3>
             </div>
-            <span className="text-[10px] text-zinc-500 font-mono">1-Klik Pilih Stream</span>
+            <span className="text-[10px] text-zinc-500 font-mono">{t?.oneClickSelect || "1-Click Select"}</span>
           </div>
 
           {/* Category Pill Filters */}
@@ -432,7 +436,7 @@ export default function LiveTvPage({
                     : "bg-zinc-800/80 text-zinc-400 hover:text-white hover:bg-zinc-800"
                 }`}
               >
-                {cat}
+                {t?.[cat] || cat}
               </button>
             ))}
           </div>
@@ -450,7 +454,7 @@ export default function LiveTvPage({
                     : "bg-transparent text-zinc-500 border-zinc-800 hover:text-zinc-300 hover:border-zinc-600"
                 }`}
               >
-                {region}
+                {t?.[region] || region}
               </button>
             ))}
           </div>
@@ -459,7 +463,7 @@ export default function LiveTvPage({
           <div className="space-y-2 max-h-[520px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-zinc-800">
             {filteredChannels.length === 0 ? (
               <div className="py-12 text-center text-zinc-500 text-xs border border-dashed border-zinc-800 rounded-xl">
-                Tidak ada saluran TV yang cocok dengan pencarian "{searchQuery}"
+                {t?.noMatchingTv || "No TV channels matching search"} "{searchQuery}"
               </div>
             ) : (
               filteredChannels.map((channel) => {
@@ -494,7 +498,7 @@ export default function LiveTvPage({
                           {channel.title}
                         </h4>
                         <p className="text-[10px] text-zinc-500 truncate mt-0.5">
-                          {channel.genres.join(", ") || "TV Indonesia"}
+                          {channel.genres.join(", ") || "TV Stream"}
                         </p>
                       </div>
                     </div>
@@ -506,7 +510,7 @@ export default function LiveTvPage({
                           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75" />
                           <span className="relative inline-flex rounded-full h-2 w-2 bg-white" />
                         </span>
-                        <span>DIPUTAR</span>
+                        <span>{t?.playingNow || "PLAYING"}</span>
                       </div>
                     ) : (
                       <div className="w-7 h-7 rounded-full bg-white/5 group-hover:bg-red-600 text-zinc-400 group-hover:text-white flex items-center justify-center shrink-0 transition-all">
@@ -518,7 +522,6 @@ export default function LiveTvPage({
               })
             )}
           </div>
-
         </div>
 
       </div>

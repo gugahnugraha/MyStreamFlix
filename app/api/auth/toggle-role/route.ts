@@ -6,12 +6,17 @@ export const dynamic = "force-dynamic";
 
 export async function POST() {
   try {
+    if (process.env.NODE_ENV === "production") {
+      return NextResponse.json({ error: "Role toggle is disabled in production." }, { status: 403 });
+    }
+
     const sessionUser = await getCurrentSessionUser();
     if (!sessionUser) {
       return NextResponse.json({ error: "Authentication required." }, { status: 401 });
     }
 
-    const nextRole = sessionUser.role === "admin" ? "user" : "admin";
+    const currentRole: "admin" | "user" = sessionUser.role;
+    const nextRole: "admin" | "user" = currentRole === "admin" ? "user" : "admin";
     const updated = await updateUserRole(sessionUser.id, nextRole);
 
     return NextResponse.json({ success: true, user: updated });

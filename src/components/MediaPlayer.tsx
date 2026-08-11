@@ -110,6 +110,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
 
   // Playback state
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isBuffering, setIsBuffering] = useState(false);
   const [currentTime, setCurrentTime] = useState(initialProgress);
   const [duration, setDuration] = useState(() => {
     if (movie.contentType === "series" && movie.seasons && movie.seasons.length > 0) {
@@ -761,14 +762,21 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
                 setCurrentTime(videoRef.current.currentTime);
               }
             }}
+            onWaiting={() => setIsBuffering(true)}
+            onSeeking={() => setIsBuffering(true)}
+            onCanPlay={() => setIsBuffering(false)}
+            onPlaying={() => setIsBuffering(false)}
+            onSeeked={() => setIsBuffering(false)}
             onEnded={() => {
               setIsPlaying(false);
+              setIsBuffering(false);
               if (nextEpisodeInfo) {
                 handlePlayNextEpisode();
               }
             }}
             onError={() => {
               console.warn("Direct stream load failed. Engaging high-fidelity cinematic stream simulation.");
+              setIsBuffering(false);
               setHasError(true);
               setIsSimulating(true);
               setIsPlaying(true);
@@ -824,6 +832,28 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
                   {movie.description}
                 </p>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Premium Glowing Glassmorphism Buffering Spinner Overlay */}
+        {isBuffering && (
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-md flex flex-col items-center justify-center z-40 space-y-4 pointer-events-none animate-in fade-in duration-200">
+            <div className="relative flex items-center justify-center">
+              {/* Outer pulsing ring */}
+              <div className="w-16 h-16 rounded-full border-2 border-[#00ADB5]/30 animate-ping absolute" />
+              {/* Spinning gradient ring */}
+              <div className="w-14 h-14 rounded-full border-3 border-transparent border-t-[#00ADB5] border-r-cyan-400 border-b-teal-500 animate-spin shadow-[0_0_25px_rgba(0,173,181,0.5)]" />
+              {/* Inner brand glow dot */}
+              <div className="w-4 h-4 rounded-full bg-[#00ADB5] shadow-[0_0_15px_#00ADB5] absolute animate-pulse" />
+            </div>
+            <div className="text-center space-y-1">
+              <span className="text-xs font-black tracking-widest text-[#00ADB5] uppercase font-mono animate-pulse block">
+                {t?.bufferingStream || "Buffering stream..."}
+              </span>
+              <span className="text-[10px] text-zinc-400 font-medium block">
+                {movie.title}
+              </span>
             </div>
           </div>
         )}
