@@ -6,6 +6,7 @@
 import React, { useRef, useState, useEffect } from "react";
 import { Play, Pause, RotateCcw, RotateCw, Volume2, VolumeX, Maximize, Minimize, X, Subtitles, Settings } from "lucide-react";
 import { Movie, Subtitle } from "../types";
+import { getProxiedStreamUrl } from "../lib/stream-utils";
 
 interface MediaPlayerProps {
   movie: Movie;
@@ -501,7 +502,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t }: 
         {!isSimulating ? (
           <video
             ref={videoRef}
-            src={activeEpisode ? activeEpisode.videoUrl : movie.videoUrl}
+            src={getProxiedStreamUrl(activeEpisode ? activeEpisode.videoUrl : movie.videoUrl)}
             className="w-full h-full max-h-screen object-contain"
             onClick={handleScreenClick}
             onTimeUpdate={() => {

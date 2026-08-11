@@ -28,6 +28,7 @@ import {
 import Hls from "hls.js";
 import { ScreenOrientation } from "@capacitor/screen-orientation";
 import { Movie, Subtitle } from "../types";
+import { getProxiedStreamUrl } from "../lib/stream-utils";
 
 interface MediaPlayerProps {
   movie: Movie;
@@ -198,7 +199,8 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
 
   const nextEpisodeInfo = getNextEpisodeInfo();
   const prevEpisodeInfo = getPrevEpisodeInfo();
-  const currentStreamUrl = activeEpisode ? activeEpisode.videoUrl : movie.videoUrl;
+  const rawStreamUrl = activeEpisode ? activeEpisode.videoUrl : movie.videoUrl;
+  const currentStreamUrl = getProxiedStreamUrl(rawStreamUrl);
 
   // Play next episode
   const handlePlayNextEpisode = () => {

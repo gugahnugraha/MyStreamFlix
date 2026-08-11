@@ -7,6 +7,7 @@ import {
 import Hls from "hls.js";
 import { ScreenOrientation } from "@capacitor/screen-orientation";
 import { Movie } from "../types";
+import { getProxiedStreamUrl } from "../lib/stream-utils";
 
 interface LiveTvPageProps {
   channels: Movie[];
@@ -126,7 +127,7 @@ export default function LiveTvPage({
     setStreamError(false);
     setNeedUserGesture(false);
 
-    const streamUrl = activeChannel.videoUrl;
+    const streamUrl = getProxiedStreamUrl(activeChannel.videoUrl);
     scheduleStartupTimeout();
 
     const attemptPlay = () => {
