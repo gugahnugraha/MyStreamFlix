@@ -40,7 +40,7 @@ jobs:
         run: npm run build
 
       - name: Sync Capacitor Android (copy web assets to Android)
-        run: npx cap sync android --no-deployment
+        run: npx cap sync android
 
       - name: Grant Execute Permission for Gradle
         run: chmod +x android/gradlew
