@@ -8,6 +8,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import { getCurrentSessionUser } from "@/src/lib/session";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
@@ -95,8 +96,17 @@ function isBlockedPlaylistHost(hostname: string) {
   return false;
 }
 
+async function requireAdmin() {
+  const user = await getCurrentSessionUser();
+  return user?.role === "admin";
+}
+
 export async function POST(request: NextRequest) {
   try {
+    if (!(await requireAdmin())) {
+      return NextResponse.json({ error: "Access denied. Admin role required." }, { status: 403 });
+    }
+
     const body = await request.json();
     const { sourceUrl, countryFilter, groupFilter, limit = 100 } = body;
 
@@ -208,6 +218,10 @@ export async function POST(request: NextRequest) {
 
 // GET: Check stream status (HEAD request to verify if URL is online)
 export async function GET(request: NextRequest) {
+  if (!(await requireAdmin())) {
+    return NextResponse.json({ error: "Access denied. Admin role required." }, { status: 403 });
+  }
+
   const { searchParams } = new URL(request.url);
   const streamUrl = searchParams.get("url");
 
@@ -216,6 +230,11 @@ export async function GET(request: NextRequest) {
   }
 
   try {
+    const parsedUrl = new URL(streamUrl);
+    if (!["http:", "https:"].includes(parsedUrl.protocol) || isBlockedPlaylistHost(parsedUrl.hostname)) {
+      return NextResponse.json({ error: "Unsupported or blocked URL." }, { status: 400 });
+    }
+
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 8000);
 

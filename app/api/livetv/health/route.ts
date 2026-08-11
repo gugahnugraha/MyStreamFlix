@@ -11,6 +11,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import { getCurrentSessionUser } from "@/src/lib/session";
 
 interface ChannelCheckRequest {
   channels: {
@@ -28,8 +29,32 @@ interface ChannelStatus {
   error?: string;
 }
 
+function isBlockedStreamHost(hostname: string) {
+  const host = hostname.toLowerCase();
+  if (host === "localhost" || host.endsWith(".localhost")) return true;
+
+  if (/^\d{1,3}(\.\d{1,3}){3}$/.test(host)) {
+    const [a, b] = host.split(".").map(Number);
+    return (
+      a === 0 ||
+      a === 10 ||
+      a === 127 ||
+      (a === 169 && b === 254) ||
+      (a === 172 && b >= 16 && b <= 31) ||
+      (a === 192 && b === 168)
+    );
+  }
+
+  return false;
+}
+
 export async function POST(request: NextRequest) {
   try {
+    const sessionUser = await getCurrentSessionUser();
+    if (!sessionUser || sessionUser.role !== "admin") {
+      return NextResponse.json({ error: "Access denied. Admin role required." }, { status: 403 });
+    }
+
     const body: ChannelCheckRequest = await request.json();
 
     if (!body.channels || !Array.isArray(body.channels)) {
@@ -54,6 +79,16 @@ export async function POST(request: NextRequest) {
               url: ch.url,
               status: "error" as const,
               error: "Invalid URL format",
+            };
+          }
+
+          const parsedUrl = new URL(ch.url);
+          if (isBlockedStreamHost(parsedUrl.hostname)) {
+            return {
+              id: ch.id,
+              url: ch.url,
+              status: "error" as const,
+              error: "Local or private network URLs are blocked",
             };
           }
 
