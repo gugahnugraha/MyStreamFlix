@@ -130,9 +130,28 @@ function buildHeaders(
   if (profile.priority) h.set("Priority", profile.priority);
   if (profile.te) h.set("TE", profile.te);
 
-  h.set("Referer", "https://www.cnnindonesia.com/");
-  h.set("Origin", "https://www.cnnindonesia.com");
   h.set("Host", targetUrlObj.hostname);
+
+  const host = targetUrlObj.hostname.toLowerCase();
+  if (host.includes("cnnindonesia.com")) {
+    h.set("Referer", "https://www.cnnindonesia.com/");
+    h.set("Origin", "https://www.cnnindonesia.com");
+  } else if (host.includes("cnbcindonesia.com")) {
+    h.set("Referer", "https://www.cnbcindonesia.com/");
+    h.set("Origin", "https://www.cnbcindonesia.com");
+  } else if (host.includes("detik.com")) {
+    h.set("Referer", "https://www.detik.com/");
+    h.set("Origin", "https://www.detik.com");
+  } else if (host.includes("medcom.id")) {
+    h.set("Referer", "https://www.medcom.id/");
+    h.set("Origin", "https://www.medcom.id");
+  } else if (host.includes("tvri.go.id")) {
+    h.set("Referer", "https://www.tvri.go.id/");
+    h.set("Origin", "https://www.tvri.go.id");
+  } else {
+    h.set("Referer", targetUrlObj.origin + "/");
+    h.set("Origin", targetUrlObj.origin);
+  }
 
   const range = originalHeaders.get("range");
   if (range) h.set("Range", range);

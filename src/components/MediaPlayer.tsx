@@ -28,13 +28,14 @@ import {
 import Hls from "hls.js";
 import { ScreenOrientation } from "@capacitor/screen-orientation";
 import { Movie, Subtitle } from "../types";
-import { getProxiedStreamUrl } from "../lib/stream-utils";
+import { getProxiedStreamUrl, describeQualityLabel, shortQualityHint } from "../lib/stream-utils";
 
 interface MediaPlayerProps {
   movie: Movie;
   initialProgress?: number; // resume from previous progress in seconds
   onClose: () => void;
   t?: any;
+  brandColor?: string;
 }
 
 interface Cue {
@@ -90,7 +91,7 @@ function parseSubtitles(text: string): Cue[] {
   return cues;
 }
 
-export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {} }: MediaPlayerProps) {
+export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {}, brandColor = "#00ADB5" }: MediaPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const startupTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -132,6 +133,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
 
   // Player Experience Enhancements
   const [isScreenLocked, setIsScreenLocked] = useState(false);
+  const [qualityLevels, setQualityLevels] = useState<{index: number; height: number; bitrate: number; label: string}[]>([]);
   const [selectedQuality, setSelectedQuality] = useState<string>("Auto");
   const [showQualityMenu, setShowQualityMenu] = useState(false);
 
@@ -334,6 +336,9 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
     stopStream();
     setHasError(false);
     setIsSimulating(false);
+    setQualityLevels([]);
+    setSelectedQuality("Auto");
+    setShowQualityMenu(false);
     if (movie.contentType === "livetv") {
       setIsBuffering(true);
       clearStreamTimers();
@@ -355,7 +360,14 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
       hls.loadSource(currentStreamUrl);
       hls.attachMedia(video);
       hlsRef.current = hls;
-      hls.on(Hls.Events.MANIFEST_PARSED, () => {
+      hls.on(Hls.Events.MANIFEST_PARSED, (_e, data) => {
+        const levels = (data.levels || []).map((lv, idx) => {
+          const height = lv.height || 0;
+          const bitrate = lv.bitrate || 0;
+          const label = describeQualityLabel(height, bitrate) || `Level ${idx + 1}`;
+          return { index: idx, height, bitrate, label };
+        });
+        setQualityLevels(levels);
         video.volume = volume;
         video.muted = false;
         video.play().then(() => {
@@ -370,6 +382,13 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
           setMutedByAutoplay(true);
           video.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
         });
+      });
+      hls.on(Hls.Events.LEVEL_SWITCHED, (_e, data) => {
+        const lv = (hlsRef.current?.levels || [])[data.level];
+        if (lv && hlsRef.current && hlsRef.current.currentLevel === -1) {
+          const hint = shortQualityHint(lv.height || 0, lv.bitrate || 0);
+          setSelectedQuality(`Auto${hint ? ` • ${hint}` : ""}`);
+        }
       });
       hls.on(Hls.Events.ERROR, (_event, data) => {
         if (!data.fatal) return;
@@ -797,8 +816,34 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
     }
   };
 
-  const handleQualitySelect = (quality: string) => {
-    setSelectedQuality(quality);
+  const handleQualitySelect = (mode: "auto" | number) => {
+    const hls = hlsRef.current;
+    if (mode === "auto") {
+      if (hls) {
+        hls.currentLevel = -1;
+        const lv = hls.levels[hls.autoLevelCapping];
+        if (lv) {
+          const hint = shortQualityHint(lv.height || 0, lv.bitrate || 0);
+          setSelectedQuality(`Auto${hint ? ` • ${hint}` : ""}`);
+        } else {
+          setSelectedQuality("Auto");
+        }
+      } else {
+        setSelectedQuality("Auto");
+      }
+    } else {
+      if (hls) {
+        hls.currentLevel = mode;
+        const lv = hls.levels[mode];
+        if (lv) {
+          const label = describeQualityLabel(lv.height || 0, lv.bitrate || 0) || `Level ${mode + 1}`;
+          setSelectedQuality(label);
+        }
+      } else {
+        const lv = qualityLevels.find((l) => l.index === mode);
+        setSelectedQuality(lv?.label || "Auto");
+      }
+    }
     setShowQualityMenu(false);
   };
 
@@ -1047,29 +1092,8 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
           </div>
         )}
 
-        {/* MUTED BY AUTOPLAY BANNER – Tap anywhere to unmute */}
-        {mutedByAutoplay && isMuted && (
-          <button
-            onClick={() => {
-              const video = videoRef.current;
-              if (video) {
-                video.muted = false;
-                video.volume = volume > 0 ? volume : 0.8;
-              }
-              setIsMuted(false);
-              setMutedByAutoplay(false);
-              setVolume(v => v > 0 ? v : 0.8);
-            }}
-            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-40 flex items-center gap-2.5 px-5 py-3 bg-black/80 hover:bg-zinc-900 border border-white/20 backdrop-blur-md rounded-2xl shadow-2xl text-white font-bold text-sm transition-all animate-in fade-in zoom-in-95 duration-300 cursor-pointer"
-            id="unmute-banner-btn"
-          >
-            <VolumeX className="w-5 h-5 text-red-400 animate-pulse" />
-            <span>Tap to Unmute / Ketuk untuk Mengaktifkan Suara</span>
-          </button>
-        )}
-
-        {/* SKIP INTRO BUTTON (Disabled for Live TV) */}
-        {currentTime >= 5 && currentTime <= 90 && !isScreenLocked && movie.contentType !== "livetv" && (
+        {/* SKIP INTRO BUTTON – Only for TV Series */}
+        {currentTime >= 5 && currentTime <= 90 && !isScreenLocked && movie.contentType === "series" && (
           <button
             onClick={handleSkipIntro}
             className="absolute bottom-28 left-6 md:left-12 z-30 px-4 py-2 bg-black/85 hover:bg-red-600 text-white font-extrabold text-xs md:text-sm rounded-lg border border-white/20 shadow-2xl flex items-center gap-2 transition-all transform hover:scale-105 active:scale-95 cursor-pointer backdrop-blur-md"
@@ -1358,41 +1382,60 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
               {/* Right Section: Video Quality, Speed, Subtitles & Customizer */}
               <div className="flex items-center gap-1.5 sm:gap-2.5 relative">
                 {/* Video Quality Selector */}
-                <div className="relative">
-                  <button
-                    onClick={() => {
-                      setShowQualityMenu(!showQualityMenu);
-                      setShowSpeedMenu(false);
-                      setShowSubtitleMenu(false);
-                      setShowSubtitleCustomizer(false);
-                    }}
-                    className="player-menu-btn flex items-center gap-1.5 text-zinc-300 hover:text-white text-xs font-semibold px-2.5 py-1 bg-zinc-900/80 border border-zinc-800 rounded-lg transition-colors cursor-pointer"
-                    title="Video Quality"
-                  >
-                    <SlidersHorizontal className="w-3.5 h-3.5 text-red-500" />
-                    <span>{selectedQuality}</span>
-                  </button>
+                {qualityLevels.length > 0 && (
+                  <div className="relative">
+                    <button
+                      onClick={() => {
+                        setShowQualityMenu(!showQualityMenu);
+                        setShowSpeedMenu(false);
+                        setShowSubtitleMenu(false);
+                        setShowSubtitleCustomizer(false);
+                      }}
+                      className="player-menu-btn px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs font-semibold backdrop-blur-md flex items-center gap-1.5 transition-all cursor-pointer"
+                      title="Video Quality"
+                    >
+                      <SlidersHorizontal className="w-3.5 h-3.5" style={{ color: brandColor }} />
+                      <span className="hidden sm:inline whitespace-nowrap">{selectedQuality}</span>
+                    </button>
 
-                  {showQualityMenu && (
-                    <div className="player-menu-popover absolute bottom-10 right-0 w-36 bg-zinc-950 border border-zinc-800 p-1.5 rounded-xl shadow-2xl flex flex-col gap-0.5 z-50">
-                      <div className="px-2 py-1 text-[10px] font-bold text-zinc-500 uppercase tracking-wider">
-                        {t.videoQuality || "Quality"}
+                    {showQualityMenu && (
+                      <div className="player-menu-popover absolute bottom-12 right-0 z-50 w-56 rounded-xl bg-zinc-900/95 border border-white/10 backdrop-blur-xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-2">
+                        <div className="px-3 py-2 border-b border-white/10">
+                          <p className="text-[10px] font-black uppercase tracking-widest font-mono" style={{ color: brandColor }}>
+                            {t.videoQuality || "Video Quality"}
+                          </p>
+                        </div>
+                        <div className="max-h-64 overflow-y-auto py-1">
+                          <button
+                            onClick={() => handleQualitySelect("auto")}
+                            className={`w-full flex items-center justify-between gap-2 px-3 py-2 text-xs font-semibold transition-all hover:bg-white/10 cursor-pointer text-white`}
+                            style={selectedQuality.startsWith("Auto") ? { backgroundColor: `${brandColor}25`, color: brandColor } : undefined}
+                          >
+                            <span>Auto</span>
+                            {selectedQuality.startsWith("Auto") && <Check className="w-3.5 h-3.5" style={{ color: brandColor }} />}
+                          </button>
+                          {qualityLevels
+                            .slice()
+                            .sort((a, b) => b.height - a.height || b.bitrate - a.bitrate)
+                            .map((lv) => {
+                              const active = !selectedQuality.startsWith("Auto") && selectedQuality === lv.label;
+                              return (
+                                <button
+                                  key={lv.index}
+                                  onClick={() => handleQualitySelect(lv.index)}
+                                  className={`w-full flex items-center justify-between gap-2 px-3 py-2 text-xs font-medium transition-all hover:bg-white/10 cursor-pointer ${active ? "text-white" : "text-zinc-200"}`}
+                                  style={active ? { backgroundColor: `${brandColor}25`, color: brandColor } : undefined}
+                                >
+                                  <span>{lv.label}</span>
+                                  {active && <Check className="w-3.5 h-3.5 shrink-0" style={{ color: brandColor }} />}
+                                </button>
+                              );
+                            })}
+                        </div>
                       </div>
-                      {["Auto", "1080p Full HD", "720p HD", "480p SD", "360p Mobile"].map((q) => (
-                        <button
-                          key={q}
-                          onClick={() => handleQualitySelect(q)}
-                          className={`text-left text-xs px-2.5 py-1.5 rounded-md hover:bg-zinc-900 transition-colors flex items-center justify-between ${
-                            selectedQuality === q ? "text-red-500 font-bold bg-red-500/10" : "text-zinc-400"
-                          }`}
-                        >
-                          <span>{q}</span>
-                          {selectedQuality === q && <Check className="w-3.5 h-3.5 text-red-500" />}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                    )}
+                  </div>
+                )}
 
                 {/* Playback speed selector */}
                 <div className="relative">

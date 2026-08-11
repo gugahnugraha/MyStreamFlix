@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useRef } from "react";
 import { 
-  Tv, Play, Pause, Volume2, VolumeX, Maximize, Search, Sparkles, 
+  Tv, Play, Pause, Volume2, VolumeX, Maximize, Minimize, X, Subtitles, Settings, Search, Sparkles, 
   Radio, Info, Globe, Flame, Check, RefreshCw, AlertCircle,
-  ChevronLeft, ChevronRight, Lock, Unlock, SlidersHorizontal
+  ChevronLeft, ChevronRight, Lock, Unlock, SlidersHorizontal, RotateCcw, RotateCw, SkipBack, SkipForward
 } from "lucide-react";
 import Hls from "hls.js";
 import { ScreenOrientation } from "@capacitor/screen-orientation";
 import { Movie } from "../types";
-import { getProxiedStreamUrl } from "../lib/stream-utils";
+import { getProxiedStreamUrl, describeQualityLabel, shortQualityHint } from "../lib/stream-utils";
 
 interface LiveTvPageProps {
   channels: Movie[];
@@ -33,22 +33,31 @@ export default function LiveTvPage({
 
   // Video playback states
   const videoRef = useRef<HTMLVideoElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const playerShellRef = useRef<HTMLDivElement>(null);
   const hlsRef = useRef<Hls | null>(null);
   const startupTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const bufferTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const controlsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const [isPlaying, setIsPlaying] = useState<boolean>(true);
   const [isMuted, setIsMuted] = useState<boolean>(false);
-  const [volume, setVolume] = useState<number>(1);
+  const [volume, setVolume] = useState<number>(0.8);
   const [isBuffering, setIsBuffering] = useState<boolean>(true);
   const [streamError, setStreamError] = useState<boolean>(false);
   const [needUserGesture, setNeedUserGesture] = useState<boolean>(false);
   const [reloadSeq, setReloadSeq] = useState(0);
 
+  const [playbackRate, setPlaybackRate] = useState(1);
+  const [isScreenLocked, setIsScreenLocked] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [showControls, setShowControls] = useState(true);
+
   // Video Quality selector states
   const [qualityLevels, setQualityLevels] = useState<{index: number; height: number; bitrate: number; label: string}[]>([]);
   const [selectedQuality, setSelectedQuality] = useState<string>("Auto");
   const [showQualityMenu, setShowQualityMenu] = useState<boolean>(false);
+  const [showSpeedMenu, setShowSpeedMenu] = useState<boolean>(false);
 
   // Initialize active channel if list changes
   useEffect(() => {
@@ -57,16 +66,34 @@ export default function LiveTvPage({
     }
   }, [channels]);
 
-  // Auto-close quality menu on outside click
+  // Auto-hide HUD controls after 3s of inactivity (consistent with MediaPlayer)
   useEffect(() => {
-    if (!showQualityMenu) return;
+    if (!isPlaying || isScreenLocked) return;
+    const scheduleHide = () => {
+      if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
+      controlsTimeoutRef.current = setTimeout(() => {
+        if (!(showQualityMenu || showSpeedMenu)) {
+          setShowControls(false);
+        }
+      }, 3200);
+    };
+    scheduleHide();
+    return () => {
+      if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
+    };
+  }, [isPlaying, isScreenLocked, showQualityMenu, showSpeedMenu]);
+
+  // Close menus on outside click
+  useEffect(() => {
+    if (!showQualityMenu && !showSpeedMenu) return;
     const handleOutsideClick = (e: MouseEvent | TouchEvent) => {
       const target = e.target as HTMLElement | null;
       if (!target) return;
-      const isInsideMenuOrToggle =
+      const isInside =
         target.closest?.(".player-menu-popover") || target.closest?.(".player-menu-btn");
-      if (!isInsideMenuOrToggle) {
+      if (!isInside) {
         setShowQualityMenu(false);
+        setShowSpeedMenu(false);
       }
     };
     window.addEventListener("mousedown", handleOutsideClick, true);
@@ -75,7 +102,14 @@ export default function LiveTvPage({
       window.removeEventListener("mousedown", handleOutsideClick, true);
       window.removeEventListener("touchstart", handleOutsideClick, true);
     };
-  }, [showQualityMenu]);
+  }, [showQualityMenu, showSpeedMenu]);
+
+  // Sync fullscreen state
+  useEffect(() => {
+    const onFs = () => setIsFullscreen(!!document.fullscreenElement);
+    document.addEventListener("fullscreenchange", onFs);
+    return () => document.removeEventListener("fullscreenchange", onFs);
+  }, []);
 
   // Active channel index
   const activeChannelIndex = liveChannels.findIndex(c => c.id === activeChannel?.id);
@@ -192,15 +226,7 @@ export default function LiveTvPage({
         const levels = (data.levels || []).map((lv, idx) => {
           const height = lv.height || 0;
           const bitrate = lv.bitrate || 0;
-          const kbps = Math.round(bitrate / 1000);
-          let label: string;
-          if (height >= 1080) label = `1080p${kbps ? ` (${kbps}kbps)` : ""}`;
-          else if (height >= 720) label = `720p${kbps ? ` (${kbps}kbps)` : ""}`;
-          else if (height >= 480) label = `480p${kbps ? ` (${kbps}kbps)` : ""}`;
-          else if (height >= 360) label = `360p${kbps ? ` (${kbps}kbps)` : ""}`;
-          else if (height > 0) label = `${height}p`;
-          else if (kbps > 0) label = `${kbps} kbps`;
-          else label = `Level ${idx + 1}`;
+          const label = describeQualityLabel(height, bitrate) || `Level ${idx + 1}`;
           return { index: idx, height, bitrate, label };
         });
         setQualityLevels(levels);
@@ -212,16 +238,7 @@ export default function LiveTvPage({
         if (lv && hlsRef.current) {
           const curLevel = hlsRef.current.currentLevel;
           if (curLevel === -1) {
-            const height = lv.height || 0;
-            const kbps = Math.round((lv.bitrate || 0) / 1000);
-            let hint: string;
-            if (height >= 1080) hint = "1080p";
-            else if (height >= 720) hint = "720p";
-            else if (height >= 480) hint = "480p";
-            else if (height >= 360) hint = "360p";
-            else if (height > 0) hint = `${height}p`;
-            else if (kbps > 0) hint = `${kbps}kbps`;
-            else hint = "";
+            const hint = shortQualityHint(lv.height || 0, lv.bitrate || 0);
             setSelectedQuality(`Auto${hint ? ` • ${hint}` : ""}`);
           }
         }
@@ -321,16 +338,7 @@ export default function LiveTvPage({
       hls.currentLevel = -1;
       const lv = hls.levels[hls.autoLevelCapping];
       if (lv) {
-        const height = lv.height || 0;
-        const kbps = Math.round((lv.bitrate || 0) / 1000);
-        let hint: string;
-        if (height >= 1080) hint = "1080p";
-        else if (height >= 720) hint = "720p";
-        else if (height >= 480) hint = "480p";
-        else if (height >= 360) hint = "360p";
-        else if (height > 0) hint = `${height}p`;
-        else if (kbps > 0) hint = `${kbps}kbps`;
-        else hint = "";
+        const hint = shortQualityHint(lv.height || 0, lv.bitrate || 0);
         setSelectedQuality(`Auto${hint ? ` • ${hint}` : ""}`);
       } else {
         setSelectedQuality("Auto");
@@ -339,16 +347,7 @@ export default function LiveTvPage({
       hls.currentLevel = mode;
       const lv = hls.levels[mode];
       if (lv) {
-        const height = lv.height || 0;
-        const kbps = Math.round((lv.bitrate || 0) / 1000);
-        let label: string;
-        if (height >= 1080) label = `1080p${kbps ? ` (${kbps}kbps)` : ""}`;
-        else if (height >= 720) label = `720p${kbps ? ` (${kbps}kbps)` : ""}`;
-        else if (height >= 480) label = `480p${kbps ? ` (${kbps}kbps)` : ""}`;
-        else if (height >= 360) label = `360p${kbps ? ` (${kbps}kbps)` : ""}`;
-        else if (height > 0) label = `${height}p`;
-        else if (kbps > 0) label = `${kbps} kbps`;
-        else label = `Level ${mode + 1}`;
+        const label = describeQualityLabel(lv.height || 0, lv.bitrate || 0) || `Level ${mode + 1}`;
         setSelectedQuality(label);
       }
     }
@@ -597,16 +596,17 @@ export default function LiveTvPage({
                     <button
                       onClick={() => setShowQualityMenu((v) => !v)}
                       className="player-menu-btn px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs font-semibold backdrop-blur-md flex items-center gap-1.5 transition-all cursor-pointer"
+                      style={{ boxShadow: selectedQuality.startsWith("Auto") ? `0 0 0 1px ${brandColor}40` : undefined }}
                       title={t?.videoQuality || "Video Quality"}
                     >
-                      <SlidersHorizontal className="w-3.5 h-3.5" />
+                      <SlidersHorizontal className="w-3.5 h-3.5" style={{ color: brandColor }} />
                       <span className="hidden sm:inline whitespace-nowrap">{selectedQuality}</span>
                     </button>
 
                     {showQualityMenu && (
                       <div className="player-menu-popover absolute bottom-12 right-12 sm:right-14 z-40 w-56 rounded-xl bg-zinc-900/95 border border-white/10 backdrop-blur-xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-2">
                         <div className="px-3 py-2 border-b border-white/10">
-                          <p className="text-[10px] font-black uppercase tracking-widest text-red-400 font-mono">
+                          <p className="text-[10px] font-black uppercase tracking-widest font-mono" style={{ color: brandColor }}>
                             {t?.videoQuality || "Video Quality"}
                           </p>
                         </div>
@@ -615,12 +615,13 @@ export default function LiveTvPage({
                             onClick={() => handleQualitySelect("auto")}
                             className={`w-full flex items-center justify-between gap-2 px-3 py-2 text-xs font-semibold transition-all hover:bg-white/10 cursor-pointer ${
                               selectedQuality.startsWith("Auto")
-                                ? "bg-red-600/20 text-red-400"
+                                ? "text-white"
                                 : "text-white"
                             }`}
+                            style={selectedQuality.startsWith("Auto") ? { backgroundColor: `${brandColor}25`, color: brandColor } : undefined}
                           >
                             <span>Auto</span>
-                            {selectedQuality.startsWith("Auto") && <Check className="w-3.5 h-3.5" />}
+                            {selectedQuality.startsWith("Auto") && <Check className="w-3.5 h-3.5" style={{ color: brandColor }} />}
                           </button>
                           {qualityLevels
                             .slice()
@@ -628,17 +629,18 @@ export default function LiveTvPage({
                             .map((lv) => {
                               const active =
                                 !selectedQuality.startsWith("Auto") &&
-                                selectedQuality.includes(`${lv.height > 0 ? lv.height + "p" : lv.index}`);
+                                selectedQuality === lv.label;
                               return (
                                 <button
                                   key={lv.index}
                                   onClick={() => handleQualitySelect(lv.index)}
                                   className={`w-full flex items-center justify-between gap-2 px-3 py-2 text-xs font-medium transition-all hover:bg-white/10 cursor-pointer ${
-                                    active ? "bg-red-600/20 text-red-400" : "text-zinc-200"
+                                    active ? "text-white" : "text-zinc-200"
                                   }`}
+                                  style={active ? { backgroundColor: `${brandColor}25`, color: brandColor } : undefined}
                                 >
                                   <span>{lv.label}</span>
-                                  {active && <Check className="w-3.5 h-3.5 shrink-0" />}
+                                  {active && <Check className="w-3.5 h-3.5 shrink-0" style={{ color: brandColor }} />}
                                 </button>
                               );
                             })}
