@@ -303,7 +303,12 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
       hls.loadSource(currentStreamUrl);
       hls.attachMedia(video);
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
-        video.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
+        video.play().then(() => setIsPlaying(true)).catch((err) => {
+          console.warn("Mobile autoplay blocked, attempting muted playback:", err);
+          video.muted = true;
+          setIsMuted(true);
+          video.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
+        });
       });
       hls.on(Hls.Events.ERROR, (_event, data) => {
         if (!data.fatal) return;
@@ -318,9 +323,18 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
         setHasError(true);
         setIsSimulating(true);
       });
+    } else if (video.canPlayType("application/vnd.apple.mpegurl") || video.canPlayType("application/x-mpegURL")) {
+      video.src = currentStreamUrl;
+      video.load();
+      video.play().then(() => setIsPlaying(true)).catch(() => {
+        video.muted = true;
+        setIsMuted(true);
+        video.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
+      });
     } else {
       video.src = currentStreamUrl;
       video.load();
+      video.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
     }
 
     return () => {

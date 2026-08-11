@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useRef } from "react";
 import { 
   Tv, Play, Pause, Volume2, VolumeX, Maximize, Search, Sparkles, 
-  Radio, Info, Globe, Flame, Check, RefreshCw, AlertCircle, Share2
+  Radio, Info, Globe, Flame, Check, RefreshCw, AlertCircle, Share2,
+  ChevronLeft, ChevronRight, ExternalLink, Lock, Unlock
 } from "lucide-react";
 import Hls from "hls.js";
+import { ScreenOrientation } from "@capacitor/screen-orientation";
 import { Movie } from "../types";
 
 interface LiveTvPageProps {
@@ -37,6 +39,7 @@ export default function LiveTvPage({
   const [isBuffering, setIsBuffering] = useState<boolean>(true);
   const [streamError, setStreamError] = useState<boolean>(false);
   const [copiedLink, setCopiedLink] = useState<boolean>(false);
+  const [needUserGesture, setNeedUserGesture] = useState<boolean>(false);
 
   // Initialize active channel if list changes
   useEffect(() => {
@@ -44,6 +47,21 @@ export default function LiveTvPage({
       setActiveChannel(liveChannels[0]);
     }
   }, [channels]);
+
+  // Active channel index
+  const activeChannelIndex = liveChannels.findIndex(c => c.id === activeChannel?.id);
+
+  const handlePrevChannel = () => {
+    if (liveChannels.length <= 1) return;
+    const prevIdx = activeChannelIndex > 0 ? activeChannelIndex - 1 : liveChannels.length - 1;
+    setActiveChannel(liveChannels[prevIdx]);
+  };
+
+  const handleNextChannel = () => {
+    if (liveChannels.length <= 1) return;
+    const nextIdx = activeChannelIndex < liveChannels.length - 1 ? activeChannelIndex + 1 : 0;
+    setActiveChannel(liveChannels[nextIdx]);
+  };
 
   // Handle HLS / HTML5 Video Stream Loading
   useEffect(() => {
@@ -53,8 +71,27 @@ export default function LiveTvPage({
     let hls: Hls | null = null;
     setIsBuffering(true);
     setStreamError(false);
+    setNeedUserGesture(false);
 
     const streamUrl = activeChannel.videoUrl;
+
+    const attemptPlay = () => {
+      video.play().then(() => {
+        setIsPlaying(true);
+        setNeedUserGesture(false);
+      }).catch((err) => {
+        console.warn("Autoplay blocked on mobile, attempting muted playback:", err);
+        video.muted = true;
+        setIsMuted(true);
+        video.play().then(() => {
+          setIsPlaying(true);
+          setNeedUserGesture(false);
+        }).catch(() => {
+          setIsPlaying(false);
+          setNeedUserGesture(true);
+        });
+      });
+    };
 
     if (Hls.isSupported() && streamUrl.includes(".m3u8")) {
       hls = new Hls({
@@ -66,7 +103,7 @@ export default function LiveTvPage({
       hls.attachMedia(video);
 
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
-        video.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
+        attemptPlay();
       });
 
       hls.on(Hls.Events.ERROR, (_event, data) => {
@@ -85,7 +122,7 @@ export default function LiveTvPage({
       // Standard HTML5 video element playback for native HLS (Safari/iOS) or standard URLs
       video.src = streamUrl;
       video.load();
-      video.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
+      attemptPlay();
     }
 
     return () => {
@@ -103,7 +140,12 @@ export default function LiveTvPage({
       video.pause();
       setIsPlaying(false);
     } else {
-      video.play().then(() => setIsPlaying(true)).catch(() => {});
+      video.play().then(() => {
+        setIsPlaying(true);
+        setNeedUserGesture(false);
+      }).catch(() => {
+        setNeedUserGesture(true);
+      });
     }
   };
 
@@ -129,16 +171,20 @@ export default function LiveTvPage({
     if (!target) return;
     if (document.fullscreenElement) {
       document.exitFullscreen().catch(() => {});
-      try {
-        const orientation = (screen as any).orientation || (window.screen as any).orientation;
-        if (orientation && typeof orientation.unlock === "function") orientation.unlock();
-      } catch {}
+      ScreenOrientation.unlock().catch(() => {
+        try {
+          const orientation = (screen as any).orientation || (window.screen as any).orientation;
+          if (orientation && typeof orientation.unlock === "function") orientation.unlock();
+        } catch {}
+      });
     } else {
       target.requestFullscreen().catch(() => {});
-      try {
-        const orientation = (screen as any).orientation || (window.screen as any).orientation;
-        if (orientation && typeof orientation.lock === "function") orientation.lock("landscape").catch(() => {});
-      } catch {}
+      ScreenOrientation.lock({ orientation: "landscape" }).catch(() => {
+        try {
+          const orientation = (screen as any).orientation || (window.screen as any).orientation;
+          if (orientation && typeof orientation.lock === "function") orientation.lock("landscape").catch(() => {});
+        } catch {}
+      });
     }
   };
 
@@ -275,8 +321,44 @@ export default function LiveTvPage({
               </span>
             </div>
 
+            {/* Side Quick Channel Switchers for Mobile / Android APK */}
+            {liveChannels.length > 1 && (
+              <>
+                <button
+                  onClick={handlePrevChannel}
+                  className="absolute left-2 top-1/2 -translate-y-1/2 z-20 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-black/60 hover:bg-red-600 text-white backdrop-blur-md border border-white/20 flex items-center justify-center transition-all opacity-80 hover:opacity-100 shadow-xl cursor-pointer"
+                  title="Channel Sebelumnya"
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                </button>
+                <button
+                  onClick={handleNextChannel}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 z-20 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-black/60 hover:bg-red-600 text-white backdrop-blur-md border border-white/20 flex items-center justify-center transition-all opacity-80 hover:opacity-100 shadow-xl cursor-pointer"
+                  title="Channel Berikutnya"
+                >
+                  <ChevronRight className="w-5 h-5" />
+                </button>
+              </>
+            )}
+
+            {/* Mobile Touch-to-Play Autoplay Bypass Overlay */}
+            {needUserGesture && !streamError && (
+              <div className="absolute inset-0 bg-black/75 backdrop-blur-xs flex flex-col items-center justify-center z-25 p-4 text-center">
+                <button
+                  onClick={togglePlay}
+                  className="w-16 h-16 rounded-full bg-red-600 hover:bg-red-700 text-white flex items-center justify-center shadow-[0_0_30px_rgba(220,38,38,0.6)] transition-all transform active:scale-95 cursor-pointer mb-3"
+                >
+                  <Play className="w-8 h-8 ml-1 text-white fill-white" />
+                </button>
+                <h4 className="text-sm font-bold text-white">Sentuh Untuk Memutar Live TV</h4>
+                <p className="text-[11px] text-zinc-400 mt-1 max-w-xs">
+                  Kebijakan browser seluler memerlukan sentuhan manual pertama untuk memulai siaran langsung.
+                </p>
+              </div>
+            )}
+
             {/* Buffering Indicator */}
-            {isBuffering && !streamError && (
+            {isBuffering && !streamError && !needUserGesture && (
               <div className="absolute inset-0 bg-black/60 backdrop-blur-xs flex flex-col items-center justify-center z-10 space-y-3">
                 <div className="w-10 h-10 border-3 border-red-600 border-t-transparent rounded-full animate-spin" />
                 <span className="text-xs text-zinc-300 font-medium">{t?.connectingLive || "Connecting to live broadcast..."}</span>
@@ -293,24 +375,35 @@ export default function LiveTvPage({
                     {t?.signalLostDesc || "TV station is currently offline or experiencing stream server issues."}
                   </p>
                 </div>
-                <button
-                  onClick={() => {
-                    setStreamError(false);
-                    setIsBuffering(true);
-                    if (videoRef.current) {
-                      videoRef.current.load();
-                      videoRef.current.play().catch(() => {});
-                    }
-                  }}
-                  className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-bold transition-all shadow-lg cursor-pointer"
-                >
-                  <RefreshCw className="w-3.5 h-3.5" />
-                  {t?.reconnectBtn || "Try Reconnecting"}
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => {
+                      setStreamError(false);
+                      setIsBuffering(true);
+                      if (videoRef.current) {
+                        videoRef.current.load();
+                        videoRef.current.play().catch(() => {});
+                      }
+                    }}
+                    className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-bold transition-all shadow-lg cursor-pointer"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5" />
+                    {t?.reconnectBtn || "Try Reconnecting"}
+                  </button>
+                  {onSelectMovie && (
+                    <button
+                      onClick={() => onSelectMovie(activeChannel)}
+                      className="flex items-center gap-1.5 px-3 py-2 bg-zinc-800 hover:bg-zinc-700 text-white rounded-lg text-xs font-bold transition-all cursor-pointer"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5 text-[#00ADB5]" />
+                      Full Player
+                    </button>
+                  )}
+                </div>
               </div>
             )}
 
-            {/* In-Player HUD Control Bar (Only Play/Pause, Volume, Mute, Fullscreen - NO Skip Intro / Duration) */}
+            {/* In-Player HUD Control Bar */}
             <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent p-2.5 sm:p-4 z-20 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-between gap-2 sm:gap-4">
               
               {/* Left Controls: Play/Pause & Mute */}
@@ -344,8 +437,19 @@ export default function LiveTvPage({
                 </div>
               </div>
 
-              {/* Right Controls: Share & Fullscreen */}
+              {/* Right Controls: Share, Fullscreen, Open in Theater */}
               <div className="flex items-center gap-2">
+                {onSelectMovie && (
+                  <button
+                    onClick={() => onSelectMovie(activeChannel)}
+                    className="px-3 py-1.5 rounded-lg bg-red-600/80 hover:bg-red-600 text-white text-xs font-semibold backdrop-blur-md flex items-center gap-1.5 transition-all cursor-pointer shadow-lg"
+                    title="Open Full Theater Player"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5" />
+                    <span className="hidden sm:inline">Theater</span>
+                  </button>
+                )}
+
                 <button
                   onClick={handleShareChannel}
                   className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs font-semibold backdrop-blur-md flex items-center gap-1.5 transition-all cursor-pointer"

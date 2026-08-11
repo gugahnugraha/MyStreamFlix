@@ -283,23 +283,23 @@ export default function IPTVScanner({ brandColor, onImportChannel }: IPTVScanner
                   setDynamicSourceType(nextType);
                   setDynamicSourceValue(nextType === "country" ? "id" : "news");
                 }}
-                className="bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-zinc-600"
+                className="bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-zinc-600 cursor-pointer"
               >
-                <option value="country">Negara</option>
-                <option value="category">Kategori</option>
+                <option value="country" className="bg-zinc-950 text-white py-1.5" style={{ backgroundColor: '#09090b', color: '#f4f4f5' }}>Negara</option>
+                <option value="category" className="bg-zinc-950 text-white py-1.5" style={{ backgroundColor: '#09090b', color: '#f4f4f5' }}>Kategori</option>
               </select>
 
               <select
                 value={dynamicSourceValue}
                 onChange={(e) => setDynamicSourceValue(e.target.value)}
-                className="bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-zinc-600"
+                className="bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-zinc-600 cursor-pointer"
               >
                 {dynamicSourceType === "country"
                   ? IPTV_COUNTRY_SOURCES.map(source => (
-                    <option key={source.code} value={source.code}>{source.label}</option>
+                    <option key={source.code} value={source.code} className="bg-zinc-950 text-white py-1.5" style={{ backgroundColor: '#09090b', color: '#f4f4f5' }}>{source.label}</option>
                   ))
                   : IPTV_CATEGORY_SOURCES.map(source => (
-                    <option key={source} value={source}>{source.charAt(0).toUpperCase() + source.slice(1)}</option>
+                    <option key={source} value={source} className="bg-zinc-950 text-white py-1.5" style={{ backgroundColor: '#09090b', color: '#f4f4f5' }}>{source.charAt(0).toUpperCase() + source.slice(1)}</option>
                   ))}
               </select>
 
@@ -472,9 +472,9 @@ export default function IPTVScanner({ brandColor, onImportChannel }: IPTVScanner
                       onChange={e => setFilterGroup(e.target.value)}
                       className="bg-zinc-900 border border-zinc-800 rounded-lg pl-9 pr-8 py-2 text-xs text-white focus:outline-none focus:border-zinc-600 appearance-none cursor-pointer"
                     >
-                      <option value="ALL">Semua Kategori</option>
+                      <option value="ALL" className="bg-zinc-950 text-white py-1.5" style={{ backgroundColor: '#09090b', color: '#f4f4f5' }}>Semua Kategori</option>
                       {availableGroups.map(g => (
-                        <option key={g} value={g}>{g}</option>
+                        <option key={g} value={g} className="bg-zinc-950 text-white py-1.5" style={{ backgroundColor: '#09090b', color: '#f4f4f5' }}>{g}</option>
                       ))}
                     </select>
                   </div>
@@ -487,9 +487,9 @@ export default function IPTVScanner({ brandColor, onImportChannel }: IPTVScanner
                       onChange={e => setFilterCountry(e.target.value)}
                       className="bg-zinc-900 border border-zinc-800 rounded-lg pl-9 pr-8 py-2 text-xs text-white focus:outline-none focus:border-zinc-600 appearance-none cursor-pointer"
                     >
-                      <option value="ALL">Semua Negara</option>
+                      <option value="ALL" className="bg-zinc-950 text-white py-1.5" style={{ backgroundColor: '#09090b', color: '#f4f4f5' }}>Semua Negara</option>
                       {availableCountries.map(c => (
-                        <option key={c} value={c}>{c}</option>
+                        <option key={c} value={c} className="bg-zinc-950 text-white py-1.5" style={{ backgroundColor: '#09090b', color: '#f4f4f5' }}>{c}</option>
                       ))}
                     </select>
                   </div>

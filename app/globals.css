@@ -62,6 +62,70 @@
 @keyframes fadeInQuick {
   0% {
     opacity: 0;
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700;800&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+
+  /* Custom Slow animation loops for background and spinners */
+  --animate-spin-slow: spin 8s linear infinite;
+  
+  /* Scrollbar overrides */
+  --scrollbar-thumb: #3f3f46;
+  --scrollbar-track: transparent;
+
+  /* Premium Cinematic animations */
+  --animate-fade-in-scale: fadeInScale 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  --animate-slide-up-text: slideUpText 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  --animate-fade-in-quick: fadeInQuick 0.4s ease-out forwards;
+}
+
+/* Dynamic theme color CSS variables */
+:root {
+  --theme-primary: #E50914;
+  --theme-primary-90: rgba(229, 9, 20, 0.9);
+  --theme-primary-80: rgba(229, 9, 20, 0.8);
+  --theme-primary-50: rgba(229, 9, 20, 0.5);
+  --theme-primary-30: rgba(229, 9, 20, 0.3);
+  --theme-primary-20: rgba(229, 9, 20, 0.2);
+  --theme-primary-10: rgba(229, 9, 20, 0.1);
+  --surface-strong: rgba(15, 15, 18, 0.94);
+  --surface-soft: rgba(24, 24, 27, 0.72);
+  --line-soft: rgba(255, 255, 255, 0.08);
+}
+
+@keyframes fadeInScale {
+  0% {
+    opacity: 0;
+    transform: scale(1.08);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes slideUpText {
+  0% {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeInQuick {
+  0% {
+    opacity: 0;
   }
   100% {
     opacity: 1;
@@ -80,6 +144,25 @@ body {
   min-height: 100svh;
   padding-left: env(safe-area-inset-left, 0px);
   padding-right: env(safe-area-inset-right, 0px);
+}
+
+/* Universal Native Select & Option dark mode contrast fix */
+select {
+  background-color: #09090b !important;
+  color: #f4f4f5 !important;
+}
+
+select option,
+select optgroup {
+  background-color: #09090b !important;
+  color: #f4f4f5 !important;
+}
+
+select option:checked,
+select option:hover,
+select option:focus {
+  background-color: #18181b !important;
+  color: #ffffff !important;
 }
 
 #app-root {

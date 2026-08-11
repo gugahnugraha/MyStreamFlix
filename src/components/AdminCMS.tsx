@@ -238,6 +238,22 @@ export default function AdminCMS({
     }
   }, [globalSettings]);
 
+  const loadDashboardStats = async () => {
+    try {
+      const res = await fetch("/api/dashboard/stats");
+      if (res.ok) {
+        const data = await res.json();
+        setStats(data);
+      }
+    } catch (e) {
+      console.error("Failed loading stats", e);
+    }
+  };
+
+  useEffect(() => {
+    loadDashboardStats();
+  }, [movies]);
+
   // Update a single settings field in real-time
   const updateSettingsField = (key: keyof CMSSettings, value: any) => {
     if (!settings) return;
@@ -1067,7 +1083,7 @@ export default function AdminCMS({
 
               <div className="flex items-center gap-2 shrink-0">
                 <button
-                  onClick={fetchStats}
+                  onClick={loadDashboardStats}
                   className="flex items-center gap-2 px-4 py-2 bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-white text-xs font-bold rounded-xl transition-all cursor-pointer shadow-lg active:scale-95"
                 >
                   <RefreshCw className="w-3.5 h-3.5 text-[#00ADB5]" />
