@@ -19,8 +19,8 @@ interface HeaderProps {
   settings: CMSSettings;
   activeTab: string;
   setActiveTab: (tab: string) => void;
-  selectedContentType: "all" | "movie" | "series";
-  onSelectContentType: (type: "all" | "movie" | "series") => void;
+  selectedContentType: "all" | "movie" | "series" | "livetv";
+  onSelectContentType: (type: "all" | "movie" | "series" | "livetv") => void;
   onOpenAuth: () => void;
   onLogout: () => void;
   searchQuery: string;
@@ -240,6 +240,21 @@ export default function Header({
           id="nav-series"
         >
           {t.tvSeries || "Series"}
+        </button>
+        <button
+          onClick={() => {
+            setActiveTab("home");
+            onSelectContentType("livetv");
+            setSearchQuery("");
+          }}
+          className={`relative px-3 py-1.5 rounded-md transition-all cursor-pointer flex items-center gap-1.5 group ${
+            activeTab === "home" && selectedContentType === "livetv" ? "text-white font-semibold" : "hover:bg-white/[0.04]"
+          }`}
+          style={activeTab === "home" && selectedContentType === "livetv" ? { backgroundColor: `${brandColor}18`, color: brandColor } : {}}
+          id="nav-livetv"
+        >
+          <span className="w-2 h-2 rounded-full bg-red-500 animate-ping inline-block" />
+          <span>{t.liveTv || "Live TV"}</span>
         </button>
         {currentUser && (
           <button

@@ -61,6 +61,12 @@ export default function MovieCard({ movie, progress, onSelect, onPlay, t }: Movi
 
         {/* Top Floating Badge Row - Glassmorphism style */}
         <div className="absolute top-2 left-2 flex items-center gap-1.5 z-10">
+          {movie.contentType === "livetv" && (
+            <span className="px-2 py-0.5 text-[9px] font-black rounded-md border border-red-500/40 bg-red-600/90 backdrop-blur-md text-white tracking-wider uppercase flex items-center gap-1 shadow-lg">
+              <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />
+              LIVE
+            </span>
+          )}
           {movie.contentType === "series" && (
             <span className="px-2 py-0.5 text-[9px] font-black rounded-md border border-white/10 bg-black/45 backdrop-blur-md text-zinc-100 tracking-wider uppercase">
               {t?.tvSeries || "Series"}

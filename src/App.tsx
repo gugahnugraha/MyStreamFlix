@@ -20,6 +20,7 @@ import AuthModal from "./components/AuthModal";
 import SubscriptionModal from "./components/SubscriptionModal";
 import ProfileModal from "./components/ProfileModal";
 import Footer from "./components/Footer";
+import LiveTvPage from "./components/LiveTvPage";
 import { Movie, User, WatchHistoryItem, CMSSettings } from "./types";
 import { getTranslation, LanguageCode } from "./translations";
 
@@ -72,7 +73,7 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState("");
   const [showMobileSearch, setShowMobileSearch] = useState(false);
   const [selectedGenre, setSelectedGenre] = useState("All");
-  const [selectedContentType, setSelectedContentType] = useState<"all" | "movie" | "series">("all");
+  const [selectedContentType, setSelectedContentType] = useState<"all" | "movie" | "series" | "livetv">("all");
   const [sortBy, setSortBy] = useState("recent");
   
   // User Personalization Lists
@@ -529,31 +530,19 @@ export default function App() {
                     t={t}
                   />
                 )}
-
-                {/* 4. New Releases */}
-                {displayedMovies.length > 0 && (
-                  <MovieRow
-                    title={t.newReleases || "New Releases"}
-                    icon={<Film className="w-5 h-5" style={{ color: settings.primaryColor }} />}
-                    items={[...displayedMovies]
-                      .sort((a, b) => b.releaseYear - a.releaseYear)
-                      .slice(0, 10)
-                      .map((movie) => ({
-                        movie,
-                        progress: getProgressOfMovie(movie.id)
-                      }))}
-                    onSelect={setSelectedMovie}
-                    onPlay={handleLaunchStream}
-                    t={t}
-                  />
-                )}
-                
               </div>
+            ) : selectedContentType === "livetv" ? (
+              /* DEDICATED LIVE TV BROADCAST STATION PAGE */
+              <LiveTvPage
+                channels={movies}
+                onSelectMovie={setSelectedMovie}
+                t={t}
+                brandColor={settings.primaryColor}
+              />
             ) : (
               /* DEDICATED CATALOG VIEW FOR MOVIES / TV SERIES (NO CAROUSEL) */
               <div className="px-4 md:px-8 max-w-7xl mx-auto space-y-10 pb-16 pt-6 animate-fade-in-quick">
-                
-                {/* Immersive Tagline Header instead of Carousel (Hidden on mobile) */}
+                {/* Immersive Tagline Header */}
                 <div className="hidden md:block apple-header-panel py-10 px-8 rounded-3xl shadow-3xl relative overflow-hidden">
                   <div className="apple-header-glow" style={{ background: `radial-gradient(circle, var(--theme-primary-30) 0%, transparent 70%)` }} />
                   <span className="text-[10px] uppercase font-black tracking-widest px-2.5 py-1 rounded-md bg-white/[0.04] border border-white/10" style={{ color: settings.primaryColor }}>
@@ -568,10 +557,9 @@ export default function App() {
                       : (t.tvSeriesCatalogDesc || "Engage with stunning multi-season storytelling structures, featuring sequential play, subtitle overlays, and resume capabilities.")}
                   </p>
                 </div>
- 
+
                 {/* Quick Filters Row */}
                 <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 py-4 px-5 bg-white/[0.02] border border-white/[0.05] rounded-2xl backdrop-blur-md shadow-lg">
-                  {/* Genre filters */}
                   <div className="flex items-center gap-2 overflow-x-auto w-full md:w-auto pb-1 md:pb-0 scrollbar-thin scrollbar-thumb-zinc-900 scrollbar-track-transparent">
                     <Compass className="w-4 h-4 shrink-0 hidden md:inline animate-spin-slow" style={{ color: settings.primaryColor }} />
                     {["All", "Action", "Animation", "Drama", "Fantasy", "Sci-Fi", "Comedy"].map((genre) => (
@@ -586,7 +574,7 @@ export default function App() {
                       </button>
                     ))}
                   </div>
- 
+
                   {/* Sorting dropdown */}
                   <div className="flex items-center gap-3 shrink-0 w-full md:w-auto justify-between md:justify-end">
                     <div className="flex items-center gap-1.5 text-zinc-500 text-xs font-semibold">
@@ -606,7 +594,7 @@ export default function App() {
                     </select>
                   </div>
                 </div>
- 
+
                 {/* Grid Content */}
                 <div className="space-y-4" id="main-catalog-grid">
                   <div className="flex items-center justify-between border-b border-white/[0.04] pb-3 px-1">
@@ -620,7 +608,7 @@ export default function App() {
                       {displayedMovies.length} {selectedContentType === "movie" ? t.movies : t.tvSeries}
                     </span>
                   </div>
- 
+
                   {loading ? (
                     <div className="py-20 flex flex-col items-center gap-3" id="grid-loading">
                       <div className="w-8 h-8 border-2 border-t-transparent rounded-full animate-spin" style={{ borderColor: settings.primaryColor, borderTopColor: "transparent" }} />

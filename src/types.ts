@@ -60,7 +60,7 @@ export interface Movie {
   tmdbId?: number;
   tmdbMediaType?: "movie" | "tv";
   tier?: "free" | "vip" | "premium"; // content classification like Hotstar/Prime
-  contentType?: "movie" | "series";
+  contentType?: "movie" | "series" | "livetv";
   seasons?: Season[];
   trailerUrl?: string;
 }

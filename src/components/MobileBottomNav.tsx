@@ -8,8 +8,8 @@ import { User } from "../types";
 interface MobileBottomNavProps {
   activeTab: string;
   setActiveTab: (tab: string) => void;
-  selectedContentType: "all" | "movie" | "series";
-  onSelectContentType: (type: "all" | "movie" | "series") => void;
+  selectedContentType: "all" | "movie" | "series" | "livetv";
+  onSelectContentType: (type: "all" | "movie" | "series" | "livetv") => void;
   currentUser: User | null;
   onOpenAuth: () => void;
   onOpenMobileSearch: () => void;
@@ -82,6 +82,16 @@ export default function MobileBottomNav({
       action: () => handleAction(() => {
         setActiveTab("home");
         onSelectContentType("series");
+      })
+    },
+    {
+      id: "home-livetv",
+      label: t?.liveTv || "Live TV",
+      icon: Tv,
+      isActive: activeTab === "home" && selectedContentType === "livetv",
+      action: () => handleAction(() => {
+        setActiveTab("home");
+        onSelectContentType("livetv");
       })
     },
     {

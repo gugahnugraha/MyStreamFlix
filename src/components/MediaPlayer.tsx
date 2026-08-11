@@ -4,7 +4,28 @@
  */
 
 import React, { useRef, useState, useEffect } from "react";
-import { Play, Pause, RotateCcw, RotateCw, Volume2, VolumeX, Maximize, Minimize, X, Subtitles, Settings } from "lucide-react";
+import {
+  Play,
+  Pause,
+  RotateCcw,
+  RotateCw,
+  Volume2,
+  VolumeX,
+  Maximize,
+  Minimize,
+  X,
+  Subtitles,
+  Settings,
+  SkipForward,
+  SkipBack,
+  Lock,
+  Unlock,
+  Check,
+  SlidersHorizontal,
+  Sparkles,
+  Tv
+} from "lucide-react";
+import { ScreenOrientation } from "@capacitor/screen-orientation";
 import { Movie, Subtitle } from "../types";
 
 interface MediaPlayerProps {
@@ -24,7 +45,7 @@ function parseSubtitles(text: string): Cue[] {
   const cues: Cue[] = [];
   const normalizedText = text.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
   const blocks = normalizedText.split(/\n\n+/);
-  
+
   const parseTimeToSeconds = (timeStr: string): number => {
     const match = timeStr.trim().match(/(?:(\d+):)?(\d+):(\d+)[.,](\d+)/);
     if (!match) return 0;
@@ -39,7 +60,7 @@ function parseSubtitles(text: string): Cue[] {
   for (const block of blocks) {
     const lines = block.trim().split("\n");
     if (lines.length < 2) continue;
-    
+
     let timeLineIndex = -1;
     for (let i = 0; i < lines.length; i++) {
       if (lines[i].includes("-->")) {
@@ -47,27 +68,27 @@ function parseSubtitles(text: string): Cue[] {
         break;
       }
     }
-    
+
     if (timeLineIndex === -1) continue;
-    
+
     const timeParts = lines[timeLineIndex].split("-->");
     if (timeParts.length !== 2) continue;
-    
+
     const start = parseTimeToSeconds(timeParts[0]);
     const end = parseTimeToSeconds(timeParts[1]);
-    
+
     const textLines = lines.slice(timeLineIndex + 1);
     const cueText = textLines.join("\n").replace(/<[^>]+>/g, "").trim();
-    
+
     if (cueText) {
       cues.push({ start, end, text: cueText });
     }
   }
-  
+
   return cues;
 }
 
-export default function MediaPlayer({ movie, initialProgress = 0, onClose, t }: MediaPlayerProps) {
+export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {} }: MediaPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -101,7 +122,143 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t }: 
   const [activeSubtitle, setActiveSubtitle] = useState<string>("off");
   const [parsedSubtitlesMap, setParsedSubtitlesMap] = useState<Record<string, Cue[]>>({});
 
-  const activeSubtitleObj = (movie.subtitles || []).find(s => s.language === activeSubtitle);
+  // Player Experience Enhancements
+  const [isScreenLocked, setIsScreenLocked] = useState(false);
+  const [selectedQuality, setSelectedQuality] = useState<string>("Auto");
+  const [showQualityMenu, setShowQualityMenu] = useState(false);
+
+  // Subtitle Customizer States
+  const [subtitleSize, setSubtitleSize] = useState<"small" | "medium" | "large" | "xlarge">("medium");
+  const [subtitleStyle, setSubtitleStyle] = useState<"shadow" | "box" | "yellow">("shadow");
+  const [showSubtitleCustomizer, setShowSubtitleCustomizer] = useState(false);
+
+  // Next Episode Auto-Play States
+  const [autoPlayCountdown, setAutoPlayCountdown] = useState<number | null>(null);
+  const [isNextEpisodeDismissed, setIsNextEpisodeDismissed] = useState(false);
+
+  const activeSubtitleObj = (movie.subtitles || []).find((s) => s.language === activeSubtitle);
+
+  // Helper to find next episode
+  const getNextEpisodeInfo = () => {
+    if (movie.contentType !== "series" || !movie.seasons || !activeSeason || !activeEpisode) {
+      return null;
+    }
+    const epIndex = activeSeason.episodes.findIndex((ep) => ep.id === activeEpisode.id);
+    if (epIndex !== -1 && epIndex + 1 < activeSeason.episodes.length) {
+      return {
+        season: activeSeason,
+        episode: activeSeason.episodes[epIndex + 1]
+      };
+    }
+    // Try next season
+    const seasonIndex = movie.seasons.findIndex((s) => s.id === activeSeason.id);
+    if (seasonIndex !== -1 && seasonIndex + 1 < movie.seasons.length) {
+      const nextSeason = movie.seasons[seasonIndex + 1];
+      if (nextSeason.episodes.length > 0) {
+        return {
+          season: nextSeason,
+          episode: nextSeason.episodes[0]
+        };
+      }
+    }
+    return null;
+  };
+
+  // Helper to find previous episode
+  const getPrevEpisodeInfo = () => {
+    if (movie.contentType !== "series" || !movie.seasons || !activeSeason || !activeEpisode) {
+      return null;
+    }
+    const epIndex = activeSeason.episodes.findIndex((ep) => ep.id === activeEpisode.id);
+    if (epIndex > 0) {
+      return {
+        season: activeSeason,
+        episode: activeSeason.episodes[epIndex - 1]
+      };
+    }
+    const seasonIndex = movie.seasons.findIndex((s) => s.id === activeSeason.id);
+    if (seasonIndex > 0) {
+      const prevSeason = movie.seasons[seasonIndex - 1];
+      if (prevSeason.episodes.length > 0) {
+        return {
+          season: prevSeason,
+          episode: prevSeason.episodes[prevSeason.episodes.length - 1]
+        };
+      }
+    }
+    return null;
+  };
+
+  const nextEpisodeInfo = getNextEpisodeInfo();
+  const prevEpisodeInfo = getPrevEpisodeInfo();
+
+  // Play next episode
+  const handlePlayNextEpisode = () => {
+    if (nextEpisodeInfo) {
+      setActiveSeason(nextEpisodeInfo.season);
+      setActiveEpisode(nextEpisodeInfo.episode);
+      setCurrentTime(0);
+      setAutoPlayCountdown(null);
+      setIsNextEpisodeDismissed(false);
+      if (!isSimulating && videoRef.current) {
+        videoRef.current.currentTime = 0;
+        videoRef.current.play().catch(() => {});
+      }
+    }
+  };
+
+  // Play previous episode
+  const handlePlayPrevEpisode = () => {
+    if (prevEpisodeInfo) {
+      setActiveSeason(prevEpisodeInfo.season);
+      setActiveEpisode(prevEpisodeInfo.episode);
+      setCurrentTime(0);
+      setAutoPlayCountdown(null);
+      setIsNextEpisodeDismissed(false);
+      if (!isSimulating && videoRef.current) {
+        videoRef.current.currentTime = 0;
+        videoRef.current.play().catch(() => {});
+      }
+    }
+  };
+
+  // Skip Intro Handler (fast forward 85 seconds)
+  const handleSkipIntro = () => {
+    const target = Math.min(duration - 5, 85);
+    setCurrentTime(target);
+    if (!isSimulating && videoRef.current) {
+      videoRef.current.currentTime = target;
+    }
+  };
+
+  // Auto-play Next Episode Countdown Trigger (when remaining duration <= 15s)
+  useEffect(() => {
+    if (!nextEpisodeInfo || isNextEpisodeDismissed) return;
+
+    const remaining = duration - currentTime;
+    if (remaining <= 15 && remaining > 0 && isPlaying) {
+      if (autoPlayCountdown === null) {
+        setAutoPlayCountdown(10);
+      }
+    } else if (remaining > 15 && autoPlayCountdown !== null) {
+      setAutoPlayCountdown(null);
+    }
+  }, [currentTime, duration, isPlaying, nextEpisodeInfo, isNextEpisodeDismissed, autoPlayCountdown]);
+
+  // Auto-play countdown interval timer
+  useEffect(() => {
+    if (autoPlayCountdown === null) return;
+    if (autoPlayCountdown <= 0) {
+      handlePlayNextEpisode();
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      setAutoPlayCountdown((prev) => (prev !== null ? prev - 1 : null));
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, [autoPlayCountdown]);
 
   // Keep duration in sync with active episode changes
   useEffect(() => {
@@ -129,6 +286,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t }: 
   useEffect(() => {
     let timeout: NodeJS.Timeout;
     const resetTimer = () => {
+      if (isScreenLocked) return;
       setShowControls(true);
       clearTimeout(timeout);
       timeout = setTimeout(() => {
@@ -136,6 +294,8 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t }: 
           setShowControls(false);
           setShowSpeedMenu(false);
           setShowSubtitleMenu(false);
+          setShowQualityMenu(false);
+          setShowSubtitleCustomizer(false);
         }
       }, 3500);
     };
@@ -157,30 +317,36 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t }: 
         container.removeEventListener("touchstart", resetTimer);
       }
     };
-  }, [isPlaying]);
+  }, [isPlaying, isScreenLocked]);
 
-  // Listen to fullscreen changes (e.g. from pressing Escape key)
+  // Listen to fullscreen changes & handle screen orientation
   useEffect(() => {
     const handleFullscreenChange = () => {
       const isFs = !!document.fullscreenElement;
       setIsFullscreen(isFs);
-      const orientation = (screen as any).orientation || (window.screen as any).orientation;
-      if (isFs) {
-        if (orientation && typeof orientation.lock === "function") {
-          orientation.lock("landscape").catch((err: any) => {
-            console.warn("Screen orientation lock failed:", err);
-          });
-        }
-      } else {
-        if (orientation && typeof orientation.unlock === "function") {
-          orientation.unlock();
-        }
+      if (!isFs) {
+        ScreenOrientation.unlock().catch(() => {
+          try {
+            const orientation = (screen as any).orientation || (window.screen as any).orientation;
+            if (orientation && typeof orientation.unlock === "function") {
+              orientation.unlock();
+            }
+          } catch (e) {}
+        });
       }
     };
 
     document.addEventListener("fullscreenchange", handleFullscreenChange);
     return () => {
       document.removeEventListener("fullscreenchange", handleFullscreenChange);
+      ScreenOrientation.unlock().catch(() => {
+        try {
+          const orientation = (screen as any).orientation || (window.screen as any).orientation;
+          if (orientation && typeof orientation.unlock === "function") {
+            orientation.unlock();
+          }
+        } catch (e) {}
+      });
     };
   }, []);
 
@@ -195,7 +361,6 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t }: 
         if (initialProgress > 0 && initialProgress < video.duration - 5) {
           video.currentTime = initialProgress;
         }
-        // Auto-play
         video.play().then(() => {
           setIsPlaying(true);
           setHasError(false);
@@ -212,7 +377,6 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t }: 
         video.removeEventListener("loadedmetadata", handleLoadedMetadata);
       };
     } else {
-      // No native element or environment constraints: auto-start simulation
       setIsSimulating(true);
       setIsPlaying(true);
     }
@@ -236,7 +400,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t }: 
     return () => clearInterval(interval);
   }, [isSimulating, isPlaying, playbackRate, duration]);
 
-  // Background Beacon: Save streaming checkpoint on API database every 5 seconds
+  // Background Beacon: Save streaming progress
   useEffect(() => {
     if (!isPlaying) return;
 
@@ -252,31 +416,29 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t }: 
             progress: curr,
             duration: dur
           })
-        }).catch(err => console.warn("Failed syncing continue progress beacon:", err));
+        }).catch((err) => console.warn("Failed syncing continue progress beacon:", err));
       }
     }, 5000);
 
     return () => clearInterval(interval);
   }, [isPlaying, isSimulating, currentTime, duration, movie.id]);
 
-  // Sync caption text based on current playback time and selected subtitle language
+  // Sync caption text
   useEffect(() => {
     if (activeSubtitle === "off") {
       setCurrentCaption("");
       return;
     }
 
-    // 1. Try to display dynamic subtitles
     const cues = parsedSubtitlesMap[activeSubtitle];
     if (cues && cues.length > 0) {
-      const activeCue = cues.find(cue => currentTime >= cue.start && currentTime <= cue.end);
+      const activeCue = cues.find((cue) => currentTime >= cue.start && currentTime <= cue.end);
       setCurrentCaption(activeCue ? activeCue.text : "");
       return;
     }
 
-    // 2. Fallback to hardcoded mock captions if in simulation mode and no dynamic cues found
     if (isSimulating) {
-      const t = Math.round(currentTime);
+      const timeSec = Math.round(currentTime);
       const captionsMap: Record<string, Record<number, string>> = {
         en: {
           2: "This is a demonstration of the FlixSphere HLS Player.",
@@ -284,20 +446,6 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t }: 
           10: "Feel free to scrub anywhere to trigger instant resume points.",
           15: "FlixSphere delivers marketplace-quality content rendering.",
           25: "Enjoy the high-fidelity cinematic experience."
-        },
-        es: {
-          2: "Esta es una demostración del reproductor HLS de FlixSphere.",
-          6: "Ahora se muestra compresión de video y mezcla de sonido impecables.",
-          10: "Siéntase libre de avanzar para activar puntos de reanudación.",
-          15: "FlixSphere ofrece renderizado de contenido de calidad comercial.",
-          25: "Disfrute de la experiencia cinematográfica de alta fidelidad."
-        },
-        fr: {
-          2: "Ceci est une démonstration du lecteur HLS de FlixSphere.",
-          6: "Présentation d'une compression vidéo et d'un mixage audio exceptionnels.",
-          10: "N'hésitez pas à naviguer pour tester la reprise de lecture.",
-          15: "FlixSphere offre un rendu de contenu digne du marché.",
-          25: "Profitez de l'expérience cinématographique haute fidélité."
         },
         id: {
           2: "Ini adalah demonstrasi dari FlixSphere HLS Player.",
@@ -313,7 +461,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t }: 
         const matched = Object.keys(activeCap)
           .map(Number)
           .sort((a, b) => b - a)
-          .find(sec => t >= sec && t < sec + 4);
+          .find((sec) => timeSec >= sec && timeSec < sec + 4);
 
         if (matched !== undefined) {
           setCurrentCaption(activeCap[matched]);
@@ -328,10 +476,8 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t }: 
     }
   }, [currentTime, activeSubtitle, parsedSubtitlesMap, isSimulating]);
 
-  // Serialize subtitles array to detect actual content changes and avoid array reference mismatches
   const subtitlesString = JSON.stringify(movie.subtitles || []);
 
-  // Process SRT/VTT subtitles on-the-fly and parse cues for local state
   useEffect(() => {
     const processSubs = async () => {
       const map: Record<string, Cue[]> = {};
@@ -346,13 +492,8 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t }: 
               : sub.fileUrl;
 
             const response = await fetch(fetchUrl);
-            if (!response.ok) {
-              console.warn(`Subtitle file fetch returned status ${response.status} for ${sub.language}`);
-              return;
-            }
+            if (!response.ok) return;
             const text = await response.text();
-
-            // Parse cues for JS overlay rendering
             const cues = parseSubtitles(text);
             map[sub.language] = cues;
           } catch (err) {
@@ -368,6 +509,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t }: 
 
   // Player controls actions
   const handlePlayPause = () => {
+    if (isScreenLocked) return;
     if (isSimulating) {
       setIsPlaying(!isPlaying);
     } else {
@@ -391,6 +533,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t }: 
   };
 
   const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (isScreenLocked) return;
     const seekVal = Number(e.target.value);
     setCurrentTime(seekVal);
     if (!isSimulating) {
@@ -425,6 +568,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t }: 
   };
 
   const handleSkip = (seconds: number) => {
+    if (isScreenLocked) return;
     const targetTime = Math.max(0, Math.min(duration, currentTime + seconds));
     setCurrentTime(targetTime);
     if (!isSimulating) {
@@ -446,7 +590,13 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t }: 
     }
   };
 
+  const handleQualitySelect = (quality: string) => {
+    setSelectedQuality(quality);
+    setShowQualityMenu(false);
+  };
+
   const handleScreenClick = () => {
+    if (isScreenLocked) return;
     if (isPlaying) {
       setShowControls((prev) => !prev);
     } else {
@@ -459,15 +609,59 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t }: 
     setShowSubtitleMenu(false);
   };
 
-  const toggleFullscreen = () => {
+  const toggleFullscreen = async () => {
+    const targetFs = !isFullscreen;
+    setIsFullscreen(targetFs);
+
+    // 1. Native Capacitor ScreenOrientation locking
+    try {
+      if (targetFs) {
+        await ScreenOrientation.lock({ orientation: "landscape" });
+      } else {
+        await ScreenOrientation.unlock();
+      }
+    } catch (err) {
+      // Browser Screen Orientation API fallback
+      try {
+        const orientation = (screen as any).orientation || (window.screen as any).orientation;
+        if (targetFs && orientation && typeof orientation.lock === "function") {
+          orientation.lock("landscape").catch(() => {});
+        } else if (!targetFs && orientation && typeof orientation.unlock === "function") {
+          orientation.unlock();
+        }
+      } catch (e) {}
+    }
+
+    // 2. HTML5 Fullscreen API (for Web Browsers)
     const container = containerRef.current;
     if (container) {
-      if (!document.fullscreenElement) {
-        container.requestFullscreen().catch(() => { });
+      if (targetFs) {
+        if (container.requestFullscreen) {
+          container.requestFullscreen().catch(() => {});
+        }
       } else {
-        document.exitFullscreen().catch(() => { });
+        if (document.fullscreenElement && document.exitFullscreen) {
+          document.exitFullscreen().catch(() => {});
+        }
       }
     }
+  };
+
+  const handleClosePlayer = async () => {
+    try {
+      await ScreenOrientation.unlock();
+    } catch (e) {
+      try {
+        const orientation = (screen as any).orientation || (window.screen as any).orientation;
+        if (orientation && typeof orientation.unlock === "function") {
+          orientation.unlock();
+        }
+      } catch (err) {}
+    }
+    if (document.fullscreenElement) {
+      document.exitFullscreen().catch(() => {});
+    }
+    onClose();
   };
 
   const formatTime = (seconds: number) => {
@@ -482,6 +676,19 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t }: 
     return `${m < 10 ? "0" : ""}${m}:${s < 10 ? "0" : ""}${s}`;
   };
 
+  const getSubtitleStyleClasses = () => {
+    let sizeClass = "text-base md:text-xl";
+    if (subtitleSize === "small") sizeClass = "text-xs md:text-sm";
+    if (subtitleSize === "large") sizeClass = "text-lg md:text-2xl";
+    if (subtitleSize === "xlarge") sizeClass = "text-xl md:text-3xl";
+
+    let bgStyle = "drop-shadow-[0_2px_4px_rgba(0,0,0,1)] text-white";
+    if (subtitleStyle === "box") bgStyle = "bg-black/85 px-3 py-1.5 rounded-md text-white border border-white/10";
+    if (subtitleStyle === "yellow") bgStyle = "drop-shadow-[0_2px_4px_rgba(0,0,0,1)] text-yellow-300 font-extrabold";
+
+    return `${sizeClass} ${bgStyle}`;
+  };
+
   return (
     <div className="fixed inset-0 z-[100] bg-black flex flex-col justify-between overflow-hidden" id="media-player-root">
       <style>{`
@@ -492,6 +699,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t }: 
           text-shadow: 0px 2px 4px rgba(0, 0, 0, 0.9), 0px 1px 2px rgba(0, 0, 0, 0.9);
         }
       `}</style>
+      
       {/* Primary Video Screen Area */}
       <div
         ref={containerRef}
@@ -509,7 +717,12 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t }: 
                 setCurrentTime(videoRef.current.currentTime);
               }
             }}
-            onEnded={() => setIsPlaying(false)}
+            onEnded={() => {
+              setIsPlaying(false);
+              if (nextEpisodeInfo) {
+                handlePlayNextEpisode();
+              }
+            }}
             onError={() => {
               console.warn("Direct stream load failed. Engaging high-fidelity cinematic stream simulation.");
               setHasError(true);
@@ -519,18 +732,18 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t }: 
             id="video-core-element"
           />
         ) : (
-          /* High-fidelity Cinematic Simulation Display */
+          /* High-fidelity Simulation Display */
           <div
             className="relative w-full h-full flex items-center justify-center bg-zinc-950"
             onClick={handleScreenClick}
             id="simulation-display"
           >
-            {/* Animated Zooming Background Backdrop */}
+            {/* Animated Zooming Background */}
             <div
               className="absolute inset-0 bg-cover bg-center opacity-30 blur-xs transition-transform duration-1000 scale-105"
               style={{
                 backgroundImage: `url(${movie.backdropUrl})`,
-                transform: isPlaying ? `scale(${1.08 + Math.sin(currentTime / 10) * 0.03}) rotate(${Math.sin(currentTime / 20) * 0.5}deg)` : 'scale(1.05)'
+                transform: isPlaying ? `scale(${1.08 + Math.sin(currentTime / 10) * 0.03}) rotate(${Math.sin(currentTime / 20) * 0.5}deg)` : "scale(1.05)"
               }}
             />
             <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/60 to-zinc-950" />
@@ -550,7 +763,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t }: 
                       {t.simulated || "SIMULATED"}
                     </span>
                     <span className="px-2 py-0.5 rounded-sm bg-zinc-900/85 text-[10px] font-semibold text-zinc-300 uppercase tracking-wider">
-                      {movie.quality}
+                      {selectedQuality !== "Auto" ? selectedQuality : movie.quality}
                     </span>
                   </div>
                 </div>
@@ -573,46 +786,139 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t }: 
 
         {/* Styled Caption Subtitle Overlay */}
         {currentCaption && (
-          <div className={`absolute left-1/2 -translate-x-1/2 text-center max-w-3xl text-white text-base md:text-xl font-bold select-none pointer-events-none drop-shadow-[0_2px_3px_rgba(0,0,0,1)] transition-all duration-300 ${showControls ? "bottom-32" : "bottom-12"
-            }`}>
+          <div
+            className={`absolute left-1/2 -translate-x-1/2 text-center max-w-3xl font-bold select-none pointer-events-none transition-all duration-300 ${
+              showControls ? "bottom-32" : "bottom-12"
+            } ${getSubtitleStyleClasses()}`}
+          >
             {currentCaption}
           </div>
         )}
 
-        {/* HUD Controller Overlay Screen */}
+        {/* SKIP INTRO BUTTON (Disabled for Live TV) */}
+        {currentTime >= 5 && currentTime <= 90 && !isScreenLocked && movie.contentType !== "livetv" && (
+          <button
+            onClick={handleSkipIntro}
+            className="absolute bottom-28 left-6 md:left-12 z-30 px-4 py-2 bg-black/85 hover:bg-red-600 text-white font-extrabold text-xs md:text-sm rounded-lg border border-white/20 shadow-2xl flex items-center gap-2 transition-all transform hover:scale-105 active:scale-95 cursor-pointer backdrop-blur-md"
+          >
+            <Sparkles className="w-4 h-4 text-yellow-400 animate-pulse" />
+            <span>{t.skipIntro || "Skip Intro / Lewati Intro"}</span>
+            <SkipForward className="w-4 h-4" />
+          </button>
+        )}
+
+        {/* NEXT EPISODE AUTO-PLAY COUNTDOWN OVERLAY CARD (Disabled for Live TV) */}
+        {autoPlayCountdown !== null && nextEpisodeInfo && !isNextEpisodeDismissed && movie.contentType !== "livetv" && (
+          <div className="absolute bottom-28 right-6 md:right-12 z-30 p-4 bg-zinc-950/95 border border-red-600/50 rounded-2xl shadow-[0_0_40px_rgba(220,38,38,0.3)] backdrop-blur-xl flex flex-col gap-3 max-w-xs animate-in fade-in slide-in-from-bottom-5">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-extrabold text-red-500 uppercase tracking-widest flex items-center gap-1">
+                <Tv className="w-3.5 h-3.5" />
+                {t.nextEpisodeIn || "NEXT EPISODE IN"} {autoPlayCountdown}s
+              </span>
+              <button
+                onClick={() => setIsNextEpisodeDismissed(true)}
+                className="text-zinc-400 hover:text-white text-xs p-1"
+                title="Cancel Auto-play"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div>
+              <p className="text-xs text-zinc-400 font-medium">
+                S{nextEpisodeInfo.season.seasonNumber}:E{nextEpisodeInfo.episode.episodeNumber}
+              </p>
+              <h4 className="text-sm font-extrabold text-white truncate mt-0.5">
+                {nextEpisodeInfo.episode.title}
+              </h4>
+            </div>
+            <div className="flex items-center gap-2 mt-1">
+              <button
+                onClick={handlePlayNextEpisode}
+                className="flex-1 py-2 px-3 bg-red-600 hover:bg-red-500 text-white font-extrabold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-all shadow-md active:scale-95 cursor-pointer"
+              >
+                <Play className="w-3.5 h-3.5 fill-white" />
+                <span>{t.playNow || "Play Now"}</span>
+              </button>
+              <button
+                onClick={() => setIsNextEpisodeDismissed(true)}
+                className="py-2 px-3 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 font-semibold text-xs rounded-xl transition-all border border-zinc-800 cursor-pointer"
+              >
+                {t.cancel || "Cancel"}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* SCREEN LOCK FLOATING ICON (When Locked) */}
+        {isScreenLocked && (
+          <div className="absolute top-6 left-6 z-50">
+            <button
+              onClick={() => setIsScreenLocked(false)}
+              className="p-3.5 bg-red-600/90 hover:bg-red-600 text-white rounded-full shadow-2xl flex items-center justify-center border border-white/20 transition-all transform active:scale-90 cursor-pointer backdrop-blur-md"
+              title="Unlock Screen Controls"
+            >
+              <Lock className="w-6 h-6" />
+            </button>
+          </div>
+        )}
+
+        {/* HUD CONTROLLER OVERLAY SCREEN */}
         <div
-          className={`absolute inset-0 bg-linear-to-t from-black/90 via-black/20 to-black/80 flex flex-col justify-between p-4 md:p-8 transition-opacity duration-300 ${showControls ? "opacity-100" : "opacity-0 pointer-events-none"
-            }`}
+          className={`absolute inset-0 bg-linear-to-t from-black/90 via-black/20 to-black/80 flex flex-col justify-between p-4 md:p-8 transition-opacity duration-300 ${
+            showControls && !isScreenLocked ? "opacity-100" : "opacity-0 pointer-events-none"
+          }`}
           id="media-player-hud"
         >
           {/* Top Header Row */}
           <div className="flex items-center justify-between w-full z-10">
             <div>
               <p className="text-[10px] md:text-xs font-bold text-red-500 font-mono tracking-wider">
-                {t.nowStreaming || "NOW STREAMING"} • {movie.quality}
+                {t.nowStreaming || "NOW STREAMING"} • {selectedQuality !== "Auto" ? selectedQuality : movie.quality}
               </p>
               <h1 className="text-white text-base md:text-xl font-extrabold truncate max-w-md mt-0.5">
                 {movie.title} {activeEpisode ? ` • S${activeSeason?.seasonNumber}E${activeEpisode.episodeNumber}: ${activeEpisode.title}` : ""}
               </h1>
             </div>
 
-            <button
-              onClick={() => {
-                if (document.fullscreenElement) {
-                  document.exitFullscreen().catch(() => { });
-                }
-                onClose();
-              }}
-              className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-zinc-900/80 hover:bg-red-600 text-white flex items-center justify-center border border-zinc-800 transition-colors shadow-lg cursor-pointer z-20"
-              id="media-player-exit"
-              title={t.exitPlayer || "Exit Player"}
-            >
-              <X className="w-5 h-5" />
-            </button>
+            <div className="flex items-center gap-3">
+              {/* Screen Lock Toggle */}
+              <button
+                onClick={() => setIsScreenLocked(true)}
+                className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-zinc-900/80 hover:bg-zinc-800 text-white flex items-center justify-center border border-zinc-800 transition-colors shadow-lg cursor-pointer z-20"
+                title="Lock Screen Touch"
+              >
+                <Unlock className="w-5 h-5 text-zinc-300" />
+              </button>
+
+              <button
+                onClick={handleClosePlayer}
+                className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-zinc-900/80 hover:bg-red-600 text-white flex items-center justify-center border border-zinc-800 transition-colors shadow-lg cursor-pointer z-20"
+                id="media-player-exit"
+                title={t.exitPlayer || "Exit Player"}
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
           </div>
 
-          {/* Large Center Play/Pause & Skip Overlay Controls for Touch */}
-          <div className="absolute inset-0 flex items-center justify-center gap-6 sm:gap-10 pointer-events-none z-10">
+          {/* Large Center Play/Pause, Rewind, Forward & Episode Skip Controls */}
+          <div className="absolute inset-0 flex items-center justify-center gap-4 sm:gap-8 pointer-events-none z-10">
+            {/* Prev Episode Button (Series only) */}
+            {prevEpisodeInfo && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handlePlayPrevEpisode();
+                }}
+                title="Previous Episode"
+                className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-black/60 backdrop-blur-md border border-white/20 text-white flex items-center justify-center shadow-xl pointer-events-auto transition-all duration-300 transform active:scale-90 hover:bg-white/20 ${
+                  showControls ? "opacity-100 scale-100" : "opacity-0 scale-75 pointer-events-none"
+                }`}
+              >
+                <SkipBack className="w-5 h-5 text-white" />
+              </button>
+            )}
+
             <button
               onClick={(e) => {
                 e.stopPropagation();
@@ -654,36 +960,68 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t }: 
             >
               <RotateCw className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
             </button>
+
+            {/* Next Episode Button (Series only) */}
+            {nextEpisodeInfo && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handlePlayNextEpisode();
+                }}
+                title="Next Episode"
+                className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-black/60 backdrop-blur-md border border-white/20 text-white flex items-center justify-center shadow-xl pointer-events-auto transition-all duration-300 transform active:scale-90 hover:bg-white/20 ${
+                  showControls ? "opacity-100 scale-100" : "opacity-0 scale-75 pointer-events-none"
+                }`}
+              >
+                <SkipForward className="w-5 h-5 text-white" />
+              </button>
+            )}
           </div>
 
           {/* Bottom Playback HUD panel */}
           <div className="space-y-4">
-            {/* Progress Timeline Scrubber */}
-            <div className="flex items-center gap-3 w-full">
-              <span className="text-xs font-mono text-zinc-400 shrink-0">
-                {formatTime(currentTime)}
-              </span>
+            {/* Progress Timeline Scrubber or Live Stream Indicator */}
+            {movie.contentType === "livetv" ? (
+              <div className="flex items-center justify-between w-full px-3 py-1.5 bg-red-950/40 border border-red-600/30 rounded-xl backdrop-blur-md">
+                <div className="flex items-center gap-2">
+                  <span className="relative flex h-3 w-3">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
+                    <span className="relative inline-flex rounded-full h-3 w-3 bg-red-600" />
+                  </span>
+                  <span className="text-xs font-black text-white tracking-widest uppercase">
+                    LIVE BROADCASTING
+                  </span>
+                </div>
+                <span className="text-[10px] font-mono font-bold text-red-400 uppercase tracking-wider bg-red-600/20 px-2 py-0.5 rounded border border-red-500/30">
+                  REAL-TIME STREAM
+                </span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-3 w-full">
+                <span className="text-xs font-mono text-zinc-400 shrink-0">
+                  {formatTime(currentTime)}
+                </span>
 
-              <input
-                type="range"
-                min={0}
-                max={duration || 100}
-                value={currentTime}
-                onChange={handleSeek}
-                className="w-full accent-red-600 bg-zinc-800 h-1 hover:h-1.5 rounded-lg appearance-none cursor-pointer transition-all"
-                id="media-progress-slider"
-              />
+                <input
+                  type="range"
+                  min={0}
+                  max={duration || 100}
+                  value={currentTime}
+                  onChange={handleSeek}
+                  className="w-full accent-red-600 bg-zinc-800 h-1 hover:h-1.5 rounded-lg appearance-none cursor-pointer transition-all"
+                  id="media-progress-slider"
+                />
 
-              <span className="text-xs font-mono text-zinc-400 shrink-0">
-                {formatTime(duration)}
-              </span>
-            </div>
+                <span className="text-xs font-mono text-zinc-400 shrink-0">
+                  {formatTime(duration)}
+                </span>
+              </div>
+            )}
 
-            {/* Controls Bar Row - Symmetrical & Responsive */}
+            {/* Controls Bar Row */}
             <div className="flex items-center justify-between gap-4 py-1">
-              {/* Left Section: Playback Controls (when Fullscreen) & Volume */}
+              {/* Left Section: Playback Controls & Volume */}
               <div className="flex items-center gap-3 md:gap-4">
-                {/* Fullscreen bottom playback control buttons */}
                 {isFullscreen && (
                   <div className="flex items-center gap-2 pr-2 border-r border-zinc-800/80">
                     <button
@@ -744,12 +1082,54 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t }: 
                 </div>
               </div>
 
-              {/* Right Section: Utility Subtitles, Speed and Fullscreen */}
-              <div className="flex items-center gap-3 relative">
+              {/* Right Section: Video Quality, Speed, Subtitles & Customizer */}
+              <div className="flex items-center gap-2.5 relative">
+                {/* Video Quality Selector */}
+                <div className="relative">
+                  <button
+                    onClick={() => {
+                      setShowQualityMenu(!showQualityMenu);
+                      setShowSpeedMenu(false);
+                      setShowSubtitleMenu(false);
+                      setShowSubtitleCustomizer(false);
+                    }}
+                    className="flex items-center gap-1.5 text-zinc-300 hover:text-white text-xs font-semibold px-2.5 py-1 bg-zinc-900/80 border border-zinc-800 rounded-lg transition-colors cursor-pointer"
+                    title="Video Quality"
+                  >
+                    <SlidersHorizontal className="w-3.5 h-3.5 text-red-500" />
+                    <span>{selectedQuality}</span>
+                  </button>
+
+                  {showQualityMenu && (
+                    <div className="absolute bottom-10 right-0 w-36 bg-zinc-950 border border-zinc-800 p-1.5 rounded-xl shadow-2xl flex flex-col gap-0.5 z-50">
+                      <div className="px-2 py-1 text-[10px] font-bold text-zinc-500 uppercase tracking-wider">
+                        {t.videoQuality || "Quality"}
+                      </div>
+                      {["Auto", "1080p Full HD", "720p HD", "480p SD", "360p Mobile"].map((q) => (
+                        <button
+                          key={q}
+                          onClick={() => handleQualitySelect(q)}
+                          className={`text-left text-xs px-2.5 py-1.5 rounded-md hover:bg-zinc-900 transition-colors flex items-center justify-between ${
+                            selectedQuality === q ? "text-red-500 font-bold bg-red-500/10" : "text-zinc-400"
+                          }`}
+                        >
+                          <span>{q}</span>
+                          {selectedQuality === q && <Check className="w-3.5 h-3.5 text-red-500" />}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
                 {/* Playback speed selector */}
                 <div className="relative">
                   <button
-                    onClick={() => { setShowSpeedMenu(!showSpeedMenu); setShowSubtitleMenu(false); }}
+                    onClick={() => {
+                      setShowSpeedMenu(!showSpeedMenu);
+                      setShowQualityMenu(false);
+                      setShowSubtitleMenu(false);
+                      setShowSubtitleCustomizer(false);
+                    }}
                     className="flex items-center gap-1.5 text-zinc-300 hover:text-white text-xs font-semibold px-2.5 py-1 bg-zinc-900/80 border border-zinc-800 rounded-lg transition-colors cursor-pointer"
                     title={t.playbackSpeed || "Playback Speed"}
                   >
@@ -763,8 +1143,9 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t }: 
                         <button
                           key={r}
                           onClick={() => handleSpeedSelect(r)}
-                          className={`text-left text-xs px-2.5 py-1.5 rounded-md hover:bg-zinc-900 transition-colors ${playbackRate === r ? "text-red-500 font-bold bg-red-500/10" : "text-zinc-400"
-                            }`}
+                          className={`text-left text-xs px-2.5 py-1.5 rounded-md hover:bg-zinc-900 transition-colors ${
+                            playbackRate === r ? "text-red-500 font-bold bg-red-500/10" : "text-zinc-400"
+                          }`}
                         >
                           {r}x
                         </button>
@@ -773,27 +1154,49 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t }: 
                   )}
                 </div>
 
-                {/* Captions Subtitle trigger */}
+                {/* Subtitle Selector & Subtitle Style Customizer */}
                 {movie.subtitles.length > 0 && (
-                  <div className="relative">
+                  <div className="relative flex items-center gap-1">
                     <button
-                      onClick={() => { setShowSubtitleMenu(!showSubtitleMenu); setShowSpeedMenu(false); }}
-                      className={`flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 border rounded-lg transition-colors cursor-pointer ${activeSubtitle !== "off"
-                        ? "bg-red-600/10 border-red-500 text-red-400 font-bold"
-                        : "bg-zinc-900/80 border-zinc-800 text-zinc-300 hover:text-white"
-                        }`}
+                      onClick={() => {
+                        setShowSubtitleMenu(!showSubtitleMenu);
+                        setShowQualityMenu(false);
+                        setShowSpeedMenu(false);
+                        setShowSubtitleCustomizer(false);
+                      }}
+                      className={`flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 border rounded-lg transition-colors cursor-pointer ${
+                        activeSubtitle !== "off"
+                          ? "bg-red-600/10 border-red-500 text-red-400 font-bold"
+                          : "bg-zinc-900/80 border-zinc-800 text-zinc-300 hover:text-white"
+                      }`}
                       title={t.toggleCaptions || "Toggle Captions"}
                     >
                       <Subtitles className="w-3.5 h-3.5" />
-                      <span>{activeSubtitleObj ? activeSubtitleObj.label : (t.toggleCaptions || "Toggle Captions")}</span>
+                      <span>{activeSubtitleObj ? activeSubtitleObj.label : (t.toggleCaptions || "Subtitles")}</span>
                     </button>
 
+                    {/* Subtitle Style Customizer Toggle */}
+                    <button
+                      onClick={() => {
+                        setShowSubtitleCustomizer(!showSubtitleCustomizer);
+                        setShowSubtitleMenu(false);
+                        setShowQualityMenu(false);
+                        setShowSpeedMenu(false);
+                      }}
+                      className="p-1 bg-zinc-900/80 border border-zinc-800 rounded-lg text-zinc-400 hover:text-white transition-colors cursor-pointer"
+                      title="Subtitle Settings (Size & Style)"
+                    >
+                      <SlidersHorizontal className="w-3.5 h-3.5" />
+                    </button>
+
+                    {/* Subtitle Language Menu */}
                     {showSubtitleMenu && (
                       <div className="absolute bottom-10 right-0 w-36 bg-zinc-950 border border-zinc-800 p-1.5 rounded-xl shadow-2xl flex flex-col gap-0.5 z-50">
                         <button
                           onClick={() => handleSubtitleSelect("off")}
-                          className={`text-left text-xs px-2.5 py-1.5 rounded-md hover:bg-zinc-900 transition-colors ${activeSubtitle === "off" ? "text-red-500 font-bold bg-red-500/10" : "text-zinc-400"
-                            }`}
+                          className={`text-left text-xs px-2.5 py-1.5 rounded-md hover:bg-zinc-900 transition-colors ${
+                            activeSubtitle === "off" ? "text-red-500 font-bold bg-red-500/10" : "text-zinc-400"
+                          }`}
                         >
                           {t.noneOff || "Off (None)"}
                         </button>
@@ -801,12 +1204,63 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t }: 
                           <button
                             key={sub.id}
                             onClick={() => handleSubtitleSelect(sub.language)}
-                            className={`text-left text-xs px-2.5 py-1.5 rounded-md hover:bg-zinc-900 transition-colors ${activeSubtitle === sub.language ? "text-red-500 font-bold bg-red-500/10" : "text-zinc-400"
-                              }`}
+                            className={`text-left text-xs px-2.5 py-1.5 rounded-md hover:bg-zinc-900 transition-colors ${
+                              activeSubtitle === sub.language ? "text-red-500 font-bold bg-red-500/10" : "text-zinc-400"
+                            }`}
                           >
                             {sub.label}
                           </button>
                         ))}
+                      </div>
+                    )}
+
+                    {/* Subtitle Customizer Panel */}
+                    {showSubtitleCustomizer && (
+                      <div className="absolute bottom-10 right-0 w-52 bg-zinc-950 border border-zinc-800 p-3 rounded-2xl shadow-2xl flex flex-col gap-3 z-50">
+                        <div>
+                          <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1.5">
+                            Subtitle Size
+                          </p>
+                          <div className="grid grid-cols-4 gap-1">
+                            {(["small", "medium", "large", "xlarge"] as const).map((sz) => (
+                              <button
+                                key={sz}
+                                onClick={() => setSubtitleSize(sz)}
+                                className={`text-[10px] py-1 rounded-md border capitalize font-semibold transition-colors ${
+                                  subtitleSize === sz
+                                    ? "bg-red-600 border-red-500 text-white font-bold"
+                                    : "bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-white"
+                                }`}
+                              >
+                                {sz.replace("xlarge", "XL")}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div>
+                          <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1.5">
+                            Subtitle Style
+                          </p>
+                          <div className="flex flex-col gap-1">
+                            {[
+                              { id: "shadow", label: "Shadow Text" },
+                              { id: "box", label: "Black Box" },
+                              { id: "yellow", label: "Yellow Cinema" }
+                            ].map((st) => (
+                              <button
+                                key={st.id}
+                                onClick={() => setSubtitleStyle(st.id as any)}
+                                className={`text-left text-xs px-2.5 py-1.5 rounded-md hover:bg-zinc-900 transition-colors flex items-center justify-between ${
+                                  subtitleStyle === st.id ? "text-red-500 font-bold bg-red-500/10" : "text-zinc-400"
+                                }`}
+                              >
+                                <span>{st.label}</span>
+                                {subtitleStyle === st.id && <Check className="w-3.5 h-3.5 text-red-500" />}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
                       </div>
                     )}
                   </div>
@@ -832,7 +1286,10 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t }: 
 
       {/* Seasons / Episodes sidebar for TV Series */}
       {movie.contentType === "series" && movie.seasons && movie.seasons.length > 0 && (
-        <div className="w-full landscape:w-80 md:w-80 shrink-0 border-t landscape:border-t-0 landscape:border-l md:border-t-0 md:border-l border-zinc-900 bg-zinc-950/95 flex flex-col h-1/3 landscape:h-full md:h-full z-10 text-white select-none relative" id="episodes-sidebar">
+        <div
+          className="w-full landscape:w-80 md:w-80 shrink-0 border-t landscape:border-t-0 landscape:border-l md:border-t-0 md:border-l border-zinc-900 bg-zinc-950/95 flex flex-col h-1/3 landscape:h-full md:h-full z-10 text-white select-none relative"
+          id="episodes-sidebar"
+        >
           {/* Header */}
           <div className="p-4 border-b border-zinc-900 bg-black/40">
             <h3 className="text-sm font-extrabold tracking-wide uppercase text-zinc-400 mb-2">
@@ -842,7 +1299,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t }: 
             <select
               value={activeSeason?.id}
               onChange={(e) => {
-                const season = movie.seasons?.find(s => s.id === e.target.value);
+                const season = movie.seasons?.find((s) => s.id === e.target.value);
                 if (season) {
                   setActiveSeason(season);
                   if (season.episodes.length > 0) {
@@ -872,10 +1329,11 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t }: 
                     setActiveEpisode(ep);
                     setCurrentTime(0);
                   }}
-                  className={`w-full text-left p-3 rounded-lg border transition-all flex flex-col gap-1 cursor-pointer ${isCurrent
-                    ? "bg-red-600/10 border-red-600 shadow-[0_0_15px_rgba(220,38,38,0.15)]"
-                    : "bg-zinc-900/40 border-zinc-900 hover:bg-zinc-900 hover:border-zinc-800"
-                    }`}
+                  className={`w-full text-left p-3 rounded-lg border transition-all flex flex-col gap-1 cursor-pointer ${
+                    isCurrent
+                      ? "bg-red-600/10 border-red-600 shadow-[0_0_15px_rgba(220,38,38,0.15)]"
+                      : "bg-zinc-900/40 border-zinc-900 hover:bg-zinc-900 hover:border-zinc-800"
+                  }`}
                 >
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] font-bold text-red-500">

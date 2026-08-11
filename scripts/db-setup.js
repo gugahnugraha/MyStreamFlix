@@ -67,12 +67,183 @@ async function main() {
   });
   console.log("✔ Exactly 1 Admin User account seeded successfully to the database.");
 
-  // 3. Clear Movie Table (Keeping it empty by default)
+  // 3. Clear Movie Table and seed Live TV Channels
   console.log("Cleaning up database movies catalog table...");
-  const deleteMoviesResult = await prisma.movie.deleteMany();
-  console.log(`✔ Cleared existing movies in database (deleted ${deleteMoviesResult.count} records).`);
-  console.log("✔ Database Movie table is now clean and empty.");
+  await prisma.movie.deleteMany();
   
+  const liveTvChannels = [
+    {
+      id: "tv-1",
+      title: "NASA TV Live",
+      description: "Official 24/7 live stream broadcasting spacewalks, rocket launches, views of Earth from the ISS, and NASA mission coverage.",
+      posterUrl: "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=600&auto=format&fit=crop&q=80",
+      backdropUrl: "https://images.unsplash.com/photo-1446776811953-b23d57bd21aa?w=1200&auto=format&fit=crop&q=80",
+      videoUrl: "https://ntv1.akamaized.net/hls/live/2014075/NASA-TV-v1/master.m3u8",
+      duration: 0,
+      releaseYear: 2026,
+      rating: 9.5,
+      ageRating: "G",
+      quality: "4K",
+      genres: ["News", "Sci-Fi"],
+      cast: ["NASA Astronauts", "Mission Control"],
+      directors: ["NASA TV"],
+      subtitles: JSON.stringify([]),
+      country: "United States",
+      language: "en",
+      views: 125400,
+      likes: 18900,
+      isFeatured: true,
+      isBanner: false,
+      tier: "free",
+      contentType: "livetv",
+      seasons: JSON.stringify([]),
+      createdAt: new Date().toISOString()
+    },
+    {
+      id: "tv-2",
+      title: "France 24 English Live",
+      description: "International 24-hour news channel reporting on world events, diplomacy, culture, and current affairs in real time.",
+      posterUrl: "https://images.unsplash.com/photo-1585829365295-ab7cd400c167?w=600&auto=format&fit=crop&q=80",
+      backdropUrl: "https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=1200&auto=format&fit=crop&q=80",
+      videoUrl: "https://static.france24.com/live/F24_EN_LO_HLS/live_tv.m3u8",
+      duration: 0,
+      releaseYear: 2026,
+      rating: 9.0,
+      ageRating: "G",
+      quality: "Full HD",
+      genres: ["News"],
+      cast: ["France 24 Newsroom"],
+      directors: ["France Médias Monde"],
+      subtitles: JSON.stringify([]),
+      country: "France",
+      language: "en",
+      views: 87900,
+      likes: 9200,
+      isFeatured: false,
+      isBanner: false,
+      tier: "free",
+      contentType: "livetv",
+      seasons: JSON.stringify([]),
+      createdAt: new Date().toISOString()
+    },
+    {
+      id: "tv-3",
+      title: "Red Bull TV Live",
+      description: "High-octane live action sports, Formula 1 highlights, mountain biking, esports, and music festival live streams.",
+      posterUrl: "https://images.unsplash.com/photo-1551698618-1dfe5d97d256?w=600&auto=format&fit=crop&q=80",
+      backdropUrl: "https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=1200&auto=format&fit=crop&q=80",
+      videoUrl: "https://rbmn-live.akamaized.net/hls/live/591070/FL_FULL_HD_1080p@1/master.m3u8",
+      duration: 0,
+      releaseYear: 2026,
+      rating: 9.4,
+      ageRating: "PG-13",
+      quality: "4K",
+      genres: ["Action", "Sports"],
+      cast: ["Pro Athletes", "Red Bull Crew"],
+      directors: ["Red Bull Media"],
+      subtitles: JSON.stringify([]),
+      country: "Austria",
+      language: "en",
+      views: 145000,
+      likes: 21000,
+      isFeatured: true,
+      isBanner: false,
+      tier: "vip",
+      contentType: "livetv",
+      seasons: JSON.stringify([]),
+      createdAt: new Date().toISOString()
+    },
+    {
+      id: "tv-4",
+      title: "DW News 24/7",
+      description: "Global news channel providing unbiased reporting, in-depth analysis, documentaries, and global perspective 24 hours a day.",
+      posterUrl: "https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=600&auto=format&fit=crop&q=80",
+      backdropUrl: "https://images.unsplash.com/photo-1495020689067-958852a7765e?w=1200&auto=format&fit=crop&q=80",
+      videoUrl: "https://dwamdstream102.akamaized.net/hls/live/2015525/dwstream102/index.m3u8",
+      duration: 0,
+      releaseYear: 2026,
+      rating: 8.9,
+      ageRating: "G",
+      quality: "Full HD",
+      genres: ["News"],
+      cast: ["Deutsche Welle Anchors"],
+      directors: ["DW Network"],
+      subtitles: JSON.stringify([]),
+      country: "Germany",
+      language: "en",
+      views: 65400,
+      likes: 7100,
+      isFeatured: false,
+      isBanner: false,
+      tier: "free",
+      contentType: "livetv",
+      seasons: JSON.stringify([]),
+      createdAt: new Date().toISOString()
+    },
+    {
+      id: "tv-5",
+      title: "EuroNews English",
+      description: "European & international news network broadcasting real-time updates, world affairs, technology, and economic news.",
+      posterUrl: "https://images.unsplash.com/photo-1526470608268-f674ce90ebd4?w=600&auto=format&fit=crop&q=80",
+      backdropUrl: "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=1200&auto=format&fit=crop&q=80",
+      videoUrl: "https://euronews-euronews-world-1-au.samsung.wurl.tv/playlist.m3u8",
+      duration: 0,
+      releaseYear: 2026,
+      rating: 8.8,
+      ageRating: "G",
+      quality: "Full HD",
+      genres: ["News"],
+      cast: ["Euronews Team"],
+      directors: ["Euronews SA"],
+      subtitles: JSON.stringify([]),
+      country: "France",
+      language: "en",
+      views: 54300,
+      likes: 6200,
+      isFeatured: false,
+      isBanner: false,
+      tier: "free",
+      contentType: "livetv",
+      seasons: JSON.stringify([]),
+      createdAt: new Date().toISOString()
+    },
+    {
+      id: "tv-6",
+      title: "Action Central TV",
+      description: "24/7 non-stop adrenaline action movies, blockbuster trailers, and martial arts film showcases.",
+      posterUrl: "https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=600&auto=format&fit=crop&q=80",
+      backdropUrl: "https://images.unsplash.com/photo-1574375927938-d5a98e8edd86?w=1200&auto=format&fit=crop&q=80",
+      videoUrl: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4",
+      duration: 0,
+      releaseYear: 2026,
+      rating: 9.1,
+      ageRating: "R",
+      quality: "4K",
+      genres: ["Action", "Drama"],
+      cast: ["Action All-Stars"],
+      directors: ["FlixSphere Live"],
+      subtitles: JSON.stringify([]),
+      country: "United States",
+      language: "en",
+      views: 112000,
+      likes: 15400,
+      isFeatured: true,
+      isBanner: false,
+      tier: "vip",
+      contentType: "livetv",
+      seasons: JSON.stringify([]),
+      createdAt: new Date().toISOString()
+    }
+  ];
+
+  for (const channel of liveTvChannels) {
+    await prisma.movie.upsert({
+      where: { id: channel.id },
+      update: channel,
+      create: channel
+    });
+  }
+  console.log("✔ Seeded Live TV Channels into database.");
   console.log("Database setup is complete!");
 }
 

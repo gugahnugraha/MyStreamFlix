@@ -7,9 +7,10 @@ import React, { useState, useEffect, useMemo } from "react";
 import { 
   BarChart3, Film, Settings, Plus, Edit, Trash2, Save, 
   Tv, Eye, Play, ShieldAlert, CheckCircle, TrendingUp, Users, RefreshCw, X, Search, Database,
-  CreditCard, UserCheck, Subtitles, Upload
+  CreditCard, UserCheck, Subtitles, Upload, Radio, Pencil
 } from "lucide-react";
 import { Movie, DashboardStats, CMSSettings, Subtitle, User, Season, Episode } from "../types";
+import IPTVScanner from "./IPTVScanner";
 
 interface AdminCMSProps {
   onRefreshMovies: () => void;
@@ -58,7 +59,7 @@ type TmdbSearchResult = {
 type TmdbMetadata = {
   tmdbId: number;
   tmdbMediaType: "movie" | "tv";
-  contentType: "movie" | "series";
+  contentType: "movie" | "series" | "livetv";
   title: string;
   description: string;
   posterUrl: string;
@@ -85,7 +86,7 @@ export default function AdminCMS({
   t,
   onSelectMovie,
 }: AdminCMSProps) {
-  const [activeSubTab, setActiveSubTab] = useState<"analytics" | "catalog" | "settings" | "users">("analytics");
+  const [activeSubTab, setActiveSubTab] = useState<"analytics" | "catalog" | "livetv" | "settings" | "users">("analytics");
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [settings, setSettings] = useState<CMSSettings | null>(globalSettings || null);
   const [usersList, setUsersList] = useState<User[]>([]);
@@ -301,7 +302,7 @@ export default function AdminCMS({
   const [isBanner, setIsBanner] = useState(false);
 
   // Content type and series configurations states
-  const [contentType, setContentType] = useState<"movie" | "series">("movie");
+  const [contentType, setContentType] = useState<"movie" | "series" | "livetv">("movie");
   const [seasonsCount, setSeasonsCount] = useState(1);
   const [episodesPerSeason, setEpisodesPerSeason] = useState(5);
   const [seasons, setSeasons] = useState<Season[]>([]);
@@ -545,6 +546,7 @@ export default function AdminCMS({
   const handleOpenEdit = (movie: Movie) => {
     setFormMode("edit");
     setEditingMovieId(movie.id);
+    setActiveSubTab("catalog"); // Switch to catalog tab so the form is visible
     setTitle(movie.title);
     setDescription(movie.description);
     setPosterUrl(normalizeCdnUrl(movie.posterUrl));
@@ -831,6 +833,19 @@ export default function AdminCMS({
           >
             <Film className="w-3.5 h-3.5" />
             {t.cmsTabCatalog}
+          </button>
+          <button
+            onClick={() => setActiveSubTab("livetv")}
+            className={`flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-md transition-all cursor-pointer ${
+              activeSubTab === "livetv"
+                ? "text-white shadow-md"
+                : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900"
+            }`}
+            style={activeSubTab === "livetv" ? { backgroundColor: "#DC2626", boxShadow: `0 0 10px rgba(220, 38, 38, 0.4)` } : {}}
+            id="subtab-livetv"
+          >
+            <Radio className="w-3.5 h-3.5 text-red-400" />
+            <span>🔴 Live TV Channels ({movies.filter(m => m.contentType === "livetv").length})</span>
           </button>
           <button
             onClick={() => setActiveSubTab("users")}
@@ -1583,8 +1598,9 @@ export default function AdminCMS({
                         onChange={(e) => setContentType(e.target.value as any)}
                         className="w-full bg-zinc-900 border border-zinc-850 p-2.5 rounded text-xs focus:outline-hidden text-zinc-300 font-bold"
                       >
-                        <option value="movie">{t.cmsSingleMovie}</option>
-                        <option value="series">{t.cmsTvSeriesShow}</option>
+                        <option value="movie">{t.cmsSingleMovie || "Single Movie"}</option>
+                        <option value="series">{t.cmsTvSeriesShow || "TV Series Show"}</option>
+                        <option value="livetv">🔴 Live TV Channel</option>
                       </select>
                     </div>
                     {contentType === "series" ? (
@@ -2096,11 +2112,159 @@ export default function AdminCMS({
                   </div>
                   </section>
                 </div>
-                </form>
-              </div>
+                          </div>
+                 </form>
+               </div>
           )}
         </div>
       )}
+
+      {/* SUB-TAB VIEWPORT 2.5: LIVE TV CHANNELS MANAGEMENT */}
+      {activeSubTab === "livetv" && (
+        <div className="space-y-6" id="cms-livetv-panel">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-zinc-950 border border-zinc-900 p-5 rounded-xl shadow-md">
+            <div>
+              <div className="flex items-center gap-2">
+                <Radio className="w-4 h-4 text-red-500" />
+                <h3 className="text-sm font-black text-white uppercase tracking-wider">
+                  Manajemen Saluran Live TV
+                </h3>
+              </div>
+              <p className="text-xs text-zinc-400 mt-1">
+                Kelola siaran langsung HLS (.m3u8) & DASH (.mpd) resmi, logo saluran, kategori, dan URL stream.
+              </p>
+            </div>
+
+            <button
+              onClick={() => {
+                handleOpenCreate();
+                setContentType("livetv");
+                setTitle("Nama Saluran TV Baru");
+                setVideoUrl("https://ott-balancer.tvri.go.id/live/eds/Nasional/hls/Nasional.m3u8");
+                setGenres(["News"]);
+              }}
+              className="flex items-center gap-2 bg-red-600 hover:bg-red-500 text-white font-bold text-xs px-4 py-2.5 rounded-lg shadow-lg shadow-red-600/20 transition-all cursor-pointer"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Tambah Saluran Live TV Baru</span>
+            </button>
+          </div>
+
+          {/* Live TV Channels Grid Table */}
+          <div className="bg-zinc-950 border border-zinc-900 rounded-xl overflow-hidden shadow-lg">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr className="bg-zinc-900/90 text-zinc-400 font-extrabold uppercase border-b border-zinc-800 tracking-wider">
+                    <th className="py-3.5 px-4">Saluran TV</th>
+                    <th className="py-3.5 px-4">URL Stream (HLS/DASH)</th>
+                    <th className="py-3.5 px-4">Format / Kualitas</th>
+                    <th className="py-3.5 px-4">Penonton / Disukai</th>
+                    <th className="py-3.5 px-4 text-right">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-zinc-900">
+                  {movies.filter(m => m.contentType === "livetv" || m.id.startsWith("tv-")).map((channel) => (
+                    <tr key={channel.id} className="hover:bg-zinc-900/50 transition-colors">
+                      <td className="py-3.5 px-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-lg bg-black border border-zinc-800 p-1 shrink-0 flex items-center justify-center overflow-hidden">
+                            <img 
+                              src={normalizeCdnUrl(channel.posterUrl)} 
+                              alt={channel.title} 
+                              className="w-full h-full object-contain"
+                            />
+                          </div>
+                          <div>
+                            <span className="font-bold text-white text-xs block">{channel.title}</span>
+                            <span className="text-[10px] text-zinc-500">{channel.genres.join(", ") || "TV Stream"}</span>
+                          </div>
+                        </div>
+                      </td>
+
+                      <td className="py-3.5 px-4 font-mono text-[11px] text-zinc-300 max-w-xs truncate">
+                        <span className="bg-zinc-900 px-2 py-1 rounded border border-zinc-800 block truncate" title={channel.videoUrl}>
+                          {channel.videoUrl}
+                        </span>
+                      </td>
+
+                      <td className="py-3.5 px-4">
+                        <span className="text-[10px] font-bold font-mono px-2 py-0.5 rounded bg-red-950/60 border border-red-500/40 text-red-400 uppercase">
+                          {channel.videoUrl?.endsWith(".mpd") ? "MPEG-DASH" : "HLS .m3u8"}
+                        </span>
+                      </td>
+
+                      <td className="py-3.5 px-4 text-zinc-400 font-mono text-[11px]">
+                        👁️ {channel.views.toLocaleString()} | ❤️ {channel.likes.toLocaleString()}
+                      </td>
+
+                      <td className="py-3.5 px-4 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => handleOpenEdit(channel)}
+                            className="p-2 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-white transition-all cursor-pointer"
+                            title="Edit Saluran"
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteMovie(channel.id)}
+                            className="p-2 rounded-lg bg-zinc-900 hover:bg-red-950 text-zinc-400 hover:text-red-400 transition-all cursor-pointer"
+                            title="Hapus Saluran"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* -------- 📡 IPTV SCANNER & PLAYLIST IMPORTER -------- */}
+          <IPTVScanner
+            brandColor={brandColor}
+            onImportChannel={async (ch) => {
+              try {
+                const res = await fetch("/api/movies", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    title: ch.name,
+                    description: `Live TV stream — ${ch.group || "General"} — ${ch.country || "International"}`,
+                    posterUrl: ch.logo || "https://images.unsplash.com/photo-1611532736597-de2d4265fba3?w=400&q=80",
+                    backdropUrl: "https://images.unsplash.com/photo-1611532736597-de2d4265fba3?w=1280&q=80",
+                    videoUrl: ch.streamUrl,
+                    contentType: "livetv",
+                    duration: 0,
+                    releaseYear: new Date().getFullYear(),
+                    rating: 7.0,
+                    quality: "Full HD",
+                    ageRating: "TV-G",
+                    genres: [ch.group || "General"],
+                    cast: [],
+                    directors: [],
+                    country: ch.country || "International",
+                    language: ch.language || "en",
+                    isFeatured: false,
+                    isBanner: false,
+                    tier: "free",
+                  }),
+                });
+                if (res.ok) {
+                  setSuccessMsg(`✅ "${ch.name}" berhasil diimport ke database!`);
+                  onRefreshMovies();
+                }
+              } catch (e) {
+                console.error("Import failed:", e);
+              }
+            }}
+          />
+        </div>
+      )}
+
 
       {/* SUB-TAB VIEWPORT 3: SETTINGS */}
       {activeSubTab === "settings" && settings && (
