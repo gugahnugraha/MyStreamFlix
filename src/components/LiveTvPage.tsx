@@ -8,6 +8,7 @@ import Hls from "hls.js";
 import { ScreenOrientation } from "@capacitor/screen-orientation";
 import { Movie } from "../types";
 import { getProxiedStreamUrl, describeQualityLabel, shortQualityHint } from "../lib/stream-utils";
+import { isNativeCapacitor, enterImmersiveMode, exitImmersiveMode, addImmersiveStateListener } from "../lib/native-fullscreen";
 
 interface LiveTvPageProps {
   channels: Movie[];
@@ -24,6 +25,8 @@ export default function LiveTvPage({
 }: LiveTvPageProps) {
   // Filter channels that are strictly Live TV
   const liveChannels = channels.filter(c => c.contentType === "livetv" || c.id.startsWith("tv-"));
+
+  const isNativeApp = isNativeCapacitor();
   
   // State for active playing channel
   const [activeChannel, setActiveChannel] = useState<Movie>(liveChannels[0] || channels[0]);
@@ -108,7 +111,21 @@ export default function LiveTvPage({
   useEffect(() => {
     const onFs = () => setIsFullscreen(!!document.fullscreenElement);
     document.addEventListener("fullscreenchange", onFs);
-    return () => document.removeEventListener("fullscreenchange", onFs);
+
+    // Native Capacitor immersive fullscreen events (Android APK)
+    let removeNativeListener = () => {};
+    if (isNativeCapacitor()) {
+      addImmersiveStateListener((data) => {
+        setIsFullscreen(!!data.isFullscreen);
+      }).then((unsub) => {
+        removeNativeListener = unsub;
+      });
+    }
+
+    return () => {
+      document.removeEventListener("fullscreenchange", onFs);
+      removeNativeListener();
+    };
   }, []);
 
   // Active channel index
@@ -307,6 +324,32 @@ export default function LiveTvPage({
   };
 
   const toggleFullscreen = async () => {
+    const targetFs = !isFullscreen;
+    setIsFullscreen(targetFs);
+
+    // Native immersive fullscreen (Capacitor APK) - hides Android system bars
+    if (isNativeApp) {
+      if (targetFs) {
+        await enterImmersiveMode();
+        ScreenOrientation.lock({ orientation: "landscape" }).catch(() => {
+          try {
+            const orientation = (screen as any).orientation || (window.screen as any).orientation;
+            if (orientation && typeof orientation.lock === "function") orientation.lock("landscape").catch(() => {});
+          } catch {}
+        });
+      } else {
+        await exitImmersiveMode();
+        ScreenOrientation.unlock().catch(() => {
+          try {
+            const orientation = (screen as any).orientation || (window.screen as any).orientation;
+            if (orientation && typeof orientation.unlock === "function") orientation.unlock();
+          } catch {}
+        });
+      }
+      return;
+    }
+
+    // HTML5 Fullscreen API (for Web Browsers)
     const target = playerShellRef.current || videoRef.current;
     if (!target) return;
     if (document.fullscreenElement) {
@@ -447,7 +490,14 @@ export default function LiveTvPage({
         
         {/* LEFT / TOP SECTION: Integrated Dedicated Live Player */}
         <div className="lg:col-span-2 space-y-4">
-          <div ref={playerShellRef} className="relative aspect-video min-h-[220px] sm:min-h-0 bg-black rounded-xl sm:rounded-2xl overflow-hidden shadow-2xl border border-white/10 group fullscreen:rounded-none fullscreen:border-0">
+          <div
+            ref={playerShellRef}
+            className={`bg-black overflow-hidden shadow-2xl border group transition-all ${
+              isFullscreen && isNativeApp
+                ? "fixed inset-0 z-50 rounded-none border-0 w-full h-full"
+                : "relative aspect-video min-h-[220px] sm:min-h-0 max-h-[70vh] rounded-xl sm:rounded-2xl border-white/10 fullscreen:rounded-none fullscreen:border-0"
+            }`}
+          >
             
             {/* HTML5 Video Element with HLS.js */}
             <video
@@ -489,17 +539,17 @@ export default function LiveTvPage({
               <>
                 <button
                   onClick={handlePrevChannel}
-                  className="absolute left-2 top-1/2 -translate-y-1/2 z-20 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-black/60 hover:bg-red-600 text-white backdrop-blur-md border border-white/20 flex items-center justify-center transition-all opacity-80 hover:opacity-100 shadow-xl cursor-pointer"
+                  className="absolute left-2 sm:left-3 top-1/2 -translate-y-1/2 z-20 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-black/60 hover:bg-red-600 text-white backdrop-blur-md border border-white/20 flex items-center justify-center transition-all opacity-90 hover:opacity-100 shadow-xl cursor-pointer"
                   title="Channel Sebelumnya"
                 >
-                  <ChevronLeft className="w-5 h-5" />
+                  <ChevronLeft className="w-6 h-6" />
                 </button>
                 <button
                   onClick={handleNextChannel}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 z-20 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-black/60 hover:bg-red-600 text-white backdrop-blur-md border border-white/20 flex items-center justify-center transition-all opacity-80 hover:opacity-100 shadow-xl cursor-pointer"
+                  className="absolute right-2 sm:right-3 top-1/2 -translate-y-1/2 z-20 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-black/60 hover:bg-red-600 text-white backdrop-blur-md border border-white/20 flex items-center justify-center transition-all opacity-90 hover:opacity-100 shadow-xl cursor-pointer"
                   title="Channel Berikutnya"
                 >
-                  <ChevronRight className="w-5 h-5" />
+                  <ChevronRight className="w-6 h-6" />
                 </button>
               </>
             )}
@@ -555,25 +605,25 @@ export default function LiveTvPage({
             )}
 
             {/* In-Player HUD Control Bar */}
-            <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent p-2.5 sm:p-4 z-20 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-between gap-2 sm:gap-4">
+            <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent p-2.5 sm:p-4 z-20 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-between gap-2 sm:gap-4 pb-safe-plus">
               
               {/* Left Controls: Play/Pause & Mute */}
               <div className="flex items-center gap-3">
                 <button
                   onClick={togglePlay}
-                  className="w-9 h-9 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-md text-white flex items-center justify-center transition-all cursor-pointer"
+                  className="w-11 h-11 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-md text-white flex items-center justify-center transition-all cursor-pointer"
                   title={isPlaying ? "Pause" : "Play"}
                 >
-                  {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4 ml-0.5" />}
+                  {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 ml-0.5" />}
                 </button>
 
                 <div className="flex items-center gap-2">
                   <button
                     onClick={toggleMute}
-                    className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-md text-white flex items-center justify-center transition-all cursor-pointer"
+                    className="w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-md text-white flex items-center justify-center transition-all cursor-pointer"
                     title={isMuted ? "Unmute" : "Mute"}
                   >
-                    {isMuted || volume === 0 ? <VolumeX className="w-4 h-4 text-red-400" /> : <Volume2 className="w-4 h-4" />}
+                    {isMuted || volume === 0 ? <VolumeX className="w-5 h-5 text-red-400" /> : <Volume2 className="w-5 h-5" />}
                   </button>
 
                   <input
@@ -595,7 +645,7 @@ export default function LiveTvPage({
                   <>
                     <button
                       onClick={() => setShowQualityMenu((v) => !v)}
-                      className="player-menu-btn px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs font-semibold backdrop-blur-md flex items-center gap-1.5 transition-all cursor-pointer"
+                      className="player-menu-btn px-3 py-2 sm:py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs font-semibold backdrop-blur-md flex items-center gap-1.5 transition-all cursor-pointer min-h-11 sm:min-h-0"
                       style={{ boxShadow: selectedQuality.startsWith("Auto") ? `0 0 0 1px ${brandColor}40` : undefined }}
                       title={t?.videoQuality || "Video Quality"}
                     >
@@ -652,10 +702,10 @@ export default function LiveTvPage({
 
                 <button
                   onClick={toggleFullscreen}
-                  className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-md text-white flex items-center justify-center transition-all cursor-pointer"
-                  title={t?.toggleFullscreen || "Fullscreen"}
+                  className="w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-md text-white flex items-center justify-center transition-all cursor-pointer"
+                  title={isFullscreen ? (t?.exitFullscreen || "Exit Fullscreen") : (t?.toggleFullscreen || "Fullscreen")}
                 >
-                  <Maximize className="w-4 h-4" />
+                  {isFullscreen ? <Minimize className="w-5 h-5 text-red-400" /> : <Maximize className="w-5 h-5" />}
                 </button>
               </div>
             </div>

@@ -29,6 +29,7 @@ import Hls from "hls.js";
 import { ScreenOrientation } from "@capacitor/screen-orientation";
 import { Movie, Subtitle } from "../types";
 import { getProxiedStreamUrl, describeQualityLabel, shortQualityHint } from "../lib/stream-utils";
+import { isNativeCapacitor, enterImmersiveMode, exitImmersiveMode, addImmersiveStateListener } from "../lib/native-fullscreen";
 
 interface MediaPlayerProps {
   movie: Movie;
@@ -562,8 +563,31 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
     };
 
     document.addEventListener("fullscreenchange", handleFullscreenChange);
+
+    // Native Capacitor immersive fullscreen events (Android APK)
+    let removeNativeListener = () => {};
+    if (isNativeCapacitor()) {
+      addImmersiveStateListener((data) => {
+        const isFs = !!data.isFullscreen;
+        setIsFullscreen(isFs);
+        if (!isFs) {
+          ScreenOrientation.unlock().catch(() => {
+            try {
+              const orientation = (screen as any).orientation || (window.screen as any).orientation;
+              if (orientation && typeof orientation.unlock === "function") {
+                orientation.unlock();
+              }
+            } catch (e) {}
+          });
+        }
+      }).then((unsub) => {
+        removeNativeListener = unsub;
+      });
+    }
+
     return () => {
       document.removeEventListener("fullscreenchange", handleFullscreenChange);
+      removeNativeListener();
       ScreenOrientation.unlock().catch(() => {
         try {
           const orientation = (screen as any).orientation || (window.screen as any).orientation;
@@ -909,22 +933,37 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
       } catch (e) {}
     }
 
-    // 2. HTML5 Fullscreen API (for Web Browsers)
-    const container = containerRef.current;
-    if (container) {
+    // 2. Native immersive fullscreen (Capacitor APK) - hides Android system bars
+    if (isNativeCapacitor()) {
       if (targetFs) {
-        if (container.requestFullscreen) {
-          container.requestFullscreen().catch(() => {});
-        }
+        await enterImmersiveMode();
       } else {
-        if (document.fullscreenElement && document.exitFullscreen) {
-          document.exitFullscreen().catch(() => {});
-        }
+        await exitImmersiveMode();
+      }
+      return;
+    }
+
+    // 3. HTML5 Fullscreen API (for Web Browsers)
+    const container = containerRef.current;
+    if (!container) return;
+    if (targetFs) {
+      if (container.requestFullscreen) {
+        container.requestFullscreen().catch(() => {});
+      }
+    } else {
+      if (document.fullscreenElement && document.exitFullscreen) {
+        document.exitFullscreen().catch(() => {});
       }
     }
   };
 
   const handleClosePlayer = async () => {
+    // Exit native immersive fullscreen first (Android APK)
+    if (isNativeCapacitor()) {
+      try {
+        await exitImmersiveMode();
+      } catch (e) {}
+    }
     try {
       await ScreenOrientation.unlock();
     } catch (e) {
@@ -971,7 +1010,8 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
         {(!showControls || isScreenLocked || isBuffering) && (
           <button
             onClick={handleClosePlayer}
-            className="absolute top-4 right-4 z-[60] w-10 h-10 rounded-full bg-zinc-900/80 hover:bg-red-600 text-white flex items-center justify-center border border-zinc-800 transition-colors shadow-lg cursor-pointer"
+            className="absolute right-4 z-[60] w-11 h-11 rounded-full bg-zinc-900/80 hover:bg-red-600 text-white flex items-center justify-center border border-zinc-800 transition-colors shadow-lg cursor-pointer"
+            style={{ top: "calc(env(safe-area-inset-top, 0px) + 0.75rem)" }}
             title={t.exitPlayer || "Exit Player"}
           >
             <X className="w-5 h-5" />
@@ -998,7 +1038,6 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
             className="w-full h-full max-h-screen object-contain"
             onClick={handleScreenClick}
             muted={isMuted}
-            volume={volume}
             onTimeUpdate={() => {
               if (videoRef.current) {
                 setCurrentTime(videoRef.current.currentTime);
@@ -1194,7 +1233,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
 
         {/* SCREEN LOCK FLOATING ICON (When Locked) */}
         {isScreenLocked && (
-          <div className="absolute top-6 left-6 z-50">
+          <div className="absolute left-6 z-50" style={{ top: "calc(env(safe-area-inset-top, 0px) + 1.5rem)" }}>
             <button
               onClick={() => setIsScreenLocked(false)}
               className="p-3.5 bg-red-600/90 hover:bg-red-600 text-white rounded-full shadow-2xl flex items-center justify-center border border-white/20 transition-all transform active:scale-90 cursor-pointer backdrop-blur-md"
@@ -1211,9 +1250,17 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
             showControls && !isScreenLocked ? "opacity-100" : "opacity-0 pointer-events-none"
           }`}
           id="media-player-hud"
+          onClick={(e) => {
+            // Tap on empty HUD space toggles controls (better mobile UX). Buttons stop propagation.
+            const target = e.target as HTMLElement | null;
+            if (!target) return;
+            if (target.closest?.("button") || target.closest?.(".player-menu-popover")) return;
+            if (target.closest?.("input")) return;
+            handleScreenClick();
+          }}
         >
           {/* Top Header Row */}
-          <div className="flex items-center justify-between w-full z-10">
+          <div className="flex items-center justify-between w-full z-10 pt-safe">
             <div>
               <p className="text-[10px] md:text-xs font-bold text-red-500 font-mono tracking-wider">
                 {t.nowStreaming || "NOW STREAMING"} • {selectedQuality !== "Auto" ? selectedQuality : movie.quality}
@@ -1227,7 +1274,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
               {/* Screen Lock Toggle */}
               <button
                 onClick={() => setIsScreenLocked(true)}
-                className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-zinc-900/80 hover:bg-zinc-800 text-white flex items-center justify-center border border-zinc-800 transition-colors shadow-lg cursor-pointer z-20"
+                className="w-11 h-11 md:w-12 md:h-12 rounded-full bg-zinc-900/80 hover:bg-zinc-800 text-white flex items-center justify-center border border-zinc-800 transition-colors shadow-lg cursor-pointer z-20"
                 title="Lock Screen Touch"
               >
                 <Unlock className="w-5 h-5 text-zinc-300" />
@@ -1235,7 +1282,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
 
               <button
                 onClick={handleClosePlayer}
-                className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-zinc-900/80 hover:bg-red-600 text-white flex items-center justify-center border border-zinc-800 transition-colors shadow-lg cursor-pointer z-20"
+                className="w-11 h-11 md:w-12 md:h-12 rounded-full bg-zinc-900/80 hover:bg-red-600 text-white flex items-center justify-center border border-zinc-800 transition-colors shadow-lg cursor-pointer z-20"
                 id="media-player-exit"
                 title={t.exitPlayer || "Exit Player"}
               >
@@ -1322,7 +1369,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
           </div>
 
           {/* Bottom Playback HUD panel */}
-            <div className="space-y-3 sm:space-y-4">
+            <div className="space-y-3 sm:space-y-4 pb-safe" id="media-player-bottom-hud">
             {/* Progress Timeline Scrubber or Live Stream Indicator */}
             {movie.contentType === "livetv" ? (
               <div className="flex items-center justify-between w-full px-3 py-1.5 bg-red-950/40 border border-red-600/30 rounded-xl backdrop-blur-md">
@@ -1369,7 +1416,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
                   <div className="flex items-center gap-2 pr-2 border-r border-zinc-800/80">
                     <button
                       onClick={() => handleSkip(-10)}
-                      className="text-zinc-300 hover:text-white transition-all transform active:scale-90 p-1 cursor-pointer"
+                      className="text-zinc-300 hover:text-white transition-all transform active:scale-90 p-2 cursor-pointer min-w-10 min-h-10 flex items-center justify-center"
                       title={t.rewind10s || "Rewind 10s"}
                     >
                       <RotateCcw className="w-4 h-4 md:w-5 md:h-5" />
@@ -1377,7 +1424,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
 
                     <button
                       onClick={handlePlayPause}
-                      className="w-8 h-8 rounded-full bg-white text-black hover:scale-105 transition-all flex items-center justify-center shadow-md cursor-pointer active:scale-95"
+                      className="w-11 h-11 rounded-full bg-white text-black hover:scale-105 transition-all flex items-center justify-center shadow-md cursor-pointer active:scale-95"
                       id="hud-play-btn"
                       title={isPlaying ? "Pause" : "Play"}
                     >
@@ -1390,7 +1437,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
 
                     <button
                       onClick={() => handleSkip(10)}
-                      className="text-zinc-300 hover:text-white transition-all transform active:scale-90 p-1 cursor-pointer"
+                      className="text-zinc-300 hover:text-white transition-all transform active:scale-90 p-2 cursor-pointer min-w-10 min-h-10 flex items-center justify-center"
                       title={t.forward10s || "Forward 10s"}
                     >
                       <RotateCw className="w-4 h-4 md:w-5 md:h-5" />
@@ -1402,7 +1449,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
                 <div className="flex items-center gap-2">
                   <button
                     onClick={handleMuteToggle}
-                    className="text-zinc-300 hover:text-white transition-colors cursor-pointer p-1"
+                    className="text-zinc-300 hover:text-white transition-colors cursor-pointer min-w-11 min-h-11 flex items-center justify-center"
                     id="hud-mute-btn"
                     title={isMuted ? "Unmute" : "Mute"}
                   >
@@ -1437,7 +1484,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
                         setShowSubtitleMenu(false);
                         setShowSubtitleCustomizer(false);
                       }}
-                      className="player-menu-btn px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs font-semibold backdrop-blur-md flex items-center gap-1.5 transition-all cursor-pointer"
+                      className="player-menu-btn px-3 py-2 sm:py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs font-semibold backdrop-blur-md flex items-center gap-1.5 transition-all cursor-pointer min-h-10 sm:min-h-0"
                       title="Video Quality"
                     >
                       <SlidersHorizontal className="w-3.5 h-3.5" style={{ color: brandColor }} />
@@ -1492,7 +1539,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
                       setShowSubtitleMenu(false);
                       setShowSubtitleCustomizer(false);
                     }}
-                    className="player-menu-btn flex items-center gap-1.5 text-zinc-300 hover:text-white text-xs font-semibold px-2.5 py-1 bg-zinc-900/80 border border-zinc-800 rounded-lg transition-colors cursor-pointer"
+                    className="player-menu-btn flex items-center gap-1.5 text-zinc-300 hover:text-white text-xs font-semibold px-2.5 py-2 sm:py-1 bg-zinc-900/80 border border-zinc-800 rounded-lg transition-colors cursor-pointer min-h-10 sm:min-h-0"
                     title={t.playbackSpeed || "Playback Speed"}
                   >
                     <Settings className="w-3.5 h-3.5" />
@@ -1526,7 +1573,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
                         setShowSpeedMenu(false);
                         setShowSubtitleCustomizer(false);
                       }}
-                      className={`player-menu-btn flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 border rounded-lg transition-colors cursor-pointer ${
+                      className={`player-menu-btn flex items-center gap-1.5 text-xs font-semibold px-2.5 py-2 sm:py-1 border rounded-lg transition-colors cursor-pointer min-h-10 sm:min-h-0 ${
                         activeSubtitle !== "off"
                           ? "bg-red-600/10 border-red-500 text-red-400 font-bold"
                           : "bg-zinc-900/80 border-zinc-800 text-zinc-300 hover:text-white"
@@ -1534,7 +1581,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
                       title={t.toggleCaptions || "Toggle Captions"}
                     >
                       <Subtitles className="w-3.5 h-3.5" />
-                      <span>{activeSubtitleObj ? activeSubtitleObj.label : (t.toggleCaptions || "Subtitles")}</span>
+                      <span className="hidden sm:inline">{activeSubtitleObj ? activeSubtitleObj.label : (t.toggleCaptions || "Subtitles")}</span>
                     </button>
 
                     {/* Subtitle Style Customizer Toggle */}
@@ -1545,7 +1592,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
                         setShowQualityMenu(false);
                         setShowSpeedMenu(false);
                       }}
-                      className="player-menu-btn p-1 bg-zinc-900/80 border border-zinc-800 rounded-lg text-zinc-400 hover:text-white transition-colors cursor-pointer"
+                      className="player-menu-btn p-2 bg-zinc-900/80 border border-zinc-800 rounded-lg text-zinc-400 hover:text-white transition-colors cursor-pointer min-w-10 min-h-10 flex items-center justify-center"
                       title="Subtitle Settings (Size & Style)"
                     >
                       <SlidersHorizontal className="w-3.5 h-3.5" />
@@ -1631,7 +1678,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
                 {/* Fullscreen control */}
                 <button
                   onClick={toggleFullscreen}
-                  className="text-zinc-300 hover:text-white transition-colors cursor-pointer p-1 hover:scale-105 active:scale-95"
+                  className="text-zinc-300 hover:text-white transition-colors cursor-pointer min-w-11 min-h-11 flex items-center justify-center hover:scale-105 active:scale-95"
                   title={isFullscreen ? (t.exitFullscreen || "Exit Fullscreen") : (t.toggleFullscreen || "Toggle Fullscreen")}
                 >
                   {isFullscreen ? (

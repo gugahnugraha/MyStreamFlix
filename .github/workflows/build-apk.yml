@@ -32,19 +32,53 @@ jobs:
       - name: Install Dependencies
         run: npm install --legacy-peer-deps
 
-      - name: Sync Capacitor Android
-        run: npx cap sync android
+      - name: Build Next.js Production Assets
+        env:
+          NEXT_TELEMETRY_DISABLED: 1
+          # Next.js needs DB env vars even for build sometimes; set dummy
+          DATABASE_URL: "file:./dev.db"
+        run: npm run build
+
+      - name: Sync Capacitor Android (copy web assets to Android)
+        run: npx cap sync android --no-deployment
 
       - name: Grant Execute Permission for Gradle
         run: chmod +x android/gradlew
 
-      - name: Build Android APK
+      - name: Build Debug Android APK
         run: |
           cd android
-          ./gradlew assembleDebug --no-daemon
+          ./gradlew clean assembleDebug --no-daemon --stacktrace
+
+      - name: Rename APK Artifact
+        if: always()
+        run: |
+          APKDIR=android/app/build/outputs/apk/debug
+          if [ -f "$APKDIR/app-debug.apk" ]; then
+            VERSION=$(node -p "require('./package.json').version")
+            TS=$(date +%Y%m%d-%H%M)
+            cp "$APKDIR/app-debug.apk" "$APKDIR/MyStreamFlix-${VERSION}-${TS}-debug.apk"
+            echo "APK_VERSION=${VERSION}" >> $GITHUB_ENV
+            echo "APK_TS=${TS}" >> $GITHUB_ENV
+          fi
 
       - name: Upload Android APK Artifact
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: MyStreamFlix-Android-APK
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          path: |
+            android/app/build/outputs/apk/debug/app-debug.apk
+            android/app/build/outputs/apk/debug/MyStreamFlix-*.apk
+          if-no-files-found: error
+
+      - name: Upload APK Build Logs on Failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Build-Logs
+          path: |
+            android/app/build/reports/**
+            android/app/build/outputs/logs/**
+          if-no-files-found: ignore
+

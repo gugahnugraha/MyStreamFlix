@@ -407,6 +407,14 @@ input[type="range"]::-webkit-slider-thumb:hover {
   margin-bottom: env(safe-area-inset-bottom, 1rem);
 }
 
+.pt-safe {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+.pb-safe-plus {
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 10px);
+}
+
 /* Prevent auto-zoom on mobile input focus */
 @media (max-width: 639px) {
   input, select, textarea {
