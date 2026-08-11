@@ -341,7 +341,7 @@ export default function App() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col font-sans selection:text-white relative overflow-x-hidden pt-[65px]" id="app-root" style={{ ["selectionBackgroundColor" as any]: settings.primaryColor }}>
+    <div className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col font-sans selection:bg-blue-600 selection:text-white relative overflow-x-hidden pt-[65px]" id="app-root">
 
       {/* Header component */}
       <Header

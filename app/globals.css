@@ -413,3 +413,24 @@ input[type="range"]::-webkit-slider-thumb:hover {
     font-size: 16px !important;
   }
 }
+
+/* Universal High-Contrast Text Selection (CTRL+A / Mouse Highlight for Form Textboxes) */
+::selection {
+  background-color: #2563eb !important;
+  color: #ffffff !important;
+  text-shadow: none !important;
+}
+
+::-moz-selection {
+  background-color: #2563eb !important;
+  color: #ffffff !important;
+  text-shadow: none !important;
+}
+
+input::selection,
+textarea::selection,
+select::selection {
+  background-color: #2563eb !important;
+  color: #ffffff !important;
+  text-shadow: none !important;
+}
