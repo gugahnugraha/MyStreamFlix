@@ -95,8 +95,8 @@ function parseSubtitles(text: string): Cue[] {
 export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {}, brandColor = "#00ADB5" }: MediaPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const startupTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const bufferTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const startupTimeoutRef = useRef<number | null>(null);
+  const bufferTimeoutRef = useRef<number | null>(null);
   const hlsRef = useRef<Hls | null>(null);
 
   // TV Series active episode and season tracking states
@@ -295,6 +295,11 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
   const [isSimulating, setIsSimulating] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
+  // Landscape detection for safe-area inset side padding (Android APK)
+  const [isLandscape, setIsLandscape] = useState(
+    () => typeof window !== "undefined" && window.innerWidth > window.innerHeight
+  );
+
   const clearStreamTimers = () => {
     if (startupTimeoutRef.current) {
       clearTimeout(startupTimeoutRef.current);
@@ -343,9 +348,9 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
     if (movie.contentType === "livetv") {
       setIsBuffering(true);
       clearStreamTimers();
-      startupTimeoutRef.current = setTimeout(() => {
+      startupTimeoutRef.current = window.setTimeout(() => {
         engageStreamTimeout();
-      }, 12000);
+      }, 12000) as number;
     }
 
     if (Hls.isSupported() && currentStreamUrl.includes(".m3u8")) {
@@ -455,9 +460,9 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
       return;
     }
     if (!bufferTimeoutRef.current) {
-      bufferTimeoutRef.current = setTimeout(() => {
+      bufferTimeoutRef.current = window.setTimeout(() => {
         engageStreamTimeout();
-      }, 20000);
+      }, 20000) as number;
     }
     return () => {
       if (bufferTimeoutRef.current) {
@@ -596,6 +601,19 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
           }
         } catch (e) {}
       });
+    };
+  }, []);
+
+  // Landscape orientation listener — updates isLandscape on device rotation (Android APK)
+  useEffect(() => {
+    const handleOrientationChange = () => {
+      setIsLandscape(window.innerWidth > window.innerHeight);
+    };
+    window.addEventListener("orientationchange", handleOrientationChange);
+    window.addEventListener("resize", handleOrientationChange);
+    return () => {
+      window.removeEventListener("orientationchange", handleOrientationChange);
+      window.removeEventListener("resize", handleOrientationChange);
     };
   }, []);
 
@@ -914,27 +932,19 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
     const targetFs = !isFullscreen;
     setIsFullscreen(targetFs);
 
-    // 1. Native Capacitor ScreenOrientation locking
-    try {
-      if (targetFs) {
-        await ScreenOrientation.lock({ orientation: "landscape" });
-      } else {
-        await ScreenOrientation.unlock();
-      }
-    } catch (err) {
-      // Browser Screen Orientation API fallback
-      try {
-        const orientation = (screen as any).orientation || (window.screen as any).orientation;
-        if (targetFs && orientation && typeof orientation.lock === "function") {
-          orientation.lock("landscape").catch(() => {});
-        } else if (!targetFs && orientation && typeof orientation.unlock === "function") {
-          orientation.unlock();
-        }
-      } catch (e) {}
-    }
-
-    // 2. Native immersive fullscreen (Capacitor APK) - hides Android system bars
+    // 1. Native Capacitor ScreenOrientation locking (APK only)
     if (isNativeCapacitor()) {
+      try {
+        if (targetFs) {
+          await ScreenOrientation.lock({ orientation: "landscape" });
+        } else {
+          await ScreenOrientation.unlock();
+        }
+      } catch (err) {
+        // Ignore — orientation lock is best-effort on APK
+      }
+
+      // 2. Native immersive fullscreen (Capacitor APK) - hides Android system bars
       if (targetFs) {
         await enterImmersiveMode();
       } else {
@@ -943,7 +953,17 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
       return;
     }
 
-    // 3. HTML5 Fullscreen API (for Web Browsers)
+    // 3. Browser Screen Orientation API fallback (web browsers)
+    try {
+      const orientation = (screen as any).orientation || (window.screen as any).orientation;
+      if (targetFs && orientation && typeof orientation.lock === "function") {
+        orientation.lock("landscape").catch(() => {});
+      } else if (!targetFs && orientation && typeof orientation.unlock === "function") {
+        orientation.unlock();
+      }
+    } catch (e) {}
+
+    // 4. HTML5 Fullscreen API (for Web Browsers)
     const container = containerRef.current;
     if (!container) return;
     if (targetFs) {
@@ -992,8 +1012,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
     return `${m < 10 ? "0" : ""}${m}:${s < 10 ? "0" : ""}${s}`;
   };
 
-  const getSubtitleStyleClasses = () => {
-    let sizeClass = "text-base md:text-xl";
+  const getSubtitleStyleClasses = () => {    let sizeClass = "text-base md:text-xl";
     if (subtitleSize === "small") sizeClass = "text-xs md:text-sm";
     if (subtitleSize === "large") sizeClass = "text-lg md:text-2xl";
     if (subtitleSize === "xlarge") sizeClass = "text-xl md:text-3xl";
@@ -1004,6 +1023,26 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
 
     return `${sizeClass} ${bgStyle}`;
   };
+
+  // Safe-area HUD padding for Android APK.
+  // Non-fullscreen portrait: add 16px extra above the system nav bar.
+  // Fullscreen / landscape: use only the env() inset (bars are hidden by immersive mode).
+  const hudStyle: React.CSSProperties = isNativeCapacitor()
+    ? {
+        paddingBottom:
+          isFullscreen || isLandscape
+            ? "env(safe-area-inset-bottom, 0px)"
+            : "calc(env(safe-area-inset-bottom, 0px) + 16px)",
+        paddingLeft:
+          isFullscreen || isLandscape
+            ? "env(safe-area-inset-left, 0px)"
+            : undefined,
+        paddingRight:
+          isFullscreen || isLandscape
+            ? "env(safe-area-inset-right, 0px)"
+            : undefined,
+      }
+    : {};
 
   return (
     <div className="fixed inset-0 z-[100] bg-black flex flex-col md:flex-row landscape:flex-row justify-between overflow-hidden" id="media-player-root">
@@ -1369,7 +1408,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
           </div>
 
           {/* Bottom Playback HUD panel */}
-            <div className="space-y-3 sm:space-y-4 pb-safe" id="media-player-bottom-hud">
+            <div className="space-y-3 sm:space-y-4" id="media-player-bottom-hud" style={hudStyle}>
             {/* Progress Timeline Scrubber or Live Stream Indicator */}
             {movie.contentType === "livetv" ? (
               <div className="flex items-center justify-between w-full px-3 py-1.5 bg-red-950/40 border border-red-600/30 rounded-xl backdrop-blur-md">
@@ -1416,7 +1455,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
                   <div className="flex items-center gap-2 pr-2 border-r border-zinc-800/80">
                     <button
                       onClick={() => handleSkip(-10)}
-                      className="text-zinc-300 hover:text-white transition-all transform active:scale-90 p-2 cursor-pointer min-w-10 min-h-10 flex items-center justify-center"
+                      className="text-zinc-300 hover:text-white transition-all transform active:scale-90 p-2 cursor-pointer min-w-11 min-h-11 flex items-center justify-center"
                       title={t.rewind10s || "Rewind 10s"}
                     >
                       <RotateCcw className="w-4 h-4 md:w-5 md:h-5" />
@@ -1437,7 +1476,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
 
                     <button
                       onClick={() => handleSkip(10)}
-                      className="text-zinc-300 hover:text-white transition-all transform active:scale-90 p-2 cursor-pointer min-w-10 min-h-10 flex items-center justify-center"
+                      className="text-zinc-300 hover:text-white transition-all transform active:scale-90 p-2 cursor-pointer min-w-11 min-h-11 flex items-center justify-center"
                       title={t.forward10s || "Forward 10s"}
                     >
                       <RotateCw className="w-4 h-4 md:w-5 md:h-5" />
@@ -1484,7 +1523,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
                         setShowSubtitleMenu(false);
                         setShowSubtitleCustomizer(false);
                       }}
-                      className="player-menu-btn px-3 py-2 sm:py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs font-semibold backdrop-blur-md flex items-center gap-1.5 transition-all cursor-pointer min-h-10 sm:min-h-0"
+                      className="player-menu-btn px-3 py-2 sm:py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs font-semibold backdrop-blur-md flex items-center gap-1.5 transition-all cursor-pointer min-h-11"
                       title="Video Quality"
                     >
                       <SlidersHorizontal className="w-3.5 h-3.5" style={{ color: brandColor }} />
@@ -1539,7 +1578,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
                       setShowSubtitleMenu(false);
                       setShowSubtitleCustomizer(false);
                     }}
-                    className="player-menu-btn flex items-center gap-1.5 text-zinc-300 hover:text-white text-xs font-semibold px-2.5 py-2 sm:py-1 bg-zinc-900/80 border border-zinc-800 rounded-lg transition-colors cursor-pointer min-h-10 sm:min-h-0"
+                    className="player-menu-btn flex items-center gap-1.5 text-zinc-300 hover:text-white text-xs font-semibold px-2.5 py-2 sm:py-1 bg-zinc-900/80 border border-zinc-800 rounded-lg transition-colors cursor-pointer min-h-11"
                     title={t.playbackSpeed || "Playback Speed"}
                   >
                     <Settings className="w-3.5 h-3.5" />
@@ -1573,7 +1612,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
                         setShowSpeedMenu(false);
                         setShowSubtitleCustomizer(false);
                       }}
-                      className={`player-menu-btn flex items-center gap-1.5 text-xs font-semibold px-2.5 py-2 sm:py-1 border rounded-lg transition-colors cursor-pointer min-h-10 sm:min-h-0 ${
+                      className={`player-menu-btn flex items-center gap-1.5 text-xs font-semibold px-2.5 py-2 sm:py-1 border rounded-lg transition-colors cursor-pointer min-h-11 ${
                         activeSubtitle !== "off"
                           ? "bg-red-600/10 border-red-500 text-red-400 font-bold"
                           : "bg-zinc-900/80 border-zinc-800 text-zinc-300 hover:text-white"
@@ -1592,7 +1631,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
                         setShowQualityMenu(false);
                         setShowSpeedMenu(false);
                       }}
-                      className="player-menu-btn p-2 bg-zinc-900/80 border border-zinc-800 rounded-lg text-zinc-400 hover:text-white transition-colors cursor-pointer min-w-10 min-h-10 flex items-center justify-center"
+                      className="player-menu-btn p-2 bg-zinc-900/80 border border-zinc-800 rounded-lg text-zinc-400 hover:text-white transition-colors cursor-pointer min-w-11 min-h-11 flex items-center justify-center"
                       title="Subtitle Settings (Size & Style)"
                     >
                       <SlidersHorizontal className="w-3.5 h-3.5" />
