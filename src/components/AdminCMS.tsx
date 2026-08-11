@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @license
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -435,6 +435,102 @@ export default function AdminCMS({
   const [episodesPerSeason, setEpisodesPerSeason] = useState(5);
   const [seasons, setSeasons] = useState<Season[]>([]);
   const [subtitles, setSubtitles] = useState<Subtitle[]>([]);
+
+  // ====== Dedicated Live TV Channel Form States ======
+  const [showChannelForm, setShowChannelForm] = useState(false);
+  const [channelFormMode, setChannelFormMode] = useState<'create' | 'edit'>('create');
+  const [channelEditId, setChannelEditId] = useState<string | null>(null);
+  const [channelSaving, setChannelSaving] = useState(false);
+  const [channelName, setChannelName] = useState('');
+  const [channelStreamUrl, setChannelStreamUrl] = useState('');
+  const [channelLogoUrl, setChannelLogoUrl] = useState('');
+  const [channelDescription, setChannelDescription] = useState('');
+  const [channelCountry, setChannelCountry] = useState('Indonesia');
+  const [channelLanguage, setChannelLanguage] = useState('Indonesian');
+  const [channelCategories, setChannelCategories] = useState<string[]>(['News']);
+  const [channelQuality, setChannelQuality] = useState('HD');
+
+  const LIVE_TV_CATEGORIES = ['News', 'Entertainment', 'Sports', 'Kids', 'Science', 'Business', 'Culture', 'Local ID', 'Religious', 'Music', 'Documentary', 'General'];
+
+  const handleOpenAddChannel = () => {
+    setChannelFormMode('create');
+    setChannelEditId(null);
+    setChannelName('');
+    setChannelStreamUrl('');
+    setChannelLogoUrl('');
+    setChannelDescription('');
+    setChannelCountry('Indonesia');
+    setChannelLanguage('Indonesian');
+    setChannelCategories(['News']);
+    setChannelQuality('HD');
+    setShowChannelForm(true);
+  };
+
+  const handleOpenEditChannel = (ch: Movie) => {
+    setChannelFormMode('edit');
+    setChannelEditId(ch.id);
+    setChannelName(ch.title);
+    setChannelStreamUrl(normalizeCdnUrl(ch.videoUrl));
+    setChannelLogoUrl(normalizeCdnUrl(ch.posterUrl));
+    setChannelDescription(ch.description);
+    setChannelCountry(ch.country || 'Indonesia');
+    setChannelLanguage(ch.language || 'Indonesian');
+    setChannelCategories(ch.genres || ['News']);
+    setChannelQuality(ch.quality || 'HD');
+    setShowChannelForm(true);
+  };
+
+  const handleSaveChannel = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!channelName.trim() || !channelStreamUrl.trim()) {
+      showAlert('Nama channel dan stream URL wajib diisi.');
+      return;
+    }
+    setChannelSaving(true);
+    try {
+      const payload = {
+        title: channelName.trim(),
+        description: channelDescription.trim() || (channelName.trim() + ' - Live Streaming Channel'),
+        posterUrl: channelLogoUrl.trim() || 'https://images.unsplash.com/photo-1611532736597-de2d4265fba3?w=300&auto=format&fit=crop&q=80',
+        backdropUrl: channelLogoUrl.trim() || 'https://images.unsplash.com/photo-1611532736597-de2d4265fba3?w=1200&auto=format&fit=crop&q=80',
+        videoUrl: channelStreamUrl.trim(),
+        duration: 0,
+        releaseYear: new Date().getFullYear(),
+        rating: 0,
+        ageRating: 'G',
+        quality: channelQuality,
+        genres: channelCategories,
+        cast: [],
+        directors: [],
+        country: channelCountry.trim(),
+        language: channelLanguage.trim(),
+        isFeatured: false,
+        isBanner: false,
+        contentType: 'livetv',
+        seasons: [],
+        subtitles: []
+      };
+      const url = channelFormMode === 'create' ? '/api/movies' : `/api/movies/${channelEditId}`;
+      const method = channelFormMode === 'create' ? 'POST' : 'PUT';
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.error || 'Gagal menyimpan channel.');
+      }
+      setSuccessMsg(channelFormMode === 'create' ? 'Channel berhasil ditambahkan! âœ…' : 'Channel berhasil diperbarui! âœ…');
+      setShowChannelForm(false);
+      onRefreshMovies();
+      setTimeout(() => setSuccessMsg(''), 3500);
+    } catch (err: any) {
+      showAlert(err.message || 'Gagal menyimpan channel.');
+    } finally {
+      setChannelSaving(false);
+    }
+  };
 
   const handleAddSubtitle = () => {
     const newSub: Subtitle = {
@@ -1018,7 +1114,7 @@ export default function AdminCMS({
             id="subtab-livetv"
           >
             <Radio className="w-3.5 h-3.5 text-red-400" />
-            <span>🔴 Live TV</span>
+            <span>📺 Live TV</span>
           </button>
           <button
             onClick={() => setActiveSubTab("users")}
@@ -1955,7 +2051,7 @@ export default function AdminCMS({
                       >
                         <option value="movie">{t.cmsSingleMovie || "Single Movie"}</option>
                         <option value="series">{t.cmsTvSeriesShow || "TV Series Show"}</option>
-                        <option value="livetv">🔴 Live TV Channel</option>
+                        <option value="livetv">📺 Live TV Channel</option>
                       </select>
                     </div>
                     {contentType === "series" ? (
@@ -2512,14 +2608,9 @@ export default function AdminCMS({
 
               {/* Add Channel Button */}
               <button
-                onClick={() => {
-                  handleOpenCreate();
-                  setContentType("livetv");
-                  setTitle("New TV Channel");
-                  setVideoUrl("https://ott-balancer.tvri.go.id/live/eds/Nasional/hls/Nasional.m3u8");
-                  setGenres(["News"]);
-                }}
+                onClick={handleOpenAddChannel}
                 className="flex items-center gap-2 bg-red-600 hover:bg-red-500 text-white font-bold text-xs px-4 py-2.5 rounded-lg shadow-lg shadow-red-600/20 transition-all cursor-pointer"
+                id="add-channel-btn"
               >
                 <Plus className="w-4 h-4" />
                 <span>{t?.addChannelBtn || "Add Channel"}</span>
@@ -2793,7 +2884,7 @@ export default function AdminCMS({
                             <Play className="w-3.5 h-3.5 fill-[#00ADB5]" />
                           </button>
                           <button
-                            onClick={() => handleOpenEdit(channel)}
+                            onClick={() => handleOpenEditChannel(channel)}
                             className="p-2 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-white transition-all cursor-pointer"
                             title="Edit Saluran"
                           >
@@ -2855,6 +2946,102 @@ export default function AdminCMS({
               }
             }}
           />
+
+          {/* ====== ADD / EDIT CHANNEL MODAL ====== */}
+          {showChannelForm && (
+            <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm" id="channel-form-overlay">
+              <div className="bg-zinc-950 border border-zinc-800 rounded-2xl shadow-2xl w-full max-w-xl flex flex-col max-h-[90svh] overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-800 shrink-0">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-lg bg-red-600 flex items-center justify-center">
+                      <Radio className="w-4 h-4 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-extrabold text-white">
+                        {channelFormMode === 'create' ? '+ Tambah Channel TV Baru' : 'Edit Channel TV'}
+                      </h3>
+                      <p className="text-[10px] text-zinc-500">HLS (.m3u8), DASH (.mpd), atau MP4 stream URL</p>
+                    </div>
+                  </div>
+                  <button type="button" onClick={() => setShowChannelForm(false)} className="p-2 rounded-lg hover:bg-zinc-800 text-zinc-500 hover:text-white transition-colors cursor-pointer" id="channel-form-close-btn">
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+                <form id="channel-editor-form" onSubmit={handleSaveChannel} className="flex-1 overflow-y-auto p-6 space-y-4">
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Nama Channel <span className="text-red-500">*</span></label>
+                    <input type="text" required placeholder="e.g. TVRI Nasional, MetroTV, Kompas TV" value={channelName} onChange={(e) => setChannelName(e.target.value)} className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-red-500/60 transition-colors" id="channel-input-name" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Stream URL (M3U8 / DASH / MP4) <span className="text-red-500">*</span></label>
+                    <input type="url" required placeholder="https://example.com/live/stream.m3u8" value={channelStreamUrl} onChange={(e) => setChannelStreamUrl(e.target.value)} className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm text-white font-mono placeholder-zinc-600 focus:outline-none focus:border-red-500/60 transition-colors" id="channel-input-stream-url" />
+                    <p className="text-[10px] text-zinc-600">Format: .m3u8 (HLS), .mpd (DASH), .mp4</p>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">URL Logo / Thumbnail</label>
+                    <div className="flex gap-2">
+                      <input type="url" placeholder="https://example.com/logo.png" value={channelLogoUrl} onChange={(e) => setChannelLogoUrl(e.target.value)} className="flex-1 bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm text-white font-mono placeholder-zinc-600 focus:outline-none focus:border-red-500/60 transition-colors" id="channel-input-logo" />
+                      {channelLogoUrl && (<div className="w-11 h-11 rounded-lg overflow-hidden border border-zinc-700 shrink-0 bg-zinc-900"><img src={channelLogoUrl} alt="logo" className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} /></div>)}
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Deskripsi</label>
+                    <textarea placeholder="Deskripsi singkat channel ini..." value={channelDescription} onChange={(e) => setChannelDescription(e.target.value)} rows={2} className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-red-500/60 transition-colors resize-none" id="channel-input-description" />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Negara</label>
+                      <input type="text" placeholder="Indonesia" value={channelCountry} onChange={(e) => setChannelCountry(e.target.value)} className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-red-500/60" id="channel-input-country" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Bahasa</label>
+                      <input type="text" placeholder="Indonesian" value={channelLanguage} onChange={(e) => setChannelLanguage(e.target.value)} className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-red-500/60" id="channel-input-language" />
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Kualitas Stream</label>
+                    <select value={channelQuality} onChange={(e) => setChannelQuality(e.target.value)} className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-red-500/60" id="channel-input-quality">
+                      <option value="SD">SD (480p)</option>
+                      <option value="HD">HD (720p)</option>
+                      <option value="Full HD">Full HD (1080p)</option>
+                      <option value="4K">4K (Ultra HD)</option>
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Kategori Channel</label>
+                    <div className="flex flex-wrap gap-2">
+                      {LIVE_TV_CATEGORIES.map((cat) => (
+                        <button
+                          key={cat}
+                          type="button"
+                          onClick={() =>
+                            setChannelCategories((prev) =>
+                              prev.includes(cat) ? prev.filter((c) => c !== cat) : [...prev, cat]
+                            )
+                          }
+                          className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all cursor-pointer ${
+                            channelCategories.includes(cat)
+                              ? "bg-red-600/15 text-red-200 border-red-500/40"
+                              : "bg-zinc-900 text-zinc-400 border-zinc-700 hover:bg-zinc-800 hover:text-zinc-200"
+                          }`}
+                        >
+                          {cat}
+                        </button>
+                      ))}
+                    </div>
+                    {channelCategories.length === 0 && (<p className="text-[10px] text-amber-400">Pilih minimal 1 kategori</p>)}
+                  </div>
+                </form>
+                <div className="px-6 py-4 border-t border-zinc-800 flex items-center justify-between gap-3 shrink-0">
+                  <button type="button" onClick={() => setShowChannelForm(false)} className="px-4 py-2 rounded-lg bg-zinc-900 border border-zinc-700 text-zinc-300 hover:text-white text-xs font-bold transition-colors cursor-pointer" id="channel-form-cancel-btn">Batal</button>
+                  <button type="submit" form="channel-editor-form" disabled={channelSaving || !channelName.trim() || !channelStreamUrl.trim() || channelCategories.length === 0} className="flex items-center gap-2 px-5 py-2 rounded-lg bg-red-600 hover:bg-red-500 disabled:opacity-60 disabled:cursor-not-allowed text-white text-xs font-bold transition-all cursor-pointer shadow-lg" id="channel-form-save-btn">
+                    {channelSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+                    {channelSaving ? 'Menyimpan...' : channelFormMode === 'create' ? 'Simpan Channel' : 'Update Channel'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -3279,7 +3466,8 @@ export default function AdminCMS({
           </div>
         </div>
       )}
-      {/* Custom Confirmation Modal Dialog */}
+
+      {/* Custom Confirmation Modal Dialog */}
       {confirmDialog && confirmDialog.isOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
           <div className="bg-zinc-950 border border-zinc-800 w-full max-w-md rounded-2xl p-6 shadow-2xl space-y-4 text-left">

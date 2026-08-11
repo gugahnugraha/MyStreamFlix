@@ -92,6 +92,9 @@ function parseSubtitles(text: string): Cue[] {
 export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {} }: MediaPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const startupTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const bufferTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hlsRef = useRef<Hls | null>(null);
 
   // TV Series active episode and season tracking states
   const [activeSeason, setActiveSeason] = useState(() => {
@@ -287,23 +290,69 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
   const [isSimulating, setIsSimulating] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
+  const clearStreamTimers = () => {
+    if (startupTimeoutRef.current) {
+      clearTimeout(startupTimeoutRef.current);
+      startupTimeoutRef.current = null;
+    }
+    if (bufferTimeoutRef.current) {
+      clearTimeout(bufferTimeoutRef.current);
+      bufferTimeoutRef.current = null;
+    }
+  };
+
+  const stopStream = () => {
+    clearStreamTimers();
+    if (hlsRef.current) {
+      hlsRef.current.destroy();
+      hlsRef.current = null;
+    }
+    const video = videoRef.current;
+    if (video) {
+      try {
+        video.pause();
+      } catch {}
+      video.removeAttribute("src");
+      video.load();
+    }
+  };
+
+  const engageStreamTimeout = () => {
+    setIsBuffering(false);
+    setHasError(true);
+    setIsSimulating(true);
+    setIsPlaying(false);
+    stopStream();
+  };
+
   useEffect(() => {
     const video = videoRef.current;
     if (!video || !currentStreamUrl) return;
 
-    let hls: Hls | null = null;
+    stopStream();
     setHasError(false);
     setIsSimulating(false);
+    if (movie.contentType === "livetv") {
+      setIsBuffering(true);
+      clearStreamTimers();
+      startupTimeoutRef.current = setTimeout(() => {
+        engageStreamTimeout();
+      }, 12000);
+    }
 
     if (Hls.isSupported() && currentStreamUrl.includes(".m3u8")) {
       video.removeAttribute("src");
-      hls = new Hls({
+      const hls = new Hls({
         enableWorker: true,
         lowLatencyMode: movie.contentType === "livetv",
         backBufferLength: movie.contentType === "livetv" ? 30 : 90,
+        manifestLoadingTimeOut: movie.contentType === "livetv" ? 12000 : undefined,
+        levelLoadingTimeOut: movie.contentType === "livetv" ? 12000 : undefined,
+        fragLoadingTimeOut: movie.contentType === "livetv" ? 12000 : undefined,
       });
       hls.loadSource(currentStreamUrl);
       hls.attachMedia(video);
+      hlsRef.current = hls;
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
         video.volume = volume;
         video.muted = false;
@@ -362,9 +411,39 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
     }
 
     return () => {
-      if (hls) hls.destroy();
+      clearStreamTimers();
+      if (hlsRef.current) {
+        hlsRef.current.destroy();
+        hlsRef.current = null;
+      }
     };
   }, [currentStreamUrl, movie.contentType]);
+
+  useEffect(() => {
+    if (movie.contentType !== "livetv") return;
+    if (!isBuffering) {
+      if (bufferTimeoutRef.current) {
+        clearTimeout(bufferTimeoutRef.current);
+        bufferTimeoutRef.current = null;
+      }
+      if (startupTimeoutRef.current) {
+        clearTimeout(startupTimeoutRef.current);
+        startupTimeoutRef.current = null;
+      }
+      return;
+    }
+    if (!bufferTimeoutRef.current) {
+      bufferTimeoutRef.current = setTimeout(() => {
+        engageStreamTimeout();
+      }, 20000);
+    }
+    return () => {
+      if (bufferTimeoutRef.current) {
+        clearTimeout(bufferTimeoutRef.current);
+        bufferTimeoutRef.current = null;
+      }
+    };
+  }, [isBuffering, movie.contentType]);
 
   // Auto-hide controls overlay
   useEffect(() => {
@@ -817,6 +896,15 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
 
   return (
     <div className="fixed inset-0 z-[100] bg-black flex flex-col md:flex-row landscape:flex-row justify-between overflow-hidden" id="media-player-root">
+        {(!showControls || isScreenLocked || isBuffering) && (
+          <button
+            onClick={handleClosePlayer}
+            className="absolute top-4 right-4 z-[60] w-10 h-10 rounded-full bg-zinc-900/80 hover:bg-red-600 text-white flex items-center justify-center border border-zinc-800 transition-colors shadow-lg cursor-pointer"
+            title={t.exitPlayer || "Exit Player"}
+          >
+            <X className="w-5 h-5" />
+          </button>
+        )}
       <style>{`
         video::cue, #video-core-element::cue {
           background: transparent !important;
@@ -844,12 +932,19 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
             }}
             onWaiting={() => setIsBuffering(true)}
             onSeeking={() => setIsBuffering(true)}
-            onCanPlay={() => setIsBuffering(false)}
-            onPlaying={() => setIsBuffering(false)}
+            onCanPlay={() => {
+              setIsBuffering(false);
+              clearStreamTimers();
+            }}
+            onPlaying={() => {
+              setIsBuffering(false);
+              clearStreamTimers();
+            }}
             onSeeked={() => setIsBuffering(false)}
             onEnded={() => {
               setIsPlaying(false);
               setIsBuffering(false);
+              clearStreamTimers();
               if (nextEpisodeInfo) {
                 handlePlayNextEpisode();
               }
@@ -860,6 +955,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
               setHasError(true);
               setIsSimulating(true);
               setIsPlaying(true);
+              clearStreamTimers();
             }}
             id="video-core-element"
           />

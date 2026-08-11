@@ -33,6 +33,9 @@ export default function LiveTvPage({
   // Video playback states
   const videoRef = useRef<HTMLVideoElement>(null);
   const playerShellRef = useRef<HTMLDivElement>(null);
+  const hlsRef = useRef<Hls | null>(null);
+  const startupTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const bufferTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [isPlaying, setIsPlaying] = useState<boolean>(true);
   const [isMuted, setIsMuted] = useState<boolean>(false);
   const [volume, setVolume] = useState<number>(1);
@@ -40,6 +43,7 @@ export default function LiveTvPage({
   const [streamError, setStreamError] = useState<boolean>(false);
   const [copiedLink, setCopiedLink] = useState<boolean>(false);
   const [needUserGesture, setNeedUserGesture] = useState<boolean>(false);
+  const [reloadSeq, setReloadSeq] = useState(0);
 
   // Initialize active channel if list changes
   useEffect(() => {
@@ -63,17 +67,67 @@ export default function LiveTvPage({
     setActiveChannel(liveChannels[nextIdx]);
   };
 
+  const clearStreamTimers = () => {
+    if (startupTimeoutRef.current) {
+      clearTimeout(startupTimeoutRef.current);
+      startupTimeoutRef.current = null;
+    }
+    if (bufferTimeoutRef.current) {
+      clearTimeout(bufferTimeoutRef.current);
+      bufferTimeoutRef.current = null;
+    }
+  };
+
+  const stopStream = () => {
+    clearStreamTimers();
+    if (hlsRef.current) {
+      hlsRef.current.destroy();
+      hlsRef.current = null;
+    }
+    const video = videoRef.current;
+    if (video) {
+      try {
+        video.pause();
+      } catch {}
+      video.removeAttribute("src");
+      video.load();
+    }
+  };
+
+  const scheduleStartupTimeout = () => {
+    clearStreamTimers();
+    startupTimeoutRef.current = setTimeout(() => {
+      setIsBuffering(false);
+      setStreamError(true);
+      setIsPlaying(false);
+      setNeedUserGesture(false);
+      stopStream();
+    }, 12000);
+  };
+
+  const scheduleBufferTimeout = () => {
+    if (bufferTimeoutRef.current) return;
+    bufferTimeoutRef.current = setTimeout(() => {
+      setIsBuffering(false);
+      setStreamError(true);
+      setIsPlaying(false);
+      setNeedUserGesture(false);
+      stopStream();
+    }, 20000);
+  };
+
   // Handle HLS / HTML5 Video Stream Loading
   useEffect(() => {
     const video = videoRef.current;
     if (!video || !activeChannel?.videoUrl) return;
 
-    let hls: Hls | null = null;
+    stopStream();
     setIsBuffering(true);
     setStreamError(false);
     setNeedUserGesture(false);
 
     const streamUrl = activeChannel.videoUrl;
+    scheduleStartupTimeout();
 
     const attemptPlay = () => {
       video.play().then(() => {
@@ -94,13 +148,17 @@ export default function LiveTvPage({
     };
 
     if (Hls.isSupported() && streamUrl.includes(".m3u8")) {
-      hls = new Hls({
+      const hls = new Hls({
         enableWorker: true,
         lowLatencyMode: true,
-        backBufferLength: 90
+        backBufferLength: 90,
+        manifestLoadingTimeOut: 12000,
+        levelLoadingTimeOut: 12000,
+        fragLoadingTimeOut: 12000,
       });
       hls.loadSource(streamUrl);
       hls.attachMedia(video);
+      hlsRef.current = hls;
 
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
         attemptPlay();
@@ -126,11 +184,13 @@ export default function LiveTvPage({
     }
 
     return () => {
-      if (hls) {
-        hls.destroy();
+      clearStreamTimers();
+      if (hlsRef.current) {
+        hlsRef.current.destroy();
+        hlsRef.current = null;
       }
     };
-  }, [activeChannel]);
+  }, [activeChannel, reloadSeq]);
 
   // Video event handlers
   const togglePlay = () => {
@@ -296,14 +356,19 @@ export default function LiveTvPage({
               ref={videoRef}
               className="w-full h-full object-contain bg-black"
               playsInline
-              onWaiting={() => setIsBuffering(true)}
+              onWaiting={() => {
+                setIsBuffering(true);
+                scheduleBufferTimeout();
+              }}
               onPlaying={() => {
                 setIsBuffering(false);
                 setStreamError(false);
+                clearStreamTimers();
               }}
               onError={() => {
                 setIsBuffering(false);
                 setStreamError(true);
+                clearStreamTimers();
               }}
             />
 
@@ -380,10 +445,7 @@ export default function LiveTvPage({
                     onClick={() => {
                       setStreamError(false);
                       setIsBuffering(true);
-                      if (videoRef.current) {
-                        videoRef.current.load();
-                        videoRef.current.play().catch(() => {});
-                      }
+                      setReloadSeq((s) => s + 1);
                     }}
                     className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-bold transition-all shadow-lg cursor-pointer"
                   >
