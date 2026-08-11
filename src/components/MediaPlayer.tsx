@@ -466,6 +466,21 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
     };
   }, [isBuffering, movie.contentType]);
 
+  // Sync audio state (volume & muted) to the real <video> element.
+  // React's <video volume/muted> props are not reliably reactive across browsers.
+  useEffect(() => {
+    if (isSimulating) return;
+    const video = videoRef.current;
+    if (!video) return;
+    try {
+      if (typeof video.volume === "number") {
+        const newVol = Math.max(0, Math.min(1, Number(volume) || 0));
+        if (Math.abs(video.volume - newVol) > 0.001) video.volume = newVol;
+      }
+      if (video.muted !== Boolean(isMuted)) video.muted = Boolean(isMuted);
+    } catch {}
+  }, [volume, isMuted, isSimulating, currentStreamUrl]);
+
   // Auto-hide controls overlay
   useEffect(() => {
     let timeout: NodeJS.Timeout;
@@ -735,7 +750,17 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
           video.pause();
           setIsPlaying(false);
         } else {
-          video.play().then(() => setIsPlaying(true)).catch((err) => {
+          video.play().then(() => {
+            setIsPlaying(true);
+            if (mutedByAutoplay || (video.muted && !isMuted)) {
+              const safeVol = volume > 0 ? volume : 0.8;
+              video.volume = safeVol;
+              video.muted = false;
+              setVolume(safeVol);
+              setIsMuted(false);
+              setMutedByAutoplay(false);
+            }
+          }).catch((err) => {
             console.warn("Direct stream play blocked, activating interactive simulation:", err);
             setIsSimulating(true);
             setIsPlaying(true);
@@ -972,6 +997,8 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
             ref={videoRef}
             className="w-full h-full max-h-screen object-contain"
             onClick={handleScreenClick}
+            muted={isMuted}
+            volume={volume}
             onTimeUpdate={() => {
               if (videoRef.current) {
                 setCurrentTime(videoRef.current.currentTime);
@@ -986,6 +1013,25 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
             onPlaying={() => {
               setIsBuffering(false);
               clearStreamTimers();
+              if (mutedByAutoplay) {
+                const video = videoRef.current;
+                if (video) {
+                  const safeVol = volume > 0 ? volume : 0.8;
+                  video.volume = safeVol;
+                  video.muted = false;
+                  setVolume(safeVol);
+                  setIsMuted(false);
+                }
+                setMutedByAutoplay(false);
+              }
+            }}
+            onVolumeCapture={() => {
+              const video = videoRef.current;
+              if (video) {
+                setVolume(video.volume);
+                setIsMuted(video.muted);
+                if (!video.muted && video.volume > 0) setMutedByAutoplay(false);
+              }
             }}
             onSeeked={() => setIsBuffering(false)}
             onEnded={() => {
