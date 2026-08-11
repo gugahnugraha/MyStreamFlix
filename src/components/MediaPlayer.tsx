@@ -1064,7 +1064,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
                 setMutedByAutoplay(false);
               }
             }}
-            onVolumeCapture={() => {
+            onVolumeChange={() => {
               const video = videoRef.current;
               if (video) {
                 setVolume(video.volume);

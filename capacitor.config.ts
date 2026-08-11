@@ -26,10 +26,7 @@ const config: CapacitorConfig = {
   android: {
     allowMixedContent: true,
     captureInput: true,
-    backgroundColor: '#09090b',
-    buildOptions: {
-      signingType: 'apk'
-    }
+    backgroundColor: '#09090b'
   },
   plugins: {
     CapacitorHttp: {
