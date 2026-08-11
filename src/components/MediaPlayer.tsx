@@ -1207,7 +1207,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
                       setShowSubtitleMenu(false);
                       setShowSubtitleCustomizer(false);
                     }}
-                    className="flex items-center gap-1.5 text-zinc-300 hover:text-white text-xs font-semibold px-2.5 py-1 bg-zinc-900/80 border border-zinc-800 rounded-lg transition-colors cursor-pointer"
+                    className="player-menu-btn flex items-center gap-1.5 text-zinc-300 hover:text-white text-xs font-semibold px-2.5 py-1 bg-zinc-900/80 border border-zinc-800 rounded-lg transition-colors cursor-pointer"
                     title="Video Quality"
                   >
                     <SlidersHorizontal className="w-3.5 h-3.5 text-red-500" />
@@ -1215,7 +1215,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
                   </button>
 
                   {showQualityMenu && (
-                    <div className="absolute bottom-10 right-0 w-36 bg-zinc-950 border border-zinc-800 p-1.5 rounded-xl shadow-2xl flex flex-col gap-0.5 z-50">
+                    <div className="player-menu-popover absolute bottom-10 right-0 w-36 bg-zinc-950 border border-zinc-800 p-1.5 rounded-xl shadow-2xl flex flex-col gap-0.5 z-50">
                       <div className="px-2 py-1 text-[10px] font-bold text-zinc-500 uppercase tracking-wider">
                         {t.videoQuality || "Quality"}
                       </div>
@@ -1244,7 +1244,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
                       setShowSubtitleMenu(false);
                       setShowSubtitleCustomizer(false);
                     }}
-                    className="flex items-center gap-1.5 text-zinc-300 hover:text-white text-xs font-semibold px-2.5 py-1 bg-zinc-900/80 border border-zinc-800 rounded-lg transition-colors cursor-pointer"
+                    className="player-menu-btn flex items-center gap-1.5 text-zinc-300 hover:text-white text-xs font-semibold px-2.5 py-1 bg-zinc-900/80 border border-zinc-800 rounded-lg transition-colors cursor-pointer"
                     title={t.playbackSpeed || "Playback Speed"}
                   >
                     <Settings className="w-3.5 h-3.5" />
@@ -1252,7 +1252,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
                   </button>
 
                   {showSpeedMenu && (
-                    <div className="absolute bottom-10 right-0 w-28 bg-zinc-950 border border-zinc-800 p-1.5 rounded-xl shadow-2xl flex flex-col gap-0.5 z-50">
+                    <div className="player-menu-popover absolute bottom-10 right-0 w-28 bg-zinc-950 border border-zinc-800 p-1.5 rounded-xl shadow-2xl flex flex-col gap-0.5 z-50">
                       {[0.5, 1, 1.25, 1.5, 2].map((r) => (
                         <button
                           key={r}
@@ -1278,7 +1278,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
                         setShowSpeedMenu(false);
                         setShowSubtitleCustomizer(false);
                       }}
-                      className={`flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 border rounded-lg transition-colors cursor-pointer ${
+                      className={`player-menu-btn flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 border rounded-lg transition-colors cursor-pointer ${
                         activeSubtitle !== "off"
                           ? "bg-red-600/10 border-red-500 text-red-400 font-bold"
                           : "bg-zinc-900/80 border-zinc-800 text-zinc-300 hover:text-white"
@@ -1297,7 +1297,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
                         setShowQualityMenu(false);
                         setShowSpeedMenu(false);
                       }}
-                      className="p-1 bg-zinc-900/80 border border-zinc-800 rounded-lg text-zinc-400 hover:text-white transition-colors cursor-pointer"
+                      className="player-menu-btn p-1 bg-zinc-900/80 border border-zinc-800 rounded-lg text-zinc-400 hover:text-white transition-colors cursor-pointer"
                       title="Subtitle Settings (Size & Style)"
                     >
                       <SlidersHorizontal className="w-3.5 h-3.5" />
@@ -1305,7 +1305,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
 
                     {/* Subtitle Language Menu */}
                     {showSubtitleMenu && (
-                      <div className="absolute bottom-10 right-0 w-36 bg-zinc-950 border border-zinc-800 p-1.5 rounded-xl shadow-2xl flex flex-col gap-0.5 z-50">
+                      <div className="player-menu-popover absolute bottom-10 right-0 w-36 bg-zinc-950 border border-zinc-800 p-1.5 rounded-xl shadow-2xl flex flex-col gap-0.5 z-50">
                         <button
                           onClick={() => handleSubtitleSelect("off")}
                           className={`text-left text-xs px-2.5 py-1.5 rounded-md hover:bg-zinc-900 transition-colors ${
@@ -1330,7 +1330,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
 
                     {/* Subtitle Customizer Panel */}
                     {showSubtitleCustomizer && (
-                      <div className="absolute bottom-10 right-0 w-52 bg-zinc-950 border border-zinc-800 p-3 rounded-2xl shadow-2xl flex flex-col gap-3 z-50">
+                      <div className="player-menu-popover absolute bottom-10 right-0 w-52 bg-zinc-950 border border-zinc-800 p-3 rounded-2xl shadow-2xl flex flex-col gap-3 z-50">
                         <div>
                           <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1.5">
                             Subtitle Size
