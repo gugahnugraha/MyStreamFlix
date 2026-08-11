@@ -1067,7 +1067,7 @@ export default function AdminCMS({
 
               <div className="flex items-center gap-2 shrink-0">
                 <button
-                  onClick={refreshStats}
+                  onClick={fetchStats}
                   className="flex items-center gap-2 px-4 py-2 bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-white text-xs font-bold rounded-xl transition-all cursor-pointer shadow-lg active:scale-95"
                 >
                   <RefreshCw className="w-3.5 h-3.5 text-[#00ADB5]" />
@@ -1111,7 +1111,7 @@ export default function AdminCMS({
               <div className="mt-3">
                 <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">{t.cmsTotalViews}</p>
                 <p className="text-2xl font-black text-white mt-0.5 tracking-tight">{stats.totalViews.toLocaleString()}</p>
-                <p className="text-[10px] text-amber-400 font-medium mt-1 flex items-center gap-1">
+                <p className="text-[10px] text-amber-400 font-medium mt-1">
                   <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" /> Akumulasi Total
                 </p>
               </div>
@@ -1186,6 +1186,357 @@ export default function AdminCMS({
               </div>
               <div className="mt-3">
                 <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">{t.cmsMonthlyRevenue}</p>
+                <p className="text-xl font-black text-white mt-0.5 tracking-tight">${stats.revenueThisMonth.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                <p className="text-[10px] text-pink-400 font-medium mt-1">
+                  Pendapatan Bulanan
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Section 2: Charts & Leaderboard Row */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+            {/* Audience Traffic Area Chart (2 cols) */}
+            <div className="lg:col-span-2 bg-zinc-950/90 border border-zinc-900 rounded-2xl p-6 space-y-5 shadow-xl">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-black text-white tracking-tight uppercase flex items-center gap-2">
+                    <TrendingUp className="w-4 h-4 text-[#00ADB5]" />
+                    {t.cmsAudienceTraffic}
+                  </h3>
+                  <p className="text-[11px] text-zinc-500 mt-0.5">Grafik dinamika trafik penonton dalam 7 hari terakhir</p>
+                </div>
+                <span className="px-2.5 py-1 rounded-lg bg-zinc-900 border border-zinc-800 text-[10px] font-mono text-zinc-400 font-bold">
+                  7 Hari Terakhir
+                </span>
+              </div>
+
+              {/* Enhanced Interactive Area Bar Chart */}
+              <div className="h-52 w-full flex items-end justify-between pt-6 px-2 gap-3 border-b border-zinc-900 pb-3">
+                {stats.recentViews.map((item, idx) => {
+                  const maxCount = Math.max(...stats.recentViews.map(v => v.count), 1);
+                  const percentage = Math.round((item.count / maxCount) * 100);
+                  const isHighest = item.count === maxCount;
+
+                  return (
+                    <div key={idx} className="flex flex-col items-center gap-2 flex-1 group relative">
+                      {/* Floating tooltip */}
+                      <div className="absolute -top-10 opacity-0 group-hover:opacity-100 transition-opacity bg-zinc-900 border border-zinc-700 text-white font-mono text-[10px] font-bold px-2 py-1 rounded-lg shadow-xl z-20 pointer-events-none whitespace-nowrap">
+                        {item.count.toLocaleString()} views
+                      </div>
+
+                      {/* Bar Column */}
+                      <div className="w-full max-w-[48px] bg-zinc-900/80 rounded-t-xl relative overflow-hidden transition-all duration-300 h-40 flex items-end p-0.5 border border-zinc-850 group-hover:border-zinc-700">
+                        <div
+                          className={`w-full rounded-t-lg transition-all duration-700 group-hover:brightness-125 ${
+                            isHighest
+                              ? "bg-gradient-to-t from-red-600 via-amber-500 to-yellow-400 shadow-[0_0_15px_rgba(239,68,68,0.5)]"
+                              : "bg-gradient-to-t from-zinc-800 to-[#00ADB5]"
+                          }`}
+                          style={{ height: `${Math.max(percentage, 8)}%` }}
+                        />
+                      </div>
+
+                      <span className={`text-[10px] font-mono font-bold ${isHighest ? "text-[#00ADB5]" : "text-zinc-500"}`}>
+                        {item.date}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="flex items-center justify-between text-[11px] text-zinc-500 font-medium pt-1">
+                <span className="flex items-center gap-1.5">
+                  <span className="w-2.5 h-2.5 rounded bg-gradient-to-r from-zinc-800 to-[#00ADB5]" />
+                  Volume Harian
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span className="w-2.5 h-2.5 rounded bg-gradient-to-r from-red-600 to-yellow-400" />
+                  Peak Highest Traffic
+                </span>
+              </div>
+            </div>
+
+            {/* Engagement Leaderboard (1 col) */}
+            <div className="bg-zinc-950/90 border border-zinc-900 rounded-2xl p-6 space-y-4 shadow-xl flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-sm font-black text-white tracking-tight uppercase flex items-center gap-2">
+                    <Film className="w-4 h-4 text-red-500" />
+                    {t.cmsEngagementLeaders}
+                  </h3>
+                  <span className="text-[10px] font-bold text-red-400 bg-red-950/60 border border-red-500/30 px-2 py-0.5 rounded-full uppercase">
+                    Top 5
+                  </span>
+                </div>
+
+                <div className="space-y-3" id="engagement-leaderboard">
+                  {stats.topMovies.slice(0, 5).map((m, idx) => (
+                    <div
+                      key={m.id}
+                      className="flex items-center justify-between p-2.5 rounded-xl bg-zinc-900/40 hover:bg-zinc-900 border border-zinc-900 hover:border-zinc-800 transition-all group"
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        {/* Rank Badge */}
+                        <span className={`w-6 h-6 rounded-lg text-xs font-black flex items-center justify-center shrink-0 border ${
+                          idx === 0 ? "bg-amber-500/20 text-amber-400 border-amber-500/40 shadow-[0_0_8px_rgba(245,158,11,0.3)]" :
+                          idx === 1 ? "bg-slate-400/20 text-slate-300 border-slate-400/40" :
+                          idx === 2 ? "bg-amber-800/20 text-amber-600 border-amber-800/40" :
+                          "bg-zinc-900 text-zinc-500 border-zinc-800"
+                        }`}>
+                          {idx + 1}
+                        </span>
+
+                        <div className="w-8 h-8 rounded-lg overflow-hidden border border-zinc-800 shrink-0 bg-black">
+                          <img src={normalizeCdnUrl((m as any).posterUrl || movies.find(mov => mov.id === m.id)?.posterUrl || "")} alt={m.title} className="w-full h-full object-cover" />
+                        </div>
+
+                        <div className="min-w-0">
+                          <p className="text-xs font-bold text-white truncate group-hover:text-[#00ADB5] transition-colors">
+                            {m.title}
+                          </p>
+                          <span className="text-[10px] text-zinc-500 font-mono block">
+                            {(m as any).genres?.[0] || movies.find(mov => mov.id === m.id)?.genres?.[0] || "General"}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-col items-end shrink-0 ml-2">
+                        <span className="text-xs font-black text-white font-mono">
+                          {m.views.toLocaleString()}
+                        </span>
+                        <span className="text-[9px] text-amber-400 font-bold">
+                          ★ {m.rating}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <p className="text-[10px] text-zinc-500 text-center italic border-t border-zinc-900 pt-3 mt-2">
+                Peringkat diperbarui secara otomatis berdasarkan akumulasi views
+              </p>
+            </div>
+          </div>
+
+          {/* Section 3: Genre Donut & Demographic Segmentation */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+            {/* Genre Saturation Donut Chart (2 cols) */}
+            <div className="lg:col-span-2 bg-zinc-950/90 border border-zinc-900 p-6 rounded-2xl space-y-5 shadow-xl">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-black text-white tracking-tight uppercase flex items-center gap-2">
+                    <Radio className="w-4 h-4 text-purple-400" />
+                    Genre & Content Distribution
+                  </h3>
+                  <p className="text-[11px] text-zinc-500 mt-0.5">Sebaran kategori konten aktif dalam katalog platform</p>
+                </div>
+                <span className="text-[10px] font-bold text-purple-400 bg-purple-950/60 border border-purple-500/30 px-2.5 py-1 rounded-lg">
+                  {stats.totalMovies} Total Judul
+                </span>
+              </div>
+
+              {(() => {
+                const totalGenres = stats.genreDistribution.reduce((sum, g) => sum + g.count, 0);
+                const chartData = [...stats.genreDistribution]
+                  .sort((a, b) => b.count - a.count)
+                  .slice(0, 6);
+                
+                const palette = [
+                  globalSettings.primaryColor || "#DC2626",
+                  "#00ADB5", // cyan
+                  "#F59E0B", // amber
+                  "#10B981", // emerald
+                  "#8B5CF6", // purple
+                  "#EC4899"  // pink
+                ];
+                
+                let accumulatedPercent = 0;
+                
+                return (
+                  <div className="flex flex-col md:flex-row items-center gap-8 pt-2">
+                    {/* SVG Donut */}
+                    <div className="relative w-44 h-44 flex items-center justify-center shrink-0">
+                      <svg className="w-full h-full transform -rotate-90" viewBox="0 0 42 42">
+                        {/* Background circle */}
+                        <circle
+                          cx="21"
+                          cy="21"
+                          r="15.915"
+                          fill="transparent"
+                          stroke="#18181b"
+                          strokeWidth="4"
+                        />
+                        {/* Segment circles */}
+                        {chartData.map((item, idx) => {
+                          const percent = totalGenres > 0 ? (item.count / totalGenres) * 100 : 0;
+                          const strokeDasharray = `${percent} ${100 - percent}`;
+                          const strokeDashoffset = 100 - accumulatedPercent;
+                          accumulatedPercent += percent;
+                          const color = palette[idx % palette.length];
+                          
+                          return (
+                            <circle
+                              key={idx}
+                              cx="21"
+                              cy="21"
+                              r="15.915"
+                              fill="transparent"
+                              stroke={color}
+                              strokeWidth="4"
+                              strokeDasharray={strokeDasharray}
+                              strokeDashoffset={strokeDashoffset}
+                              className="transition-all duration-700 hover:stroke-[5px] cursor-pointer"
+                            />
+                          );
+                        })}
+                      </svg>
+                      <div className="absolute text-center pointer-events-none">
+                        <p className="text-3xl font-black text-white tracking-tight">{stats.totalMovies}</p>
+                        <p className="text-[9px] text-zinc-500 font-bold uppercase tracking-wider">Judul Konten</p>
+                      </div>
+                    </div>
+
+                    {/* Legend and percentage list */}
+                    <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-3 w-full">
+                      {chartData.map((item, idx) => {
+                        const percent = totalGenres > 0 ? Math.round((item.count / totalGenres) * 100) : 0;
+                        const color = palette[idx % palette.length];
+                        return (
+                          <div key={idx} className="flex items-center gap-3 p-3 bg-zinc-900/40 border border-zinc-900 rounded-xl hover:border-zinc-800 transition-all">
+                            <div className="w-3 h-3 rounded-full shrink-0 shadow-md" style={{ backgroundColor: color }} />
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center justify-between text-xs">
+                                <span className="font-bold text-zinc-200 truncate">{item.name}</span>
+                                <span className="font-mono text-zinc-400 font-bold ml-2">{percent}%</span>
+                              </div>
+                              <div className="w-full bg-zinc-900 h-1.5 rounded-full mt-1.5 overflow-hidden">
+                                <div className="h-full rounded-full transition-all duration-500" style={{ width: `${percent}%`, backgroundColor: color }} />
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+
+            {/* Demographics & Segmentation Splits (1 col) */}
+            <div className="space-y-6">
+
+              {/* VIP Subscription Split */}
+              <div className="bg-zinc-950/90 border border-zinc-900 p-5 rounded-2xl space-y-4 shadow-xl">
+                <h3 className="text-xs font-black text-white tracking-tight uppercase flex items-center justify-between">
+                  <span className="flex items-center gap-2">
+                    <CreditCard className="w-4 h-4 text-amber-400" />
+                    Konversi VIP Premium
+                  </span>
+                  <span className="text-[10px] text-amber-400 font-bold bg-amber-950/60 border border-amber-500/30 px-2 py-0.5 rounded-md">
+                    SaaS VIP
+                  </span>
+                </h3>
+
+                {(() => {
+                  const free = stats.subscriptionSplit?.free || 0;
+                  const premium = stats.subscriptionSplit?.premium || 0;
+                  const total = free + premium || 1;
+                  const premiumPercent = Math.round((premium / total) * 100);
+                  const freePercent = 100 - premiumPercent;
+                  return (
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-zinc-400 font-bold flex items-center gap-1.5">
+                          <span className="w-2.5 h-2.5 rounded-full bg-zinc-700" />
+                          Gratis ({free})
+                        </span>
+                        <span className="text-amber-400 font-bold flex items-center gap-1.5">
+                          <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse" />
+                          VIP Premium ({premium})
+                        </span>
+                      </div>
+
+                      <div className="h-4 w-full bg-zinc-900 rounded-xl overflow-hidden flex p-0.5 border border-zinc-850">
+                        <div
+                          className="bg-zinc-700 h-full rounded-l-lg transition-all duration-500"
+                          style={{ width: `${freePercent}%` }}
+                          title={`Free: ${freePercent}%`}
+                        />
+                        <div
+                          className="h-full rounded-r-lg transition-all duration-500"
+                          style={{
+                            width: `${premiumPercent}%`,
+                            backgroundColor: "#F59E0B"
+                          }}
+                          title={`VIP Premium: ${premiumPercent}%`}
+                        />
+                      </div>
+                      <p className="text-[10px] text-zinc-500 leading-relaxed">
+                        Sebanyak <span className="text-white font-bold">{premiumPercent}%</span> dari total akun telah upgrade ke VIP.
+                      </p>
+                    </div>
+                  );
+                })()}
+              </div>
+
+              {/* Profile split */}
+              <div className="bg-zinc-950/90 border border-zinc-900 p-5 rounded-2xl space-y-4 shadow-xl">
+                <h3 className="text-xs font-black text-white tracking-tight uppercase flex items-center justify-between">
+                  <span className="flex items-center gap-2">
+                    <Users className="w-4 h-4 text-sky-400" />
+                    Profil Demografi Penonton
+                  </span>
+                  <span className="text-[10px] text-sky-400 font-bold bg-sky-950/60 border border-sky-500/30 px-2 py-0.5 rounded-md">
+                    Filter Anak
+                  </span>
+                </h3>
+
+                {(() => {
+                  const adult = stats.profileSplit?.adult || 0;
+                  const kids = stats.profileSplit?.kids || 0;
+                  const total = adult + kids || 1;
+                  const adultPercent = Math.round((adult / total) * 100);
+                  const kidsPercent = 100 - adultPercent;
+                  return (
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-sky-400 font-bold flex items-center gap-1.5">
+                          <span className="w-2.5 h-2.5 rounded-full bg-sky-500" />
+                          Dewasa ({adult})
+                        </span>
+                        <span className="text-pink-400 font-bold flex items-center gap-1.5">
+                          <span className="w-2.5 h-2.5 rounded-full bg-pink-500" />
+                          Mode Anak ({kids})
+                        </span>
+                      </div>
+
+                      <div className="h-4 w-full bg-zinc-900 rounded-xl overflow-hidden flex p-0.5 border border-zinc-850">
+                        <div
+                          className="bg-sky-500 h-full rounded-l-lg transition-all duration-500"
+                          style={{ width: `${adultPercent}%` }}
+                          title={`Adult Profiles: ${adultPercent}%`}
+                        />
+                        <div
+                          className="bg-pink-500 h-full rounded-r-lg transition-all duration-500"
+                          style={{ width: `${kidsPercent}%` }}
+                          title={`Kids Mode Profiles: ${kidsPercent}%`}
+                        />
+                      </div>
+                      <p className="text-[10px] text-zinc-500 leading-relaxed">
+                        Terdapat <span className="text-white font-bold">{kidsPercent}%</span> profil dalam Mode Anak.
+                      </p>
+                    </div>
+                  );
+                })()}
+              </div>
+
+            </div>
+          </div>
+        </div>
       )}
 
       {/* SUB-TAB VIEWPORT 2: CATALOG MANAGEMENT */}
@@ -1199,7 +1550,7 @@ export default function AdminCMS({
             <button
               onClick={handleOpenCreate}
               className="flex items-center gap-1.5 text-white font-bold text-xs px-4 py-2.5 rounded-md shadow-lg transition-all cursor-pointer hover:opacity-90"
-            style={{ backgroundColor: brandColor, boxShadow: `0 0 15px ${brandColor}30` }}
+              style={{ backgroundColor: brandColor, boxShadow: `0 0 15px ${brandColor}30` }}
               id="cms-add-movie-btn"
             >
               <Plus className="w-4 h-4" />
