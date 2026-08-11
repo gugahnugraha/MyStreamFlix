@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import { 
   Tv, Play, Pause, Volume2, VolumeX, Maximize, Search, Sparkles, 
-  Radio, Info, Globe, Flame, Check, RefreshCw, AlertCircle, Share2,
-  ChevronLeft, ChevronRight, ExternalLink, Lock, Unlock
+  Radio, Info, Globe, Flame, RefreshCw, AlertCircle,
+  ChevronLeft, ChevronRight, Lock, Unlock, SlidersHorizontal
 } from "lucide-react";
 import Hls from "hls.js";
 import { ScreenOrientation } from "@capacitor/screen-orientation";
