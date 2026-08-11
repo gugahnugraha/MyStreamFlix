@@ -67,6 +67,33 @@ const PRESET_SOURCES = [
   },
 ];
 
+const IPTV_COUNTRY_SOURCES = [
+  { code: "id", label: "Indonesia" },
+  { code: "us", label: "United States" },
+  { code: "gb", label: "United Kingdom" },
+  { code: "jp", label: "Japan" },
+  { code: "kr", label: "South Korea" },
+  { code: "sg", label: "Singapore" },
+  { code: "my", label: "Malaysia" },
+  { code: "au", label: "Australia" },
+  { code: "de", label: "Germany" },
+  { code: "fr", label: "France" },
+  { code: "br", label: "Brazil" },
+  { code: "in", label: "India" },
+];
+
+const IPTV_CATEGORY_SOURCES = [
+  "news",
+  "sports",
+  "movies",
+  "entertainment",
+  "kids",
+  "music",
+  "documentary",
+  "business",
+  "education",
+];
+
 export default function IPTVScanner({ brandColor, onImportChannel }: IPTVScannerProps) {
   const [sourceUrl, setSourceUrl] = useState("");
   const [isScanning, setIsScanning] = useState(false);
@@ -77,8 +104,13 @@ export default function IPTVScanner({ brandColor, onImportChannel }: IPTVScanner
   const [importingChannels, setImportingChannels] = useState<Set<string>>(new Set());
   const [importedChannels, setImportedChannels] = useState<Set<string>>(new Set());
   const [filterGroup, setFilterGroup] = useState("ALL");
+  const [filterCountry, setFilterCountry] = useState("ALL");
   const [filterSearch, setFilterSearch] = useState("");
   const [availableGroups, setAvailableGroups] = useState<string[]>([]);
+  const [availableCountries, setAvailableCountries] = useState<string[]>([]);
+  const [dynamicSourceType, setDynamicSourceType] = useState<"country" | "category">("country");
+  const [dynamicSourceValue, setDynamicSourceValue] = useState("id");
+  const [scanLimit, setScanLimit] = useState(250);
   const [showScanner, setShowScanner] = useState(false);
 
   const handleScan = useCallback(async () => {
@@ -90,6 +122,7 @@ export default function IPTVScanner({ brandColor, onImportChannel }: IPTVScanner
     setSelectedChannels(new Set());
     setImportedChannels(new Set());
     setFilterGroup("ALL");
+    setFilterCountry("ALL");
     setFilterSearch("");
 
     try {
@@ -98,7 +131,7 @@ export default function IPTVScanner({ brandColor, onImportChannel }: IPTVScanner
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           sourceUrl: sourceUrl.trim(),
-          limit: 200,
+          limit: scanLimit,
         }),
       });
 
@@ -112,15 +145,23 @@ export default function IPTVScanner({ brandColor, onImportChannel }: IPTVScanner
       setScanResults(data.channels || []);
       setScanTotal(data.total || 0);
       setAvailableGroups(data.filters?.groups || []);
+      setAvailableCountries(data.filters?.countries || []);
     } catch {
       setScanError("Koneksi gagal. Periksa koneksi internet Anda.");
     } finally {
       setIsScanning(false);
     }
-  }, [sourceUrl]);
+  }, [sourceUrl, scanLimit]);
 
   const handleSelectPreset = (url: string) => {
     setSourceUrl(url);
+    setScanResults([]);
+    setScanError("");
+  };
+
+  const handleUseDynamicSource = () => {
+    const basePath = dynamicSourceType === "country" ? "countries" : "categories";
+    setSourceUrl(`https://iptv-org.github.io/iptv/${basePath}/${dynamicSourceValue}.m3u`);
     setScanResults([]);
     setScanError("");
   };
@@ -162,10 +203,11 @@ export default function IPTVScanner({ brandColor, onImportChannel }: IPTVScanner
   // Apply local filters on scan results
   const filteredResults = scanResults.filter(ch => {
     const matchesGroup = filterGroup === "ALL" || ch.group === filterGroup;
+    const matchesCountry = filterCountry === "ALL" || ch.country === filterCountry;
     const matchesSearch = !filterSearch ||
       ch.name.toLowerCase().includes(filterSearch.toLowerCase()) ||
       ch.country.toLowerCase().includes(filterSearch.toLowerCase());
-    return matchesGroup && matchesSearch;
+    return matchesGroup && matchesCountry && matchesSearch;
   });
 
   return (
@@ -197,6 +239,47 @@ export default function IPTVScanner({ brandColor, onImportChannel }: IPTVScanner
       {showScanner && (
         <div className="border-t border-zinc-900 p-5 space-y-5">
 
+          <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-4 space-y-3">
+            <p className="text-[10px] font-black text-zinc-400 uppercase tracking-wider">Sumber Dinamis iptv-org:</p>
+            <div className="grid grid-cols-1 sm:grid-cols-[140px_1fr_auto] gap-2">
+              <select
+                value={dynamicSourceType}
+                onChange={(e) => {
+                  const nextType = e.target.value as "country" | "category";
+                  setDynamicSourceType(nextType);
+                  setDynamicSourceValue(nextType === "country" ? "id" : "news");
+                }}
+                className="bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-zinc-600"
+              >
+                <option value="country">Negara</option>
+                <option value="category">Kategori</option>
+              </select>
+
+              <select
+                value={dynamicSourceValue}
+                onChange={(e) => setDynamicSourceValue(e.target.value)}
+                className="bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-zinc-600"
+              >
+                {dynamicSourceType === "country"
+                  ? IPTV_COUNTRY_SOURCES.map(source => (
+                    <option key={source.code} value={source.code}>{source.label}</option>
+                  ))
+                  : IPTV_CATEGORY_SOURCES.map(source => (
+                    <option key={source} value={source}>{source.charAt(0).toUpperCase() + source.slice(1)}</option>
+                  ))}
+              </select>
+
+              <button
+                onClick={handleUseDynamicSource}
+                type="button"
+                className="flex items-center justify-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-white text-xs font-bold rounded-lg transition-all cursor-pointer"
+              >
+                <Zap className="w-3.5 h-3.5" />
+                Pakai Sumber
+              </button>
+            </div>
+          </div>
+
           {/* Preset Source Buttons */}
           <div className="space-y-2">
             <p className="text-[10px] font-black text-zinc-400 uppercase tracking-wider">Sumber Preset Terpercaya (iptv-org):</p>
@@ -224,7 +307,7 @@ export default function IPTVScanner({ brandColor, onImportChannel }: IPTVScanner
           {/* Custom URL Input */}
           <div className="space-y-2">
             <p className="text-[10px] font-black text-zinc-400 uppercase tracking-wider">Atau masukkan URL M3U Custom:</p>
-            <div className="flex gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-[1fr_110px_auto] gap-2">
               <div className="flex-1 relative">
                 <Globe className="w-4 h-4 text-zinc-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                 <input
@@ -236,6 +319,15 @@ export default function IPTVScanner({ brandColor, onImportChannel }: IPTVScanner
                   className="w-full bg-zinc-900 border border-zinc-800 rounded-xl pl-9 pr-4 py-2.5 text-xs text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-600 transition-all font-mono"
                 />
               </div>
+              <input
+                type="number"
+                min={25}
+                max={500}
+                value={scanLimit}
+                onChange={e => setScanLimit(Math.min(500, Math.max(25, Number(e.target.value) || 250)))}
+                className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2.5 text-xs text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-600 transition-all"
+                title="Jumlah maksimal channel yang dipindai"
+              />
               <button
                 onClick={handleScan}
                 disabled={isScanning || !sourceUrl.trim()}
@@ -326,6 +418,21 @@ export default function IPTVScanner({ brandColor, onImportChannel }: IPTVScanner
                       <option value="ALL">Semua Kategori</option>
                       {availableGroups.map(g => (
                         <option key={g} value={g}>{g}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+                {availableCountries.length > 0 && (
+                  <div className="relative">
+                    <Globe className="w-3.5 h-3.5 text-zinc-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    <select
+                      value={filterCountry}
+                      onChange={e => setFilterCountry(e.target.value)}
+                      className="bg-zinc-900 border border-zinc-800 rounded-lg pl-9 pr-8 py-2 text-xs text-white focus:outline-none focus:border-zinc-600 appearance-none cursor-pointer"
+                    >
+                      <option value="ALL">Semua Negara</option>
+                      {availableCountries.map(c => (
+                        <option key={c} value={c}>{c}</option>
                       ))}
                     </select>
                   </div>

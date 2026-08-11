@@ -83,11 +83,13 @@ export default function MovieDetailModal({
         const allMovies: Movie[] = await res.json();
         const filtered = allMovies.filter(m => 
           m.id !== currentMovie.id && 
+          m.contentType !== "livetv" && 
+          !m.id.startsWith("tv-") &&
           m.genres.some(g => currentMovie.genres.includes(g))
         );
         const recommendations = filtered.length > 0 
           ? filtered 
-          : allMovies.filter(m => m.id !== currentMovie.id);
+          : allMovies.filter(m => m.id !== currentMovie.id && m.contentType !== "livetv" && !m.id.startsWith("tv-"));
         setSimilarMovies(recommendations.slice(0, 4));
       }
     } catch (e) {

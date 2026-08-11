@@ -76,6 +76,25 @@ function parseM3U(content: string): ParsedChannel[] {
   return channels;
 }
 
+function isBlockedPlaylistHost(hostname: string) {
+  const host = hostname.toLowerCase();
+  if (host === "localhost" || host.endsWith(".localhost")) return true;
+
+  if (/^\d{1,3}(\.\d{1,3}){3}$/.test(host)) {
+    const [a, b] = host.split(".").map(Number);
+    return (
+      a === 0 ||
+      a === 10 ||
+      a === 127 ||
+      (a === 169 && b === 254) ||
+      (a === 172 && b >= 16 && b <= 31) ||
+      (a === 192 && b === 168)
+    );
+  }
+
+  return false;
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -96,6 +115,10 @@ export async function POST(request: NextRequest) {
     // Only allow http/https
     if (!["http:", "https:"].includes(parsedUrl.protocol)) {
       return NextResponse.json({ error: "Only HTTP/HTTPS URLs are supported" }, { status: 400 });
+    }
+
+    if (isBlockedPlaylistHost(parsedUrl.hostname)) {
+      return NextResponse.json({ error: "Local or private network playlist URLs are not allowed." }, { status: 400 });
     }
 
     // Fetch the M3U playlist server-side (avoids CORS issues in browser)

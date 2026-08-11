@@ -30,6 +30,7 @@ export default function LiveTvPage({
 
   // Video playback states
   const videoRef = useRef<HTMLVideoElement>(null);
+  const playerShellRef = useRef<HTMLDivElement>(null);
   const [isPlaying, setIsPlaying] = useState<boolean>(true);
   const [isMuted, setIsMuted] = useState<boolean>(false);
   const [volume, setVolume] = useState<number>(1);
@@ -55,7 +56,7 @@ export default function LiveTvPage({
 
     const streamUrl = activeChannel.videoUrl;
 
-    if (Hls.isSupported() && streamUrl.endsWith(".m3u8")) {
+    if (Hls.isSupported() && streamUrl.includes(".m3u8")) {
       hls = new Hls({
         enableWorker: true,
         lowLatencyMode: true,
@@ -123,13 +124,21 @@ export default function LiveTvPage({
     }
   };
 
-  const toggleFullscreen = () => {
-    const video = videoRef.current;
-    if (!video) return;
+  const toggleFullscreen = async () => {
+    const target = playerShellRef.current || videoRef.current;
+    if (!target) return;
     if (document.fullscreenElement) {
       document.exitFullscreen().catch(() => {});
+      try {
+        const orientation = (screen as any).orientation || (window.screen as any).orientation;
+        if (orientation && typeof orientation.unlock === "function") orientation.unlock();
+      } catch {}
     } else {
-      video.requestFullscreen().catch(() => {});
+      target.requestFullscreen().catch(() => {});
+      try {
+        const orientation = (screen as any).orientation || (window.screen as any).orientation;
+        if (orientation && typeof orientation.lock === "function") orientation.lock("landscape").catch(() => {});
+      } catch {}
     }
   };
 
@@ -190,7 +199,7 @@ export default function LiveTvPage({
   });
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-white pb-20 pt-4 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto space-y-6">
+    <div className="min-h-screen bg-zinc-950 text-white pb-24 sm:pb-20 pt-3 sm:pt-4 px-3 sm:px-6 lg:px-8 max-w-7xl mx-auto space-y-5 sm:space-y-6">
       
       {/* Top Header Tagline */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-white/10 pb-4">
@@ -230,7 +239,7 @@ export default function LiveTvPage({
         
         {/* LEFT / TOP SECTION: Integrated Dedicated Live Player */}
         <div className="lg:col-span-2 space-y-4">
-          <div className="relative aspect-video bg-black rounded-2xl overflow-hidden shadow-2xl border border-white/10 group">
+          <div ref={playerShellRef} className="relative aspect-video min-h-[220px] sm:min-h-0 bg-black rounded-xl sm:rounded-2xl overflow-hidden shadow-2xl border border-white/10 group fullscreen:rounded-none fullscreen:border-0">
             
             {/* HTML5 Video Element with HLS.js */}
             <video
@@ -249,12 +258,12 @@ export default function LiveTvPage({
             />
 
             {/* Live Station Pulsing Badge Overlay */}
-            <div className="absolute top-4 left-4 z-20 flex items-center gap-2 px-3 py-1.5 bg-black/70 backdrop-blur-md border border-red-500/40 rounded-lg shadow-lg">
+            <div className="absolute top-2 left-2 sm:top-4 sm:left-4 z-20 flex items-center gap-2 px-2.5 sm:px-3 py-1.5 bg-black/70 backdrop-blur-md border border-red-500/40 rounded-lg shadow-lg max-w-[calc(100%-1rem)]">
               <span className="relative flex h-2.5 w-2.5">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
                 <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-600" />
               </span>
-              <span className="text-[11px] font-black text-white uppercase tracking-wider">
+              <span className="text-[10px] sm:text-[11px] font-black text-white uppercase tracking-wider truncate">
                 {activeChannel?.title || "LIVE STREAM"}
               </span>
               <span className="text-[9px] font-mono text-red-400 font-bold bg-red-950/60 px-1.5 py-0.5 rounded uppercase border border-red-500/30">
@@ -298,7 +307,7 @@ export default function LiveTvPage({
             )}
 
             {/* In-Player HUD Control Bar (Only Play/Pause, Volume, Mute, Fullscreen - NO Skip Intro / Duration) */}
-            <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent p-4 z-20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-between gap-4">
+            <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent p-2.5 sm:p-4 z-20 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-between gap-2 sm:gap-4">
               
               {/* Left Controls: Play/Pause & Mute */}
               <div className="flex items-center gap-3">
@@ -326,7 +335,7 @@ export default function LiveTvPage({
                     step={0.05}
                     value={isMuted ? 0 : volume}
                     onChange={handleVolumeChange}
-                    className="w-20 accent-red-600 bg-zinc-700 h-1 rounded-lg cursor-pointer"
+                    className="hidden sm:block w-20 accent-red-600 bg-zinc-700 h-1 rounded-lg cursor-pointer"
                   />
                 </div>
               </div>
@@ -339,7 +348,7 @@ export default function LiveTvPage({
                   title="Bagikan Tautan"
                 >
                   {copiedLink ? <Check className="w-3.5 h-3.5 text-green-400" /> : <Share2 className="w-3.5 h-3.5" />}
-                  <span>{copiedLink ? "Tersalin!" : "Bagikan"}</span>
+                  <span className="hidden sm:inline">{copiedLink ? "Tersalin!" : "Bagikan"}</span>
                 </button>
 
                 <button

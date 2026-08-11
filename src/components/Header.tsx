@@ -98,6 +98,7 @@ export default function Header({
     if (!q) return [];
 
     const titleMatches = movies
+      .filter(m => m.contentType !== "livetv" && !m.id.startsWith("tv-"))
       .filter(m => m.title.toLowerCase().includes(q) || m.cast.some(c => c.toLowerCase().includes(q)))
       .slice(0, 5)
       .map(m => ({

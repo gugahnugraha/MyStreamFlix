@@ -1,12 +1,52 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "FlixSphere - Premium Movie Streaming CMS & Portal",
-  description: "Watch movies, TV series, anime, and documentations online in pristine 4K quality with dynamic subtitle capabilities.",
+  metadataBase: new URL("https://mystreamflix.biz.id"),
+  title: {
+    default: "MyStreamFlix - Movies, Series, and Live TV",
+    template: "%s | MyStreamFlix",
+  },
+  description: "Stream movies, TV series, and live TV channels with responsive playback, profiles, watchlists, and admin CMS controls.",
+  keywords: ["streaming", "movies", "series", "live tv", "iptv", "MyStreamFlix"],
+  applicationName: "MyStreamFlix",
+  authors: [{ name: "MyStreamFlix" }],
+  creator: "MyStreamFlix",
+  publisher: "MyStreamFlix",
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+      "max-video-preview": -1,
+    },
+  },
+  openGraph: {
+    type: "website",
+    siteName: "MyStreamFlix",
+    title: "MyStreamFlix - Movies, Series, and Live TV",
+    description: "Stream movies, TV series, and live TV channels in one responsive entertainment portal.",
+    url: "https://mystreamflix.biz.id",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "MyStreamFlix - Movies, Series, and Live TV",
+    description: "Responsive streaming portal for movies, series, and live TV.",
+  },
   icons: {
     icon: "/favicon.ico"
   }
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+  viewportFit: "cover",
+  themeColor: "#00ADB5",
 };
 
 export default function RootLayout({

@@ -75,16 +75,6 @@ export default function MobileBottomNav({
       })
     },
     {
-      id: "home-series",
-      label: t?.tvSeries || "Series",
-      icon: Tv,
-      isActive: activeTab === "home" && selectedContentType === "series",
-      action: () => handleAction(() => {
-        setActiveTab("home");
-        onSelectContentType("series");
-      })
-    },
-    {
       id: "home-livetv",
       label: t?.liveTv || "Live TV",
       icon: Tv,
@@ -109,16 +99,17 @@ export default function MobileBottomNav({
       })
     },
     {
-      id: "language",
+      id: "menu",
       label: currentLanguage === "en" ? "English" : currentLanguage === "id" ? "Bahasa" : "Español",
-      icon: Globe,
+      icon: Menu,
       isActive: false,
-      action: () => handleAction(() => {
-        const nextLang = currentLanguage === "en" ? "id" : currentLanguage === "id" ? "es" : "en";
-        onLanguageChange(nextLang);
-      })
+      action: () => setShowDrawer(true)
     }
   ];
+
+  const primaryNavItems = navItems.map((item) =>
+    item.id === "menu" ? { ...item, label: t?.menu || "Menu" } : item
+  );
 
   return (
     <>
@@ -128,7 +119,7 @@ export default function MobileBottomNav({
         style={{ touchAction: "manipulation" }}
       >
         <div className="flex items-center justify-around h-16 px-1">
-          {navItems.map((item) => {
+          {primaryNavItems.map((item) => {
             const Icon = item.icon;
             const isActive = item.isActive;
             const isLang = item.id === "language";
@@ -283,6 +274,21 @@ export default function MobileBottomNav({
                 <div className="flex items-center gap-3">
                   <Tv className="w-5 h-5" style={{ color: brandColor }} />
                   <span>{t?.tvSeries || "TV Series"}</span>
+                </div>
+                <ChevronRight className="w-4 h-4 text-zinc-600" />
+              </button>
+
+              <button
+                onClick={() => {
+                  setActiveTab("home");
+                  onSelectContentType("livetv");
+                  setShowDrawer(false);
+                }}
+                className="w-full flex items-center justify-between p-3 rounded-xl hover:bg-zinc-900/80 active:bg-zinc-900 active:scale-[0.98] transition-all cursor-pointer"
+              >
+                <div className="flex items-center gap-3">
+                  <Tv className="w-5 h-5 text-red-500" />
+                  <span>{t?.liveTv || "Live TV"}</span>
                 </div>
                 <ChevronRight className="w-4 h-4 text-zinc-600" />
               </button>

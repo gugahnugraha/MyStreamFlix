@@ -20,6 +20,10 @@ export async function PUT(
       return NextResponse.json({ error: "Invalid role specified." }, { status: 400 });
     }
 
+    if (sessionUser.id === id && role !== "admin") {
+      return NextResponse.json({ error: "You cannot demote your own active admin account." }, { status: 400 });
+    }
+
     const updated = await updateUserRole(id, role);
     if (!updated) {
       return NextResponse.json({ error: "User not found." }, { status: 404 });

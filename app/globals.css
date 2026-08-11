@@ -77,6 +77,9 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow-x: hidden;
+  min-height: 100svh;
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
 }
 
 #app-root {
@@ -84,6 +87,24 @@ body {
     linear-gradient(180deg, rgba(255,255,255,0.025) 0%, transparent 22rem),
     linear-gradient(135deg, rgba(255,255,255,0.018) 0%, transparent 38%),
     #070708;
+  min-height: 100svh;
+}
+
+#media-player-root:fullscreen,
+#media-player-root:-webkit-full-screen,
+#media-player-root *:fullscreen,
+#media-player-root *:-webkit-full-screen {
+  background: #000;
+}
+
+@media (max-width: 640px) and (orientation: landscape) {
+  #media-player-hud {
+    padding: 0.75rem 1rem;
+  }
+
+  #episodes-sidebar {
+    max-width: 18rem;
+  }
 }
 
 .cinema-surface {

@@ -7,7 +7,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { 
   BarChart3, Film, Settings, Plus, Edit, Trash2, Save, 
   Tv, Eye, Play, ShieldAlert, CheckCircle, TrendingUp, Users, RefreshCw, X, Search, Database,
-  CreditCard, UserCheck, Subtitles, Upload, Radio, Pencil
+  CreditCard, UserCheck, Subtitles, Upload, Radio, Pencil, Wifi, WifiOff, Activity, Loader2, AlertCircle
 } from "lucide-react";
 import { Movie, DashboardStats, CMSSettings, Subtitle, User, Season, Episode } from "../types";
 import IPTVScanner from "./IPTVScanner";
@@ -17,6 +17,7 @@ interface AdminCMSProps {
   movies: Movie[];
   globalSettings: CMSSettings;
   onUpdateGlobalSettings: (settings: CMSSettings) => void;
+  currentUser: User | null;
   t: any;
   onSelectMovie?: (movie: Movie) => void;
 }
@@ -83,6 +84,7 @@ export default function AdminCMS({
   movies, 
   globalSettings, 
   onUpdateGlobalSettings,
+  currentUser,
   t,
   onSelectMovie,
 }: AdminCMSProps) {
@@ -90,6 +92,11 @@ export default function AdminCMS({
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [settings, setSettings] = useState<CMSSettings | null>(globalSettings || null);
   const [usersList, setUsersList] = useState<User[]>([]);
+  const [newUserName, setNewUserName] = useState("");
+  const [newUserEmail, setNewUserEmail] = useState("");
+  const [newUserPassword, setNewUserPassword] = useState("");
+  const [newUserRole, setNewUserRole] = useState<"admin" | "user">("user");
+  const [creatingUser, setCreatingUser] = useState(false);
   const [loading, setLoading] = useState(true);
 
   // Custom Modal Dialog States (replacing native browser alert/confirm)
@@ -119,6 +126,74 @@ export default function AdminCMS({
   const [successMsg, setSuccessMsg] = useState("");
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [draggingLogo, setDraggingLogo] = useState(false);
+
+  // ====== Channel Health Monitor State ======
+  type ChannelHealthStatus = {
+    status: "online" | "offline" | "error" | "checking";
+    statusCode?: number;
+    responseTime?: number;
+    error?: string;
+    checkedAt?: string;
+  };
+  const [channelHealth, setChannelHealth] = useState<Record<string, ChannelHealthStatus>>({});
+  const [healthCheckRunning, setHealthCheckRunning] = useState(false);
+  const [lastHealthCheck, setLastHealthCheck] = useState<string | null>(null);
+
+  const runHealthCheck = async () => {
+    const liveTvChannels = movies.filter(m => m.contentType === "livetv" || m.id.startsWith("tv-"));
+    if (liveTvChannels.length === 0) {
+      showAlert("No Live TV channels found to check.");
+      return;
+    }
+
+    setHealthCheckRunning(true);
+    // Set all channels to "checking" state
+    const checkingState: Record<string, ChannelHealthStatus> = {};
+    liveTvChannels.forEach(ch => {
+      checkingState[ch.id] = { status: "checking" };
+    });
+    setChannelHealth(checkingState);
+
+    try {
+      const res = await fetch("/api/livetv/health", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          channels: liveTvChannels.map(ch => ({ id: ch.id, url: ch.videoUrl }))
+        })
+      });
+
+      if (!res.ok) throw new Error("Health check API request failed.");
+      const data = await res.json();
+
+      const newHealthState: Record<string, ChannelHealthStatus> = {};
+      (data.results || []).forEach((r: any) => {
+        newHealthState[r.id] = {
+          status: r.status,
+          statusCode: r.statusCode,
+          responseTime: r.responseTime,
+          error: r.error,
+          checkedAt: data.summary?.checkedAt,
+        };
+      });
+      setChannelHealth(newHealthState);
+      setLastHealthCheck(data.summary?.checkedAt || new Date().toISOString());
+
+      const { online, offline, errors } = data.summary || {};
+      setSuccessMsg(`Health Check Complete — ${online} online, ${offline} offline, ${errors} errors`);
+      setTimeout(() => setSuccessMsg(""), 5000);
+    } catch (err: any) {
+      showAlert(err.message || "Health check failed.");
+      // Reset all to error
+      const errorState: Record<string, ChannelHealthStatus> = {};
+      liveTvChannels.forEach(ch => {
+        errorState[ch.id] = { status: "error", error: "Health check API unreachable" };
+      });
+      setChannelHealth(errorState);
+    } finally {
+      setHealthCheckRunning(false);
+    }
+  };
 
   // Sync settings state with prop
   useEffect(() => {
@@ -233,6 +308,8 @@ export default function AdminCMS({
     // 1. Filter by content type
     if (catalogFilterType !== "all") {
       result = result.filter(m => m.contentType === catalogFilterType);
+    } else {
+      result = result.filter(m => m.contentType !== "livetv" && !m.id.startsWith("tv-"));
     }
 
     // 2. Filter by search query
@@ -725,7 +802,59 @@ export default function AdminCMS({
     }
   };
 
+  const refreshUsersList = async () => {
+    const usersRes = await fetch("/api/users");
+    if (usersRes.ok) {
+      const usersData = await usersRes.json();
+      setUsersList(usersData);
+    }
+  };
+
+  const handleCreateUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newUserName.trim() || !newUserEmail.trim() || !newUserPassword.trim()) {
+      showAlert("Name, email, and password are required.");
+      return;
+    }
+
+    setCreatingUser(true);
+    try {
+      const res = await fetch("/api/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: newUserName,
+          email: newUserEmail,
+          password: newUserPassword,
+          role: newUserRole,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to create user.");
+      }
+
+      setNewUserName("");
+      setNewUserEmail("");
+      setNewUserPassword("");
+      setNewUserRole("user");
+      setSuccessMsg("User account created successfully.");
+      setTimeout(() => setSuccessMsg(""), 3500);
+      await refreshUsersList();
+    } catch (err: any) {
+      showAlert(err.message || "User creation failed.");
+    } finally {
+      setCreatingUser(false);
+    }
+  };
+
   const handleToggleUserRole = async (userId: string, currentRole: "admin" | "user") => {
+    if (currentUser?.id === userId) {
+      showAlert("You cannot change the role of your own active admin account.");
+      return;
+    }
+
     const targetRole = currentRole === "admin" ? "user" : "admin";
     try {
       const res = await fetch(`/api/users/${userId}/role`, {
@@ -739,19 +868,18 @@ export default function AdminCMS({
       }
       setSuccessMsg(t.cmsRoleToggled);
       setTimeout(() => setSuccessMsg(""), 3500);
-      
-      // Refresh user base list
-      const usersRes = await fetch("/api/users");
-      if (usersRes.ok) {
-        const usersData = await usersRes.json();
-        setUsersList(usersData);
-      }
+      await refreshUsersList();
     } catch (err: any) {
       showAlert(err.message || "Role shift failed.");
     }
   };
 
   const handleDeleteUser = (userId: string) => {
+    if (currentUser?.id === userId) {
+      showAlert("You cannot delete your own active admin account.");
+      return;
+    }
+
     showConfirm(
       t.cmsDeleteUserConfirm || "Are you sure you want to delete this user account?",
       async () => {
@@ -763,13 +891,7 @@ export default function AdminCMS({
           }
           setSuccessMsg(t.cmsUserDeleted);
           setTimeout(() => setSuccessMsg(""), 3500);
-          
-          // Refresh user base list
-          const usersRes = await fetch("/api/users");
-          if (usersRes.ok) {
-            const usersData = await usersRes.json();
-            setUsersList(usersData);
-          }
+          await refreshUsersList();
         } catch (err: any) {
           showAlert(err.message || "User deletion failed.");
         }
@@ -2123,6 +2245,7 @@ export default function AdminCMS({
       {/* SUB-TAB VIEWPORT 2.5: LIVE TV CHANNELS MANAGEMENT */}
       {activeSubTab === "livetv" && (
         <div className="space-y-6" id="cms-livetv-panel">
+          {/* Live TV Header with Actions */}
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-zinc-950 border border-zinc-900 p-5 rounded-xl shadow-md">
             <div>
               <div className="flex items-center gap-2">
@@ -2136,20 +2259,140 @@ export default function AdminCMS({
               </p>
             </div>
 
-            <button
-              onClick={() => {
-                handleOpenCreate();
-                setContentType("livetv");
-                setTitle("Nama Saluran TV Baru");
-                setVideoUrl("https://ott-balancer.tvri.go.id/live/eds/Nasional/hls/Nasional.m3u8");
-                setGenres(["News"]);
-              }}
-              className="flex items-center gap-2 bg-red-600 hover:bg-red-500 text-white font-bold text-xs px-4 py-2.5 rounded-lg shadow-lg shadow-red-600/20 transition-all cursor-pointer"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Tambah Saluran Live TV Baru</span>
-            </button>
+            <div className="flex items-center gap-2 flex-wrap">
+              {/* Health Check Button */}
+              <button
+                onClick={runHealthCheck}
+                disabled={healthCheckRunning}
+                className={`flex items-center gap-2 font-bold text-xs px-4 py-2.5 rounded-lg shadow-lg transition-all cursor-pointer ${
+                  healthCheckRunning
+                    ? "bg-amber-600/80 text-amber-100 cursor-wait shadow-amber-600/20"
+                    : "bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-600/20"
+                }`}
+                id="health-check-all-btn"
+              >
+                {healthCheckRunning ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Activity className="w-4 h-4" />
+                )}
+                <span>{healthCheckRunning ? "Checking..." : "Check All Status"}</span>
+              </button>
+
+              {/* Add Channel Button */}
+              <button
+                onClick={() => {
+                  handleOpenCreate();
+                  setContentType("livetv");
+                  setTitle("Nama Saluran TV Baru");
+                  setVideoUrl("https://ott-balancer.tvri.go.id/live/eds/Nasional/hls/Nasional.m3u8");
+                  setGenres(["News"]);
+                }}
+                className="flex items-center gap-2 bg-red-600 hover:bg-red-500 text-white font-bold text-xs px-4 py-2.5 rounded-lg shadow-lg shadow-red-600/20 transition-all cursor-pointer"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Tambah Saluran</span>
+              </button>
+            </div>
           </div>
+
+          {/* ====== Health Summary Dashboard ====== */}
+          {Object.keys(channelHealth).length > 0 && (
+            <div className="bg-zinc-950 border border-zinc-900 rounded-xl p-4 shadow-md">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <Activity className="w-4 h-4 text-emerald-400" />
+                  <h4 className="text-xs font-bold text-white uppercase tracking-wider">Stream Health Monitor</h4>
+                </div>
+                {lastHealthCheck && (
+                  <span className="text-[10px] text-zinc-500 font-mono">
+                    Last checked: {new Date(lastHealthCheck).toLocaleString()}
+                  </span>
+                )}
+              </div>
+
+              {/* Health stats tiles */}
+              {(() => {
+                const statuses = Object.values(channelHealth);
+                const onlineCount = statuses.filter(s => s.status === "online").length;
+                const offlineCount = statuses.filter(s => s.status === "offline").length;
+                const errorCount = statuses.filter(s => s.status === "error").length;
+                const checkingCount = statuses.filter(s => s.status === "checking").length;
+                const total = statuses.length;
+                const avgResponseTime = statuses
+                  .filter(s => s.responseTime != null)
+                  .reduce((sum, s, _, arr) => sum + (s.responseTime || 0) / arr.length, 0);
+
+                return (
+                  <div className="mt-3 space-y-3">
+                    {/* Progress bar */}
+                    <div className="flex h-2.5 rounded-full overflow-hidden bg-zinc-900">
+                      {onlineCount > 0 && (
+                        <div
+                          className="bg-emerald-500 transition-all duration-700"
+                          style={{ width: `${(onlineCount / total) * 100}%` }}
+                          title={`Online: ${onlineCount}`}
+                        />
+                      )}
+                      {checkingCount > 0 && (
+                        <div
+                          className="bg-amber-500 animate-pulse transition-all duration-700"
+                          style={{ width: `${(checkingCount / total) * 100}%` }}
+                          title={`Checking: ${checkingCount}`}
+                        />
+                      )}
+                      {offlineCount > 0 && (
+                        <div
+                          className="bg-red-500 transition-all duration-700"
+                          style={{ width: `${(offlineCount / total) * 100}%` }}
+                          title={`Offline: ${offlineCount}`}
+                        />
+                      )}
+                      {errorCount > 0 && (
+                        <div
+                          className="bg-zinc-600 transition-all duration-700"
+                          style={{ width: `${(errorCount / total) * 100}%` }}
+                          title={`Error: ${errorCount}`}
+                        />
+                      )}
+                    </div>
+
+                    {/* Stat tiles row */}
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      <div className="flex items-center gap-2.5 bg-emerald-500/5 border border-emerald-500/20 rounded-lg px-3 py-2.5">
+                        <Wifi className="w-4 h-4 text-emerald-400 shrink-0" />
+                        <div>
+                          <p className="text-lg font-black text-emerald-400 leading-none">{onlineCount}</p>
+                          <p className="text-[9px] text-emerald-400/60 font-bold uppercase mt-0.5">Online</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2.5 bg-red-500/5 border border-red-500/20 rounded-lg px-3 py-2.5">
+                        <WifiOff className="w-4 h-4 text-red-400 shrink-0" />
+                        <div>
+                          <p className="text-lg font-black text-red-400 leading-none">{offlineCount}</p>
+                          <p className="text-[9px] text-red-400/60 font-bold uppercase mt-0.5">Offline</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2.5 bg-zinc-500/5 border border-zinc-500/20 rounded-lg px-3 py-2.5">
+                        <AlertCircle className="w-4 h-4 text-zinc-400 shrink-0" />
+                        <div>
+                          <p className="text-lg font-black text-zinc-400 leading-none">{errorCount}</p>
+                          <p className="text-[9px] text-zinc-400/60 font-bold uppercase mt-0.5">Errors</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2.5 bg-sky-500/5 border border-sky-500/20 rounded-lg px-3 py-2.5">
+                        <Activity className="w-4 h-4 text-sky-400 shrink-0" />
+                        <div>
+                          <p className="text-lg font-black text-sky-400 leading-none">{avgResponseTime > 0 ? `${Math.round(avgResponseTime)}ms` : "—"}</p>
+                          <p className="text-[9px] text-sky-400/60 font-bold uppercase mt-0.5">Avg Latency</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+          )}
 
           {/* Live TV Channels Grid Table */}
           <div className="bg-zinc-950 border border-zinc-900 rounded-xl overflow-hidden shadow-lg">
@@ -2159,22 +2402,34 @@ export default function AdminCMS({
                   <tr className="bg-zinc-900/90 text-zinc-400 font-extrabold uppercase border-b border-zinc-800 tracking-wider">
                     <th className="py-3.5 px-4">Saluran TV</th>
                     <th className="py-3.5 px-4">URL Stream (HLS/DASH)</th>
-                    <th className="py-3.5 px-4">Format / Kualitas</th>
-                    <th className="py-3.5 px-4">Penonton / Disukai</th>
+                    <th className="py-3.5 px-4">Format</th>
+                    <th className="py-3.5 px-4">Status</th>
+                    <th className="py-3.5 px-4">Stats</th>
                     <th className="py-3.5 px-4 text-right">Aksi</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-zinc-900">
-                  {movies.filter(m => m.contentType === "livetv" || m.id.startsWith("tv-")).map((channel) => (
+                  {movies.filter(m => m.contentType === "livetv" || m.id.startsWith("tv-")).map((channel) => {
+                    const health = channelHealth[channel.id];
+                    return (
                     <tr key={channel.id} className="hover:bg-zinc-900/50 transition-colors">
                       <td className="py-3.5 px-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-lg bg-black border border-zinc-800 p-1 shrink-0 flex items-center justify-center overflow-hidden">
+                          <div className="w-10 h-10 rounded-lg bg-black border border-zinc-800 p-1 shrink-0 flex items-center justify-center overflow-hidden relative">
                             <img 
                               src={normalizeCdnUrl(channel.posterUrl)} 
                               alt={channel.title} 
                               className="w-full h-full object-contain"
                             />
+                            {/* Mini status dot overlay */}
+                            {health && (
+                              <span className={`absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border border-zinc-950 ${
+                                health.status === "online" ? "bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.6)]" :
+                                health.status === "offline" ? "bg-red-500 shadow-[0_0_6px_rgba(239,68,68,0.6)]" :
+                                health.status === "checking" ? "bg-amber-400 animate-pulse" :
+                                "bg-zinc-500"
+                              }`} />
+                            )}
                           </div>
                           <div>
                             <span className="font-bold text-white text-xs block">{channel.title}</span>
@@ -2191,12 +2446,56 @@ export default function AdminCMS({
 
                       <td className="py-3.5 px-4">
                         <span className="text-[10px] font-bold font-mono px-2 py-0.5 rounded bg-red-950/60 border border-red-500/40 text-red-400 uppercase">
-                          {channel.videoUrl?.endsWith(".mpd") ? "MPEG-DASH" : "HLS .m3u8"}
+                          {channel.videoUrl?.endsWith(".mpd") ? "DASH" : "HLS"}
                         </span>
                       </td>
 
+                      {/* Status Column */}
+                      <td className="py-3.5 px-4">
+                        {!health ? (
+                          <span className="text-[10px] text-zinc-600 italic">Not checked</span>
+                        ) : health.status === "checking" ? (
+                          <div className="flex items-center gap-1.5">
+                            <Loader2 className="w-3 h-3 text-amber-400 animate-spin" />
+                            <span className="text-[10px] text-amber-400 font-bold">Checking...</span>
+                          </div>
+                        ) : health.status === "online" ? (
+                          <div className="space-y-0.5">
+                            <div className="flex items-center gap-1.5">
+                              <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.5)]" />
+                              <span className="text-[10px] text-emerald-400 font-bold">Online</span>
+                              {health.statusCode && (
+                                <span className="text-[9px] text-emerald-400/50 font-mono">({health.statusCode})</span>
+                              )}
+                            </div>
+                            {health.responseTime != null && (
+                              <span className="text-[9px] text-zinc-500 font-mono block">{health.responseTime}ms</span>
+                            )}
+                          </div>
+                        ) : health.status === "offline" ? (
+                          <div className="space-y-0.5">
+                            <div className="flex items-center gap-1.5">
+                              <span className="w-2 h-2 rounded-full bg-red-500 shadow-[0_0_6px_rgba(239,68,68,0.5)]" />
+                              <span className="text-[10px] text-red-400 font-bold">Offline</span>
+                              {health.statusCode && (
+                                <span className="text-[9px] text-red-400/50 font-mono">({health.statusCode})</span>
+                              )}
+                            </div>
+                            {health.error && (
+                              <span className="text-[9px] text-red-400/60 block truncate max-w-[140px]" title={health.error}>{health.error}</span>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-1.5">
+                            <span className="w-2 h-2 rounded-full bg-zinc-500" />
+                            <span className="text-[10px] text-zinc-500 font-bold">Error</span>
+                          </div>
+                        )}
+                      </td>
+
                       <td className="py-3.5 px-4 text-zinc-400 font-mono text-[11px]">
-                        👁️ {channel.views.toLocaleString()} | ❤️ {channel.likes.toLocaleString()}
+                        <span className="block">👁️ {channel.views.toLocaleString()}</span>
+                        <span className="block">❤️ {channel.likes.toLocaleString()}</span>
                       </td>
 
                       <td className="py-3.5 px-4 text-right">
@@ -2218,7 +2517,8 @@ export default function AdminCMS({
                         </div>
                       </td>
                     </tr>
-                  ))}
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -2498,6 +2798,61 @@ export default function AdminCMS({
             </div>
           </div>
 
+          <form
+            onSubmit={handleCreateUser}
+            className="bg-zinc-950 border border-zinc-900 rounded-xl p-5 grid grid-cols-1 md:grid-cols-5 gap-3 items-end shadow-lg"
+          >
+            <div className="space-y-1 md:col-span-1">
+              <label className="text-[10px] font-bold uppercase text-zinc-500">Name</label>
+              <input
+                type="text"
+                value={newUserName}
+                onChange={(e) => setNewUserName(e.target.value)}
+                placeholder="Nama user"
+                className="w-full bg-zinc-900 border border-zinc-800 p-2.5 rounded-lg text-xs text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-600"
+              />
+            </div>
+            <div className="space-y-1 md:col-span-1">
+              <label className="text-[10px] font-bold uppercase text-zinc-500">Email</label>
+              <input
+                type="email"
+                value={newUserEmail}
+                onChange={(e) => setNewUserEmail(e.target.value)}
+                placeholder="user@email.com"
+                className="w-full bg-zinc-900 border border-zinc-800 p-2.5 rounded-lg text-xs text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-600"
+              />
+            </div>
+            <div className="space-y-1 md:col-span-1">
+              <label className="text-[10px] font-bold uppercase text-zinc-500">Password</label>
+              <input
+                type="password"
+                value={newUserPassword}
+                onChange={(e) => setNewUserPassword(e.target.value)}
+                placeholder="Minimal 6 karakter"
+                className="w-full bg-zinc-900 border border-zinc-800 p-2.5 rounded-lg text-xs text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-600"
+              />
+            </div>
+            <div className="space-y-1 md:col-span-1">
+              <label className="text-[10px] font-bold uppercase text-zinc-500">Role</label>
+              <select
+                value={newUserRole}
+                onChange={(e) => setNewUserRole(e.target.value as "admin" | "user")}
+                className="w-full bg-zinc-900 border border-zinc-800 p-2.5 rounded-lg text-xs text-white focus:outline-none focus:border-zinc-600"
+              >
+                <option value="user">User</option>
+                <option value="admin">Admin</option>
+              </select>
+            </div>
+            <button
+              type="submit"
+              disabled={creatingUser}
+              className="flex items-center justify-center gap-2 bg-red-600 hover:bg-red-500 disabled:bg-zinc-800 disabled:text-zinc-500 text-white font-bold text-xs px-4 py-2.5 rounded-lg shadow-lg shadow-red-600/10 transition-all cursor-pointer disabled:cursor-wait"
+            >
+              {creatingUser ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+              <span>{creatingUser ? "Creating..." : "Add User"}</span>
+            </button>
+          </form>
+
           {/* User list Table container */}
           <div className="bg-zinc-950 border border-zinc-900 rounded-xl overflow-hidden shadow-lg">
             <div className="overflow-x-auto">
@@ -2518,7 +2873,9 @@ export default function AdminCMS({
                       </td>
                     </tr>
                   ) : (
-                    usersList.map((usr) => (
+                    usersList.map((usr) => {
+                      const isCurrentUser = currentUser?.id === usr.id;
+                      return (
                       <tr key={usr.id} className="hover:bg-zinc-900/30 transition-colors">
                         <td className="p-4">
                           <div className="flex items-center gap-3">
@@ -2529,7 +2886,14 @@ export default function AdminCMS({
                               referrerPolicy="no-referrer"
                             />
                             <div>
-                              <p className="font-extrabold text-white text-sm">{usr.name}</p>
+                              <div className="flex items-center gap-2">
+                                <p className="font-extrabold text-white text-sm">{usr.name}</p>
+                                {isCurrentUser && (
+                                  <span className="px-1.5 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[9px] font-black uppercase">
+                                    Current
+                                  </span>
+                                )}
+                              </div>
                               <p className="text-[10px] text-zinc-500 font-mono mt-0.5">{usr.email}</p>
                             </div>
                           </div>
@@ -2556,22 +2920,25 @@ export default function AdminCMS({
                           <div className="flex items-center justify-end gap-2">
                             <button
                               onClick={() => handleToggleUserRole(usr.id, usr.role)}
-                              className="px-3 py-1.5 rounded bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 text-zinc-300 font-semibold hover:text-white transition-all text-[11px] cursor-pointer"
-                              title="Toggle admin / user role scopes"
+                              disabled={isCurrentUser}
+                              className="px-3 py-1.5 rounded bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 disabled:bg-zinc-950 disabled:text-zinc-600 disabled:border-zinc-900 text-zinc-300 font-semibold hover:text-white transition-all text-[11px] cursor-pointer disabled:cursor-not-allowed"
+                              title={isCurrentUser ? "Current admin role is locked" : "Toggle admin / user role scopes"}
                             >
-                              {t.cmsToggleRole}
+                              {isCurrentUser ? "Role Locked" : t.cmsToggleRole}
                             </button>
                             <button
                               onClick={() => handleDeleteUser(usr.id)}
-                              className="p-1.5 rounded bg-red-600/10 hover:bg-red-600/20 text-red-500 hover:text-red-400 border border-red-500/10 hover:border-red-500/25 transition-all cursor-pointer"
-                              title="Delete active member from directories"
+                              disabled={isCurrentUser}
+                              className="p-1.5 rounded bg-red-600/10 hover:bg-red-600/20 disabled:bg-zinc-950 text-red-500 hover:text-red-400 disabled:text-zinc-700 border border-red-500/10 hover:border-red-500/25 disabled:border-zinc-900 transition-all cursor-pointer disabled:cursor-not-allowed"
+                              title={isCurrentUser ? "Cannot delete the current account" : "Delete active member from directories"}
                             >
                               <Trash2 className="w-4 h-4" />
                             </button>
                           </div>
                         </td>
                       </tr>
-                    ))
+                      );
+                    })
                   )}
                 </tbody>
               </table>

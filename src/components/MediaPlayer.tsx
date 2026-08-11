@@ -25,6 +25,7 @@ import {
   Sparkles,
   Tv
 } from "lucide-react";
+import Hls from "hls.js";
 import { ScreenOrientation } from "@capacitor/screen-orientation";
 import { Movie, Subtitle } from "../types";
 
@@ -191,6 +192,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
 
   const nextEpisodeInfo = getNextEpisodeInfo();
   const prevEpisodeInfo = getPrevEpisodeInfo();
+  const currentStreamUrl = activeEpisode ? activeEpisode.videoUrl : movie.videoUrl;
 
   // Play next episode
   const handlePlayNextEpisode = () => {
@@ -281,6 +283,49 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
   const [hasError, setHasError] = useState(false);
   const [isSimulating, setIsSimulating] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !currentStreamUrl) return;
+
+    let hls: Hls | null = null;
+    setHasError(false);
+    setIsSimulating(false);
+
+    if (Hls.isSupported() && currentStreamUrl.includes(".m3u8")) {
+      video.removeAttribute("src");
+      hls = new Hls({
+        enableWorker: true,
+        lowLatencyMode: movie.contentType === "livetv",
+        backBufferLength: movie.contentType === "livetv" ? 30 : 90,
+      });
+      hls.loadSource(currentStreamUrl);
+      hls.attachMedia(video);
+      hls.on(Hls.Events.MANIFEST_PARSED, () => {
+        video.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
+      });
+      hls.on(Hls.Events.ERROR, (_event, data) => {
+        if (!data.fatal) return;
+        if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+          hls?.startLoad();
+          return;
+        }
+        if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
+          hls?.recoverMediaError();
+          return;
+        }
+        setHasError(true);
+        setIsSimulating(true);
+      });
+    } else {
+      video.src = currentStreamUrl;
+      video.load();
+    }
+
+    return () => {
+      if (hls) hls.destroy();
+    };
+  }, [currentStreamUrl, movie.contentType]);
 
   // Auto-hide controls overlay
   useEffect(() => {
@@ -690,7 +735,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
   };
 
   return (
-    <div className="fixed inset-0 z-[100] bg-black flex flex-col justify-between overflow-hidden" id="media-player-root">
+    <div className="fixed inset-0 z-[100] bg-black flex flex-col md:flex-row landscape:flex-row justify-between overflow-hidden" id="media-player-root">
       <style>{`
         video::cue, #video-core-element::cue {
           background: transparent !important;
@@ -703,13 +748,12 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
       {/* Primary Video Screen Area */}
       <div
         ref={containerRef}
-        className="relative flex-1 h-full bg-black flex items-center justify-center overflow-hidden"
+        className="relative flex-1 min-h-0 bg-black flex items-center justify-center overflow-hidden"
       >
         {/* HTML5 Video Layer */}
         {!isSimulating ? (
           <video
             ref={videoRef}
-            src={activeEpisode ? activeEpisode.videoUrl : movie.videoUrl}
             className="w-full h-full max-h-screen object-contain"
             onClick={handleScreenClick}
             onTimeUpdate={() => {
@@ -734,7 +778,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
         ) : (
           /* High-fidelity Simulation Display */
           <div
-            className="relative w-full h-full flex items-center justify-center bg-zinc-950"
+          className="relative w-full h-full min-h-[100svh] md:min-h-0 flex items-center justify-center bg-zinc-950"
             onClick={handleScreenClick}
             id="simulation-display"
           >
@@ -864,7 +908,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
 
         {/* HUD CONTROLLER OVERLAY SCREEN */}
         <div
-          className={`absolute inset-0 bg-linear-to-t from-black/90 via-black/20 to-black/80 flex flex-col justify-between p-4 md:p-8 transition-opacity duration-300 ${
+          className={`absolute inset-0 bg-linear-to-t from-black/90 via-black/20 to-black/80 flex flex-col justify-between p-3 sm:p-4 md:p-8 transition-opacity duration-300 ${
             showControls && !isScreenLocked ? "opacity-100" : "opacity-0 pointer-events-none"
           }`}
           id="media-player-hud"
@@ -979,7 +1023,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
           </div>
 
           {/* Bottom Playback HUD panel */}
-          <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
             {/* Progress Timeline Scrubber or Live Stream Indicator */}
             {movie.contentType === "livetv" ? (
               <div className="flex items-center justify-between w-full px-3 py-1.5 bg-red-950/40 border border-red-600/30 rounded-xl backdrop-blur-md">
@@ -1019,9 +1063,9 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
             )}
 
             {/* Controls Bar Row */}
-            <div className="flex items-center justify-between gap-4 py-1">
+            <div className="flex items-center justify-between gap-2 sm:gap-4 py-1">
               {/* Left Section: Playback Controls & Volume */}
-              <div className="flex items-center gap-3 md:gap-4">
+              <div className="flex items-center gap-2 sm:gap-3 md:gap-4">
                 {isFullscreen && (
                   <div className="flex items-center gap-2 pr-2 border-r border-zinc-800/80">
                     <button
@@ -1083,7 +1127,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
               </div>
 
               {/* Right Section: Video Quality, Speed, Subtitles & Customizer */}
-              <div className="flex items-center gap-2.5 relative">
+              <div className="flex items-center gap-1.5 sm:gap-2.5 relative">
                 {/* Video Quality Selector */}
                 <div className="relative">
                   <button
