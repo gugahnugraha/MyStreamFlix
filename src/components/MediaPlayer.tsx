@@ -379,6 +379,32 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
     };
   }, [isPlaying, isScreenLocked]);
 
+  // Auto-collapse expanded popup menus when clicking outside
+  useEffect(() => {
+    const handleOutsideClick = (e: MouseEvent | TouchEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (!target) return;
+
+      const isInsideMenuOrToggle = target.closest?.(".player-menu-popover") || target.closest?.(".player-menu-btn");
+      if (!isInsideMenuOrToggle) {
+        setShowQualityMenu(false);
+        setShowSpeedMenu(false);
+        setShowSubtitleMenu(false);
+        setShowSubtitleCustomizer(false);
+      }
+    };
+
+    if (showQualityMenu || showSpeedMenu || showSubtitleMenu || showSubtitleCustomizer) {
+      window.addEventListener("mousedown", handleOutsideClick, true);
+      window.addEventListener("touchstart", handleOutsideClick, true);
+    }
+
+    return () => {
+      window.removeEventListener("mousedown", handleOutsideClick, true);
+      window.removeEventListener("touchstart", handleOutsideClick, true);
+    };
+  }, [showQualityMenu, showSpeedMenu, showSubtitleMenu, showSubtitleCustomizer]);
+
   // Listen to fullscreen changes & handle screen orientation
   useEffect(() => {
     const handleFullscreenChange = () => {
