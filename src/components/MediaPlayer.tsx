@@ -120,6 +120,8 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
   });
   const [volume, setVolume] = useState(0.8);
   const [isMuted, setIsMuted] = useState(false);
+  // Tracks whether mute was forced by autoplay policy (not by user), so we can show unmute banner
+  const [mutedByAutoplay, setMutedByAutoplay] = useState(false);
   const [playbackRate, setPlaybackRate] = useState(1);
   const [activeSubtitle, setActiveSubtitle] = useState<string>("off");
   const [parsedSubtitlesMap, setParsedSubtitlesMap] = useState<Record<string, Cue[]>>({});
@@ -303,10 +305,18 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
       hls.loadSource(currentStreamUrl);
       hls.attachMedia(video);
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
-        video.play().then(() => setIsPlaying(true)).catch((err) => {
+        video.volume = volume;
+        video.muted = false;
+        video.play().then(() => {
+          setIsPlaying(true);
+          setIsMuted(false);
+          setMutedByAutoplay(false);
+        }).catch((err) => {
           console.warn("Mobile autoplay blocked, attempting muted playback:", err);
           video.muted = true;
+          video.volume = volume;
           setIsMuted(true);
+          setMutedByAutoplay(true);
           video.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
         });
       });
@@ -325,16 +335,30 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
       });
     } else if (video.canPlayType("application/vnd.apple.mpegurl") || video.canPlayType("application/x-mpegURL")) {
       video.src = currentStreamUrl;
+      video.volume = volume;
+      video.muted = false;
       video.load();
-      video.play().then(() => setIsPlaying(true)).catch(() => {
+      video.play().then(() => {
+        setIsPlaying(true);
+        setIsMuted(false);
+        setMutedByAutoplay(false);
+      }).catch(() => {
         video.muted = true;
+        video.volume = volume;
         setIsMuted(true);
+        setMutedByAutoplay(true);
         video.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
       });
     } else {
       video.src = currentStreamUrl;
+      video.volume = volume;
+      video.muted = false;
       video.load();
-      video.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
+      video.play().then(() => {
+        setIsPlaying(true);
+        setIsMuted(false);
+        setMutedByAutoplay(false);
+      }).catch(() => setIsPlaying(false));
     }
 
     return () => {
@@ -440,15 +464,21 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
   useEffect(() => {
     const video = videoRef.current;
     if (video) {
+      // Always sync volume and unmute state on new content load
       video.volume = volume;
+      video.muted = false;
 
       const handleLoadedMetadata = () => {
         setDuration(video.duration);
         if (initialProgress > 0 && initialProgress < video.duration - 5) {
           video.currentTime = initialProgress;
         }
+        video.volume = volume;
+        video.muted = false;
         video.play().then(() => {
           setIsPlaying(true);
+          setIsMuted(false);
+          setMutedByAutoplay(false);
           setHasError(false);
           setIsSimulating(false);
         }).catch((err) => {
@@ -633,11 +663,14 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
   const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const vol = Number(e.target.value);
     setVolume(vol);
-    setIsMuted(vol === 0);
+    const shouldMute = vol === 0;
+    setIsMuted(shouldMute);
+    setMutedByAutoplay(false);
     if (!isSimulating) {
       const video = videoRef.current;
       if (video) {
         video.volume = vol;
+        video.muted = shouldMute; // Always sync muted with volume slider
       }
     }
   };
@@ -645,10 +678,17 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
   const handleMuteToggle = () => {
     const targetMute = !isMuted;
     setIsMuted(targetMute);
+    setMutedByAutoplay(false);
     if (!isSimulating) {
       const video = videoRef.current;
       if (video) {
         video.muted = targetMute;
+        // Ensure volume is audible when unmuting
+        if (!targetMute && video.volume === 0) {
+          const safeVol = volume > 0 ? volume : 0.8;
+          video.volume = safeVol;
+          setVolume(safeVol);
+        }
       }
     }
   };
@@ -907,6 +947,27 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
           >
             {currentCaption}
           </div>
+        )}
+
+        {/* MUTED BY AUTOPLAY BANNER – Tap anywhere to unmute */}
+        {mutedByAutoplay && isMuted && (
+          <button
+            onClick={() => {
+              const video = videoRef.current;
+              if (video) {
+                video.muted = false;
+                video.volume = volume > 0 ? volume : 0.8;
+              }
+              setIsMuted(false);
+              setMutedByAutoplay(false);
+              setVolume(v => v > 0 ? v : 0.8);
+            }}
+            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-40 flex items-center gap-2.5 px-5 py-3 bg-black/80 hover:bg-zinc-900 border border-white/20 backdrop-blur-md rounded-2xl shadow-2xl text-white font-bold text-sm transition-all animate-in fade-in zoom-in-95 duration-300 cursor-pointer"
+            id="unmute-banner-btn"
+          >
+            <VolumeX className="w-5 h-5 text-red-400 animate-pulse" />
+            <span>Tap to Unmute / Ketuk untuk Mengaktifkan Suara</span>
+          </button>
         )}
 
         {/* SKIP INTRO BUTTON (Disabled for Live TV) */}
