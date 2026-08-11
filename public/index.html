@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no" />
+  <meta name="theme-color" content="#09090b" />
+  <title>MyStreamFlix</title>
+  <style>
+    :root { color-scheme: dark; }
+    html, body {
+      margin: 0; padding: 0; width: 100%; height: 100%;
+      background: #09090b; color: #e4e4e7;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+    }
+    .wrap {
+      min-height: 100vh; display: flex; align-items: center; justify-content: center;
+      padding: 2rem; box-sizing: border-box;
+    }
+    .card {
+      max-width: 480px; width: 100%;
+      background: #18181b; border: 1px solid #27272a;
+      border-radius: 1.25rem; padding: 2rem; box-shadow: 0 20px 60px rgba(0,0,0,.4);
+      text-align: center;
+    }
+    .logo {
+      width: 56px; height: 56px; margin: 0 auto 1rem;
+      border-radius: 14px; display: flex; align-items: center; justify-content: center;
+      background: linear-gradient(135deg, #00ADB5, #006C72);
+      color: #fff; font-weight: 900; letter-spacing: 1px; font-size: 14px;
+    }
+    h1 { margin: 0 0 .5rem; font-size: 1.4rem; }
+    p { margin: 0 0 1.25rem; color: #a1a1aa; font-size: .9rem; line-height: 1.5; }
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: .5rem;
+      padding: .75rem 1.25rem; border-radius: .75rem;
+      background: #00ADB5; color: #fff; border: 0; cursor: pointer;
+      font-weight: 600; font-size: .9rem; text-decoration: none;
+    }
+    .btn:hover { background: #008B92; }
+    .hint { margin-top: 1rem; font-size: .75rem; color: #71717a; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <div class="logo">MSF</div>
+      <h1>MyStreamFlix</h1>
+      <p id="msg">Menghubungkan ke server... Pastikan koneksi internet aktif dan server dapat diakses.</p>
+      <a class="btn" id="retry" href="https://mystreamflix.biz.id">Buka Aplikasi</a>
+      <div class="hint" id="ver">MyStreamFlix Mobile Client</div>
+    </div>
+  </div>
+  <script>
+    (function() {
+      var SERVER = "https://mystreamflix.biz.id";
+      var msg = document.getElementById('msg');
+      var btn = document.getElementById('retry');
+      function tryRedirect() {
+        try { location.replace(SERVER); }
+        catch(e) { location.href = SERVER; }
+      }
+      btn.addEventListener('click', function(e) {
+        e.preventDefault();
+        tryRedirect();
+      });
+      // Attempt auto-jump to server when online
+      if ('onLine' in navigator && navigator.onLine) {
+        setTimeout(tryRedirect, 800);
+      } else {
+        msg.textContent = "Tidak ada koneksi internet. Aktifkan Wi-Fi / data seluler lalu ketuk tombol di atas.";
+      }
+      window.addEventListener('online', tryRedirect);
+    })();
+  </script>
+</body>
+</html>
