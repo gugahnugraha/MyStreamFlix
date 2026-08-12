@@ -367,12 +367,12 @@ export default function LiveTvPage({
   // env(safe-area-inset-bottom) to clear the home indicator / nav bar.
   const hudStyle: React.CSSProperties = isFullscreen
     ? {
-        // Fullscreen: respect all safe-area insets
+        // Fullscreen: safe-area insets + extra breathing room
         paddingBottom: isNativeApp
-          ? (isLandscape ? "env(safe-area-inset-bottom, 0px)" : "calc(env(safe-area-inset-bottom, 0px) + 8px)")
-          : "env(safe-area-inset-bottom, 0px)",
-        paddingLeft: "env(safe-area-inset-left, 0px)",
-        paddingRight: "env(safe-area-inset-right, 0px)",
+          ? (isLandscape ? "calc(env(safe-area-inset-bottom, 0px) + 20px)" : "calc(env(safe-area-inset-bottom, 0px) + 24px)")
+          : "calc(env(safe-area-inset-bottom, 0px) + 20px)",
+        paddingLeft: "calc(env(safe-area-inset-left, 0px) + 8px)",
+        paddingRight: "calc(env(safe-area-inset-right, 0px) + 8px)",
       }
     : {
         // Non-fullscreen embedded: just a small internal gutter
@@ -497,7 +497,7 @@ export default function LiveTvPage({
               className="absolute left-3 z-20 pointer-events-none"
               style={{
                 top: isFullscreen
-                  ? "calc(env(safe-area-inset-top, 0px) + 12px)"
+                  ? "calc(env(safe-area-inset-top, 0px) + 20px)"
                   : "8px",
               }}
             >
