@@ -26,7 +26,20 @@ export function shortQualityHint(height: number, bitrate = 0): string {
 
 export function getProxiedStreamUrl(url: string): string {
   if (!url) return "";
-  if (url.startsWith("/api/livetv/proxy") || url.startsWith("blob:") || url.startsWith("data:")) return url;
+  
+  const getOrigin = () => {
+    if (typeof window !== "undefined" && window.location?.origin) {
+      return window.location.origin;
+    }
+    return "";
+  };
+
+  const origin = getOrigin();
+
+  if (url.startsWith("/api/livetv/proxy")) {
+    return origin ? `${origin}${url}` : url;
+  }
+  if (url.startsWith("blob:") || url.startsWith("data:")) return url;
 
   // Known CORS restricted domains or DASH streams that require proxying for smooth playback
   if (
@@ -37,7 +50,8 @@ export function getProxiedStreamUrl(url: string): string {
     url.includes("tvri.go.id") ||
     url.includes(".mpd")
   ) {
-    return `/api/livetv/proxy?url=${encodeURIComponent(url)}`;
+    const proxyPath = `/api/livetv/proxy?url=${encodeURIComponent(url)}`;
+    return origin ? `${origin}${proxyPath}` : proxyPath;
   }
 
   return url;

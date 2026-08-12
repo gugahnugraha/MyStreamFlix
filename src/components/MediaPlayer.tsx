@@ -372,6 +372,9 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
         dashPlayer.initialize(video, proxiedUrl, true);
         dashPlayer.updateSettings({
           streaming: {
+            cmcd: {
+              enabled: false,
+            },
             buffer: {
               fastSwitchEnabled: true,
             },
