@@ -7,7 +7,7 @@ import React, { useState, useEffect, useRef } from "react";
 import {
   Tv, Play, Pause, Volume2, VolumeX, Maximize, Minimize,
   Search, Globe, Check, RefreshCw, AlertCircle,
-  ChevronLeft, ChevronRight, SlidersHorizontal
+  SlidersHorizontal
 } from "lucide-react";
 import Hls from "hls.js";
 import { ScreenOrientation } from "@capacitor/screen-orientation";
@@ -144,20 +144,6 @@ export default function LiveTvPage({
       removeNativeListener();
     };
   }, []);
-
-  const activeChannelIndex = liveChannels.findIndex(c => c.id === activeChannel?.id);
-
-  const handlePrevChannel = () => {
-    if (liveChannels.length <= 1) return;
-    const idx = activeChannelIndex > 0 ? activeChannelIndex - 1 : liveChannels.length - 1;
-    setActiveChannel(liveChannels[idx]);
-  };
-
-  const handleNextChannel = () => {
-    if (liveChannels.length <= 1) return;
-    const idx = activeChannelIndex < liveChannels.length - 1 ? activeChannelIndex + 1 : 0;
-    setActiveChannel(liveChannels[idx]);
-  };
 
   const clearStreamTimers = () => {
     if (startupTimeoutRef.current) { clearTimeout(startupTimeoutRef.current); startupTimeoutRef.current = null; }
@@ -487,35 +473,15 @@ export default function LiveTvPage({
               }}
             />
 
-            {/* Live badge */}
-            <div className="absolute top-2 left-2 sm:top-3 sm:left-3 z-20 flex items-center gap-1.5 px-2.5 py-1 bg-black/70 backdrop-blur-md border border-red-500/40 rounded-lg max-w-[60%]">
-              <span className="relative flex h-2 w-2 shrink-0">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-red-600" />
-              </span>
-              <span className="text-[10px] font-black text-white uppercase tracking-wide truncate">
-                {activeChannel?.title || "LIVE"}
-              </span>
-              <span className="text-[9px] font-mono text-red-400 font-bold shrink-0">LIVE</span>
+            {/* NOW STREAMING badge — minimalis, style MediaPlayer */}
+            <div className="absolute top-2 left-2 sm:top-3 sm:left-3 z-20 pointer-events-none">
+              <p className="text-[9px] sm:text-[10px] font-bold text-red-500 font-mono tracking-wider uppercase leading-none">
+                {t?.nowStreaming || "NOW STREAMING"} • {activeChannel?.quality || "Full HD"}
+              </p>
+              <h2 className="text-white text-xs sm:text-sm font-extrabold truncate max-w-[200px] sm:max-w-xs mt-0.5 drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)]">
+                {activeChannel?.title || "Live TV"}
+              </h2>
             </div>
-
-            {/* Prev / Next channel buttons */}
-            {liveChannels.length > 1 && (
-              <>
-                <button
-                  onClick={(e) => { e.stopPropagation(); handlePrevChannel(); }}
-                  className="absolute left-2 top-1/2 -translate-y-1/2 z-20 w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-black/60 hover:bg-red-600 text-white backdrop-blur-md border border-white/20 flex items-center justify-center transition-all shadow-lg cursor-pointer"
-                >
-                  <ChevronLeft className="w-5 h-5" />
-                </button>
-                <button
-                  onClick={(e) => { e.stopPropagation(); handleNextChannel(); }}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 z-20 w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-black/60 hover:bg-red-600 text-white backdrop-blur-md border border-white/20 flex items-center justify-center transition-all shadow-lg cursor-pointer"
-                >
-                  <ChevronRight className="w-5 h-5" />
-                </button>
-              </>
-            )}
 
             {/* Tap-to-play overlay (autoplay blocked) */}
             {needUserGesture && !streamError && (
