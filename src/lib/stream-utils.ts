@@ -24,6 +24,77 @@ export function shortQualityHint(height: number, bitrate = 0): string {
   return "";
 }
 
+export const DEFAULT_PROXY_DOMAINS = [
+  "cnnindonesia.com",
+  "cnbcindonesia.com",
+  "detik.com",
+  "medcom.id",
+  "tvri.go.id",
+  "beetv.my.id",
+  "workers.dev",
+  "rctiplus.id",
+  "dens.tv",
+  "cloudfront.net",
+  "visionplus.id",
+  "indihometv.com",
+  "aspaltvpasti.top",
+  "maling.pl",
+  "sysln.id",
+  "siar.us",
+  "cloudns.us",
+  "tvstreamcast.com",
+  "hgmtv.com",
+  "akamaihd.net",
+  "aiv-cdn.net",
+  "bintangstreaming.my.id"
+];
+
+const STORAGE_KEY = "mystreamflix_cors_proxy_domains";
+
+export function getCorsProxyDomains(): string[] {
+  if (typeof window === "undefined") return DEFAULT_PROXY_DOMAINS;
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    }
+  } catch {}
+  return DEFAULT_PROXY_DOMAINS;
+}
+
+export function saveCorsProxyDomains(domains: string[]): void {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(domains));
+  } catch {}
+}
+
+export function addCorsProxyDomain(domain: string): string[] {
+  const clean = domain.trim().toLowerCase().replace(/^(https?:\/\/)?(www\.)?/, "").replace(/\/.*$/, "");
+  if (!clean) return getCorsProxyDomains();
+  
+  const current = getCorsProxyDomains();
+  if (!current.includes(clean)) {
+    const updated = [...current, clean];
+    saveCorsProxyDomains(updated);
+    return updated;
+  }
+  return current;
+}
+
+export function removeCorsProxyDomain(domain: string): string[] {
+  const current = getCorsProxyDomains();
+  const updated = current.filter(d => d !== domain);
+  saveCorsProxyDomains(updated);
+  return updated;
+}
+
+export function resetCorsProxyDomains(): string[] {
+  saveCorsProxyDomains(DEFAULT_PROXY_DOMAINS);
+  return DEFAULT_PROXY_DOMAINS;
+}
+
 export function getProxiedStreamUrl(url: string): string {
   if (!url) return "";
   
@@ -41,13 +112,10 @@ export function getProxiedStreamUrl(url: string): string {
   }
   if (url.startsWith("blob:") || url.startsWith("data:")) return url;
 
-  // Only proxy domains that actually enforce strict CORS/Referer blocking on client browsers
-  if (
-    url.includes("cnnindonesia.com") ||
-    url.includes("detik.com") ||
-    url.includes("medcom.id") ||
-    url.includes("tvri.go.id")
-  ) {
+  const whitelistedDomains = getCorsProxyDomains();
+  const shouldProxy = whitelistedDomains.some(domain => url.toLowerCase().includes(domain));
+
+  if (shouldProxy) {
     const proxyPath = `/api/livetv/proxy?url=${encodeURIComponent(url)}`;
     return origin ? `${origin}${proxyPath}` : proxyPath;
   }

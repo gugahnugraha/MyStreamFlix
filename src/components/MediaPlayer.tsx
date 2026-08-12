@@ -375,6 +375,10 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
             cmcd: {
               enabled: false,
             },
+            text: {
+              defaultEnabled: false,
+              dispatchForManualRendering: true,
+            },
             buffer: {
               fastSwitchEnabled: true,
             },

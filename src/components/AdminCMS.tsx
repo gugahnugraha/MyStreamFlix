@@ -17,6 +17,7 @@ import {
 import { Movie, DashboardStats, CMSSettings, Subtitle, User, Season, Episode } from "../types";
 import IPTVScanner from "./IPTVScanner";
 import MediaPlayer from "./MediaPlayer";
+import { getCorsProxyDomains, addCorsProxyDomain, removeCorsProxyDomain, resetCorsProxyDomains } from "../lib/stream-utils";
 
 interface AdminCMSProps {
   onRefreshMovies: () => void;
@@ -147,6 +148,34 @@ export default function AdminCMS({
   const [liveTvStatusFilter, setLiveTvStatusFilter] = useState<"all" | "online" | "offline">("all");
   const [previewMovie, setPreviewMovie] = useState<Movie | null>(null);
   const [selectedChannelIds, setSelectedChannelIds] = useState<Set<string>>(new Set());
+
+  // ====== CORS Proxy Whitelist Management States ======
+  const [proxyDomains, setProxyDomains] = useState<string[]>(() => getCorsProxyDomains());
+  const [newProxyDomainInput, setNewProxyDomainInput] = useState("");
+
+  const handleAddProxyDomain = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newProxyDomainInput.trim()) return;
+    const updated = addCorsProxyDomain(newProxyDomainInput);
+    setProxyDomains(updated);
+    setNewProxyDomainInput("");
+    setSuccessMsg("✅ Domain berhasil ditambahkan ke Whitelist Proxy CORS!");
+    setTimeout(() => setSuccessMsg(""), 3500);
+  };
+
+  const handleRemoveProxyDomain = (domain: string) => {
+    const updated = removeCorsProxyDomain(domain);
+    setProxyDomains(updated);
+    setSuccessMsg(`🗑️ Domain "${domain}" dihapus dari Whitelist Proxy.`);
+    setTimeout(() => setSuccessMsg(""), 3500);
+  };
+
+  const handleResetProxyDomains = () => {
+    const updated = resetCorsProxyDomains();
+    setProxyDomains(updated);
+    setSuccessMsg("🔄 Whitelist domain proxy dikembalikan ke pengaturan default.");
+    setTimeout(() => setSuccessMsg(""), 3500);
+  };
 
   const handleRemoveOfflineChannels = () => {
     const offlineIds = Object.entries(channelHealth)
@@ -2730,6 +2759,75 @@ export default function AdminCMS({
               })()}
             </div>
           )}
+
+          {/* ====== CORS Proxy & Domain Whitelist Settings Card ====== */}
+          <div className="bg-zinc-950 border border-zinc-900 rounded-xl p-5 shadow-lg space-y-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-zinc-900 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 rounded-lg bg-red-950/40 border border-red-500/30 text-red-400">
+                  <ShieldAlert className="w-4 h-4" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-black text-white uppercase tracking-wider">
+                    Pengaturan Proxy CORS & Whitelist Domain Live TV
+                  </h4>
+                  <p className="text-[11px] text-zinc-400 mt-0.5">
+                    Domain yang ada di whitelist ini akan diputar otomatis melalui Server Streaming Proxy (<code className="text-red-400 font-mono">/api/livetv/proxy</code>) untuk memotong proteksi CORS & Referer.
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={handleResetProxyDomains}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white text-xs font-bold rounded-lg border border-zinc-800 transition-all cursor-pointer shrink-0"
+                title="Reset Whitelist Domain ke Default"
+              >
+                <RefreshCw className="w-3.5 h-3.5 text-zinc-400" />
+                <span>Reset Default</span>
+              </button>
+            </div>
+
+            {/* Whitelisted Domain Badges */}
+            <div className="space-y-2">
+              <p className="text-[10px] font-black text-zinc-400 uppercase tracking-wider">Domain Whitelist Aktif ({proxyDomains.length}):</p>
+              <div className="flex flex-wrap gap-2">
+                {proxyDomains.map((domain) => (
+                  <span
+                    key={domain}
+                    className="inline-flex items-center gap-1.5 px-3 py-1 bg-red-950/40 border border-red-500/30 rounded-lg text-xs font-bold font-mono text-red-300 transition-all group"
+                  >
+                    <span>🌐 {domain}</span>
+                    <button
+                      onClick={() => handleRemoveProxyDomain(domain)}
+                      className="text-red-400/60 hover:text-red-300 p-0.5 rounded transition-colors cursor-pointer"
+                      title={`Hapus ${domain}`}
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            {/* Add Domain Input Form */}
+            <form onSubmit={handleAddProxyDomain} className="flex flex-col sm:flex-row items-center gap-2 pt-1">
+              <div className="relative flex-1 w-full">
+                <input
+                  type="text"
+                  placeholder="Masukkan nama domain (contoh: visionplus.id, vidio.com, trans7.co.id)"
+                  value={newProxyDomainInput}
+                  onChange={(e) => setNewProxyDomainInput(e.target.value)}
+                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-2 text-xs text-white placeholder-zinc-600 focus:outline-none focus:border-red-500 font-mono transition-all"
+                />
+              </div>
+              <button
+                type="submit"
+                className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-500 text-white font-bold text-xs rounded-xl shadow-lg transition-all cursor-pointer shrink-0"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Tambah Domain Whitelist</span>
+              </button>
+            </form>
+          </div>
 
           {/* Status Filter Bar */}
           <div className="flex items-center justify-between gap-3 bg-zinc-950 border border-zinc-900 p-3 rounded-xl">

@@ -37,6 +37,22 @@ export async function GET(request: NextRequest) {
     if (parsedUrl.hostname.includes("cnnindonesia.com")) {
       headers["Referer"] = "https://www.cnnindonesia.com/";
       headers["Origin"] = "https://www.cnnindonesia.com";
+    } else if (parsedUrl.hostname.includes("cnbcindonesia.com")) {
+      headers["Referer"] = "https://www.cnbcindonesia.com/";
+      headers["Origin"] = "https://www.cnbcindonesia.com";
+    } else if (parsedUrl.hostname.includes("rctiplus.id") || parsedUrl.hostname.includes("rctiplus.com")) {
+      headers["Referer"] = "https://www.rctiplus.com/";
+    } else if (parsedUrl.hostname.includes("visionplus.id")) {
+      headers["Referer"] = "https://www.visionplus.id/";
+      headers["Origin"] = "https://www.visionplus.id";
+    } else if (parsedUrl.hostname.includes("dens.tv")) {
+      headers["Referer"] = "https://www.dens.tv/";
+      headers["Origin"] = "https://www.dens.tv";
+    } else if (parsedUrl.hostname.includes("vidio.com")) {
+      headers["Referer"] = "https://www.vidio.com/";
+      headers["Origin"] = "https://www.vidio.com";
+    } else if (parsedUrl.hostname.includes("siar.us")) {
+      headers["Referer"] = "https://cdn.siar.us/";
     } else if (parsedUrl.hostname.includes("detik.com")) {
       headers["Referer"] = "https://www.detik.com/";
     } else if (parsedUrl.hostname.includes("indihometv.com")) {
