@@ -426,6 +426,9 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
         video.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
       });
     } else {
+      // Direct file playback: MP4, WebM, MKV (if supported by WebView), etc.
+      // MKV note: Android WebView has limited MKV support — try to play directly first.
+      // If autoplay is blocked, retry muted before giving up.
       video.src = currentStreamUrl;
       video.volume = volume;
       video.muted = false;
@@ -434,7 +437,18 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
         setIsPlaying(true);
         setIsMuted(false);
         setMutedByAutoplay(false);
-      }).catch(() => setIsPlaying(false));
+      }).catch(() => {
+        // Autoplay blocked — retry with muted audio (same pattern as HLS branch)
+        video.muted = true;
+        video.volume = volume;
+        setIsMuted(true);
+        setMutedByAutoplay(true);
+        video.play()
+          .then(() => setIsPlaying(true))
+          .catch(() => setIsPlaying(false));
+        // Note: do NOT set isSimulating here — keep real video element visible.
+        // If the format is truly unsupported, onError will fire and handle it.
+      });
     }
 
     return () => {
@@ -639,9 +653,24 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
           setHasError(false);
           setIsSimulating(false);
         }).catch((err) => {
-          console.warn("Direct stream play failed, falling back to Interactive Simulation mode:", err?.message || "Playback block");
-          setIsSimulating(true);
-          setIsPlaying(true);
+          // Autoplay blocked — retry muted instead of falling to simulation.
+          // loadedmetadata fired means format IS supported; just autoplay was denied.
+          console.warn("Autoplay blocked on loadedmetadata, retrying muted:", err?.message || "Playback block");
+          video.muted = true;
+          video.volume = volume;
+          setIsMuted(true);
+          setMutedByAutoplay(true);
+          setHasError(false);
+          setIsSimulating(false);
+          video.play()
+            .then(() => {
+              setIsPlaying(true);
+            })
+            .catch(() => {
+              // Even muted play failed — truly blocked, keep video element visible
+              // (onError will handle truly unsupported formats separately)
+              setIsPlaying(false);
+            });
         });
       };
 
@@ -1025,10 +1054,18 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
   };
 
   // Safe-area HUD padding for Android APK.
-  // Non-fullscreen portrait: add 16px extra above the system nav bar.
-  // Fullscreen / landscape: use only the env() inset (bars are hidden by immersive mode).
+  // Top: always offset below the Android status bar (wifi/battery/clock).
+  //   Non-fullscreen: status bar is always visible → always add inset-top + 4px.
+  //   Fullscreen/immersive: status bar is hidden → use bare inset (0px fallback).
+  // Bottom: add 16px extra above system nav bar in non-fullscreen portrait.
+  //   Fullscreen/landscape: bars are hidden by immersive mode → bare inset.
+  // Left/Right: side insets for notch/camera in fullscreen/landscape.
   const hudStyle: React.CSSProperties = isNativeCapacitor()
     ? {
+        paddingTop:
+          isFullscreen || isLandscape
+            ? "env(safe-area-inset-top, 0px)"
+            : "calc(env(safe-area-inset-top, 0px) + 4px)",
         paddingBottom:
           isFullscreen || isLandscape
             ? "env(safe-area-inset-bottom, 0px)"
@@ -1121,7 +1158,37 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
               }
             }}
             onError={() => {
-              console.warn("Direct stream load failed. Engaging high-fidelity cinematic stream simulation.");
+              const video = videoRef.current;
+              const src = video?.currentSrc || currentStreamUrl || "";
+              // For non-HLS direct files (mp4, mkv, webm, etc.): check if the video
+              // element has any recoverable state before falling to simulation mode.
+              // MKV may fail silently in some WebViews — try muted autoplay first.
+              if (video && !src.includes(".m3u8") && !isSimulating) {
+                if (!video.muted) {
+                  console.warn("Video error — retrying muted before simulation fallback.");
+                  video.muted = true;
+                  setIsMuted(true);
+                  setMutedByAutoplay(true);
+                  video.load();
+                  video.play()
+                    .then(() => {
+                      setIsPlaying(true);
+                      setIsBuffering(false);
+                      clearStreamTimers();
+                    })
+                    .catch(() => {
+                      // Truly unplayable — fall through to simulation
+                      console.warn("Direct stream load failed. Engaging stream simulation.");
+                      setIsBuffering(false);
+                      setHasError(true);
+                      setIsSimulating(true);
+                      setIsPlaying(true);
+                      clearStreamTimers();
+                    });
+                  return;
+                }
+              }
+              console.warn("Direct stream load failed. Engaging stream simulation.");
               setIsBuffering(false);
               setHasError(true);
               setIsSimulating(true);
@@ -1289,6 +1356,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
             showControls && !isScreenLocked ? "opacity-100" : "opacity-0 pointer-events-none"
           }`}
           id="media-player-hud"
+          style={hudStyle}
           onClick={(e) => {
             // Tap on empty HUD space toggles controls (better mobile UX). Buttons stop propagation.
             const target = e.target as HTMLElement | null;
@@ -1299,7 +1367,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
           }}
         >
           {/* Top Header Row */}
-          <div className="flex items-center justify-between w-full z-10 pt-safe">
+          <div className="flex items-center justify-between w-full z-10">
             <div>
               <p className="text-[10px] md:text-xs font-bold text-red-500 font-mono tracking-wider">
                 {t.nowStreaming || "NOW STREAMING"} • {selectedQuality !== "Auto" ? selectedQuality : movie.quality}
@@ -1408,7 +1476,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
           </div>
 
           {/* Bottom Playback HUD panel */}
-            <div className="space-y-3 sm:space-y-4" id="media-player-bottom-hud" style={hudStyle}>
+            <div className="space-y-3 sm:space-y-4" id="media-player-bottom-hud">
             {/* Progress Timeline Scrubber or Live Stream Indicator */}
             {movie.contentType === "livetv" ? (
               <div className="flex items-center justify-between w-full px-3 py-1.5 bg-red-950/40 border border-red-600/30 rounded-xl backdrop-blur-md">
