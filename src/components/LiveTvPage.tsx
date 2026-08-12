@@ -313,19 +313,32 @@ export default function LiveTvPage({
       return;
     }
 
-    // Browser fallback
-    try {
-      const ori = (screen as any).orientation || (window.screen as any).orientation;
-      if (targetFs && ori?.lock) ori.lock("landscape").catch(() => {});
-      else if (!targetFs && ori?.unlock) ori.unlock();
-    } catch {}
-
+    // Browser: requestFullscreen FIRST, then lock orientation inside the
+    // fullscreenchange event so the lock request happens from within fullscreen
+    // context — required by the Screen Orientation API spec.
     const target = playerShellRef.current;
     if (!target) return;
+
     if (targetFs) {
-      target.requestFullscreen?.().catch(() => {});
-    } else if (document.fullscreenElement) {
-      document.exitFullscreen?.().catch(() => {});
+      try {
+        await target.requestFullscreen();
+        // Now we are in fullscreen — lock orientation
+        try {
+          await (screen.orientation as any).lock("landscape");
+        } catch {
+          // Screen Orientation lock not supported (iOS Safari, etc.) — ignore
+        }
+      } catch {
+        // requestFullscreen rejected — revert state
+        setIsFullscreen(false);
+      }
+    } else {
+      try {
+        await document.exitFullscreen();
+      } catch {}
+      try {
+        (screen.orientation as any).unlock?.();
+      } catch {}
     }
   };
 
@@ -345,19 +358,25 @@ export default function LiveTvPage({
     setShowQualityMenu(false);
   };
 
-  // HUD safe-area padding (mirrors MediaPlayer hudStyle)
-  const hudStyle: React.CSSProperties = isNativeApp
+  // HUD safe-area padding.
+  // Key insight: the HUD bar sits at absolute bottom-0 of the player element.
+  // In non-fullscreen embedded mode (both APK and mobile web), the player is
+  // a normal aspect-ratio box inside the page — no system UI overlaps it —
+  // so paddingBottom should be small (just breathing room, ~8px).
+  // In fullscreen mode the player covers the whole screen, so we need
+  // env(safe-area-inset-bottom) to clear the home indicator / nav bar.
+  const hudStyle: React.CSSProperties = isFullscreen
     ? {
-        paddingBottom: isFullscreen || isLandscape
-          ? "env(safe-area-inset-bottom, 0px)"
-          : "calc(env(safe-area-inset-bottom, 0px) + 16px)",
-        paddingLeft: isFullscreen || isLandscape ? "env(safe-area-inset-left, 0px)" : undefined,
-        paddingRight: isFullscreen || isLandscape ? "env(safe-area-inset-right, 0px)" : undefined,
+        // Fullscreen: respect all safe-area insets
+        paddingBottom: isNativeApp
+          ? (isLandscape ? "env(safe-area-inset-bottom, 0px)" : "calc(env(safe-area-inset-bottom, 0px) + 8px)")
+          : "env(safe-area-inset-bottom, 0px)",
+        paddingLeft: "env(safe-area-inset-left, 0px)",
+        paddingRight: "env(safe-area-inset-right, 0px)",
       }
     : {
-        paddingBottom: isFullscreen
-          ? "env(safe-area-inset-bottom, 0px)"
-          : "max(env(safe-area-inset-bottom, 0px), 72px)",
+        // Non-fullscreen embedded: just a small internal gutter
+        paddingBottom: "8px",
       };
 
   const categories = ["All", "News", "Entertainment", "Sports", "Kids", "Science", "Business", "Culture", "Local ID"];
@@ -474,8 +493,15 @@ export default function LiveTvPage({
             />
 
             {/* NOW STREAMING badge — minimalis, style MediaPlayer */}
-            <div className="absolute top-2 left-2 sm:top-3 sm:left-3 z-20 pointer-events-none">
-              <p className="text-[9px] sm:text-[10px] font-bold text-red-500 font-mono tracking-wider uppercase leading-none">
+            <div
+              className="absolute left-3 z-20 pointer-events-none"
+              style={{
+                top: isFullscreen
+                  ? "calc(env(safe-area-inset-top, 0px) + 12px)"
+                  : "8px",
+              }}
+            >
+              <p className="text-[9px] sm:text-[10px] font-bold text-red-500 font-mono tracking-wider uppercase leading-none drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)]">
                 {t?.nowStreaming || "NOW STREAMING"} • {activeChannel?.quality || "Full HD"}
               </p>
               <h2 className="text-white text-xs sm:text-sm font-extrabold truncate max-w-[200px] sm:max-w-xs mt-0.5 drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)]">
