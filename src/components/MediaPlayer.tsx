@@ -503,12 +503,12 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
 
   // Auto-hide controls overlay
   useEffect(() => {
-    let timeout: NodeJS.Timeout;
-    const resetTimer = () => {
-      if (isScreenLocked) return;
-      setShowControls(true);
+    // Use a ref so the timeout survives re-renders without needing it in deps.
+    let timeout: number;
+
+    const scheduleHide = () => {
       clearTimeout(timeout);
-      timeout = setTimeout(() => {
+      timeout = window.setTimeout(() => {
         if (isPlaying) {
           setShowControls(false);
           setShowSpeedMenu(false);
@@ -516,24 +516,40 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
           setShowQualityMenu(false);
           setShowSubtitleCustomizer(false);
         }
-      }, 3500);
+      }, 4500); // 4.5s — enough time to read and tap a control on mobile
+    };
+
+    const resetTimer = () => {
+      if (isScreenLocked) return;
+      setShowControls(true);
+      scheduleHide();
+    };
+
+    // touchstart: only reset the hide-timer and ensure controls are visible.
+    // Do NOT toggle here — the click/tap event on buttons handles actual actions.
+    // This prevents the race where touchstart shows controls and the subsequent
+    // click immediately hides them again.
+    const handleTouchStart = () => {
+      if (isScreenLocked) return;
+      setShowControls(true);
+      scheduleHide();
     };
 
     const container = containerRef.current;
     if (container) {
       container.addEventListener("mousemove", resetTimer);
       container.addEventListener("click", resetTimer);
-      container.addEventListener("touchstart", resetTimer);
+      container.addEventListener("touchstart", handleTouchStart, { passive: true });
     }
 
-    resetTimer();
+    scheduleHide();
 
     return () => {
       clearTimeout(timeout);
       if (container) {
         container.removeEventListener("mousemove", resetTimer);
         container.removeEventListener("click", resetTimer);
-        container.removeEventListener("touchstart", resetTimer);
+        container.removeEventListener("touchstart", handleTouchStart);
       }
     };
   }, [isPlaying, isScreenLocked]);
@@ -945,11 +961,15 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
 
   const handleScreenClick = () => {
     if (isScreenLocked) return;
-    if (isPlaying) {
-      setShowControls((prev) => !prev);
-    } else {
+    if (!showControls) {
+      // Controls are hidden — first tap always reveals them; the auto-hide timer
+      // (set by touchstart/click listener) will schedule them to hide again.
+      setShowControls(true);
+    } else if (!isPlaying) {
+      // Controls visible and paused — tap toggles play
       handlePlayPause();
     }
+    // Controls visible + playing: do nothing here; auto-hide timer is already running.
   };
 
   const handleSubtitleSelect = (lang: string) => {
@@ -1053,13 +1073,20 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
     return `${sizeClass} ${bgStyle}`;
   };
 
-  // Safe-area HUD padding for Android APK.
-  // Top: always offset below the Android status bar (wifi/battery/clock).
-  //   Non-fullscreen: status bar is always visible → always add inset-top + 4px.
-  //   Fullscreen/immersive: status bar is hidden → use bare inset (0px fallback).
-  // Bottom: add 16px extra above system nav bar in non-fullscreen portrait.
-  //   Fullscreen/landscape: bars are hidden by immersive mode → bare inset.
-  // Left/Right: side insets for notch/camera in fullscreen/landscape.
+  // HUD padding to keep controls clear of system UI on all platforms:
+  //
+  // Android APK (Capacitor native):
+  //   Top    — non-fullscreen: env(safe-area-inset-top) + 4px (below status bar)
+  //            fullscreen/landscape: bare env() — status bar hidden by immersive mode
+  //   Bottom — non-fullscreen: env(safe-area-inset-bottom) + 16px (above nav bar)
+  //            fullscreen/landscape: bare env() — nav bar hidden by immersive mode
+  //   Left/Right (fullscreen/landscape only) — env() for notch/camera cutout
+  //
+  // Mobile web browser (Chrome Android, Safari iOS, etc.):
+  //   env(safe-area-inset-*) may be zero in non-fullscreen browser chrome mode.
+  //   Use explicit fallbacks: 12px top (status bar), 72px bottom (address bar +
+  //   virtual nav bar), 0px sides. In fullscreen (HTML5 Fullscreen API active)
+  //   system chrome is hidden so use env() only.
   const hudStyle: React.CSSProperties = isNativeCapacitor()
     ? {
         paddingTop:
@@ -1079,7 +1106,24 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
             ? "env(safe-area-inset-right, 0px)"
             : undefined,
       }
-    : {};
+    : {
+        // Mobile web: provide explicit fallbacks for browser chrome.
+        // Top: 12px covers status bar area in embedded/PWA mode.
+        // Bottom: 72px clears the mobile browser address bar + virtual nav bar.
+        //   When fullscreen (HTML5 API), browser chrome is gone — use only env().
+        paddingTop: isFullscreen
+          ? "env(safe-area-inset-top, 0px)"
+          : "max(env(safe-area-inset-top, 0px), 12px)",
+        paddingBottom: isFullscreen
+          ? "env(safe-area-inset-bottom, 0px)"
+          : "max(env(safe-area-inset-bottom, 0px), 72px)",
+        paddingLeft: isFullscreen
+          ? "env(safe-area-inset-left, 0px)"
+          : undefined,
+        paddingRight: isFullscreen
+          ? "env(safe-area-inset-right, 0px)"
+          : undefined,
+      };
 
   return (
     <div className="fixed inset-0 z-[100] bg-black flex flex-col md:flex-row landscape:flex-row justify-between overflow-hidden" id="media-player-root">
@@ -1275,9 +1319,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
         {/* Styled Caption Subtitle Overlay */}
         {currentCaption && (
           <div
-            className={`absolute left-1/2 -translate-x-1/2 text-center max-w-3xl font-bold select-none pointer-events-none transition-all duration-300 ${
-              showControls ? "bottom-32" : "bottom-12"
-            } ${getSubtitleStyleClasses()}`}
+            className={`absolute left-1/2 -translate-x-1/2 text-center max-w-3xl font-bold select-none pointer-events-none transition-all duration-300 bottom-[30%] ${getSubtitleStyleClasses()}`}
           >
             {currentCaption}
           </div>
@@ -1287,7 +1329,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
         {currentTime >= 5 && currentTime <= 90 && !isScreenLocked && movie.contentType === "series" && (
           <button
             onClick={handleSkipIntro}
-            className="absolute bottom-28 left-6 md:left-12 z-30 px-4 py-2 bg-black/85 hover:bg-red-600 text-white font-extrabold text-xs md:text-sm rounded-lg border border-white/20 shadow-2xl flex items-center gap-2 transition-all transform hover:scale-105 active:scale-95 cursor-pointer backdrop-blur-md"
+            className="absolute bottom-[22%] left-6 md:left-12 z-30 px-4 py-2 bg-black/85 hover:bg-red-600 text-white font-extrabold text-xs md:text-sm rounded-lg border border-white/20 shadow-2xl flex items-center gap-2 transition-all transform hover:scale-105 active:scale-95 cursor-pointer backdrop-blur-md"
           >
             <Sparkles className="w-4 h-4 text-yellow-400 animate-pulse" />
             <span>{t.skipIntro || "Skip Intro / Lewati Intro"}</span>
@@ -1297,7 +1339,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
 
         {/* NEXT EPISODE AUTO-PLAY COUNTDOWN OVERLAY CARD (Disabled for Live TV) */}
         {autoPlayCountdown !== null && nextEpisodeInfo && !isNextEpisodeDismissed && movie.contentType !== "livetv" && (
-          <div className="absolute bottom-28 right-6 md:right-12 z-30 p-4 bg-zinc-950/95 border border-red-600/50 rounded-2xl shadow-[0_0_40px_rgba(220,38,38,0.3)] backdrop-blur-xl flex flex-col gap-3 max-w-xs animate-in fade-in slide-in-from-bottom-5">
+          <div className="absolute bottom-[22%] right-6 md:right-12 z-30 p-4 bg-zinc-950/95 border border-red-600/50 rounded-2xl shadow-[0_0_40px_rgba(220,38,38,0.3)] backdrop-blur-xl flex flex-col gap-3 max-w-xs animate-in fade-in slide-in-from-bottom-5">
             <div className="flex items-center justify-between">
               <span className="text-[10px] font-extrabold text-red-500 uppercase tracking-widest flex items-center gap-1">
                 <Tv className="w-3.5 h-3.5" />
@@ -1367,7 +1409,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
           }}
         >
           {/* Top Header Row */}
-          <div className="flex items-center justify-between w-full z-10">
+          <div className="relative z-20 flex items-center justify-between w-full">
             <div>
               <p className="text-[10px] md:text-xs font-bold text-red-500 font-mono tracking-wider">
                 {t.nowStreaming || "NOW STREAMING"} • {selectedQuality !== "Auto" ? selectedQuality : movie.quality}
@@ -1398,8 +1440,10 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
             </div>
           </div>
 
-          {/* Large Center Play/Pause, Rewind, Forward & Episode Skip Controls */}
-          <div className="absolute inset-0 flex items-center justify-center gap-4 sm:gap-8 pointer-events-none z-10">
+          {/* Large Center Play/Pause, Rewind, Forward & Episode Skip Controls
+               Uses flex layout in middle section — NOT absolute inset-0 — to avoid
+               overlapping the top header and bottom HUD controls. */}
+          <div className="flex-1 flex items-center justify-center gap-4 sm:gap-8 pointer-events-none z-10 min-h-0">
             {/* Prev Episode Button (Series only) */}
             {prevEpisodeInfo && (
               <button
@@ -1476,7 +1520,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
           </div>
 
           {/* Bottom Playback HUD panel */}
-            <div className="space-y-3 sm:space-y-4" id="media-player-bottom-hud">
+            <div className="relative z-20 space-y-3 sm:space-y-4" id="media-player-bottom-hud">
             {/* Progress Timeline Scrubber or Live Stream Indicator */}
             {movie.contentType === "livetv" ? (
               <div className="flex items-center justify-between w-full px-3 py-1.5 bg-red-950/40 border border-red-600/30 rounded-xl backdrop-blur-md">
@@ -1517,40 +1561,8 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
 
             {/* Controls Bar Row */}
             <div className="flex items-center justify-between gap-2 sm:gap-4 py-1">
-              {/* Left Section: Playback Controls & Volume */}
+              {/* Left Section: Volume Controls */}
               <div className="flex items-center gap-2 sm:gap-3 md:gap-4">
-                {isFullscreen && (
-                  <div className="flex items-center gap-2 pr-2 border-r border-zinc-800/80">
-                    <button
-                      onClick={() => handleSkip(-10)}
-                      className="text-zinc-300 hover:text-white transition-all transform active:scale-90 p-2 cursor-pointer min-w-11 min-h-11 flex items-center justify-center"
-                      title={t.rewind10s || "Rewind 10s"}
-                    >
-                      <RotateCcw className="w-4 h-4 md:w-5 md:h-5" />
-                    </button>
-
-                    <button
-                      onClick={handlePlayPause}
-                      className="w-11 h-11 rounded-full bg-white text-black hover:scale-105 transition-all flex items-center justify-center shadow-md cursor-pointer active:scale-95"
-                      id="hud-play-btn"
-                      title={isPlaying ? "Pause" : "Play"}
-                    >
-                      {isPlaying ? (
-                        <Pause className="w-4 h-4 text-black fill-black" />
-                      ) : (
-                        <Play className="w-4 h-4 text-black fill-black ml-0.5" />
-                      )}
-                    </button>
-
-                    <button
-                      onClick={() => handleSkip(10)}
-                      className="text-zinc-300 hover:text-white transition-all transform active:scale-90 p-2 cursor-pointer min-w-11 min-h-11 flex items-center justify-center"
-                      title={t.forward10s || "Forward 10s"}
-                    >
-                      <RotateCw className="w-4 h-4 md:w-5 md:h-5" />
-                    </button>
-                  </div>
-                )}
 
                 {/* Volume Controls */}
                 <div className="flex items-center gap-2">
