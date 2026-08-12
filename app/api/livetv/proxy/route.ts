@@ -106,11 +106,10 @@ export async function GET(request: NextRequest) {
     if (isDashManifest) {
       let text = await res.text();
       const parentDir = targetUrl.substring(0, targetUrl.lastIndexOf("/") + 1);
-      const proxyBaseDir = `${baseProxyUrl}${encodeURIComponent(parentDir)}`;
 
-      // Inject BaseURL if not present so relative segments go through proxy
-      if (!text.includes("<BaseURL>") && text.includes("<MPD")) {
-        text = text.replace(/(<MPD[^>]*>)/i, `$1\n  <BaseURL>${proxyBaseDir}</BaseURL>`);
+      // Inject BaseURL if not present so relative segments resolve against remote origin
+      if (!text.includes("<BaseURL>")) {
+        text = text.replace(/(<MPD[\s\S]*?>)/i, `$1\n  <BaseURL>${parentDir}</BaseURL>`);
       }
 
       return new NextResponse(text, {

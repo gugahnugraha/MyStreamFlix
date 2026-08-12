@@ -41,14 +41,12 @@ export function getProxiedStreamUrl(url: string): string {
   }
   if (url.startsWith("blob:") || url.startsWith("data:")) return url;
 
-  // Known CORS restricted domains or DASH streams that require proxying for smooth playback
+  // Only proxy domains that actually enforce strict CORS/Referer blocking on client browsers
   if (
     url.includes("cnnindonesia.com") ||
-    url.includes("indihometv.com") ||
     url.includes("detik.com") ||
     url.includes("medcom.id") ||
-    url.includes("tvri.go.id") ||
-    url.includes(".mpd")
+    url.includes("tvri.go.id")
   ) {
     const proxyPath = `/api/livetv/proxy?url=${encodeURIComponent(url)}`;
     return origin ? `${origin}${proxyPath}` : proxyPath;
