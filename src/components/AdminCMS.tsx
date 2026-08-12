@@ -1,4 +1,4 @@
-﻿/**
+/**
  * @license
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -146,6 +146,7 @@ export default function AdminCMS({
   const [lastHealthCheck, setLastHealthCheck] = useState<string | null>(null);
   const [liveTvStatusFilter, setLiveTvStatusFilter] = useState<"all" | "online" | "offline">("all");
   const [previewMovie, setPreviewMovie] = useState<Movie | null>(null);
+  const [selectedChannelIds, setSelectedChannelIds] = useState<Set<string>>(new Set());
 
   const handleRemoveOfflineChannels = () => {
     const offlineIds = Object.entries(channelHealth)
@@ -2763,10 +2764,98 @@ export default function AdminCMS({
 
           {/* Live TV Channels Grid Table */}
           <div className="bg-zinc-950 border border-zinc-900 rounded-xl overflow-hidden shadow-lg">
+
+            {/* Bulk action bar — shown only when rows are selected */}
+            {selectedChannelIds.size > 0 && (
+              <div className="flex items-center justify-between gap-3 px-4 py-2.5 bg-red-950/40 border-b border-red-500/30">
+                <span className="text-xs font-bold text-red-400">
+                  {selectedChannelIds.size} saluran dipilih
+                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setSelectedChannelIds(new Set())}
+                    className="px-3 py-1.5 rounded-lg text-xs font-bold text-zinc-400 hover:text-white bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 transition-all cursor-pointer"
+                  >
+                    Batal Pilih
+                  </button>
+                  <button
+                    onClick={() => {
+                      const ids = Array.from(selectedChannelIds);
+                      showConfirm(
+                        `Hapus ${ids.length} saluran yang dipilih? Tindakan ini tidak bisa dibatalkan.`,
+                        async () => {
+                          try {
+                            await Promise.all(
+                              ids.map(id =>
+                                fetch(`/api/movies/${id}`, { method: "DELETE" }).catch(() => {})
+                              )
+                            );
+                            if (Object.keys(channelHealth).length > 0) {
+                              setChannelHealth(prev => {
+                                const next = { ...prev };
+                                ids.forEach(id => delete next[id]);
+                                return next;
+                              });
+                            }
+                            setSelectedChannelIds(new Set());
+                            onRefreshMovies();
+                            setSuccessMsg(`${ids.length} saluran berhasil dihapus.`);
+                            setTimeout(() => setSuccessMsg(""), 3500);
+                          } catch (err: any) {
+                            showAlert(err.message || "Gagal menghapus saluran.");
+                          }
+                        },
+                        "Hapus Bulk Saluran",
+                        "Hapus Semua"
+                      );
+                    }}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-white bg-red-600 hover:bg-red-700 border border-red-500 transition-all cursor-pointer shadow-md"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    Hapus {selectedChannelIds.size} Saluran
+                  </button>
+                </div>
+              </div>
+            )}
+
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs border-collapse">
                 <thead>
                   <tr className="bg-zinc-900/90 text-zinc-400 font-extrabold uppercase border-b border-zinc-800 tracking-wider">
+                    <th className="py-3.5 px-3 w-10">
+                      {/* Select-all checkbox */}
+                      <input
+                        type="checkbox"
+                        className="w-3.5 h-3.5 rounded accent-red-600 cursor-pointer"
+                        checked={(() => {
+                          const visible = movies
+                            .filter(m => m.contentType === "livetv" || m.id.startsWith("tv-"))
+                            .filter(ch => {
+                              const status = channelHealth[ch.id]?.status;
+                              if (liveTvStatusFilter === "online") return status === "online";
+                              if (liveTvStatusFilter === "offline") return status === "offline" || status === "error";
+                              return true;
+                            });
+                          return visible.length > 0 && visible.every(ch => selectedChannelIds.has(ch.id));
+                        })()}
+                        onChange={(e) => {
+                          const visible = movies
+                            .filter(m => m.contentType === "livetv" || m.id.startsWith("tv-"))
+                            .filter(ch => {
+                              const status = channelHealth[ch.id]?.status;
+                              if (liveTvStatusFilter === "online") return status === "online";
+                              if (liveTvStatusFilter === "offline") return status === "offline" || status === "error";
+                              return true;
+                            });
+                          if (e.target.checked) {
+                            setSelectedChannelIds(new Set(visible.map(ch => ch.id)));
+                          } else {
+                            setSelectedChannelIds(new Set());
+                          }
+                        }}
+                        title="Pilih semua saluran"
+                      />
+                    </th>
                     <th className="py-3.5 px-4">{t?.channelList || "TV Channel"}</th>
                     <th className="py-3.5 px-4">URL Stream (HLS/DASH)</th>
                     <th className="py-3.5 px-4">Format</th>
@@ -2786,8 +2875,33 @@ export default function AdminCMS({
                     })
                     .map((channel) => {
                     const health = channelHealth[channel.id];
+                    const isSelected = selectedChannelIds.has(channel.id);
                     return (
-                    <tr key={channel.id} className="hover:bg-zinc-900/50 transition-colors">
+                    <tr 
+                      key={channel.id} 
+                      className={`transition-colors ${
+                        isSelected 
+                          ? "bg-red-950/30 hover:bg-red-950/40 border-l-2 border-l-red-500" 
+                          : "hover:bg-zinc-900/50"
+                      }`}
+                    >
+                      <td className="py-3.5 px-3 w-10">
+                        <input
+                          type="checkbox"
+                          className="w-3.5 h-3.5 rounded accent-red-600 cursor-pointer"
+                          checked={isSelected}
+                          onChange={(e) => {
+                            const next = new Set(selectedChannelIds);
+                            if (e.target.checked) {
+                              next.add(channel.id);
+                            } else {
+                              next.delete(channel.id);
+                            }
+                            setSelectedChannelIds(next);
+                          }}
+                          title={`Pilih ${channel.title}`}
+                        />
+                      </td>
                       <td className="py-3.5 px-4">
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 rounded-lg bg-black border border-zinc-800 p-1 shrink-0 flex items-center justify-center overflow-hidden relative">
