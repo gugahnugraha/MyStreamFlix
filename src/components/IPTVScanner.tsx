@@ -26,6 +26,7 @@ interface ParsedChannel {
 interface IPTVScannerProps {
   brandColor: string;
   onImportChannel: (channel: ParsedChannel) => Promise<void>;
+  onImportChannelsBulk?: (channels: ParsedChannel[]) => Promise<{ importedCount: number; skippedCount: number }>;
 }
 
 const PRESET_SOURCES = [
@@ -94,7 +95,7 @@ const IPTV_CATEGORY_SOURCES = [
   "education",
 ];
 
-export default function IPTVScanner({ brandColor, onImportChannel }: IPTVScannerProps) {
+export default function IPTVScanner({ brandColor, onImportChannel, onImportChannelsBulk }: IPTVScannerProps) {
   const [sourceUrl, setSourceUrl] = useState("");
   const [isScanning, setIsScanning] = useState(false);
   const [scanResults, setScanResults] = useState<ParsedChannel[]>([]);
@@ -103,6 +104,8 @@ export default function IPTVScanner({ brandColor, onImportChannel }: IPTVScanner
   const [selectedChannels, setSelectedChannels] = useState<Set<string>>(new Set());
   const [importingChannels, setImportingChannels] = useState<Set<string>>(new Set());
   const [importedChannels, setImportedChannels] = useState<Set<string>>(new Set());
+  const [isImportingBulk, setIsImportingBulk] = useState(false);
+  const [importProgress, setImportProgress] = useState<{ current: number; total: number; percentage: number } | null>(null);
   const [filterGroup, setFilterGroup] = useState("ALL");
   const [filterCountry, setFilterCountry] = useState("ALL");
   const [filterSearch, setFilterSearch] = useState("");
@@ -219,19 +222,48 @@ export default function IPTVScanner({ brandColor, onImportChannel }: IPTVScanner
 
   const handleImportSelected = async () => {
     const toImport = filteredResults.filter(ch => selectedChannels.has(ch.streamUrl));
-    for (const ch of toImport) {
-      setImportingChannels(prev => new Set(prev).add(ch.streamUrl));
-      await onImportChannel(ch);
-      setImportingChannels(prev => {
-        const next = new Set(prev);
-        next.delete(ch.streamUrl);
-        return next;
-      });
-      setImportedChannels(prev => new Set(prev).add(ch.streamUrl));
-      // Small delay between imports
-      await new Promise(r => setTimeout(r, 150));
+    if (toImport.length === 0) return;
+
+    setIsImportingBulk(true);
+    setImportProgress({ current: 0, total: toImport.length, percentage: 0 });
+    setImportingChannels(new Set(toImport.map(ch => ch.streamUrl)));
+
+    if (onImportChannelsBulk) {
+      try {
+        setImportProgress({ current: Math.floor(toImport.length / 2), total: toImport.length, percentage: 50 });
+        await onImportChannelsBulk(toImport);
+        setImportedChannels(prev => {
+          const next = new Set(prev);
+          toImport.forEach(ch => next.add(ch.streamUrl));
+          return next;
+        });
+      } catch (e) {
+        console.error("Bulk import error:", e);
+      } finally {
+        setImportProgress({ current: toImport.length, total: toImport.length, percentage: 100 });
+        setTimeout(() => setImportProgress(null), 1200);
+        setImportingChannels(new Set());
+        setIsImportingBulk(false);
+        setSelectedChannels(new Set());
+      }
+    } else {
+      let count = 0;
+      for (const ch of toImport) {
+        setImportingChannels(prev => new Set(prev).add(ch.streamUrl));
+        await onImportChannel(ch);
+        setImportingChannels(prev => {
+          const next = new Set(prev);
+          next.delete(ch.streamUrl);
+          return next;
+        });
+        setImportedChannels(prev => new Set(prev).add(ch.streamUrl));
+        count++;
+        setImportProgress({ current: count, total: toImport.length, percentage: Math.round((count / toImport.length) * 100) });
+      }
+      setImportProgress(null);
+      setIsImportingBulk(false);
+      setSelectedChannels(new Set());
     }
-    setSelectedChannels(new Set());
   };
 
   // Apply local filters on scan results
@@ -442,15 +474,39 @@ export default function IPTVScanner({ brandColor, onImportChannel }: IPTVScanner
                   {selectedChannels.size > 0 && (
                     <button
                       onClick={handleImportSelected}
-                      className="flex items-center gap-1.5 px-4 py-1.5 text-white text-xs font-bold rounded-lg shadow-lg transition-all cursor-pointer"
+                      disabled={isImportingBulk}
+                      className="flex items-center gap-1.5 px-4 py-1.5 text-white text-xs font-bold rounded-lg shadow-lg transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                       style={{ backgroundColor: "#16a34a", boxShadow: "0 0 10px rgba(22,163,74,0.3)" }}
                     >
-                      <Download className="w-3.5 h-3.5" />
-                      Import {selectedChannels.size} Saluran
+                      {isImportingBulk ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <Download className="w-3.5 h-3.5" />
+                      )}
+                      {isImportingBulk ? "Mengimport..." : `Import ${selectedChannels.size} Saluran`}
                     </button>
                   )}
                 </div>
               </div>
+
+              {/* Batch Import Progress Bar */}
+              {importProgress && (
+                <div className="p-3.5 bg-zinc-900/90 border border-emerald-500/40 rounded-xl space-y-2 animate-in fade-in duration-200">
+                  <div className="flex items-center justify-between text-xs font-bold text-zinc-300">
+                    <span className="flex items-center gap-2">
+                      <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-400" />
+                      Proses Bulk Import Saluran...
+                    </span>
+                    <span className="font-mono text-emerald-400">{importProgress.current} / {importProgress.total} ({importProgress.percentage}%)</span>
+                  </div>
+                  <div className="h-2 rounded-full bg-zinc-950 overflow-hidden border border-zinc-800">
+                    <div
+                      className="h-full bg-emerald-500 transition-all duration-300 rounded-full"
+                      style={{ width: `${importProgress.percentage}%` }}
+                    />
+                  </div>
+                </div>
+              )}
 
               {/* Filters Bar */}
               <div className="flex flex-col sm:flex-row gap-2">

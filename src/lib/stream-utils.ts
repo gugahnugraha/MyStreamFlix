@@ -25,5 +25,20 @@ export function shortQualityHint(height: number, bitrate = 0): string {
 }
 
 export function getProxiedStreamUrl(url: string): string {
-  return url || "";
+  if (!url) return "";
+  if (url.startsWith("/api/livetv/proxy") || url.startsWith("blob:") || url.startsWith("data:")) return url;
+
+  // Known CORS restricted domains or DASH streams that require proxying for smooth playback
+  if (
+    url.includes("cnnindonesia.com") ||
+    url.includes("indihometv.com") ||
+    url.includes("detik.com") ||
+    url.includes("medcom.id") ||
+    url.includes("tvri.go.id") ||
+    url.includes(".mpd")
+  ) {
+    return `/api/livetv/proxy?url=${encodeURIComponent(url)}`;
+  }
+
+  return url;
 }

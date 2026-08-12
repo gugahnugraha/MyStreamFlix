@@ -24,7 +24,40 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Access denied. Admin role required." }, { status: 403 });
     }
 
-    const movieData = await request.json();
+    const payload = await request.json();
+
+    // Bulk array import mode
+    if (Array.isArray(payload)) {
+      const imported: any[] = [];
+      const skipped: { title: string; reason: string; streamUrl?: string }[] = [];
+
+      for (const movieData of payload) {
+        if (!movieData.title || !movieData.videoUrl) {
+          skipped.push({ title: movieData.title || "Untitled", reason: "Missing title or stream URL", streamUrl: movieData.videoUrl });
+          continue;
+        }
+
+        const duplicate = await findDuplicateMovie(movieData);
+        if (duplicate) {
+          skipped.push({ title: movieData.title, reason: "Duplicate title/stream", streamUrl: movieData.videoUrl });
+          continue;
+        }
+
+        const createdMovie = await createMovie(movieData);
+        imported.push(createdMovie);
+      }
+
+      return NextResponse.json({
+        success: true,
+        importedCount: imported.length,
+        skippedCount: skipped.length,
+        imported,
+        skipped,
+      }, { status: 200 });
+    }
+
+    // Single movie import mode
+    const movieData = payload;
     if (!movieData.title || !movieData.videoUrl) {
       return NextResponse.json({ error: "Title and Video URL are required." }, { status: 400 });
     }

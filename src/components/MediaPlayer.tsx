@@ -26,6 +26,7 @@ import {
   Tv
 } from "lucide-react";
 import Hls from "hls.js";
+import * as dashjs from "dashjs";
 import { ScreenOrientation } from "@capacitor/screen-orientation";
 import { Movie, Subtitle } from "../types";
 import { getProxiedStreamUrl, describeQualityLabel, shortQualityHint } from "../lib/stream-utils";
@@ -98,6 +99,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
   const startupTimeoutRef = useRef<number | null>(null);
   const bufferTimeoutRef = useRef<number | null>(null);
   const hlsRef = useRef<Hls | null>(null);
+  const dashRef = useRef<any>(null);
 
   // TV Series active episode and season tracking states
   const [activeSeason, setActiveSeason] = useState(() => {
@@ -317,6 +319,12 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
       hlsRef.current.destroy();
       hlsRef.current = null;
     }
+    if (dashRef.current) {
+      try {
+        dashRef.current.reset();
+      } catch {}
+      dashRef.current = null;
+    }
     const video = videoRef.current;
     if (video) {
       try {
@@ -350,23 +358,73 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
       clearStreamTimers();
       startupTimeoutRef.current = window.setTimeout(() => {
         engageStreamTimeout();
-      }, 12000) as number;
+      }, 15000) as number;
     }
 
-    if (Hls.isSupported() && currentStreamUrl.includes(".m3u8")) {
+    const proxiedUrl = getProxiedStreamUrl(currentStreamUrl);
+
+    // MPEG-DASH (.mpd) playback handling via dash.js
+    if (currentStreamUrl.includes(".mpd") || proxiedUrl.includes(".mpd")) {
+      video.removeAttribute("src");
+      try {
+        const dashPlayer = dashjs.MediaPlayer().create();
+        dashRef.current = dashPlayer;
+        dashPlayer.initialize(video, proxiedUrl, true);
+        dashPlayer.updateSettings({
+          streaming: {
+            buffer: {
+              fastSwitchEnabled: true,
+            },
+            delay: {
+              liveDelay: 3,
+            },
+          },
+        });
+
+        dashPlayer.on(dashjs.MediaPlayer.events.STREAM_INITIALIZED, () => {
+          setIsBuffering(false);
+          clearStreamTimers();
+          video.volume = volume;
+          video.muted = false;
+          video.play().then(() => {
+            setIsPlaying(true);
+            setIsMuted(false);
+            setMutedByAutoplay(false);
+          }).catch((err) => {
+            console.warn("DASH Autoplay blocked, attempting muted playback:", err);
+            video.muted = true;
+            setIsMuted(true);
+            setMutedByAutoplay(true);
+            video.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
+          });
+        });
+
+        dashPlayer.on(dashjs.MediaPlayer.events.ERROR, (e: any) => {
+          console.warn("DASH playback error:", e);
+          setHasError(true);
+          setIsSimulating(true);
+        });
+      } catch (e) {
+        console.error("Failed to initialize dashjs player:", e);
+        setHasError(true);
+        setIsSimulating(true);
+      }
+    } else if (Hls.isSupported() && (currentStreamUrl.includes(".m3u8") || proxiedUrl.includes(".m3u8"))) {
       video.removeAttribute("src");
       const hls = new Hls({
         enableWorker: true,
         lowLatencyMode: movie.contentType === "livetv",
         backBufferLength: movie.contentType === "livetv" ? 30 : 90,
-        manifestLoadingTimeOut: movie.contentType === "livetv" ? 12000 : undefined,
-        levelLoadingTimeOut: movie.contentType === "livetv" ? 12000 : undefined,
-        fragLoadingTimeOut: movie.contentType === "livetv" ? 12000 : undefined,
+        manifestLoadingTimeOut: movie.contentType === "livetv" ? 15000 : undefined,
+        levelLoadingTimeOut: movie.contentType === "livetv" ? 15000 : undefined,
+        fragLoadingTimeOut: movie.contentType === "livetv" ? 15000 : undefined,
       });
-      hls.loadSource(currentStreamUrl);
+      hls.loadSource(proxiedUrl);
       hls.attachMedia(video);
       hlsRef.current = hls;
       hls.on(Hls.Events.MANIFEST_PARSED, (_e, data) => {
+        setIsBuffering(false);
+        clearStreamTimers();
         const levels = (data.levels || []).map((lv, idx) => {
           const height = lv.height || 0;
           const bitrate = lv.bitrate || 0;
@@ -410,11 +468,13 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
         setIsSimulating(true);
       });
     } else if (video.canPlayType("application/vnd.apple.mpegurl") || video.canPlayType("application/x-mpegURL")) {
-      video.src = currentStreamUrl;
+      video.src = proxiedUrl;
       video.volume = volume;
       video.muted = false;
       video.load();
       video.play().then(() => {
+        setIsBuffering(false);
+        clearStreamTimers();
         setIsPlaying(true);
         setIsMuted(false);
         setMutedByAutoplay(false);
@@ -427,9 +487,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
       });
     } else {
       // Direct file playback: MP4, WebM, MKV (if supported by WebView), etc.
-      // MKV note: Android WebView has limited MKV support — try to play directly first.
-      // If autoplay is blocked, retry muted before giving up.
-      video.src = currentStreamUrl;
+      video.src = proxiedUrl;
       video.volume = volume;
       video.muted = false;
       video.load();

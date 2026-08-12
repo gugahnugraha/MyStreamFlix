@@ -635,6 +635,29 @@ export async function findDuplicateMovie(movieData: Partial<Movie>, ignoreId?: s
   }) || null;
 }
 
+export function sanitizeStreamUrl(url?: string): string {
+  if (!url) return "";
+  let cleanUrl = url.trim();
+
+  // Fix Indihome TV sub-representation variant MPD URLs to clean master MPD
+  // e.g. https://cdnbal1.indihometv.com/atm/DASH/inews/inews-avc1_1000000=500-3277707030000000.mpd -> https://cdnbal1.indihometv.com/atm/DASH/inews/inews.mpd
+  if (cleanUrl.includes("indihometv.com") && cleanUrl.endsWith(".mpd")) {
+    const match = cleanUrl.match(/\/DASH\/([^\/]+)\//i);
+    if (match && match[1]) {
+      const channelSlug = match[1];
+      return `https://cdnbal1.indihometv.com/atm/DASH/${channelSlug}/${channelSlug}.mpd`;
+    }
+  }
+
+  // Fix Wowza chunklist URLs with session tokens to clean master playlist.m3u8
+  // e.g. https://live.cnnindonesia.com/livecnn/smil:cnntv.smil/chunklist_w766556031_b384000_sleng.m3u8 -> https://live.cnnindonesia.com/livecnn/smil:cnntv.smil/playlist.m3u8
+  if (cleanUrl.includes("chunklist_w") && cleanUrl.endsWith(".m3u8")) {
+    cleanUrl = cleanUrl.replace(/\/chunklist_w[^\/]+\.m3u8$/i, "/playlist.m3u8");
+  }
+
+  return cleanUrl;
+}
+
 export async function createMovie(movieData: Partial<Movie>): Promise<Movie> {
   const newId = await getNextMovieId();
   const moviePayload: Movie = {
@@ -645,7 +668,7 @@ export async function createMovie(movieData: Partial<Movie>): Promise<Movie> {
     description: movieData.description || "",
     posterUrl: movieData.posterUrl || "https://images.unsplash.com/photo-1594909122845-11baa439b7bf?w=500&auto=format&fit=crop&q=80",
     backdropUrl: movieData.backdropUrl || "https://images.unsplash.com/photo-1574375927938-d5a98e8edd86?w=1200&auto=format&fit=crop&q=80",
-    videoUrl: movieData.videoUrl || "",
+    videoUrl: sanitizeStreamUrl(movieData.videoUrl),
     duration: Number(movieData.duration) || 120,
     releaseYear: Number(movieData.releaseYear) || new Date().getFullYear(),
     rating: Number(movieData.rating) || 7.0,
@@ -723,7 +746,7 @@ export async function updateMovie(id: string, updateData: Partial<Movie>): Promi
       if (updateData.description !== undefined) updatePayload.description = updateData.description;
       if (updateData.posterUrl !== undefined) updatePayload.posterUrl = updateData.posterUrl;
       if (updateData.backdropUrl !== undefined) updatePayload.backdropUrl = updateData.backdropUrl;
-      if (updateData.videoUrl !== undefined) updatePayload.videoUrl = updateData.videoUrl;
+      if (updateData.videoUrl !== undefined) updatePayload.videoUrl = sanitizeStreamUrl(updateData.videoUrl);
       if (updateData.duration !== undefined) updatePayload.duration = Number(updateData.duration);
       if (updateData.releaseYear !== undefined) updatePayload.releaseYear = Number(updateData.releaseYear);
       if (updateData.rating !== undefined) updatePayload.rating = Number(updateData.rating);

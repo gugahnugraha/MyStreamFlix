@@ -3024,6 +3024,58 @@ export default function AdminCMS({
           {/* -------- 📡 IPTV SCANNER & PLAYLIST IMPORTER -------- */}
           <IPTVScanner
             brandColor={brandColor}
+            onImportChannelsBulk={async (channels) => {
+              try {
+                const payload = channels.map(ch => ({
+                  title: ch.name,
+                  description: `Live TV stream — ${ch.group || "General"} — ${ch.country || "International"}`,
+                  posterUrl: ch.logo || "https://images.unsplash.com/photo-1611532736597-de2d4265fba3?w=400&q=80",
+                  backdropUrl: "https://images.unsplash.com/photo-1611532736597-de2d4265fba3?w=1280&q=80",
+                  videoUrl: ch.streamUrl,
+                  contentType: "livetv",
+                  duration: 0,
+                  releaseYear: new Date().getFullYear(),
+                  rating: 7.0,
+                  quality: "Full HD",
+                  ageRating: "TV-G",
+                  genres: [ch.group || "General"],
+                  cast: [],
+                  directors: [],
+                  country: ch.country || "International",
+                  language: ch.language || "en",
+                  isFeatured: false,
+                  isBanner: false,
+                  tier: "free",
+                }));
+
+                const res = await fetch("/api/movies", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify(payload),
+                });
+
+                const data = await res.json();
+                if (res.ok) {
+                  const importedCount = data.importedCount ?? 0;
+                  const skippedCount = data.skippedCount ?? 0;
+                  let msg = `✅ Berhasil mengimport ${importedCount} saluran Live TV!`;
+                  if (skippedCount > 0) {
+                    msg += ` (${skippedCount} saluran dilewati karena sudah terdaftar).`;
+                  }
+                  setSuccessMsg(msg);
+                  onRefreshMovies();
+                  setTimeout(() => setSuccessMsg(""), 5000);
+                  return { importedCount, skippedCount };
+                } else {
+                  showAlert(data.error || "Gagal melakukan bulk import.");
+                  return { importedCount: 0, skippedCount: 0 };
+                }
+              } catch (e: any) {
+                console.error("Bulk import failed:", e);
+                showAlert(e.message || "Gagal melakukan bulk import.");
+                return { importedCount: 0, skippedCount: 0 };
+              }
+            }}
             onImportChannel={async (ch) => {
               try {
                 const res = await fetch("/api/movies", {
