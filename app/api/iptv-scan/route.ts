@@ -108,7 +108,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { sourceUrl, countryFilter, groupFilter, limit = 100 } = body;
+    const { sourceUrl, countryFilter, groupFilter, limit = 500 } = body;
 
     if (!sourceUrl) {
       return NextResponse.json({ error: "sourceUrl is required" }, { status: 400 });
@@ -182,7 +182,7 @@ export async function POST(request: NextRequest) {
 
     // Apply limit
     const total = channels.length;
-    channels = channels.slice(0, Math.min(limit, 500));
+    channels = channels.slice(0, Math.min(limit, 5000));
 
     // Extract unique groups and countries for filter options
     const allGroups = [...new Set(channels.map(ch => ch.group).filter(Boolean))].sort();

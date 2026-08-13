@@ -113,7 +113,7 @@ export default function IPTVScanner({ brandColor, onImportChannel, onImportChann
   const [availableCountries, setAvailableCountries] = useState<string[]>([]);
   const [dynamicSourceType, setDynamicSourceType] = useState<"country" | "category">("country");
   const [dynamicSourceValue, setDynamicSourceValue] = useState("id");
-  const [scanLimit, setScanLimit] = useState(250);
+  const [scanLimit, setScanLimit] = useState(500);
   const [showScanner, setShowScanner] = useState(false);
   const [preImportHealth, setPreImportHealth] = useState<Record<string, { status: "online" | "offline"; responseTime?: number }>>({});
   const [isCheckingPreImportHealth, setIsCheckingPreImportHealth] = useState(false);
@@ -388,11 +388,11 @@ export default function IPTVScanner({ brandColor, onImportChannel, onImportChann
               <input
                 type="number"
                 min={25}
-                max={500}
+                max={5000}
                 value={scanLimit}
-                onChange={e => setScanLimit(Math.min(500, Math.max(25, Number(e.target.value) || 250)))}
-                className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2.5 text-xs text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-600 transition-all"
-                title="Jumlah maksimal channel yang dipindai"
+                onChange={e => setScanLimit(Math.min(5000, Math.max(25, Number(e.target.value) || 500)))}
+                className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2.5 text-xs text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-600 transition-all font-mono"
+                title="Jumlah maksimal channel yang dipindai (maks. 5000)"
               />
               <button
                 onClick={handleScan}
