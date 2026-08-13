@@ -35,7 +35,6 @@ jobs:
       - name: Build Next.js Production Assets
         env:
           NEXT_TELEMETRY_DISABLED: 1
-          # Next.js needs DB env vars even for build sometimes; set dummy
           DATABASE_URL: "file:./dev.db"
         run: npm run build
 
@@ -51,19 +50,15 @@ jobs:
           ./gradlew clean assembleDebug --no-daemon --stacktrace
 
       - name: Rename APK Artifact
-        if: always()
         run: |
           APKDIR=android/app/build/outputs/apk/debug
           if [ -f "$APKDIR/app-debug.apk" ]; then
             VERSION=$(node -p "require('./package.json').version")
             TS=$(date +%Y%m%d-%H%M)
             cp "$APKDIR/app-debug.apk" "$APKDIR/MyStreamFlix-${VERSION}-${TS}-debug.apk"
-            echo "APK_VERSION=${VERSION}" >> $GITHUB_ENV
-            echo "APK_TS=${TS}" >> $GITHUB_ENV
           fi
 
       - name: Upload Android APK Artifact
-        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: MyStreamFlix-Android-APK
@@ -81,4 +76,3 @@ jobs:
             android/app/build/reports/**
             android/app/build/outputs/logs/**
           if-no-files-found: ignore
-
