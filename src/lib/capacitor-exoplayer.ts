@@ -22,7 +22,6 @@ export async function playWithNativeExoPlayer(options: PlayExoOptions): Promise<
       exitOnEnd: true,
       loopOnEnd: false,
       pipEnabled: true,
-      bkForwardButtonEnabled: true,
     });
 
     return !!result?.result;
