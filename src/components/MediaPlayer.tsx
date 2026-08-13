@@ -378,11 +378,14 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
     }
 
     const proxiedUrl = getProxiedStreamUrl(currentStreamUrl);
+    const targetPlayUrl = (currentStreamUrl.toLowerCase().includes(".mkv") || rawStreamUrl.toLowerCase().includes(".mkv"))
+      ? (rawStreamUrl || currentStreamUrl)
+      : proxiedUrl;
 
     // If running inside Capacitor Android APK, attempt native ExoPlayer plugin playback
     if (isNativeCapacitor()) {
       playWithNativeExoPlayer({
-        url: proxiedUrl,
+        url: targetPlayUrl,
         title: movie.title,
         isLive: movie.contentType === "livetv",
       });

@@ -12,10 +12,19 @@ export async function playWithNativeExoPlayer(options: PlayExoOptions): Promise<
     return false;
   }
 
+  // Ensure target URL is an absolute URL for native Android ExoPlayer
+  let targetUrl = options.url;
+  if (targetUrl.startsWith('/')) {
+    const baseOrigin = typeof window !== 'undefined' && window.location.origin.startsWith('http')
+      ? window.location.origin
+      : 'https://mystreamflix.biz.id';
+    targetUrl = `${baseOrigin}${targetUrl}`;
+  }
+
   try {
     const result = await CapacitorVideoPlayer.initPlayer({
       mode: 'fullscreen',
-      url: options.url,
+      url: targetUrl,
       title: options.title || 'MyStreamFlix',
       playerId: 'exoplayer-container',
       componentTag: 'div',
