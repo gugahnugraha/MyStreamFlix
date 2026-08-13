@@ -5,10 +5,8 @@ import {
   Text,
   TouchableOpacity,
   ActivityIndicator,
-  Dimensions,
   Platform,
 } from 'react-native';
-import Video, { ReactVideoSource } from 'react-native-video';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   Play,
@@ -19,7 +17,16 @@ import {
   Maximize,
   Minimize,
   Radio,
+  Tv,
 } from 'lucide-react-native';
+
+// Safely require react-native-video to prevent crashes in Expo Go sandbox
+let NativeVideo: any = null;
+try {
+  NativeVideo = require('react-native-video').default;
+} catch (e) {
+  console.log('react-native-video native module not available in Expo Go sandbox');
+}
 
 interface ExoVideoPlayerProps {
   videoUrl: string;
@@ -73,11 +80,6 @@ export const ExoVideoPlayer: React.FC<ExoVideoPlayerProps> = ({
     }
   };
 
-  const source: ReactVideoSource = {
-    uri: videoUrl,
-    type: videoUrl.includes('.m3u8') ? 'm3u8' : videoUrl.includes('.mpd') ? 'mpd' : undefined,
-  };
-
   return (
     <View style={styles.container}>
       <TouchableOpacity
@@ -85,26 +87,42 @@ export const ExoVideoPlayer: React.FC<ExoVideoPlayerProps> = ({
         style={styles.touchArea}
         onPress={() => setShowControls(!showControls)}
       >
-        <Video
-          ref={videoRef}
-          source={source}
-          style={styles.video}
-          resizeMode="contain"
-          paused={paused}
-          onLoadStart={() => setLoading(true)}
-          onLoad={handleLoad}
-          onProgress={handleProgress}
-          onEnd={() => setPaused(true)}
-          onError={(err) => {
-            console.error('ExoPlayer Error:', err);
-            setLoading(false);
-          }}
-          useTextureView={Platform.OS === 'android'}
-          playInBackground={false}
-          playWhenInactive={false}
-        />
+        {NativeVideo ? (
+          <NativeVideo
+            ref={videoRef}
+            source={{
+              uri: videoUrl,
+              type: videoUrl.includes('.m3u8') ? 'm3u8' : videoUrl.includes('.mpd') ? 'mpd' : undefined,
+            }}
+            style={styles.video}
+            resizeMode="contain"
+            paused={paused}
+            onLoadStart={() => setLoading(true)}
+            onLoad={handleLoad}
+            onProgress={handleProgress}
+            onEnd={() => setPaused(true)}
+            onError={(err: any) => {
+              console.error('ExoPlayer Error:', err);
+              setLoading(false);
+            }}
+            useTextureView={Platform.OS === 'android'}
+            playInBackground={false}
+            playWhenInactive={false}
+          />
+        ) : (
+          <View style={styles.fallbackPlayer}>
+            <Tv color="#E50914" size={48} style={{ marginBottom: 12 }} />
+            <Text style={styles.fallbackTitle}>ExoPlayer Native Engine</Text>
+            <Text style={styles.fallbackText}>
+              Pemutar video native ExoPlayer aktif saat dijalankan via APK Standalone atau Development Build.
+            </Text>
+            <Text style={styles.streamUrlText} numberOfLines={1}>
+              Stream: {videoUrl}
+            </Text>
+          </View>
+        )}
 
-        {loading && (
+        {loading && NativeVideo && (
           <View style={styles.loaderContainer}>
             <ActivityIndicator size="large" color="#E50914" />
             <Text style={styles.loadingText}>Memuat ExoPlayer...</Text>
@@ -202,6 +220,31 @@ const styles = StyleSheet.create({
   video: {
     width: '100%',
     height: '100%',
+  },
+  fallbackPlayer: {
+    flex: 1,
+    backgroundColor: '#121214',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  fallbackTitle: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 6,
+  },
+  fallbackText: {
+    color: '#A1A1AA',
+    fontSize: 13,
+    textAlign: 'center',
+    lineHeight: 18,
+    marginBottom: 12,
+  },
+  streamUrlText: {
+    color: '#E50914',
+    fontSize: 11,
+    fontWeight: '600',
   },
   loaderContainer: {
     ...StyleSheet.absoluteFillObject,
