@@ -341,7 +341,7 @@ export default function App() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col font-sans selection:bg-blue-600 selection:text-white relative overflow-x-hidden pt-[65px]" id="app-root">
+    <div className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col font-sans selection:bg-blue-600 selection:text-white relative overflow-x-hidden pt-[calc(65px+env(safe-area-inset-top,0px))]" id="app-root">
 
       {/* Header component */}
       <Header

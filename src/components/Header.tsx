@@ -167,7 +167,7 @@ export default function Header({
   };
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-40 bg-[#070708]/75 backdrop-blur-xl border-b border-white/[0.06] px-4 md:px-8 py-3.5 flex items-center justify-between shadow-[0_12px_40px_rgba(0,0,0,0.4)] transition-all duration-300">
+    <header className="fixed top-0 left-0 right-0 z-40 bg-[#070708]/75 backdrop-blur-xl border-b border-white/[0.06] px-4 md:px-8 pt-[calc(0.875rem+env(safe-area-inset-top,0px))] pb-3.5 flex items-center justify-between shadow-[0_12px_40px_rgba(0,0,0,0.4)] transition-all duration-300">
       {/* Brand Logo */}
       <div 
         className="flex items-center gap-2 cursor-pointer group"

@@ -113,7 +113,7 @@ export default function MobileBottomNav({
 
   return (
     <div 
-      className="fixed bottom-0 left-0 right-0 z-50 sm:hidden bg-zinc-950/95 backdrop-blur-2xl border-t border-zinc-800/80 pb-[env(safe-area-inset-bottom,0.25rem)] shadow-[0_-10px_30px_rgba(0,0,0,0.8)] transition-all duration-300 select-none"
+      className="fixed bottom-0 left-0 right-0 z-50 sm:hidden bg-zinc-950/95 backdrop-blur-2xl border-t border-zinc-800/80 pb-[calc(0.5rem+env(safe-area-inset-bottom,0px))] shadow-[0_-10px_30px_rgba(0,0,0,0.8)] transition-all duration-300 select-none"
       style={{ touchAction: "manipulation" }}
     >
       <div className="flex items-center justify-around h-16 px-1">
