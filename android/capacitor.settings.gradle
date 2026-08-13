@@ -4,3 +4,6 @@ project(':capacitor-android').projectDir = new File('../node_modules/@capacitor/
 
 include ':capacitor-screen-orientation'
 project(':capacitor-screen-orientation').projectDir = new File('../node_modules/@capacitor/screen-orientation/android')
+
+include ':capacitor-video-player'
+project(':capacitor-video-player').projectDir = new File('../node_modules/capacitor-video-player/android')

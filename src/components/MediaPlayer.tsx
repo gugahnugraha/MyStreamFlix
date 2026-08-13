@@ -32,6 +32,7 @@ import { ScreenOrientation } from "@capacitor/screen-orientation";
 import { Movie, Subtitle } from "../types";
 import { getProxiedStreamUrl, describeQualityLabel, shortQualityHint } from "../lib/stream-utils";
 import { isNativeCapacitor, enterImmersiveMode, exitImmersiveMode, addImmersiveStateListener } from "../lib/native-fullscreen";
+import { playWithNativeExoPlayer } from "../lib/capacitor-exoplayer";
 
 interface MediaPlayerProps {
   movie: Movie;
@@ -377,6 +378,15 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
     }
 
     const proxiedUrl = getProxiedStreamUrl(currentStreamUrl);
+
+    // If running inside Capacitor Android APK, attempt native ExoPlayer plugin playback
+    if (isNativeCapacitor()) {
+      playWithNativeExoPlayer({
+        url: proxiedUrl,
+        title: movie.title,
+        isLive: movie.contentType === "livetv",
+      });
+    }
 
     // MPEG-DASH (.mpd) playback handling via dash.js
     if (currentStreamUrl.includes(".mpd") || proxiedUrl.includes(".mpd")) {
