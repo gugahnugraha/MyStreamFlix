@@ -41,5 +41,10 @@
     "postcss": "^8.4.49",
     "prisma": "^6.0.0",
     "typescript": "~5.8.2"
+  },
+  "overrides": {
+    "capacitor-video-player": {
+      "@capacitor/core": "$@capacitor/core"
+    }
   }
 }
