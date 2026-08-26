@@ -2,7 +2,8 @@ export interface Subtitle {
   id: string;
   language: string;
   label: string;
-  url: string;
+  url?: string;
+  fileUrl?: string;
 }
 
 export interface Episode {

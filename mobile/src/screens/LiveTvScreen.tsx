@@ -10,6 +10,7 @@ import {
   TextInput,
   ScrollView,
   StatusBar,
+  Modal,
   Dimensions,
 } from "react-native";
 import { Video, ResizeMode } from "expo-av";
@@ -30,15 +31,6 @@ import {
 import { Movie } from "../types";
 import { fetchMovies } from "../api/client";
 
-const DEFAULT_TAB_BAR_STYLE = {
-  backgroundColor: "#0F0F12",
-  borderTopColor: "#1A1A20",
-  height: 64,
-  paddingBottom: 8,
-  paddingTop: 6,
-  display: "flex",
-};
-
 export default function LiveTvScreen({ navigation }: any) {
   const [channels, setChannels] = useState<Movie[]>([]);
   const [activeChannel, setActiveChannel] = useState<Movie | null>(null);
@@ -51,15 +43,14 @@ export default function LiveTvScreen({ navigation }: any) {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isBuffering, setIsBuffering] = useState(false);
   const videoRef = useRef<Video>(null);
+  const fullscreenVideoRef = useRef<Video>(null);
 
   useEffect(() => {
     loadChannels();
 
     return () => {
-      // Restore orientation and bottom tab on screen exit
       ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT);
       StatusBar.setHidden(false, "fade");
-      navigation.getParent()?.setOptions({ tabBarStyle: DEFAULT_TAB_BAR_STYLE });
     };
   }, []);
 
@@ -74,20 +65,16 @@ export default function LiveTvScreen({ navigation }: any) {
     setLoading(false);
   };
 
-  const toggleFullscreen = async () => {
-    if (isFullscreen) {
-      // Exit fullscreen -> Portrait and restore bottom navigation bar
-      await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT);
-      StatusBar.setHidden(false, "fade");
-      navigation.getParent()?.setOptions({ tabBarStyle: DEFAULT_TAB_BAR_STYLE });
-      setIsFullscreen(false);
-    } else {
-      // Enter fullscreen -> Landscape and HIDE bottom navigation bar completely
-      await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
-      StatusBar.setHidden(true, "fade");
-      navigation.getParent()?.setOptions({ tabBarStyle: { display: "none" } });
-      setIsFullscreen(true);
-    }
+  const enterFullscreen = async () => {
+    await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
+    StatusBar.setHidden(true, "fade");
+    setIsFullscreen(true);
+  };
+
+  const exitFullscreen = async () => {
+    await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT);
+    StatusBar.setHidden(false, "fade");
+    setIsFullscreen(false);
   };
 
   const filtered = channels.filter((c) => {
@@ -100,10 +87,10 @@ export default function LiveTvScreen({ navigation }: any) {
   const genres = ["All", "News", "Sports", "Entertainment", "Movies", "Kids", "Music"];
 
   return (
-    <View style={[styles.container, isFullscreen && styles.containerFullscreen]}>
-      {/* 📺 Top Live TV ExoPlayer Viewport */}
-      {activeChannel ? (
-        <View style={[styles.playerContainer, isFullscreen && styles.playerFullscreen]}>
+    <View style={styles.container}>
+      {/* 📺 Top Live TV ExoPlayer Viewport (Inline Mode) */}
+      {activeChannel && !isFullscreen ? (
+        <View style={styles.playerContainer}>
           <Video
             ref={videoRef}
             source={{ uri: activeChannel.videoUrl }}
@@ -158,9 +145,9 @@ export default function LiveTvScreen({ navigation }: any) {
                   <Text style={styles.qualityTagText}>{activeChannel.quality || "HD 1080p"}</Text>
                 </View>
 
-                {/* Fullscreen Toggle Button */}
-                <TouchableOpacity onPress={toggleFullscreen} style={styles.hudBtn}>
-                  {isFullscreen ? <Minimize size={18} color="#FFF" /> : <Maximize size={18} color="#FFF" />}
+                {/* ⛶ Fullscreen Toggle Button */}
+                <TouchableOpacity onPress={enterFullscreen} style={styles.hudBtn}>
+                  <Maximize size={18} color="#FFF" />
                 </TouchableOpacity>
               </View>
             </View>
@@ -168,86 +155,155 @@ export default function LiveTvScreen({ navigation }: any) {
         </View>
       ) : null}
 
-      {/* Channel Browser & List (Hidden completely in Fullscreen mode) */}
-      {!isFullscreen && (
-        <View style={styles.browserContainer}>
-          {/* Search Box */}
-          <View style={styles.searchBox}>
-            <Search size={16} color="#777" />
-            <TextInput
-              placeholder="Search Live IPTV Channels..."
-              placeholderTextColor="#777"
-              value={search}
-              onChangeText={setSearch}
-              style={styles.searchInput}
-            />
-          </View>
-
-          {/* Genres Category Slider */}
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.genreScroll}
-          >
-            {genres.map((g) => {
-              const isActive = selectedGenre === g;
-              return (
-                <TouchableOpacity
-                  key={g}
-                  onPress={() => setSelectedGenre(g)}
-                  style={[styles.genrePill, isActive && styles.genrePillActive]}
-                >
-                  <Text style={[styles.genreText, isActive && styles.genreTextActive]}>
-                    {g}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </ScrollView>
-
-          {/* Channels Grid / List */}
-          {loading ? (
-            <View style={styles.center}>
-              <ActivityIndicator size="large" color="#00ADB5" />
-            </View>
-          ) : (
-            <FlatList
-              data={filtered}
-              keyExtractor={(item) => item.id}
-              contentContainerStyle={styles.list}
-              renderItem={({ item }) => {
-                const isSelected = activeChannel?.id === item.id;
-                return (
-                  <TouchableOpacity
-                    style={[styles.channelCard, isSelected && styles.channelCardActive]}
-                    onPress={() => setActiveChannel(item)}
-                    activeOpacity={0.8}
-                  >
-                    <Image
-                      source={{ uri: item.posterUrl || item.backdropUrl }}
-                      style={styles.logo}
-                      resizeMode="contain"
-                    />
-                    <View style={styles.info}>
-                      <Text style={[styles.channelName, isSelected && { color: "#00ADB5" }]}>
-                        {item.title}
-                      </Text>
-                      <Text style={styles.channelMeta}>
-                        {item.genres?.join(", ") || "Live Stream"} • {item.quality}
-                      </Text>
-                    </View>
-                    {isSelected ? (
-                      <View style={styles.activePlayBadge}>
-                        <Play size={14} color="#000" fill="#000" />
-                      </View>
-                    ) : null}
-                  </TouchableOpacity>
-                );
+      {/* 🌟 100% Clean Native Modal Fullscreen Player (Zero Bottom Nav Remnants) */}
+      {activeChannel && (
+        <Modal
+          visible={isFullscreen}
+          animationType="none"
+          statusBarTranslucent={true}
+          onRequestClose={exitFullscreen}
+        >
+          <View style={styles.fullscreenModalContainer}>
+            <Video
+              ref={fullscreenVideoRef}
+              source={{ uri: activeChannel.videoUrl }}
+              style={StyleSheet.absoluteFill}
+              resizeMode={ResizeMode.CONTAIN}
+              shouldPlay={true}
+              isMuted={isMuted}
+              progressUpdateIntervalMillis={200}
+              onPlaybackStatusUpdate={(status) => {
+                if (status.isLoaded) {
+                  setIsBuffering(status.isBuffering);
+                }
               }}
             />
-          )}
-        </View>
+
+            {/* Buffering Indicator */}
+            {isBuffering && (
+              <View style={styles.centerOverlay} pointerEvents="none">
+                <ActivityIndicator size="large" color="#00ADB5" />
+                <Text style={styles.bufferingText}>Connecting Live IPTV Stream...</Text>
+              </View>
+            )}
+
+            {/* Fullscreen Overlay HUD */}
+            <View style={styles.playerHud}>
+              <View style={styles.playerTopRow}>
+                <View style={styles.liveBadge}>
+                  <Radio size={12} color="#FFF" />
+                  <Text style={styles.liveBadgeText}>LIVE STREAM</Text>
+                </View>
+                <Text style={styles.playerChannelTitle} numberOfLines={1}>
+                  {activeChannel.title}
+                </Text>
+              </View>
+
+              <View style={styles.playerBottomRow}>
+                <TouchableOpacity
+                  onPress={() => {
+                    const targetMute = !isMuted;
+                    setIsMuted(targetMute);
+                    fullscreenVideoRef.current?.setStatusAsync({ isMuted: targetMute });
+                  }}
+                  style={styles.hudBtn}
+                >
+                  {isMuted ? <VolumeX size={18} color="#E50914" /> : <Volume2 size={18} color="#FFF" />}
+                </TouchableOpacity>
+
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                  <View style={styles.qualityTag}>
+                    <Text style={styles.qualityTagText}>{activeChannel.quality || "HD 1080p"}</Text>
+                  </View>
+
+                  <TouchableOpacity onPress={exitFullscreen} style={styles.hudBtn}>
+                    <Minimize size={18} color="#FFF" />
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+          </View>
+        </Modal>
       )}
+
+      {/* Channel Browser & List */}
+      <View style={styles.browserContainer}>
+        {/* Search Box */}
+        <View style={styles.searchBox}>
+          <Search size={16} color="#777" />
+          <TextInput
+            placeholder="Search Live IPTV Channels..."
+            placeholderTextColor="#777"
+            value={search}
+            onChangeText={setSearch}
+            style={styles.searchInput}
+          />
+        </View>
+
+        {/* Genres Category Slider */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.genreScroll}
+        >
+          {genres.map((g) => {
+            const isActive = selectedGenre === g;
+            return (
+              <TouchableOpacity
+                key={g}
+                onPress={() => setSelectedGenre(g)}
+                style={[styles.genrePill, isActive && styles.genrePillActive]}
+              >
+                <Text style={[styles.genreText, isActive && styles.genreTextActive]}>
+                  {g}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+
+        {/* Channels Grid / List */}
+        {loading ? (
+          <View style={styles.center}>
+            <ActivityIndicator size="large" color="#00ADB5" />
+          </View>
+        ) : (
+          <FlatList
+            data={filtered}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={styles.list}
+            renderItem={({ item }) => {
+              const isSelected = activeChannel?.id === item.id;
+              return (
+                <TouchableOpacity
+                  style={[styles.channelCard, isSelected && styles.channelCardActive]}
+                  onPress={() => setActiveChannel(item)}
+                  activeOpacity={0.8}
+                >
+                  <Image
+                    source={{ uri: item.posterUrl || item.backdropUrl }}
+                    style={styles.logo}
+                    resizeMode="contain"
+                  />
+                  <View style={styles.info}>
+                    <Text style={[styles.channelName, isSelected && { color: "#00ADB5" }]}>
+                      {item.title}
+                    </Text>
+                    <Text style={styles.channelMeta}>
+                      {item.genres?.join(", ") || "Live Stream"} • {item.quality}
+                    </Text>
+                  </View>
+                  {isSelected ? (
+                    <View style={styles.activePlayBadge}>
+                      <Play size={14} color="#000" fill="#000" />
+                    </View>
+                  ) : null}
+                </TouchableOpacity>
+              );
+            }}
+          />
+        )}
+      </View>
     </View>
   );
 }
@@ -257,24 +313,17 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#0A0A0C",
   },
-  containerFullscreen: {
-    ...StyleSheet.absoluteFillObject,
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    zIndex: 9999,
+  fullscreenModalContainer: {
+    flex: 1,
+    backgroundColor: "#000",
+    width: "100%",
+    height: "100%",
   },
   playerContainer: {
     width: "100%",
     height: 230,
     backgroundColor: "#000",
     position: "relative",
-  },
-  playerFullscreen: {
-    width: "100%",
-    height: "100%",
   },
   centerOverlay: {
     ...StyleSheet.absoluteFillObject,

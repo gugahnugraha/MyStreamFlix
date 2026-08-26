@@ -59,6 +59,23 @@ interface Cue {
   text: string;
 }
 
+// 🌐 Resolves relative / CDN / Google Drive subtitle URLs for React Native fetch
+function resolveSubtitleUrl(url: string | undefined, backendUrl: string): string {
+  if (!url) return "";
+  let trimmed = url.trim();
+  if (!trimmed) return "";
+  if (trimmed.startsWith("/")) {
+    return `${backendUrl}${trimmed}`;
+  }
+  if (trimmed.includes("drive.google.com")) {
+    const match = trimmed.match(/[?&]id=([a-zA-Z0-9_-]+)/) || trimmed.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+    if (match && match[1]) {
+      return `${backendUrl}/api/gdrive/stream?id=${match[1]}`;
+    }
+  }
+  return trimmed;
+}
+
 // Universal Robust VTT / SRT Subtitle Parser
 function parseTimeToSeconds(timeStr: string): number {
   if (!timeStr) return 0;
@@ -167,7 +184,7 @@ export default function NativeExoPlayer({
     percent?: number;
   } | null>(null);
 
-  // Subtitles & Audio modal
+  // Subtitles state
   const [activeSubtitle, setActiveSubtitle] = useState<string>(() => {
     return movie.subtitles && movie.subtitles.length > 0 ? movie.subtitles[0].language : "off";
   });
@@ -183,7 +200,6 @@ export default function NativeExoPlayer({
   const controlsTimerRef = useRef<any>(null);
   const lastTapRef = useRef<{ time: number; x: number } | null>(null);
 
-  // Initial orientation: portrait default, cleanup on unmount
   useEffect(() => {
     ScreenOrientation.unlockAsync();
 
@@ -194,7 +210,6 @@ export default function NativeExoPlayer({
     };
   }, []);
 
-  // Handle Fullscreen Toggle
   const toggleFullscreen = async () => {
     if (isFullscreen) {
       await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT);
@@ -208,7 +223,7 @@ export default function NativeExoPlayer({
     resetControlsTimer();
   };
 
-  // Fetch subtitle content when active subtitle language changes
+  // Fetch subtitle content with domain resolution
   useEffect(() => {
     if (activeSubtitle === "off") {
       setSubtitleCues([]);
@@ -218,8 +233,11 @@ export default function NativeExoPlayer({
     }
 
     const sub = movie.subtitles?.find((s) => s.language === activeSubtitle);
-    if (sub && sub.url) {
-      fetch(sub.url)
+    const rawUrl = sub ? sub.fileUrl || sub.url : "";
+    const resolvedUrl = resolveSubtitleUrl(rawUrl, backendUrl);
+
+    if (resolvedUrl) {
+      fetch(resolvedUrl)
         .then((res) => res.text())
         .then((text) => {
           const cues = parseSubtitles(text);
@@ -227,16 +245,16 @@ export default function NativeExoPlayer({
           subtitleCuesRef.current = cues;
         })
         .catch((err) => {
-          console.log("Failed to load subtitle:", err);
+          console.log("Failed to fetch subtitle from:", resolvedUrl, err);
           subtitleCuesRef.current = [];
         });
     }
-  }, [activeSubtitle, movie]);
+  }, [activeSubtitle, movie, backendUrl]);
 
-  // Continuous Subtitle Matcher during Playback
+  // Continuous Subtitle Matcher
   const updateSubtitleCue = (posInSeconds: number) => {
     const cues = subtitleCuesRef.current;
-    if (cues.length === 0) {
+    if (!cues || cues.length === 0) {
       if (currentCueText) setCurrentCueText("");
       return;
     }
@@ -248,7 +266,6 @@ export default function NativeExoPlayer({
     }
   };
 
-  // Controls auto-hide timer (4 seconds)
   const resetControlsTimer = () => {
     if (controlsTimerRef.current) clearTimeout(controlsTimerRef.current);
     setShowControls(true);
@@ -270,7 +287,6 @@ export default function NativeExoPlayer({
     }, 1000);
   };
 
-  // PanResponder for vertical swipe (Brightness on left, Volume on right)
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
@@ -308,7 +324,6 @@ export default function NativeExoPlayer({
     })
   ).current;
 
-  // Double Tap Seek & Single Tap Controls Toggle
   const handleScreenPress = (evt: any) => {
     if (isScreenLocked) return;
     const now = Date.now();
