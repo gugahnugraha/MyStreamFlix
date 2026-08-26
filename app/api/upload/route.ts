@@ -5,12 +5,63 @@ import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { google } from "googleapis";
 import { Readable } from "stream";
 
+// ─── Google Drive Folder Helper ─────────────────────────────────────────────
+async function findOrCreateFolder(
+  drive: any,
+  parentId: string,
+  folderName: string
+): Promise<string> {
+  const safeName = folderName.replace(/['"\\]/g, "").trim();
+  if (!safeName) return parentId;
+
+  try {
+    // Search if subfolder already exists in parent
+    const q = `'${parentId}' in parents and name = '${safeName}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false`;
+    const res = await drive.files.list({
+      q,
+      fields: "files(id, name)",
+      spaces: "drive",
+    });
+
+    if (res.data.files && res.data.files.length > 0) {
+      return res.data.files[0].id;
+    }
+
+    // Create subfolder if not found
+    const folderRes = await drive.files.create({
+      requestBody: {
+        name: safeName,
+        mimeType: "application/vnd.google-apps.folder",
+        parents: [parentId],
+      },
+      fields: "id",
+    });
+
+    const createdId = folderRes.data.id;
+    if (!createdId) return parentId;
+
+    // Grant public read permission to the subfolder
+    try {
+      await drive.permissions.create({
+        fileId: createdId,
+        requestBody: { role: "reader", type: "anyone" },
+      });
+    } catch {}
+
+    return createdId;
+  } catch (err) {
+    console.warn("Folder search/create failed, falling back to parent folder:", err);
+    return parentId;
+  }
+}
+
 // ─── Google Drive Upload ────────────────────────────────────────────────────
 async function uploadToGoogleDrive(
   buffer: Buffer,
   filename: string,
   mimeType: string,
-  folderId?: string
+  rootFolderId?: string,
+  movieTitle?: string
 ): Promise<string> {
   const serviceAccountEmail = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
   const privateKey = process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY?.replace(/\\n/g, "\n");
@@ -29,8 +80,13 @@ async function uploadToGoogleDrive(
 
   const drive = google.drive({ version: "v3", auth });
 
+  let targetFolderId = rootFolderId;
+  if (rootFolderId && movieTitle && movieTitle.trim()) {
+    targetFolderId = await findOrCreateFolder(drive, rootFolderId, movieTitle.trim());
+  }
+
   const fileMetadata: { name: string; parents?: string[] } = { name: filename };
-  if (folderId) fileMetadata.parents = [folderId];
+  if (targetFolderId) fileMetadata.parents = [targetFolderId];
 
   // Convert Buffer to Readable stream for googleapis
   const readableStream = new Readable();
@@ -79,6 +135,7 @@ export async function POST(req: Request) {
     const folder = searchParams.get("folder") || "";
     // provider: 'gdrive' | 'r2' | 'auto' (default)
     const provider = searchParams.get("provider") || "auto";
+    const movieTitle = searchParams.get("movieTitle") || searchParams.get("subfolder") || "";
 
     const filename = `${Date.now()}-${file.name.replace(/\s+/g, "_")}`;
     const key = folder ? `${folder}/${filename}` : filename;
@@ -90,7 +147,8 @@ export async function POST(req: Request) {
         buffer,
         filename,
         file.type || "application/octet-stream",
-        folderId
+        folderId,
+        movieTitle
       );
       return NextResponse.json({ url, provider: "gdrive" });
     }

@@ -107,10 +107,17 @@ export function getProxiedStreamUrl(url: string): string {
 
   const origin = getOrigin();
 
-  if (url.startsWith("/api/livetv/proxy")) {
+  if (url.startsWith("/api/livetv/proxy") || url.startsWith("/api/gdrive/stream")) {
     return origin ? `${origin}${url}` : url;
   }
   if (url.startsWith("blob:") || url.startsWith("data:")) return url;
+
+  // Handle Google Drive streaming via internal Service Account streaming proxy
+  const gdriveId = extractGoogleDriveFileId(url);
+  if (gdriveId) {
+    const proxyPath = `/api/gdrive/stream?id=${gdriveId}`;
+    return origin ? `${origin}${proxyPath}` : proxyPath;
+  }
 
   const whitelistedDomains = getCorsProxyDomains();
   const shouldProxy = whitelistedDomains.some(domain => url.toLowerCase().includes(domain));
@@ -121,4 +128,31 @@ export function getProxiedStreamUrl(url: string): string {
   }
 
   return url;
+}
+
+export function extractGoogleDriveFileId(url: string): string | null {
+  if (!url) return null;
+  const patterns = [
+    /\/file\/d\/([a-zA-Z0-9_-]+)/,
+    /[?&]id=([a-zA-Z0-9_-]+)/,
+    /\/folders\/([a-zA-Z0-9_-]+)/,
+    /\/d\/([a-zA-Z0-9_-]+)/,
+  ];
+  for (const pattern of patterns) {
+    const match = url.match(pattern);
+    if (match && match[1]) return match[1];
+  }
+  return null;
+}
+
+export function normalizeGoogleDriveUrl(url: string): string {
+  if (!url) return url;
+  const trimmed = url.trim();
+  if (trimmed.includes("drive.google.com") || trimmed.includes("docs.google.com")) {
+    const fileId = extractGoogleDriveFileId(trimmed);
+    if (fileId) {
+      return `https://drive.google.com/uc?export=download&id=${fileId}`;
+    }
+  }
+  return trimmed;
 }

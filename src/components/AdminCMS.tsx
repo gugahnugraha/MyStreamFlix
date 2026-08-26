@@ -12,12 +12,14 @@ import React, { useState, useEffect, useMemo } from "react";
 import { 
   BarChart3, Film, Settings, Plus, Edit, Trash2, Save, 
   Tv, Eye, Play, ShieldAlert, CheckCircle, TrendingUp, Users, RefreshCw, X, Search, Database,
-  CreditCard, UserCheck, Subtitles, Upload, Radio, Pencil, Wifi, WifiOff, Activity, Loader2, AlertCircle
+  CreditCard, UserCheck, Subtitles, Upload, Radio, Pencil, Wifi, WifiOff, Activity, Loader2, AlertCircle,
+  FolderSearch
 } from "lucide-react";
 import { Movie, DashboardStats, CMSSettings, Subtitle, User, Season, Episode } from "../types";
 import IPTVScanner from "./IPTVScanner";
+import GDriveScanner from "./GDriveScanner";
 import MediaPlayer from "./MediaPlayer";
-import { getCorsProxyDomains, addCorsProxyDomain, removeCorsProxyDomain, resetCorsProxyDomains } from "../lib/stream-utils";
+import { getCorsProxyDomains, addCorsProxyDomain, removeCorsProxyDomain, resetCorsProxyDomains, normalizeGoogleDriveUrl } from "../lib/stream-utils";
 
 interface AdminCMSProps {
   onRefreshMovies: () => void;
@@ -33,8 +35,12 @@ const DEFAULT_POSTER = "https://images.unsplash.com/photo-1489599849927-2ee91ced
 
 const normalizeCdnUrl = (url: string | undefined | null, fallbackUrl: string = DEFAULT_POSTER): string => {
   if (!url) return fallbackUrl;
-  const trimmed = url.trim();
+  let trimmed = url.trim();
   if (!trimmed) return fallbackUrl;
+
+  // Auto-convert Google Drive links to streamable direct links
+  trimmed = normalizeGoogleDriveUrl(trimmed);
+
   const cdnBase = "https://cdn.mystreamflix.biz.id";
 
   if (trimmed.startsWith("/")) {
@@ -133,6 +139,7 @@ export default function AdminCMS({
   const [successMsg, setSuccessMsg] = useState("");
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [draggingLogo, setDraggingLogo] = useState(false);
+  const [showGDriveScanner, setShowGDriveScanner] = useState(false);
 
   // ====== Channel Health Monitor State ======
   type ChannelHealthStatus = {
@@ -371,7 +378,8 @@ export default function AdminCMS({
       const formData = new FormData();
       formData.append("file", file);
       const providerParam = provider !== "auto" ? `&provider=${provider}` : "";
-      const res = await fetch(`/api/upload?folder=${folder}${providerParam}`, {
+      const movieTitleParam = title && title.trim() ? `&movieTitle=${encodeURIComponent(title.trim())}` : "";
+      const res = await fetch(`/api/upload?folder=${folder}${providerParam}${movieTitleParam}`, {
         method: "POST",
         body: formData,
       });
@@ -1700,15 +1708,26 @@ export default function AdminCMS({
             <p className="text-xs text-zinc-400">
               {t.cmsShowingOf} <span className="text-white font-bold">{filteredAndSortedMovies.length}</span> {t.cmsOf} <span className="text-zinc-550">{movies.length}</span> {t.cmsTitles}
             </p>
-            <button
-              onClick={handleOpenCreate}
-              className="flex items-center gap-1.5 text-white font-bold text-xs px-4 py-2.5 rounded-md shadow-lg transition-all cursor-pointer hover:opacity-90"
-              style={{ backgroundColor: brandColor, boxShadow: `0 0 15px ${brandColor}30` }}
-              id="cms-add-movie-btn"
-            >
-              <Plus className="w-4 h-4" />
-              {t.cmsPublishTitle}
-            </button>
+            <div className="flex items-center gap-2.5">
+              <button
+                type="button"
+                onClick={() => setShowGDriveScanner(true)}
+                className="flex items-center gap-1.5 text-blue-300 font-bold text-xs px-3.5 py-2.5 rounded-md border border-blue-500/30 bg-blue-600/10 hover:bg-blue-600/20 transition-all cursor-pointer shadow-lg shadow-blue-500/5"
+                title="Scan & Import Movies from Google Drive"
+              >
+                <FolderSearch className="w-4 h-4 text-blue-400" />
+                <span>Scan Google Drive</span>
+              </button>
+              <button
+                onClick={handleOpenCreate}
+                className="flex items-center gap-1.5 text-white font-bold text-xs px-4 py-2.5 rounded-md shadow-lg transition-all cursor-pointer hover:opacity-90"
+                style={{ backgroundColor: brandColor, boxShadow: `0 0 15px ${brandColor}30` }}
+                id="cms-add-movie-btn"
+              >
+                <Plus className="w-4 h-4" />
+                {t.cmsPublishTitle}
+              </button>
+            </div>
           </div>
 
           {/* Controls Bar: Filter & Sort */}
@@ -2201,9 +2220,10 @@ export default function AdminCMS({
                       <input
                         type="text"
                         required
-                        placeholder="e.g. https://cdn.mystreamflix.biz.id/movies/film.mp4"
+                        placeholder="e.g. https://cdn.mystreamflix.biz.id/movies/film.mp4 or Google Drive Link"
                         value={videoUrl}
-                        onChange={(e) => setVideoUrl(e.target.value)}
+                        onChange={(e) => setVideoUrl(normalizeGoogleDriveUrl(e.target.value))}
+                        onBlur={(e) => setVideoUrl(normalizeGoogleDriveUrl(e.target.value))}
                         className="w-full bg-zinc-900 border border-zinc-850 p-2.5 rounded text-xs focus:outline-hidden focus:border-red-500/50"
                         id="form-input-video"
                       />
@@ -2605,8 +2625,9 @@ export default function AdminCMS({
                                   type="url"
                                   required
                                   value={sub.fileUrl}
-                                  onChange={(e) => handleUpdateSubtitle(sub.id, "fileUrl", e.target.value)}
-                                  placeholder="https://cdn.mystreamflix.biz.id/subtitles/indonesia.vtt"
+                                  onChange={(e) => handleUpdateSubtitle(sub.id, "fileUrl", normalizeGoogleDriveUrl(e.target.value))}
+                                  onBlur={(e) => handleUpdateSubtitle(sub.id, "fileUrl", normalizeGoogleDriveUrl(e.target.value))}
+                                  placeholder="https://cdn.mystreamflix.biz.id/subtitles/indonesia.vtt or Google Drive Link"
                                   className="w-full bg-zinc-950 border border-zinc-900 p-2 rounded text-xs text-zinc-300 focus:outline-hidden focus:border-red-500/30 font-mono"
                                 />
                               </div>
@@ -3875,6 +3896,16 @@ export default function AdminCMS({
             </div>
           </div>
         </div>
+      )}
+
+      {/* Google Drive Scanner & Bulk Importer Modal */}
+      {showGDriveScanner && (
+        <GDriveScanner
+          brandColor={brandColor}
+          onClose={() => setShowGDriveScanner(false)}
+          onRefreshMovies={onRefreshMovies}
+          t={t}
+        />
       )}
 
       {/* Stream Test Preview Modal */}
