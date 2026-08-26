@@ -379,3 +379,76 @@ export async function importM3uChannels(
     importedChannels: formattedChannels,
   };
 }
+
+// 🩺 Stream Health Check (Detect Online / Dead URLs)
+export async function checkChannelsHealth(
+  channels: { id: string; url: string }[],
+  backendUrl: string = DEFAULT_BACKEND_URL
+): Promise<Record<string, { status: "online" | "offline"; responseTime?: number }>> {
+  const healthMap: Record<string, { status: "online" | "offline"; responseTime?: number }> = {};
+
+  // Method 1: Parallel native fetch checks with timeout (super fast on mobile)
+  try {
+    const checks = channels.slice(0, 50).map(async (ch) => {
+      const startTime = Date.now();
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 4000);
+
+        const res = await fetch(ch.url, {
+          method: "GET",
+          headers: {
+            Range: "bytes=0-100",
+            "User-Agent": "Mozilla/5.0 (MyStreamFlix-StreamCheck/1.0)",
+          },
+          signal: controller.signal,
+        });
+        clearTimeout(timeoutId);
+
+        const duration = Date.now() - startTime;
+        if (res.ok || res.status === 200 || res.status === 206 || res.status === 302) {
+          healthMap[ch.url] = { status: "online", responseTime: duration };
+        } else {
+          healthMap[ch.url] = { status: "offline" };
+        }
+      } catch {
+        healthMap[ch.url] = { status: "offline" };
+      }
+    });
+
+    await Promise.all(checks);
+    if (Object.keys(healthMap).length > 0) {
+      return healthMap;
+    }
+  } catch (err) {
+    console.warn("Direct health check error:", err);
+  }
+
+  // Method 2: Server-side health API fallback
+  try {
+    const res = await fetch(`${backendUrl}/api/livetv/health`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-admin-pin": "1234",
+        "x-admin-key": "mystreamflix_secret",
+        "x-admin-email": "admin@streamcms.com",
+      },
+      body: JSON.stringify({ channels }),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      (data.results || []).forEach((r: any) => {
+        healthMap[r.url || r.id] = {
+          status: r.status === "online" ? "online" : "offline",
+          responseTime: r.responseTime,
+        };
+      });
+    }
+  } catch {
+    // Ignore error
+  }
+
+  return healthMap;
+}
+

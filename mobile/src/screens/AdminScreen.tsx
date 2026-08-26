@@ -50,6 +50,7 @@ import {
   deleteMovieById,
   scanM3uPlaylist,
   importM3uChannels,
+  checkChannelsHealth,
 } from "../api/client";
 import { useLanguage } from "../context/LanguageContext";
 import { useModernDialog } from "../context/ModernDialogContext";
@@ -95,6 +96,12 @@ export default function AdminScreen({ navigation }: any) {
   const [selectedChannelIndices, setSelectedChannelIndices] = useState<number[]>([]);
   const [searchScannedQuery, setSearchScannedQuery] = useState("");
   const [isImportingM3u, setIsImportingM3u] = useState(false);
+
+  // 🩺 Channel Health State
+  const [channelHealthMap, setChannelHealthMap] = useState<
+    Record<string, { status: "online" | "offline"; responseTime?: number }>
+  >({});
+  const [isCheckingHealth, setIsCheckingHealth] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -184,6 +191,7 @@ export default function AdminScreen({ navigation }: any) {
     }
 
     setIsScanningM3u(true);
+    setChannelHealthMap({});
     const res = await scanM3uPlaylist(m3uUrl);
     setIsScanningM3u(false);
 
@@ -193,11 +201,49 @@ export default function AdminScreen({ navigation }: any) {
       setSelectedChannelIndices(res.channels.map((_, i) => i));
       showSuccess(
         "Pemindaian Sukses",
-        `Ditemukan ${res.channels.length} saluran TV. Pilih saluran yang ingin diimpor di daftar bawah.`
+        `Ditemukan ${res.channels.length} saluran TV. Anda dapat menguji status aktif (online/offline) saluran sebelum mengimpor!`
       );
     } else {
       showError("Gagal Memindai", res.error || "Tidak dapat memuat playlist M3U dari sumber tersebut.");
     }
+  };
+
+  const handleRunHealthCheck = async () => {
+    if (scannedChannels.length === 0) return;
+    setIsCheckingHealth(true);
+    const channelsToCheck = scannedChannels.slice(0, 60).map((ch) => ({
+      id: ch.streamUrl,
+      url: ch.streamUrl,
+    }));
+    const healthMap = await checkChannelsHealth(channelsToCheck);
+    setChannelHealthMap(healthMap);
+    setIsCheckingHealth(false);
+
+    const onlineCount = Object.values(healthMap).filter((h) => h.status === "online").length;
+    const offlineCount = Object.values(healthMap).filter((h) => h.status === "offline").length;
+
+    showSuccess(
+      "Uji URL Saluran Selesai",
+      `🟢 ${onlineCount} Saluran Online / Aktif\n🔴 ${offlineCount} Saluran Offline / URL Mati`
+    );
+  };
+
+  const selectOnlyOnlineChannels = () => {
+    const onlineIndices = scannedChannels
+      .map((ch, idx) => ({ ch, idx }))
+      .filter(({ ch }) => channelHealthMap[ch.streamUrl]?.status === "online")
+      .map(({ idx }) => idx);
+
+    if (onlineIndices.length === 0) {
+      showError(
+        "Belum Ada Saluran Online",
+        "Jalankan 'Uji Status Saluran' terlebih dahulu atau tidak ada saluran online yang terdeteksi."
+      );
+      return;
+    }
+
+    setSelectedChannelIndices(onlineIndices);
+    showSuccess("Saluran Dipilih", `${onlineIndices.length} saluran online aktif telah dipilih secara otomatis.`);
   };
 
   const toggleSelectAll = () => {
@@ -233,6 +279,7 @@ export default function AdminScreen({ navigation }: any) {
       }
       setScannedChannels([]);
       setSelectedChannelIndices([]);
+      setChannelHealthMap({});
       showSuccess(
         "Sinkronisasi Berhasil",
         `Sebanyak ${res.importedCount} saluran TV pilihan Anda telah berhasil diimpor dan aktif!`
@@ -809,9 +856,37 @@ export default function AdminScreen({ navigation }: any) {
                     >
                       <Text style={styles.selectAllBtnText}>
                         {selectedChannelIndices.length === scannedChannels.length
-                          ? "Batal Pilih Semua"
+                          ? "Batal Semua"
                           : "Pilih Semua"}
                       </Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  {/* 🩺 Stream Health Check Action Toolbar */}
+                  <View style={styles.healthActionToolbar}>
+                    <TouchableOpacity
+                      style={styles.healthCheckBtn}
+                      onPress={handleRunHealthCheck}
+                      disabled={isCheckingHealth}
+                      activeOpacity={0.8}
+                    >
+                      {isCheckingHealth ? (
+                        <ActivityIndicator size="small" color="#00ADB5" />
+                      ) : (
+                        <>
+                          <Zap size={13} color="#00ADB5" />
+                          <Text style={styles.healthCheckBtnText}>Uji Status Stream (Online/Mati)</Text>
+                        </>
+                      )}
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={styles.filterOnlineBtn}
+                      onPress={selectOnlyOnlineChannels}
+                      activeOpacity={0.8}
+                    >
+                      <CheckCircle size={13} color="#10B981" />
+                      <Text style={styles.filterOnlineBtnText}>Pilih Hanya Online</Text>
                     </TouchableOpacity>
                   </View>
 
@@ -843,6 +918,7 @@ export default function AdminScreen({ navigation }: any) {
                       )
                       .map(({ ch, originalIdx }) => {
                         const isSelected = selectedChannelIndices.includes(originalIdx);
+                        const health = channelHealthMap[ch.streamUrl];
                         return (
                           <TouchableOpacity
                             key={originalIdx}
@@ -877,16 +953,65 @@ export default function AdminScreen({ navigation }: any) {
                                 {ch.name}
                               </Text>
                               <View style={styles.scannedMetaRow}>
-                                <View style={styles.scannedGroupPill}>
-                                  <Text style={styles.scannedGroupPillText}>
-                                    {ch.group || "TV"}
-                                  </Text>
-                                </View>
+                                {health ? (
+                                  <View
+                                    style={[
+                                      styles.healthBadge,
+                                      health.status === "online"
+                                        ? styles.healthBadgeOnline
+                                        : styles.healthBadgeOffline,
+                                    ]}
+                                  >
+                                    <Text
+                                      style={[
+                                        styles.healthBadgeText,
+                                        health.status === "online"
+                                          ? { color: "#10B981" }
+                                          : { color: "#E50914" },
+                                      ]}
+                                    >
+                                      {health.status === "online"
+                                        ? `ONLINE ${health.responseTime ? `${health.responseTime}ms` : ""}`
+                                        : "OFFLINE / MATI"}
+                                    </Text>
+                                  </View>
+                                ) : (
+                                  <View style={styles.scannedGroupPill}>
+                                    <Text style={styles.scannedGroupPillText}>
+                                      {ch.group || "TV"}
+                                    </Text>
+                                  </View>
+                                )}
+
                                 <Text style={styles.scannedUrlText} numberOfLines={1}>
                                   {ch.streamUrl}
                                 </Text>
                               </View>
                             </View>
+
+                            {/* ▶ Quick Test Play Stream */}
+                            <TouchableOpacity
+                              style={styles.testPlayBtn}
+                              onPress={() => {
+                                navigation.navigate("Player", {
+                                  movie: {
+                                    id: `test-${Date.now()}`,
+                                    title: ch.name,
+                                    videoUrl: ch.streamUrl,
+                                    posterUrl: ch.logo || "https://images.unsplash.com/photo-1593784991095-a205069470b6?w=500&auto=format&fit=crop&q=80",
+                                    contentType: "livetv",
+                                    quality: "1080p FHD",
+                                    genres: [ch.group || "Live TV"],
+                                    description: "Uji coba pemutaran siaran langsung IPTV.",
+                                    year: 2025,
+                                    rating: 5.0,
+                                  },
+                                });
+                              }}
+                              activeOpacity={0.8}
+                            >
+                              <Play size={13} color="#00ADB5" fill="#00ADB5" />
+                            </TouchableOpacity>
                           </TouchableOpacity>
                         );
                       })}
@@ -1644,5 +1769,72 @@ const styles = StyleSheet.create({
     color: "#666",
     fontSize: 9,
     flex: 1,
+  },
+  healthActionToolbar: {
+    flexDirection: "row",
+    gap: 8,
+    marginBottom: 10,
+  },
+  healthCheckBtn: {
+    flex: 1.2,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    backgroundColor: "rgba(0,173,181,0.12)",
+    paddingVertical: 7,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "rgba(0,173,181,0.3)",
+  },
+  healthCheckBtnText: {
+    color: "#00ADB5",
+    fontSize: 10,
+    fontWeight: "bold",
+  },
+  filterOnlineBtn: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    backgroundColor: "rgba(16,185,129,0.12)",
+    paddingVertical: 7,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "rgba(16,185,129,0.3)",
+  },
+  filterOnlineBtnText: {
+    color: "#10B981",
+    fontSize: 10,
+    fontWeight: "bold",
+  },
+  healthBadge: {
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+    borderRadius: 4,
+    borderWidth: 1,
+  },
+  healthBadgeOnline: {
+    backgroundColor: "rgba(16,185,129,0.15)",
+    borderColor: "rgba(16,185,129,0.4)",
+  },
+  healthBadgeOffline: {
+    backgroundColor: "rgba(229,9,20,0.15)",
+    borderColor: "rgba(229,9,20,0.4)",
+  },
+  healthBadgeText: {
+    fontSize: 8,
+    fontWeight: "900",
+  },
+  testPlayBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 6,
+    backgroundColor: "rgba(0,173,181,0.15)",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "rgba(0,173,181,0.3)",
   },
 });
