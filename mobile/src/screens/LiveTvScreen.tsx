@@ -23,6 +23,7 @@ import {
   Radio,
   Search,
   Play,
+  Pause,
   Volume2,
   VolumeX,
   Maximize,
@@ -35,18 +36,15 @@ import {
   Scaling,
   ListFilter,
   X,
+  Globe,
+  Wifi,
+  Film,
+  Zap,
 } from "lucide-react-native";
 import { Movie } from "../types";
 import { fetchMovies } from "../api/client";
 
-const DEFAULT_TAB_BAR_STYLE = {
-  backgroundColor: "#0F0F12",
-  borderTopColor: "#1A1A20",
-  height: 64,
-  paddingBottom: 8,
-  paddingTop: 6,
-  display: "flex",
-};
+const { width } = Dimensions.get("window");
 
 export default function LiveTvScreen({ navigation }: any) {
   const isFocused = useIsFocused();
@@ -57,6 +55,7 @@ export default function LiveTvScreen({ navigation }: any) {
   const [loading, setLoading] = useState(true);
 
   // Player controls state
+  const [isPlaying, setIsPlaying] = useState(true);
   const [volume, setVolume] = useState(1.0);
   const [isMuted, setIsMuted] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -74,13 +73,40 @@ export default function LiveTvScreen({ navigation }: any) {
     return () => {
       ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT);
       StatusBar.setHidden(false, "fade");
-      navigation.getParent()?.setOptions({ tabBarStyle: DEFAULT_TAB_BAR_STYLE });
+      navigation.setOptions({
+        tabBarStyle: {
+          backgroundColor: "#0F0F12",
+          borderTopColor: "#1A1A20",
+          height: 64,
+          paddingBottom: 8,
+          paddingTop: 6,
+          display: "flex",
+        },
+      });
       if (Platform.OS === "android") {
         NavigationBar.setVisibilityAsync("visible");
       }
       if (controlsTimerRef.current) clearTimeout(controlsTimerRef.current);
     };
   }, []);
+
+  // 🛑 Synchronize Bottom Tab Bar visibility with Fullscreen state
+  useEffect(() => {
+    if (isFullscreen) {
+      navigation.setOptions({ tabBarStyle: { display: "none" } });
+    } else {
+      navigation.setOptions({
+        tabBarStyle: {
+          backgroundColor: "#0F0F12",
+          borderTopColor: "#1A1A20",
+          height: 64,
+          paddingBottom: 8,
+          paddingTop: 6,
+          display: "flex",
+        },
+      });
+    }
+  }, [isFullscreen, navigation]);
 
   // 🛑 Stop playback immediately when leaving Live TV tab
   useEffect(() => {
@@ -108,31 +134,12 @@ export default function LiveTvScreen({ navigation }: any) {
     setShowControls(true);
     controlsTimerRef.current = setTimeout(() => {
       setShowControls(false);
-    }, 3500);
+    }, 4000);
   };
-
-  // 🛑 Synchronize Bottom Tab Bar visibility with Fullscreen state
-  useEffect(() => {
-    if (isFullscreen) {
-      navigation.setOptions({ tabBarStyle: { display: "none" } });
-    } else {
-      navigation.setOptions({
-        tabBarStyle: {
-          backgroundColor: "#0F0F12",
-          borderTopColor: "#1A1A20",
-          height: 64,
-          paddingBottom: 8,
-          paddingTop: 6,
-          display: "flex",
-        },
-      });
-    }
-  }, [isFullscreen, navigation]);
 
   const enterFullscreen = async () => {
     await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
     StatusBar.setHidden(true, "fade");
-    navigation.setOptions({ tabBarStyle: { display: "none" } });
     if (Platform.OS === "android") {
       try {
         await NavigationBar.setVisibilityAsync("hidden");
@@ -146,16 +153,6 @@ export default function LiveTvScreen({ navigation }: any) {
   const exitFullscreen = async () => {
     await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT);
     StatusBar.setHidden(false, "fade");
-    navigation.setOptions({
-      tabBarStyle: {
-        backgroundColor: "#0F0F12",
-        borderTopColor: "#1A1A20",
-        height: 64,
-        paddingBottom: 8,
-        paddingTop: 6,
-        display: "flex",
-      },
-    });
     if (Platform.OS === "android") {
       try {
         await NavigationBar.setVisibilityAsync("visible");
@@ -175,6 +172,17 @@ export default function LiveTvScreen({ navigation }: any) {
     resetControlsTimer();
   };
 
+  const handlePlayPause = async () => {
+    if (isPlaying) {
+      await videoRef.current?.pauseAsync();
+      setIsPlaying(false);
+    } else {
+      await videoRef.current?.playAsync();
+      setIsPlaying(true);
+    }
+    resetControlsTimer();
+  };
+
   const handlePlaybackStatusUpdate = (status: AVPlaybackStatus) => {
     if (!status.isLoaded) {
       setIsBuffering(true);
@@ -183,8 +191,10 @@ export default function LiveTvScreen({ navigation }: any) {
 
     if (status.isPlaying) {
       setIsBuffering(false);
+      setIsPlaying(true);
     } else {
       setIsBuffering(status.isBuffering);
+      setIsPlaying(false);
     }
   };
 
@@ -202,32 +212,41 @@ export default function LiveTvScreen({ navigation }: any) {
     return c.genres?.some((g) => g.toLowerCase() === selectedGenre.toLowerCase());
   });
 
-  const genres = ["All", "News", "Sports", "Entertainment", "Movies", "Kids", "Music"];
+  const genres = [
+    "All",
+    "News",
+    "Sports",
+    "Entertainment",
+    "Movies",
+    "Kids",
+    "Music",
+    "Documentary",
+  ];
 
   return (
     <View style={[styles.container, isFullscreen && styles.containerFullscreen]}>
       <StatusBar
         barStyle="light-content"
-        backgroundColor="#000"
+        backgroundColor="#0A0A0C"
         hidden={isFullscreen}
       />
 
-      {/* 📺 Single Unified Live TV Video Viewport */}
+      {/* 📺 Top Live TV ExoPlayer Viewport */}
       {activeChannel ? (
-        <View style={[styles.playerViewport, isFullscreen && styles.playerViewportFullscreen]}>
+        <View style={[styles.playerContainer, isFullscreen && styles.playerContainerFullscreen]}>
           <Video
             ref={videoRef}
             source={{ uri: activeChannel.videoUrl }}
             style={StyleSheet.absoluteFill}
             resizeMode={resizeModeProp}
-            shouldPlay={isFocused}
+            shouldPlay={isFocused && isPlaying}
             isMuted={isMuted}
             volume={volume}
             progressUpdateIntervalMillis={200}
             onPlaybackStatusUpdate={handlePlaybackStatusUpdate}
           />
 
-          {/* Tap surface to toggle HUD controls */}
+          {/* Tap Surface to Toggle Controls */}
           <TouchableWithoutFeedback
             onPress={() => {
               if (showControls) {
@@ -254,7 +273,7 @@ export default function LiveTvScreen({ navigation }: any) {
               style={[styles.playerHud, isFullscreen && styles.playerHudFullscreen]}
               pointerEvents="box-none"
             >
-              {/* Top Row: Back, Title, Aspect Ratio & Channels */}
+              {/* Top Row: Back Button, Title, Aspect Ratio & Channels */}
               <View style={styles.playerTopRow}>
                 <TouchableOpacity
                   onPress={() => {
@@ -280,13 +299,13 @@ export default function LiveTvScreen({ navigation }: any) {
                   {activeChannel.title}
                 </Text>
 
-                {/* Aspect Ratio Button */}
+                {/* Aspect Ratio Toggle */}
                 <TouchableOpacity onPress={cycleAspectRatio} style={styles.glassPillBtn}>
                   <Scaling size={12} color="#00ADB5" />
                   <Text style={styles.glassPillText}>{aspectRatio.toUpperCase()}</Text>
                 </TouchableOpacity>
 
-                {/* Channels Drawer Button (Visible in Fullscreen) */}
+                {/* Channels Drawer Button (In Fullscreen) */}
                 {isFullscreen && (
                   <TouchableOpacity
                     onPress={() => {
@@ -297,13 +316,24 @@ export default function LiveTvScreen({ navigation }: any) {
                   >
                     <ListFilter size={12} color={showChannelDrawer ? "#00ADB5" : "#FFF"} />
                     <Text style={[styles.glassPillText, showChannelDrawer && { color: "#00ADB5" }]}>
-                      Channels
+                      Channels ({channels.length})
                     </Text>
                   </TouchableOpacity>
                 )}
               </View>
 
-              {/* Bottom Row: Volume Slider & Fullscreen Toggle */}
+              {/* Center Play/Pause Button */}
+              <View style={styles.centerControls} pointerEvents="box-none">
+                <TouchableOpacity onPress={handlePlayPause} style={styles.glassPlayBtn}>
+                  {isPlaying ? (
+                    <Pause size={24} color="#FFF" />
+                  ) : (
+                    <Play size={24} color="#FFF" fill="#FFF" />
+                  )}
+                </TouchableOpacity>
+              </View>
+
+              {/* Bottom Row: Volume Slider, Quality & Fullscreen Toggle */}
               <View style={styles.playerBottomRow}>
                 <View style={styles.modernVolumePill}>
                   <TouchableOpacity
@@ -344,7 +374,6 @@ export default function LiveTvScreen({ navigation }: any) {
                     <Text style={styles.qualityTagText}>{activeChannel.quality || "HD 1080p"}</Text>
                   </View>
 
-                  {/* Fullscreen Toggle */}
                   <TouchableOpacity
                     onPress={isFullscreen ? exitFullscreen : enterFullscreen}
                     style={styles.glassFullscreenBtn}
@@ -360,7 +389,10 @@ export default function LiveTvScreen({ navigation }: any) {
           {isFullscreen && showChannelDrawer && (
             <View style={styles.drawerSidebar}>
               <View style={styles.drawerHeader}>
-                <Text style={styles.drawerTitle}>Live TV Channels</Text>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                  <Tv size={16} color="#00ADB5" />
+                  <Text style={styles.drawerTitle}>Live Broadcasts</Text>
+                </View>
                 <TouchableOpacity onPress={() => setShowChannelDrawer(false)} style={styles.drawerCloseBtn}>
                   <X size={16} color="#AAA" />
                 </TouchableOpacity>
@@ -395,7 +427,7 @@ export default function LiveTvScreen({ navigation }: any) {
                           {item.title}
                         </Text>
                         <Text style={styles.drawerChannelMeta}>
-                          {item.genres?.[0] || "IPTV"} • {item.quality}
+                          {item.genres?.[0] || "Live TV"} • {item.quality}
                         </Text>
                       </View>
                       {isSelected && <Play size={12} color="#00ADB5" fill="#00ADB5" />}
@@ -408,22 +440,60 @@ export default function LiveTvScreen({ navigation }: any) {
         </View>
       ) : null}
 
-      {/* 📋 Channel Browser & List (Visible when NOT in Fullscreen) */}
+      {/* 📋 Inline Channel Browser & Details Section */}
       {!isFullscreen && (
-        <View style={styles.browserContainer}>
+        <ScrollView style={styles.browserContainer} showsVerticalScrollIndicator={false}>
+          {/* Active Channel Details Card */}
+          {activeChannel && (
+            <View style={styles.activeChannelInfoCard}>
+              <View style={styles.activeChannelHeader}>
+                <View style={styles.activeLogoWrap}>
+                  <Image
+                    source={{ uri: activeChannel.posterUrl || activeChannel.backdropUrl }}
+                    style={styles.activeLogo}
+                    resizeMode="contain"
+                  />
+                </View>
+
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.activeChannelTitle}>{activeChannel.title}</Text>
+                  <View style={styles.activeMetaRow}>
+                    <View style={styles.activeLivePill}>
+                      <View style={styles.activeLiveDot} />
+                      <Text style={styles.activeLivePillText}>ONLINE</Text>
+                    </View>
+                    <Text style={styles.activeChannelMetaText}>
+                      HLS Stream • {activeChannel.quality || "1080p FHD"}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+
+              <Text style={styles.activeChannelDesc} numberOfLines={2}>
+                {activeChannel.description ||
+                  "Live 24/7 broadcast streaming with native hardware acceleration on MyStreamFlix."}
+              </Text>
+            </View>
+          )}
+
           {/* Search Box */}
           <View style={styles.searchBox}>
-            <Search size={15} color="#777" />
+            <Search size={16} color="#777" />
             <TextInput
-              placeholder="Search Live IPTV Channels..."
+              placeholder="Search live TV channels or categories..."
               placeholderTextColor="#777"
               value={search}
               onChangeText={setSearch}
               style={styles.searchInput}
             />
+            {search ? (
+              <TouchableOpacity onPress={() => setSearch("")}>
+                <X size={15} color="#AAA" />
+              </TouchableOpacity>
+            ) : null}
           </View>
 
-          {/* Genres Category Slider */}
+          {/* Category Filter Slider */}
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -436,6 +506,7 @@ export default function LiveTvScreen({ navigation }: any) {
                   key={g}
                   onPress={() => setSelectedGenre(g)}
                   style={[styles.genrePill, isActive && styles.genrePillActive]}
+                  activeOpacity={0.7}
                 >
                   <Text style={[styles.genreText, isActive && styles.genreTextActive]}>
                     {g}
@@ -445,48 +516,66 @@ export default function LiveTvScreen({ navigation }: any) {
             })}
           </ScrollView>
 
-          {/* Channels Grid / List */}
+          {/* Channel Grid Section Header */}
+          <View style={styles.sectionHeaderRow}>
+            <Text style={styles.sectionHeaderTitle}>AVAILABLE CHANNELS</Text>
+            <Text style={styles.sectionHeaderCount}>{filtered.length} channels</Text>
+          </View>
+
+          {/* Channel Cards Grid */}
           {loading ? (
             <View style={styles.center}>
               <ActivityIndicator size="large" color="#00ADB5" />
             </View>
           ) : (
-            <FlatList
-              data={filtered}
-              keyExtractor={(item) => item.id}
-              contentContainerStyle={styles.list}
-              renderItem={({ item }) => {
+            <View style={styles.channelsGrid}>
+              {filtered.map((item) => {
                 const isSelected = activeChannel?.id === item.id;
                 return (
                   <TouchableOpacity
-                    style={[styles.channelCard, isSelected && styles.channelCardActive]}
-                    onPress={() => setActiveChannel(item)}
+                    key={item.id}
+                    style={[styles.channelGridCard, isSelected && styles.channelGridCardActive]}
+                    onPress={() => {
+                      setActiveChannel(item);
+                      setIsPlaying(true);
+                    }}
                     activeOpacity={0.8}
                   >
-                    <Image
-                      source={{ uri: item.posterUrl || item.backdropUrl }}
-                      style={styles.logo}
-                      resizeMode="contain"
-                    />
-                    <View style={styles.info}>
-                      <Text style={[styles.channelName, isSelected && { color: "#00ADB5" }]}>
+                    <View style={styles.gridLogoContainer}>
+                      <Image
+                        source={{ uri: item.posterUrl || item.backdropUrl }}
+                        style={styles.gridLogo}
+                        resizeMode="contain"
+                      />
+                      <View style={styles.gridLiveTag}>
+                        <Text style={styles.gridLiveTagText}>LIVE</Text>
+                      </View>
+                      {isSelected && (
+                        <View style={styles.playingIndicatorBadge}>
+                          <Play size={12} color="#000" fill="#000" />
+                        </View>
+                      )}
+                    </View>
+
+                    <View style={styles.gridCardInfo}>
+                      <Text
+                        style={[styles.gridChannelTitle, isSelected && { color: "#00ADB5" }]}
+                        numberOfLines={1}
+                      >
                         {item.title}
                       </Text>
-                      <Text style={styles.channelMeta}>
-                        {item.genres?.join(", ") || "Live Stream"} • {item.quality}
+                      <Text style={styles.gridChannelMeta} numberOfLines={1}>
+                        {item.genres?.[0] || "Live Stream"} • {item.quality}
                       </Text>
                     </View>
-                    {isSelected ? (
-                      <View style={styles.activePlayBadge}>
-                        <Play size={14} color="#000" fill="#000" />
-                      </View>
-                    ) : null}
                   </TouchableOpacity>
                 );
-              }}
-            />
+              })}
+            </View>
           )}
-        </View>
+
+          <View style={{ height: 40 }} />
+        </ScrollView>
       )}
     </View>
   );
@@ -501,13 +590,13 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     zIndex: 99999,
   },
-  playerViewport: {
+  playerContainer: {
     width: "100%",
     height: 230,
     backgroundColor: "#000",
     position: "relative",
   },
-  playerViewportFullscreen: {
+  playerContainerFullscreen: {
     ...StyleSheet.absoluteFillObject,
     width: "100%",
     height: "100%",
@@ -530,7 +619,7 @@ const styles = StyleSheet.create({
     paddingTop: Platform.OS === "android" ? 10 : 8,
     paddingBottom: 10,
     paddingHorizontal: 12,
-    backgroundColor: "rgba(0,0,0,0.38)",
+    backgroundColor: "rgba(0,0,0,0.4)",
   },
   playerHudFullscreen: {
     paddingTop: Platform.OS === "android" ? 18 : 24,
@@ -542,6 +631,19 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
+  },
+  centerControls: {
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  glassPlayBtn: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: "rgba(0,173,181,0.85)",
+    justifyContent: "center",
+    alignItems: "center",
+    elevation: 6,
   },
   playerBottomRow: {
     flexDirection: "row",
@@ -700,13 +802,82 @@ const styles = StyleSheet.create({
   browserContainer: {
     flex: 1,
   },
+  activeChannelInfoCard: {
+    backgroundColor: "#121216",
+    marginHorizontal: 16,
+    marginTop: 14,
+    marginBottom: 10,
+    padding: 14,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "#1E1E24",
+  },
+  activeChannelHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    marginBottom: 8,
+  },
+  activeLogoWrap: {
+    width: 48,
+    height: 34,
+    borderRadius: 8,
+    backgroundColor: "#000",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#2A2A32",
+  },
+  activeLogo: {
+    width: 40,
+    height: 26,
+  },
+  activeChannelTitle: {
+    color: "#FFF",
+    fontSize: 15,
+    fontWeight: "bold",
+  },
+  activeMetaRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginTop: 3,
+  },
+  activeLivePill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "rgba(16,185,129,0.15)",
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  activeLiveDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: "#10B981",
+  },
+  activeLivePillText: {
+    color: "#10B981",
+    fontSize: 9,
+    fontWeight: "bold",
+  },
+  activeChannelMetaText: {
+    color: "#777",
+    fontSize: 11,
+  },
+  activeChannelDesc: {
+    color: "#999",
+    fontSize: 11,
+    lineHeight: 16,
+  },
   searchBox: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#141418",
     marginHorizontal: 16,
-    marginTop: 12,
-    marginBottom: 8,
+    marginBottom: 10,
     borderRadius: 12,
     paddingHorizontal: 12,
     height: 40,
@@ -721,7 +892,7 @@ const styles = StyleSheet.create({
   },
   genreScroll: {
     paddingHorizontal: 16,
-    paddingBottom: 10,
+    paddingBottom: 12,
     gap: 8,
   },
   genrePill: {
@@ -745,55 +916,98 @@ const styles = StyleSheet.create({
     color: "#000",
     fontWeight: "900",
   },
-  center: {
-    flex: 1,
-    justifyContent: "center",
+  sectionHeaderRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
     alignItems: "center",
-  },
-  list: {
     paddingHorizontal: 16,
-    paddingBottom: 20,
+    marginBottom: 10,
+  },
+  sectionHeaderTitle: {
+    color: "#666",
+    fontSize: 11,
+    fontWeight: "bold",
+    letterSpacing: 0.5,
+  },
+  sectionHeaderCount: {
+    color: "#00ADB5",
+    fontSize: 11,
+    fontWeight: "bold",
+  },
+  channelsGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    paddingHorizontal: 12,
     gap: 8,
   },
-  channelCard: {
-    flexDirection: "row",
-    alignItems: "center",
+  channelGridCard: {
+    width: (width - 40) / 2,
     backgroundColor: "#141418",
+    borderRadius: 14,
     padding: 10,
-    borderRadius: 12,
     borderWidth: 1,
     borderColor: "#1E1E24",
-    gap: 12,
+    marginBottom: 4,
   },
-  channelCardActive: {
+  channelGridCardActive: {
     borderColor: "#00ADB5",
     backgroundColor: "rgba(0,173,181,0.08)",
   },
-  logo: {
-    width: 52,
-    height: 38,
-    borderRadius: 6,
-    backgroundColor: "#000",
+  gridLogoContainer: {
+    width: "100%",
+    height: 70,
+    borderRadius: 10,
+    backgroundColor: "#0A0A0C",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 8,
+    position: "relative",
+    borderWidth: 1,
+    borderColor: "#1A1A20",
   },
-  info: {
-    flex: 1,
+  gridLogo: {
+    width: "70%",
+    height: "65%",
   },
-  channelName: {
+  gridLiveTag: {
+    position: "absolute",
+    top: 6,
+    left: 6,
+    backgroundColor: "#E50914",
+    paddingHorizontal: 5,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  gridLiveTagText: {
     color: "#FFF",
-    fontSize: 13,
-    fontWeight: "bold",
+    fontSize: 8,
+    fontWeight: "900",
   },
-  channelMeta: {
-    color: "#777",
-    fontSize: 10,
-    marginTop: 2,
-  },
-  activePlayBadge: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+  playingIndicatorBadge: {
+    position: "absolute",
+    bottom: 6,
+    right: 6,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
     backgroundColor: "#00ADB5",
     justifyContent: "center",
+    alignItems: "center",
+  },
+  gridCardInfo: {
+    gap: 2,
+  },
+  gridChannelTitle: {
+    color: "#FFF",
+    fontSize: 12,
+    fontWeight: "bold",
+  },
+  gridChannelMeta: {
+    color: "#777",
+    fontSize: 10,
+  },
+  center: {
+    padding: 40,
     alignItems: "center",
   },
 });
