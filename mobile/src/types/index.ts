@@ -43,3 +43,27 @@ export interface Movie {
   views?: number;
   featured?: boolean;
 }
+
+export interface UserProfile {
+  id: string;
+  name: string;
+  avatar: string;
+  isKids: boolean;
+}
+
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  role: "admin" | "user";
+  createdAt: string;
+  isPremium: boolean;
+  profiles?: UserProfile[];
+  activeProfileId?: string;
+  watchlist?: string[];
+  history?: Array<{
+    movieId: string;
+    progress: number;
+    updatedAt: string;
+  }>;
+}

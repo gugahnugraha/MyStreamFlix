@@ -9,9 +9,10 @@ import {
   Modal,
   Alert,
   Switch,
+  ActivityIndicator,
 } from "react-native";
 import {
-  User,
+  User as UserIcon,
   ShieldCheck,
   LogOut,
   Lock,
@@ -22,124 +23,183 @@ import {
   Bookmark,
   History,
   Sliders,
-  Bell,
   ChevronRight,
   Crown,
   KeyRound,
+  UserPlus,
+  LogIn,
+  Calendar,
   CheckCircle,
 } from "lucide-react-native";
+import { User } from "../types";
+import { loginUser, registerUser } from "../api/client";
 
 export default function ProfileScreen({ navigation }: any) {
-  const [isLoggedIn, setIsLoggedIn] = useState(true);
-  const [userRole, setUserRole] = useState<"admin" | "vip" | "free">("admin");
-  const [email, setEmail] = useState("admin@mystreamflix.com");
-  const [name, setName] = useState("Gugah Nugraha");
+  // Real Database User State
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(false);
 
-  // Setting switches matching web
-  const [autoPlayNext, setAutoPlayNext] = useState(true);
-  const [hardwareAcceleration, setHardwareAcceleration] = useState(true);
-  const [notifications, setNotifications] = useState(false);
-  const [defaultQuality, setDefaultQuality] = useState("1080p Full HD");
-
-  // Login Modal
-  const [showLoginModal, setShowLoginModal] = useState(false);
+  // Auth Modal State
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [authMode, setAuthMode] = useState<"login" | "register">("login");
+  const [inputName, setInputName] = useState("");
   const [inputEmail, setInputEmail] = useState("");
   const [inputPassword, setInputPassword] = useState("");
 
-  const handleLogin = () => {
+  // User Settings
+  const [autoPlayNext, setAutoPlayNext] = useState(true);
+  const [hardwareAcceleration, setHardwareAcceleration] = useState(true);
+
+  const handleAuthSubmit = async () => {
     if (!inputEmail || !inputPassword) {
-      Alert.alert("Error", "Please fill in email and password.");
+      Alert.alert("Input Required", "Please fill in all credentials.");
       return;
     }
 
-    if (inputEmail.toLowerCase().includes("admin") || inputPassword === "admin123") {
-      setUserRole("admin");
-      setName("Super Administrator");
-      setEmail(inputEmail);
-    } else {
-      setUserRole("vip");
-      setName(inputEmail.split("@")[0]);
-      setEmail(inputEmail);
-    }
+    setLoading(true);
 
-    setIsLoggedIn(true);
-    setShowLoginModal(false);
-    Alert.alert("Success", `Logged in as ${inputEmail}`);
+    if (authMode === "login") {
+      const result = await loginUser(inputEmail, inputPassword);
+      setLoading(false);
+
+      if (result.success && result.user) {
+        setCurrentUser(result.user);
+        setShowAuthModal(false);
+        setInputPassword("");
+        Alert.alert(
+          "Signed In",
+          `Welcome back, ${result.user.name || result.user.email}!`
+        );
+      } else {
+        Alert.alert("Authentication Failed", result.error || "Invalid email or password.");
+      }
+    } else {
+      if (!inputName) {
+        setLoading(false);
+        Alert.alert("Input Required", "Please enter your name.");
+        return;
+      }
+
+      const result = await registerUser(inputName, inputEmail, inputPassword);
+      setLoading(false);
+
+      if (result.success && result.user) {
+        setCurrentUser(result.user);
+        setShowAuthModal(false);
+        setInputPassword("");
+        Alert.alert("Account Created", "Your account has been registered in the database!");
+      } else {
+        Alert.alert("Registration Failed", result.error || "Could not register account.");
+      }
+    }
   };
 
   const handleLogout = () => {
-    Alert.alert("Sign Out", "Are you sure you want to sign out?", [
+    Alert.alert("Sign Out", "Are you sure you want to log out of your session?", [
       { text: "Cancel", style: "cancel" },
       {
         text: "Sign Out",
         style: "destructive",
         onPress: () => {
-          setIsLoggedIn(false);
-          setUserRole("free");
-          setName("Guest Explorer");
-          setEmail("guest@mystreamflix.com");
+          setCurrentUser(null);
         },
       },
     ]);
   };
 
+  const isAdmin = currentUser?.role === "admin";
+
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      {/* Profile Banner & Avatar */}
+      {/* Profile Banner & Database User Info */}
       <View style={styles.header}>
         <View style={styles.avatar}>
-          <User size={38} color="#00ADB5" />
-          {userRole === "admin" && (
+          <UserIcon size={38} color="#00ADB5" />
+          {isAdmin && (
             <View style={styles.crownBadge}>
               <Crown size={12} color="#000" />
             </View>
           )}
         </View>
 
-        <Text style={styles.name}>{name}</Text>
-        <Text style={styles.email}>{email}</Text>
+        <Text style={styles.name}>
+          {currentUser ? currentUser.name || currentUser.email.split("@")[0] : "Guest User"}
+        </Text>
+        <Text style={styles.email}>
+          {currentUser ? currentUser.email : "Not signed in to database"}
+        </Text>
 
         <View style={styles.badgeRow}>
           <View
             style={[
               styles.roleBadge,
-              userRole === "admin" && { backgroundColor: "rgba(229,9,20,0.15)", borderColor: "#E50914" },
-              userRole === "vip" && { backgroundColor: "rgba(0,173,181,0.15)", borderColor: "#00ADB5" },
+              isAdmin && { backgroundColor: "rgba(229,9,20,0.15)", borderColor: "#E50914" },
+              currentUser?.isPremium && { backgroundColor: "rgba(0,173,181,0.15)", borderColor: "#00ADB5" },
             ]}
           >
             <Text
               style={[
                 styles.roleBadgeText,
-                userRole === "admin" && { color: "#E50914" },
-                userRole === "vip" && { color: "#00ADB5" },
+                isAdmin && { color: "#E50914" },
+                currentUser?.isPremium && { color: "#00ADB5" },
               ]}
             >
-              {userRole === "admin" ? "👑 SUPER ADMIN" : userRole === "vip" ? "⭐ VIP MEMBER" : "FREE USER"}
+              {isAdmin
+                ? "👑 DATABASE ADMINISTRATOR"
+                : currentUser?.isPremium
+                ? "⭐ VIP MEMBER"
+                : currentUser
+                ? "STANDARD USER"
+                : "GUEST VISITOR"}
             </Text>
           </View>
         </View>
 
-        {!isLoggedIn ? (
+        {!currentUser ? (
           <TouchableOpacity
             style={styles.loginBtn}
-            onPress={() => setShowLoginModal(true)}
+            onPress={() => {
+              setAuthMode("login");
+              setShowAuthModal(true);
+            }}
           >
-            <Text style={styles.loginBtnText}>Sign In / Register</Text>
+            <LogIn size={15} color="#000" />
+            <Text style={styles.loginBtnText}>Database Sign In / Register</Text>
           </TouchableOpacity>
         ) : (
           <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
             <LogOut size={14} color="#E50914" />
-            <Text style={styles.logoutBtnText}>Sign Out</Text>
+            <Text style={styles.logoutBtnText}>Sign Out Session</Text>
           </TouchableOpacity>
         )}
       </View>
 
-      {/* Admin Panel Gateway (Protected) */}
+      {/* Admin Panel Gateway */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>ADMINISTRATION</Text>
+        <Text style={styles.sectionTitle}>DATABASE ADMINISTRATION</Text>
         <TouchableOpacity
           style={styles.adminGateCard}
-          onPress={() => navigation.navigate("Admin")}
+          onPress={() => {
+            if (isAdmin) {
+              navigation.navigate("Admin");
+            } else {
+              Alert.alert(
+                "Admin Restricted",
+                "You must be signed in as an Administrator in the database to access the CMS Dashboard.",
+                [
+                  { text: "Cancel", style: "cancel" },
+                  {
+                    text: "Admin Sign In",
+                    onPress: () => {
+                      setAuthMode("login");
+                      setInputEmail("admin@mystreamflix.com");
+                      setShowAuthModal(true);
+                    },
+                  },
+                ]
+              );
+            }
+          }}
           activeOpacity={0.8}
         >
           <View style={styles.adminGateLeft}>
@@ -148,16 +208,18 @@ export default function ProfileScreen({ navigation }: any) {
             </View>
             <View>
               <Text style={styles.adminGateTitle}>Admin CMS & Auto-Scanner</Text>
-              <Text style={styles.adminGateSub}>PIN-protected catalog & stream dashboard</Text>
+              <Text style={styles.adminGateSub}>
+                {isAdmin ? "Access granted (Database Verified)" : "Requires Database Admin Account"}
+              </Text>
             </View>
           </View>
           <KeyRound size={18} color="#00ADB5" />
         </TouchableOpacity>
       </View>
 
-      {/* Watchlist & History */}
+      {/* Library Section */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>LIBRARY</Text>
+        <Text style={styles.sectionTitle}>DATABASE SYNCED LIBRARY</Text>
         <TouchableOpacity style={styles.menuItem}>
           <View style={styles.menuItemLeft}>
             <View style={styles.iconWrap}>
@@ -165,7 +227,9 @@ export default function ProfileScreen({ navigation }: any) {
             </View>
             <View>
               <Text style={styles.menuItemTitle}>My Saved Watchlist</Text>
-              <Text style={styles.menuItemSub}>0 saved titles</Text>
+              <Text style={styles.menuItemSub}>
+                {currentUser?.watchlist?.length || 0} saved titles
+              </Text>
             </View>
           </View>
           <ChevronRight size={18} color="#666" />
@@ -177,15 +241,17 @@ export default function ProfileScreen({ navigation }: any) {
               <History size={18} color="#E50914" />
             </View>
             <View>
-              <Text style={styles.menuItemTitle}>Watch History & Resume</Text>
-              <Text style={styles.menuItemSub}>Continue watching recent movies</Text>
+              <Text style={styles.menuItemTitle}>Watch History & Progress</Text>
+              <Text style={styles.menuItemSub}>
+                {currentUser?.history?.length || 0} movies watched
+              </Text>
             </View>
           </View>
           <ChevronRight size={18} color="#666" />
         </TouchableOpacity>
       </View>
 
-      {/* Playback & Streaming Preferences */}
+      {/* Playback Preferences */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>PLAYBACK PREFERENCES</Text>
 
@@ -204,7 +270,7 @@ export default function ProfileScreen({ navigation }: any) {
         <View style={styles.switchItem}>
           <View>
             <Text style={styles.switchTitle}>ExoPlayer Hardware Acceleration</Text>
-            <Text style={styles.switchSub}>Ultra-smooth 60fps native decoding</Text>
+            <Text style={styles.switchSub}>Ultra-smooth native hardware decoding</Text>
           </View>
           <Switch
             value={hardwareAcceleration}
@@ -214,31 +280,70 @@ export default function ProfileScreen({ navigation }: any) {
         </View>
       </View>
 
-      {/* App Info */}
+      {/* System & Database Connection Details */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>ABOUT</Text>
+        <Text style={styles.sectionTitle}>DATABASE & SYSTEM INFO</Text>
         <View style={styles.infoRow}>
-          <Text style={styles.infoLabel}>Application</Text>
-          <Text style={styles.infoValue}>MyStreamFlix Mobile v1.0.0</Text>
-        </View>
-        <View style={styles.infoRow}>
-          <Text style={styles.infoLabel}>Video Engine</Text>
-          <Text style={styles.infoValue}>Google ExoPlayer (expo-av)</Text>
-        </View>
-        <View style={styles.infoRow}>
-          <Text style={styles.infoLabel}>Backend API</Text>
+          <Text style={styles.infoLabel}>Database Endpoint</Text>
           <Text style={styles.infoValue}>https://mystreamflix.biz.id</Text>
+        </View>
+        <View style={styles.infoRow}>
+          <Text style={styles.infoLabel}>User ID</Text>
+          <Text style={styles.infoValue}>{currentUser?.id || "N/A"}</Text>
+        </View>
+        <View style={styles.infoRow}>
+          <Text style={styles.infoLabel}>Database Auth</Text>
+          <Text style={[styles.infoValue, { color: "#10B981" }]}>PostgreSQL / JWT Active</Text>
         </View>
       </View>
 
       <View style={{ height: 40 }} />
 
-      {/* Sign In Modal */}
-      <Modal visible={showLoginModal} transparent animationType="slide">
+      {/* Database Auth Modal (Sign In / Register) */}
+      <Modal visible={showAuthModal} transparent animationType="slide">
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>Sign In to MyStreamFlix</Text>
-            <Text style={styles.modalSub}>Access your synced watchlist and VIP streams</Text>
+            <Text style={styles.modalTitle}>
+              {authMode === "login" ? "Database Sign In" : "Create Account"}
+            </Text>
+            <Text style={styles.modalSub}>
+              {authMode === "login"
+                ? "Enter your registered credentials to sign in."
+                : "Register a new user account in the MyStreamFlix database."}
+            </Text>
+
+            {/* Switch Mode Tabs */}
+            <View style={styles.authTabRow}>
+              <TouchableOpacity
+                onPress={() => setAuthMode("login")}
+                style={[styles.authTab, authMode === "login" && styles.authTabActive]}
+              >
+                <Text style={[styles.authTabText, authMode === "login" && styles.authTabTextActive]}>
+                  Sign In
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => setAuthMode("register")}
+                style={[styles.authTab, authMode === "register" && styles.authTabActive]}
+              >
+                <Text style={[styles.authTabText, authMode === "register" && styles.authTabTextActive]}>
+                  Register
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            {authMode === "register" && (
+              <View style={styles.inputBox}>
+                <UserIcon size={16} color="#777" />
+                <TextInput
+                  placeholder="Full Name"
+                  placeholderTextColor="#777"
+                  value={inputName}
+                  onChangeText={setInputName}
+                  style={styles.input}
+                />
+              </View>
+            )}
 
             <View style={styles.inputBox}>
               <Mail size={16} color="#777" />
@@ -265,13 +370,23 @@ export default function ProfileScreen({ navigation }: any) {
               />
             </View>
 
-            <TouchableOpacity style={styles.submitBtn} onPress={handleLogin}>
-              <Text style={styles.submitBtnText}>Sign In</Text>
+            <TouchableOpacity
+              style={[styles.submitBtn, loading && { opacity: 0.7 }]}
+              onPress={handleAuthSubmit}
+              disabled={loading}
+            >
+              {loading ? (
+                <ActivityIndicator size="small" color="#000" />
+              ) : (
+                <Text style={styles.submitBtnText}>
+                  {authMode === "login" ? "Sign In" : "Register Account"}
+                </Text>
+              )}
             </TouchableOpacity>
 
             <TouchableOpacity
               style={styles.cancelBtn}
-              onPress={() => setShowLoginModal(false)}
+              onPress={() => setShowAuthModal(false)}
             >
               <Text style={styles.cancelBtnText}>Cancel</Text>
             </TouchableOpacity>
@@ -342,9 +457,12 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
   loginBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
     backgroundColor: "#00ADB5",
     paddingVertical: 10,
-    paddingHorizontal: 24,
+    paddingHorizontal: 20,
     borderRadius: 12,
   },
   loginBtnText: {
@@ -503,7 +621,31 @@ const styles = StyleSheet.create({
   modalSub: {
     color: "#888",
     fontSize: 12,
-    marginBottom: 20,
+    marginBottom: 16,
+  },
+  authTabRow: {
+    flexDirection: "row",
+    backgroundColor: "#1E1E24",
+    borderRadius: 10,
+    padding: 3,
+    marginBottom: 16,
+  },
+  authTab: {
+    flex: 1,
+    paddingVertical: 8,
+    alignItems: "center",
+    borderRadius: 8,
+  },
+  authTabActive: {
+    backgroundColor: "#00ADB5",
+  },
+  authTabText: {
+    color: "#888",
+    fontSize: 12,
+    fontWeight: "bold",
+  },
+  authTabTextActive: {
+    color: "#000",
   },
   inputBox: {
     flexDirection: "row",
