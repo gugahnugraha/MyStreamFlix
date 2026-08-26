@@ -13,6 +13,7 @@ import {
   Modal,
   Platform,
 } from "react-native";
+import Slider from "@react-native-community/slider";
 import { useIsFocused } from "@react-navigation/native";
 import { Video, ResizeMode, AVPlaybackStatus } from "expo-av";
 import * as ScreenOrientation from "expo-screen-orientation";
@@ -42,6 +43,7 @@ export default function LiveTvScreen({ navigation }: any) {
   const [loading, setLoading] = useState(true);
 
   // Player controls state
+  const [volume, setVolume] = useState(1.0);
   const [isMuted, setIsMuted] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isBuffering, setIsBuffering] = useState(false);
@@ -111,7 +113,6 @@ export default function LiveTvScreen({ navigation }: any) {
       return;
     }
 
-    // Only show buffering spinner when video is NOT playing or stuck buffering
     if (status.isPlaying) {
       setIsBuffering(false);
     } else {
@@ -140,11 +141,12 @@ export default function LiveTvScreen({ navigation }: any) {
             resizeMode={ResizeMode.CONTAIN}
             shouldPlay={isFocused}
             isMuted={isMuted}
+            volume={volume}
             progressUpdateIntervalMillis={200}
             onPlaybackStatusUpdate={handlePlaybackStatusUpdate}
           />
 
-          {/* Buffering Indicator (Only when actually buffering) */}
+          {/* Buffering Indicator */}
           {isBuffering && (
             <View style={styles.centerOverlay} pointerEvents="none">
               <ActivityIndicator size="large" color="#00ADB5" />
@@ -167,16 +169,36 @@ export default function LiveTvScreen({ navigation }: any) {
 
             {/* Bottom Row: Controls */}
             <View style={styles.playerBottomRow}>
-              <TouchableOpacity
-                onPress={() => {
-                  const targetMute = !isMuted;
-                  setIsMuted(targetMute);
-                  videoRef.current?.setStatusAsync({ isMuted: targetMute });
-                }}
-                style={styles.hudBtn}
-              >
-                {isMuted ? <VolumeX size={18} color="#E50914" /> : <Volume2 size={18} color="#FFF" />}
-              </TouchableOpacity>
+              <View style={styles.modernVolumePill}>
+                <TouchableOpacity
+                  onPress={() => {
+                    const targetMute = !isMuted;
+                    setIsMuted(targetMute);
+                    videoRef.current?.setStatusAsync({ isMuted: targetMute });
+                  }}
+                >
+                  {isMuted || volume === 0 ? (
+                    <VolumeX size={15} color="#E50914" />
+                  ) : (
+                    <Volume2 size={15} color="#00ADB5" />
+                  )}
+                </TouchableOpacity>
+
+                <Slider
+                  style={styles.modernVolumeSlider}
+                  minimumValue={0}
+                  maximumValue={1}
+                  value={isMuted ? 0 : volume}
+                  onValueChange={(val) => {
+                    setVolume(val);
+                    setIsMuted(val === 0);
+                    videoRef.current?.setStatusAsync({ volume: val, isMuted: val === 0 });
+                  }}
+                  minimumTrackTintColor="#00ADB5"
+                  maximumTrackTintColor="rgba(255,255,255,0.2)"
+                  thumbTintColor="#00ADB5"
+                />
+              </View>
 
               <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
                 <View style={styles.qualityTag}>
@@ -184,8 +206,8 @@ export default function LiveTvScreen({ navigation }: any) {
                 </View>
 
                 {/* ⛶ Fullscreen Toggle Button */}
-                <TouchableOpacity onPress={enterFullscreen} style={styles.hudBtn}>
-                  <Maximize size={18} color="#FFF" />
+                <TouchableOpacity onPress={enterFullscreen} style={styles.glassFullscreenBtn}>
+                  <Maximize size={16} color="#FFF" />
                 </TouchableOpacity>
               </View>
             </View>
@@ -193,7 +215,7 @@ export default function LiveTvScreen({ navigation }: any) {
         </View>
       ) : null}
 
-      {/* 🌟 100% Clean Native Modal Fullscreen Player (Zero Bottom Nav & Zero Android Buttons) */}
+      {/* 🌟 100% Clean Native Modal Fullscreen Player */}
       {activeChannel && (
         <Modal
           visible={isFullscreen}
@@ -209,6 +231,7 @@ export default function LiveTvScreen({ navigation }: any) {
               resizeMode={ResizeMode.CONTAIN}
               shouldPlay={isFocused && isFullscreen}
               isMuted={isMuted}
+              volume={volume}
               progressUpdateIntervalMillis={200}
               onPlaybackStatusUpdate={handlePlaybackStatusUpdate}
             />
@@ -234,24 +257,45 @@ export default function LiveTvScreen({ navigation }: any) {
               </View>
 
               <View style={styles.playerBottomRow}>
-                <TouchableOpacity
-                  onPress={() => {
-                    const targetMute = !isMuted;
-                    setIsMuted(targetMute);
-                    fullscreenVideoRef.current?.setStatusAsync({ isMuted: targetMute });
-                  }}
-                  style={styles.hudBtn}
-                >
-                  {isMuted ? <VolumeX size={18} color="#E50914" /> : <Volume2 size={18} color="#FFF" />}
-                </TouchableOpacity>
+                <View style={styles.modernVolumePill}>
+                  <TouchableOpacity
+                    onPress={() => {
+                      const targetMute = !isMuted;
+                      setIsMuted(targetMute);
+                      fullscreenVideoRef.current?.setStatusAsync({ isMuted: targetMute });
+                    }}
+                  >
+                    {isMuted || volume === 0 ? (
+                      <VolumeX size={16} color="#E50914" />
+                    ) : (
+                      <Volume2 size={16} color="#00ADB5" />
+                    )}
+                  </TouchableOpacity>
+
+                  <Slider
+                    style={[styles.modernVolumeSlider, { width: 140 }]}
+                    minimumValue={0}
+                    maximumValue={1}
+                    value={isMuted ? 0 : volume}
+                    onValueChange={(val) => {
+                      setVolume(val);
+                      setIsMuted(val === 0);
+                      fullscreenVideoRef.current?.setStatusAsync({ volume: val, isMuted: val === 0 });
+                    }}
+                    minimumTrackTintColor="#00ADB5"
+                    maximumTrackTintColor="rgba(255,255,255,0.2)"
+                    thumbTintColor="#00ADB5"
+                  />
+                  <Text style={styles.volPercentText}>{Math.round(volume * 100)}%</Text>
+                </View>
 
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
                   <View style={styles.qualityTag}>
                     <Text style={styles.qualityTagText}>{activeChannel.quality || "HD 1080p"}</Text>
                   </View>
 
-                  <TouchableOpacity onPress={exitFullscreen} style={styles.hudBtn}>
-                    <Minimize size={18} color="#FFF" />
+                  <TouchableOpacity onPress={exitFullscreen} style={styles.glassFullscreenBtn}>
+                    <Minimize size={16} color="#FFF" />
                   </TouchableOpacity>
                 </View>
               </View>
@@ -375,7 +419,7 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     justifyContent: "space-between",
     padding: 12,
-    backgroundColor: "rgba(0,0,0,0.35)",
+    backgroundColor: "rgba(0,0,0,0.38)",
   },
   playerTopRow: {
     flexDirection: "row",
@@ -408,25 +452,46 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
   },
-  hudBtn: {
-    padding: 8,
-    backgroundColor: "rgba(0,0,0,0.6)",
-    borderRadius: 8,
+  modernVolumePill: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(20,20,28,0.75)",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.15)",
+    borderColor: "rgba(255,255,255,0.12)",
+    gap: 4,
+  },
+  modernVolumeSlider: {
+    width: 95,
+    height: 18,
+  },
+  volPercentText: {
+    color: "#888",
+    fontSize: 9,
+    fontWeight: "bold",
+    width: 28,
   },
   qualityTag: {
-    backgroundColor: "rgba(0,173,181,0.2)",
+    backgroundColor: "rgba(0,173,181,0.15)",
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,
     borderWidth: 1,
-    borderColor: "#00ADB5",
+    borderColor: "rgba(0,173,181,0.5)",
   },
   qualityTagText: {
     color: "#00ADB5",
     fontSize: 10,
     fontWeight: "bold",
+  },
+  glassFullscreenBtn: {
+    padding: 7,
+    backgroundColor: "rgba(0,173,181,0.2)",
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#00ADB5",
   },
   browserContainer: {
     flex: 1,

@@ -16,6 +16,7 @@ import {
 import { Video, ResizeMode, AVPlaybackStatus } from "expo-av";
 import Slider from "@react-native-community/slider";
 import * as ScreenOrientation from "expo-screen-orientation";
+import * as NavigationBar from "expo-navigation-bar";
 import {
   Play,
   Pause,
@@ -42,6 +43,8 @@ import {
   Clock,
   Star,
   Info,
+  Type,
+  Layers,
 } from "lucide-react-native";
 import { Movie, Season, Episode, Subtitle } from "../types";
 
@@ -132,8 +135,6 @@ function parseSubtitles(text: string): Cue[] {
 
   return cues;
 }
-
-import * as NavigationBar from "expo-navigation-bar";
 
 export default function NativeExoPlayer({
   movie,
@@ -376,11 +377,15 @@ export default function NativeExoPlayer({
     resetControlsTimer();
   };
 
+  // ⏩ Smooth Seek without Pausing
   const handleSeek = async (timeInSeconds: number) => {
     const target = Math.max(0, Math.min(duration, timeInSeconds));
     setCurrentTime(target);
     updateSubtitleCue(target);
     await videoRef.current?.setPositionAsync(target * 1000);
+    if (isPlaying) {
+      await videoRef.current?.playAsync();
+    }
     resetControlsTimer();
   };
 
@@ -520,10 +525,10 @@ export default function NativeExoPlayer({
         {/* Gesture Toast Feedback */}
         {gestureToast && (
           <View style={styles.toastContainer} pointerEvents="none">
-            {gestureToast.type === "volume" && <Volume2 size={24} color="#00ADB5" />}
-            {gestureToast.type === "brightness" && <Sun size={24} color="#FBBF24" />}
-            {gestureToast.type === "seek-forward" && <RotateCw size={24} color="#10B981" />}
-            {gestureToast.type === "seek-backward" && <RotateCcw size={24} color="#10B981" />}
+            {gestureToast.type === "volume" && <Volume2 size={22} color="#00ADB5" />}
+            {gestureToast.type === "brightness" && <Sun size={22} color="#FBBF24" />}
+            {gestureToast.type === "seek-forward" && <RotateCw size={22} color="#10B981" />}
+            {gestureToast.type === "seek-backward" && <RotateCcw size={22} color="#10B981" />}
             <Text style={styles.toastText}>{gestureToast.value}</Text>
           </View>
         )}
@@ -538,13 +543,13 @@ export default function NativeExoPlayer({
           </TouchableOpacity>
         )}
 
-        {/* HUD Controls Layer */}
+        {/* 🪟 Modern Glassmorphic HUD Controls Layer */}
         {showControls && !isScreenLocked && (
           <View style={styles.hudOverlay} pointerEvents="box-none">
             {/* Top Bar Header */}
             <View style={styles.topBar}>
-              <TouchableOpacity onPress={onClose} style={styles.iconBtn}>
-                <ChevronLeft size={24} color="#FFF" />
+              <TouchableOpacity onPress={onClose} style={styles.glassCircleBtn}>
+                <ChevronLeft size={20} color="#FFF" />
               </TouchableOpacity>
 
               <View style={styles.titleContainer}>
@@ -570,20 +575,20 @@ export default function NativeExoPlayer({
 
               <View style={styles.topActions}>
                 {/* Quality Switcher */}
-                <TouchableOpacity onPress={() => setShowQualityModal(true)} style={styles.pillBtn}>
-                  <Sliders size={13} color="#00ADB5" />
-                  <Text style={styles.pillBtnText}>{selectedQuality.split(" ")[0]}</Text>
+                <TouchableOpacity onPress={() => setShowQualityModal(true)} style={styles.glassPillBtn}>
+                  <Sliders size={12} color="#00ADB5" />
+                  <Text style={styles.glassPillText}>{selectedQuality.split(" ")[0]}</Text>
                 </TouchableOpacity>
 
                 {/* Aspect Ratio */}
-                <TouchableOpacity onPress={cycleAspectRatio} style={styles.pillBtn}>
-                  <Scaling size={13} color="#00ADB5" />
-                  <Text style={styles.pillBtnText}>{aspectRatio.toUpperCase()}</Text>
+                <TouchableOpacity onPress={cycleAspectRatio} style={styles.glassPillBtn}>
+                  <Scaling size={12} color="#00ADB5" />
+                  <Text style={styles.glassPillText}>{aspectRatio.toUpperCase()}</Text>
                 </TouchableOpacity>
 
                 {/* Lock Screen */}
-                <TouchableOpacity onPress={() => setIsScreenLocked(true)} style={styles.iconBtn}>
-                  <Unlock size={18} color="#CCC" />
+                <TouchableOpacity onPress={() => setIsScreenLocked(true)} style={styles.glassCircleBtn}>
+                  <Unlock size={16} color="#DDD" />
                 </TouchableOpacity>
               </View>
             </View>
@@ -591,25 +596,25 @@ export default function NativeExoPlayer({
             {/* Center Playback Controller */}
             <View style={styles.centerControls} pointerEvents="box-none">
               {!isLive && (
-                <TouchableOpacity onPress={() => handleSeek(currentTime - 10)} style={styles.roundBtn}>
-                  <RotateCcw size={22} color="#FFF" />
+                <TouchableOpacity onPress={() => handleSeek(currentTime - 10)} style={styles.glassRoundSeekBtn}>
+                  <RotateCcw size={20} color="#FFF" />
                 </TouchableOpacity>
               )}
 
-              <TouchableOpacity onPress={handlePlayPause} style={styles.playPauseBtn}>
-                {isPlaying ? <Pause size={30} color="#FFF" /> : <Play size={30} color="#FFF" />}
+              <TouchableOpacity onPress={handlePlayPause} style={styles.glassPlayPauseBtn}>
+                {isPlaying ? <Pause size={28} color="#FFF" /> : <Play size={28} color="#FFF" fill="#FFF" />}
               </TouchableOpacity>
 
               {!isLive && (
-                <TouchableOpacity onPress={() => handleSeek(currentTime + 10)} style={styles.roundBtn}>
-                  <RotateCw size={22} color="#FFF" />
+                <TouchableOpacity onPress={() => handleSeek(currentTime + 10)} style={styles.glassRoundSeekBtn}>
+                  <RotateCw size={20} color="#FFF" />
                 </TouchableOpacity>
               )}
             </View>
 
             {/* Bottom Control Bar */}
             <View style={styles.bottomBar}>
-              {/* Timeline Progress Slider */}
+              {/* Timeline Progress Slider with live drag */}
               {!isLive && (
                 <View style={styles.progressRow}>
                   <Text style={styles.timeText}>{formatTime(currentTime)}</Text>
@@ -618,9 +623,13 @@ export default function NativeExoPlayer({
                     minimumValue={0}
                     maximumValue={duration || 1}
                     value={currentTime}
+                    onValueChange={(val) => {
+                      setCurrentTime(val);
+                      updateSubtitleCue(val);
+                    }}
                     onSlidingComplete={handleSeek}
                     minimumTrackTintColor={brandColor}
-                    maximumTrackTintColor="rgba(255,255,255,0.3)"
+                    maximumTrackTintColor="rgba(255,255,255,0.25)"
                     thumbTintColor={brandColor}
                   />
                   <Text style={styles.timeText}>{formatTime(duration)}</Text>
@@ -629,24 +638,24 @@ export default function NativeExoPlayer({
 
               {/* Bottom Actions Row */}
               <View style={styles.bottomActionsRow}>
-                <View style={styles.volumeGroup}>
+                {/* 🔊 Modern Sleek Extended Volume Bar */}
+                <View style={styles.modernVolumePill}>
                   <TouchableOpacity
                     onPress={() => {
                       const targetMute = !isMuted;
                       setIsMuted(targetMute);
                       videoRef.current?.setStatusAsync({ isMuted: targetMute });
                     }}
-                    style={styles.iconBtn}
                   >
                     {isMuted || volume === 0 ? (
-                      <VolumeX size={18} color="#E50914" />
+                      <VolumeX size={16} color="#E50914" />
                     ) : (
-                      <Volume2 size={18} color="#FFF" />
+                      <Volume2 size={16} color="#00ADB5" />
                     )}
                   </TouchableOpacity>
 
                   <Slider
-                    style={styles.volumeSlider}
+                    style={[styles.modernVolumeSlider, isFullscreen && { width: 140 }]}
                     minimumValue={0}
                     maximumValue={1}
                     value={isMuted ? 0 : volume}
@@ -656,31 +665,32 @@ export default function NativeExoPlayer({
                       videoRef.current?.setStatusAsync({ volume: val, isMuted: val === 0 });
                     }}
                     minimumTrackTintColor="#00ADB5"
-                    maximumTrackTintColor="rgba(255,255,255,0.3)"
+                    maximumTrackTintColor="rgba(255,255,255,0.2)"
                     thumbTintColor="#00ADB5"
                   />
+                  <Text style={styles.volPercentText}>{Math.round(volume * 100)}%</Text>
                 </View>
 
                 <View style={styles.bottomRightActions}>
                   {/* Speed Selector */}
                   {!isLive && (
-                    <TouchableOpacity onPress={() => setShowSpeedModal(true)} style={styles.menuBtn}>
-                      <Settings size={14} color="#FFF" />
-                      <Text style={styles.menuBtnText}>{playbackRate}x</Text>
+                    <TouchableOpacity onPress={() => setShowSpeedModal(true)} style={styles.glassActionBtn}>
+                      <Settings size={13} color="#FFF" />
+                      <Text style={styles.glassActionText}>{playbackRate}x</Text>
                     </TouchableOpacity>
                   )}
 
                   {/* Subtitles Selector */}
-                  <TouchableOpacity onPress={() => setShowSubtitleModal(true)} style={styles.menuBtn}>
-                    <Subtitles size={14} color={activeSubtitle !== "off" ? "#E50914" : "#FFF"} />
-                    <Text style={styles.menuBtnText}>
+                  <TouchableOpacity onPress={() => setShowSubtitleModal(true)} style={styles.glassActionBtn}>
+                    <Subtitles size={13} color={activeSubtitle !== "off" ? "#00ADB5" : "#FFF"} />
+                    <Text style={[styles.glassActionText, activeSubtitle !== "off" && { color: "#00ADB5" }]}>
                       SUB {activeSubtitle !== "off" ? `(${activeSubtitle.toUpperCase()})` : ""}
                     </Text>
                   </TouchableOpacity>
 
                   {/* Fullscreen Toggle Button */}
-                  <TouchableOpacity onPress={toggleFullscreen} style={styles.fullscreenBtn}>
-                    {isFullscreen ? <Minimize size={18} color="#FFF" /> : <Maximize size={18} color="#FFF" />}
+                  <TouchableOpacity onPress={toggleFullscreen} style={styles.glassFullscreenBtn}>
+                    {isFullscreen ? <Minimize size={16} color="#FFF" /> : <Maximize size={16} color="#FFF" />}
                   </TouchableOpacity>
                 </View>
               </View>
@@ -777,144 +787,184 @@ export default function NativeExoPlayer({
         </ScrollView>
       )}
 
-      {/* Video Quality Selector Modal */}
-      <Modal visible={showQualityModal} transparent animationType="slide">
-        <TouchableWithoutFeedback onPress={() => setShowQualityModal(false)}>
-          <View style={styles.modalBackdrop}>
-            <View style={styles.bottomSheet}>
-              <Text style={styles.modalTitle}>Stream Quality</Text>
-              {["Auto (1080p)", "1080p FHD", "720p HD", "480p SD", "360p Low"].map((q) => (
-                <TouchableOpacity
-                  key={q}
-                  onPress={() => {
-                    setSelectedQuality(q);
-                    setShowQualityModal(false);
-                  }}
-                  style={[styles.modalItem, selectedQuality === q && styles.modalItemActive]}
-                >
-                  <Text style={[styles.modalItemText, selectedQuality === q && { color: brandColor }]}>
-                    {q}
-                  </Text>
-                  {selectedQuality === q && <Check size={18} color={brandColor} />}
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-        </TouchableWithoutFeedback>
-      </Modal>
-
-      {/* Speed Selector Modal */}
-      <Modal visible={showSpeedModal} transparent animationType="slide">
-        <TouchableWithoutFeedback onPress={() => setShowSpeedModal(false)}>
-          <View style={styles.modalBackdrop}>
-            <View style={styles.bottomSheet}>
-              <Text style={styles.modalTitle}>Playback Speed</Text>
-              {[0.5, 0.75, 1.0, 1.25, 1.5, 2.0].map((rate) => (
-                <TouchableOpacity
-                  key={rate}
-                  onPress={async () => {
-                    setPlaybackRate(rate);
-                    await videoRef.current?.setStatusAsync({ rate });
-                    setShowSpeedModal(false);
-                  }}
-                  style={[styles.modalItem, playbackRate === rate && styles.modalItemActive]}
-                >
-                  <Text style={[styles.modalItemText, playbackRate === rate && { color: brandColor }]}>
-                    {rate}x {rate === 1.0 ? "(Normal)" : ""}
-                  </Text>
-                  {playbackRate === rate && <Check size={18} color={brandColor} />}
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-        </TouchableWithoutFeedback>
-      </Modal>
-
-      {/* Subtitles & Styling Modal */}
-      <Modal visible={showSubtitleModal} transparent animationType="slide">
+      {/* 🪟 Compact Floating Glassmorphic Subtitle Panel (Won't cover the screen!) */}
+      <Modal visible={showSubtitleModal} transparent animationType="fade">
         <TouchableWithoutFeedback onPress={() => setShowSubtitleModal(false)}>
-          <View style={styles.modalBackdrop}>
-            <View style={styles.bottomSheet}>
-              <Text style={styles.modalTitle}>Subtitles & Captions</Text>
-              <Text style={styles.subHeading}>SELECT LANGUAGE</Text>
-              <TouchableOpacity
-                onPress={() => setActiveSubtitle("off")}
-                style={[styles.modalItem, activeSubtitle === "off" && styles.modalItemActive]}
-              >
-                <Text style={styles.modalItemText}>Off (None)</Text>
-                {activeSubtitle === "off" && <Check size={18} color={brandColor} />}
-              </TouchableOpacity>
-              {movie.subtitles?.map((sub) => (
-                <TouchableOpacity
-                  key={sub.id}
-                  onPress={() => setActiveSubtitle(sub.language)}
-                  style={[styles.modalItem, activeSubtitle === sub.language && styles.modalItemActive]}
-                >
-                  <Text style={styles.modalItemText}>{sub.label}</Text>
-                  {activeSubtitle === sub.language && <Check size={18} color={brandColor} />}
-                </TouchableOpacity>
-              ))}
+          <View style={styles.glassModalBackdrop}>
+            <TouchableWithoutFeedback>
+              <View style={styles.glassCompactCard}>
+                <View style={styles.glassCardHeader}>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                    <Subtitles size={16} color="#00ADB5" />
+                    <Text style={styles.glassCardTitle}>Subtitles & Styling</Text>
+                  </View>
+                  <TouchableOpacity onPress={() => setShowSubtitleModal(false)} style={styles.glassCloseBtn}>
+                    <X size={14} color="#AAA" />
+                  </TouchableOpacity>
+                </View>
 
-              {activeSubtitle !== "off" && (
-                <>
-                  <Text style={[styles.subHeading, { marginTop: 14 }]}>SUBTITLE STYLE</Text>
-                  <View style={styles.pillsRow}>
-                    {(["shadow", "box", "yellow"] as const).map((styleOpt) => (
-                      <TouchableOpacity
-                        key={styleOpt}
-                        onPress={() => setSubtitleStyle(styleOpt)}
+                {/* Subtitle Tracks Horizontal / Compact Grid */}
+                <Text style={styles.glassMiniLabel}>LANGUAGE</Text>
+                <View style={styles.glassPillsWrap}>
+                  <TouchableOpacity
+                    onPress={() => setActiveSubtitle("off")}
+                    style={[styles.glassMiniPill, activeSubtitle === "off" && styles.glassMiniPillActive]}
+                  >
+                    <Text style={[styles.glassMiniPillText, activeSubtitle === "off" && styles.glassMiniPillTextActive]}>
+                      Off
+                    </Text>
+                  </TouchableOpacity>
+
+                  {movie.subtitles?.map((sub) => (
+                    <TouchableOpacity
+                      key={sub.id}
+                      onPress={() => setActiveSubtitle(sub.language)}
+                      style={[styles.glassMiniPill, activeSubtitle === sub.language && styles.glassMiniPillActive]}
+                    >
+                      <Text
                         style={[
-                          styles.styleOptionPill,
-                          subtitleStyle === styleOpt && {
-                            borderColor: brandColor,
-                            backgroundColor: "rgba(0,173,181,0.15)",
-                          },
+                          styles.glassMiniPillText,
+                          activeSubtitle === sub.language && styles.glassMiniPillTextActive,
                         ]}
                       >
-                        <Text
-                          style={[
-                            styles.styleOptionText,
-                            subtitleStyle === styleOpt && { color: brandColor, fontWeight: "bold" },
-                          ]}
-                        >
-                          {styleOpt === "shadow"
-                            ? "Clean Shadow"
-                            : styleOpt === "box"
-                            ? "Black Box"
-                            : "Yellow Cinema"}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
+                        {sub.label}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
 
-                  <Text style={[styles.subHeading, { marginTop: 14 }]}>TEXT SIZE</Text>
-                  <View style={styles.pillsRow}>
-                    {(["small", "medium", "large", "xlarge"] as const).map((sizeOpt) => (
-                      <TouchableOpacity
-                        key={sizeOpt}
-                        onPress={() => setSubtitleSize(sizeOpt)}
-                        style={[
-                          styles.styleOptionPill,
-                          subtitleSize === sizeOpt && {
-                            borderColor: brandColor,
-                            backgroundColor: "rgba(0,173,181,0.15)",
-                          },
-                        ]}
-                      >
-                        <Text
+                {activeSubtitle !== "off" && (
+                  <>
+                    {/* Subtitle Style Options */}
+                    <Text style={[styles.glassMiniLabel, { marginTop: 12 }]}>STYLE PRESET</Text>
+                    <View style={styles.glassPillsWrap}>
+                      {(["shadow", "box", "yellow"] as const).map((styleOpt) => (
+                        <TouchableOpacity
+                          key={styleOpt}
+                          onPress={() => setSubtitleStyle(styleOpt)}
                           style={[
-                            styles.styleOptionText,
-                            subtitleSize === sizeOpt && { color: brandColor, fontWeight: "bold" },
+                            styles.glassMiniPill,
+                            subtitleStyle === styleOpt && styles.glassMiniPillActive,
                           ]}
                         >
-                          {sizeOpt.toUpperCase()}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
+                          <Text
+                            style={[
+                              styles.glassMiniPillText,
+                              subtitleStyle === styleOpt && styles.glassMiniPillTextActive,
+                            ]}
+                          >
+                            {styleOpt === "shadow"
+                              ? "Clean Shadow"
+                              : styleOpt === "box"
+                              ? "Black Box"
+                              : "Yellow Cinema"}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+
+                    {/* Font Sizing */}
+                    <Text style={[styles.glassMiniLabel, { marginTop: 12 }]}>FONT SIZE</Text>
+                    <View style={styles.glassPillsWrap}>
+                      {(["small", "medium", "large", "xlarge"] as const).map((sizeOpt) => (
+                        <TouchableOpacity
+                          key={sizeOpt}
+                          onPress={() => setSubtitleSize(sizeOpt)}
+                          style={[
+                            styles.glassMiniPill,
+                            subtitleSize === sizeOpt && styles.glassMiniPillActive,
+                          ]}
+                        >
+                          <Text
+                            style={[
+                              styles.glassMiniPillText,
+                              subtitleSize === sizeOpt && styles.glassMiniPillTextActive,
+                            ]}
+                          >
+                            {sizeOpt.toUpperCase()}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </>
+                )}
+              </View>
+            </TouchableWithoutFeedback>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
+
+      {/* 🪟 Compact Floating Glassmorphic Quality Modal */}
+      <Modal visible={showQualityModal} transparent animationType="fade">
+        <TouchableWithoutFeedback onPress={() => setShowQualityModal(false)}>
+          <View style={styles.glassModalBackdrop}>
+            <TouchableWithoutFeedback>
+              <View style={[styles.glassCompactCard, { maxWidth: 280 }]}>
+                <View style={styles.glassCardHeader}>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                    <Sliders size={16} color="#00ADB5" />
+                    <Text style={styles.glassCardTitle}>Stream Quality</Text>
                   </View>
-                </>
-              )}
-            </View>
+                  <TouchableOpacity onPress={() => setShowQualityModal(false)} style={styles.glassCloseBtn}>
+                    <X size={14} color="#AAA" />
+                  </TouchableOpacity>
+                </View>
+
+                {["Auto (1080p)", "1080p FHD", "720p HD", "480p SD", "360p Low"].map((q) => (
+                  <TouchableOpacity
+                    key={q}
+                    onPress={() => {
+                      setSelectedQuality(q);
+                      setShowQualityModal(false);
+                    }}
+                    style={[styles.glassItemRow, selectedQuality === q && styles.glassItemRowActive]}
+                  >
+                    <Text style={[styles.glassItemText, selectedQuality === q && { color: "#00ADB5", fontWeight: "bold" }]}>
+                      {q}
+                    </Text>
+                    {selectedQuality === q && <Check size={16} color="#00ADB5" />}
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </TouchableWithoutFeedback>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
+
+      {/* 🪟 Compact Floating Glassmorphic Speed Modal */}
+      <Modal visible={showSpeedModal} transparent animationType="fade">
+        <TouchableWithoutFeedback onPress={() => setShowSpeedModal(false)}>
+          <View style={styles.glassModalBackdrop}>
+            <TouchableWithoutFeedback>
+              <View style={[styles.glassCompactCard, { maxWidth: 260 }]}>
+                <View style={styles.glassCardHeader}>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                    <Settings size={16} color="#00ADB5" />
+                    <Text style={styles.glassCardTitle}>Playback Speed</Text>
+                  </View>
+                  <TouchableOpacity onPress={() => setShowSpeedModal(false)} style={styles.glassCloseBtn}>
+                    <X size={14} color="#AAA" />
+                  </TouchableOpacity>
+                </View>
+
+                {[0.5, 0.75, 1.0, 1.25, 1.5, 2.0].map((rate) => (
+                  <TouchableOpacity
+                    key={rate}
+                    onPress={async () => {
+                      setPlaybackRate(rate);
+                      await videoRef.current?.setStatusAsync({ rate });
+                      setShowSpeedModal(false);
+                    }}
+                    style={[styles.glassItemRow, playbackRate === rate && styles.glassItemRowActive]}
+                  >
+                    <Text style={[styles.glassItemText, playbackRate === rate && { color: "#00ADB5", fontWeight: "bold" }]}>
+                      {rate}x {rate === 1.0 ? "(Normal)" : ""}
+                    </Text>
+                    {playbackRate === rate && <Check size={16} color="#00ADB5" />}
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </TouchableWithoutFeedback>
           </View>
         </TouchableWithoutFeedback>
       </Modal>
@@ -1000,12 +1050,12 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: "35%",
     alignSelf: "center",
-    backgroundColor: "rgba(10,10,10,0.85)",
+    backgroundColor: "rgba(18,18,24,0.88)",
     paddingVertical: 12,
     paddingHorizontal: 20,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.2)",
+    borderColor: "rgba(255,255,255,0.15)",
     alignItems: "center",
     gap: 6,
   },
@@ -1028,15 +1078,22 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     justifyContent: "space-between",
     padding: 12,
-    backgroundColor: "rgba(0,0,0,0.45)",
+    backgroundColor: "rgba(0,0,0,0.42)",
   },
   topBar: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
   },
-  iconBtn: {
-    padding: 6,
+  glassCircleBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "rgba(20,20,28,0.75)",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.12)",
   },
   titleContainer: {
     flex: 1,
@@ -1082,16 +1139,18 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 6,
   },
-  pillBtn: {
+  glassPillBtn: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
-    backgroundColor: "rgba(255,255,255,0.12)",
-    paddingHorizontal: 8,
-    paddingVertical: 5,
-    borderRadius: 12,
+    gap: 5,
+    backgroundColor: "rgba(20,20,28,0.75)",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.12)",
   },
-  pillBtnText: {
+  glassPillText: {
     color: "#FFF",
     fontSize: 10,
     fontWeight: "bold",
@@ -1102,22 +1161,21 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 28,
   },
-  roundBtn: {
-    backgroundColor: "rgba(0,0,0,0.6)",
-    padding: 10,
+  glassRoundSeekBtn: {
+    backgroundColor: "rgba(20,20,28,0.75)",
+    padding: 12,
     borderRadius: 30,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.2)",
+    borderColor: "rgba(255,255,255,0.15)",
   },
-  playPauseBtn: {
-    backgroundColor: "rgba(0,0,0,0.75)",
+  glassPlayPauseBtn: {
+    backgroundColor: "rgba(0,173,181,0.85)",
     padding: 16,
     borderRadius: 40,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.3)",
+    elevation: 6,
   },
   bottomBar: {
-    gap: 2,
+    gap: 4,
   },
   progressRow: {
     flexDirection: "row",
@@ -1125,7 +1183,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   timeText: {
-    color: "#CCC",
+    color: "#DDD",
     fontSize: 10,
     fontFamily: Platform.OS === "android" ? "monospace" : "Menlo",
     fontWeight: "bold",
@@ -1139,38 +1197,54 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
   },
-  volumeGroup: {
+  modernVolumePill: {
     flexDirection: "row",
     alignItems: "center",
+    backgroundColor: "rgba(20,20,28,0.75)",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.12)",
     gap: 4,
   },
-  volumeSlider: {
-    width: 75,
+  modernVolumeSlider: {
+    width: 105,
     height: 18,
+  },
+  volPercentText: {
+    color: "#888",
+    fontSize: 9,
+    fontWeight: "bold",
+    width: 28,
   },
   bottomRightActions: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    gap: 6,
   },
-  menuBtn: {
+  glassActionBtn: {
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
-    backgroundColor: "rgba(255,255,255,0.12)",
-    paddingHorizontal: 8,
-    paddingVertical: 5,
-    borderRadius: 10,
+    backgroundColor: "rgba(20,20,28,0.75)",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.12)",
   },
-  menuBtnText: {
+  glassActionText: {
     color: "#FFF",
     fontSize: 10,
     fontWeight: "bold",
   },
-  fullscreenBtn: {
-    padding: 6,
-    backgroundColor: "rgba(255,255,255,0.15)",
-    borderRadius: 8,
+  glassFullscreenBtn: {
+    padding: 8,
+    backgroundColor: "rgba(0,173,181,0.2)",
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#00ADB5",
   },
   detailsContainer: {
     flex: 1,
@@ -1308,64 +1382,86 @@ const styles = StyleSheet.create({
     fontSize: 10,
     marginTop: 2,
   },
-  modalBackdrop: {
+  glassModalBackdrop: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.7)",
-    justifyContent: "flex-end",
+    backgroundColor: "rgba(0,0,0,0.55)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 16,
   },
-  bottomSheet: {
-    backgroundColor: "#121214",
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    padding: 20,
-    borderTopWidth: 1,
-    borderColor: "#27272A",
-    maxHeight: 400,
-  },
-  modalTitle: {
-    color: "#FFF",
-    fontSize: 15,
-    fontWeight: "bold",
-    marginBottom: 10,
-  },
-  subHeading: {
-    color: "#777",
-    fontSize: 10,
-    fontWeight: "bold",
-    letterSpacing: 1,
-    marginBottom: 8,
-  },
-  pillsRow: {
-    flexDirection: "row",
-    gap: 8,
-    marginBottom: 10,
-  },
-  styleOptionPill: {
-    backgroundColor: "#1C1C22",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 10,
+  glassCompactCard: {
+    width: "100%",
+    maxWidth: 320,
+    backgroundColor: "rgba(18,18,24,0.92)",
+    borderRadius: 20,
+    padding: 16,
     borderWidth: 1,
-    borderColor: "#2A2A32",
+    borderColor: "rgba(255,255,255,0.12)",
+    elevation: 16,
   },
-  styleOptionText: {
-    color: "#AAA",
-    fontSize: 11,
-  },
-  modalItem: {
+  glassCardHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingVertical: 12,
+    marginBottom: 12,
     borderBottomWidth: 1,
-    borderColor: "#1E1E24",
+    borderColor: "rgba(255,255,255,0.08)",
+    paddingBottom: 8,
   },
-  modalItemActive: {
+  glassCardTitle: {
+    color: "#FFF",
+    fontSize: 13,
+    fontWeight: "bold",
+  },
+  glassCloseBtn: {
+    padding: 4,
+  },
+  glassMiniLabel: {
+    color: "#777",
+    fontSize: 9,
+    fontWeight: "900",
+    letterSpacing: 0.5,
+    marginBottom: 6,
+  },
+  glassPillsWrap: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 6,
+  },
+  glassMiniPill: {
+    backgroundColor: "rgba(255,255,255,0.06)",
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.08)",
+  },
+  glassMiniPillActive: {
+    backgroundColor: "rgba(0,173,181,0.2)",
+    borderColor: "#00ADB5",
+  },
+  glassMiniPillText: {
+    color: "#888",
+    fontSize: 11,
+    fontWeight: "600",
+  },
+  glassMiniPillTextActive: {
+    color: "#00ADB5",
+    fontWeight: "bold",
+  },
+  glassItemRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderColor: "rgba(255,255,255,0.06)",
+  },
+  glassItemRowActive: {
     backgroundColor: "rgba(0,173,181,0.08)",
   },
-  modalItemText: {
-    color: "#EEE",
-    fontSize: 13,
-    fontWeight: "600",
+  glassItemText: {
+    color: "#CCC",
+    fontSize: 12,
   },
 });
