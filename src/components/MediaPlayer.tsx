@@ -1,8 +1,3 @@
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
-
 import React, { useRef, useState, useEffect } from "react";
 import {
   Play,
@@ -24,7 +19,15 @@ import {
   SlidersHorizontal,
   Sparkles,
   Tv,
-  ShieldAlert
+  ShieldAlert,
+  Sun,
+  Scaling,
+  Tv2,
+  ChevronDown,
+  ChevronUp,
+  Layers,
+  Zap,
+  Gauge
 } from "lucide-react";
 import Hls from "hls.js";
 import * as dashjs from "dashjs";
@@ -147,6 +150,20 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
   const [subtitleStyle, setSubtitleStyle] = useState<"shadow" | "box" | "yellow">("shadow");
   const [showSubtitleCustomizer, setShowSubtitleCustomizer] = useState(false);
 
+  // Android Native Mobile Gestures & Touch Engine States
+  const [aspectRatio, setAspectRatio] = useState<"contain" | "cover" | "fill">("contain");
+  const [brightness, setBrightness] = useState<number>(1.0);
+  const [gestureFeedback, setGestureFeedback] = useState<{
+    type: "seek-forward" | "seek-backward" | "volume" | "brightness";
+    value: string | number;
+    percent?: number;
+  } | null>(null);
+  const [activeMobileSheet, setActiveMobileSheet] = useState<"none" | "quality" | "speed" | "subtitles" | "episodes" | "aspect">("none");
+
+  const touchStartRef = useRef<{ x: number; y: number; time: number; initialVol: number; initialBright: number } | null>(null);
+  const lastTapRef = useRef<{ x: number; time: number } | null>(null);
+  const gestureFeedbackTimerRef = useRef<number | null>(null);
+
   // Next Episode Auto-Play States
   const [autoPlayCountdown, setAutoPlayCountdown] = useState<number | null>(null);
   const [isNextEpisodeDismissed, setIsNextEpisodeDismissed] = useState(false);
@@ -239,13 +256,105 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
     }
   };
 
-  // Skip Intro Handler (fast forward 85 seconds)
-  const handleSkipIntro = () => {
-    const target = Math.min(duration - 5, 85);
-    setCurrentTime(target);
-    if (!isSimulating && videoRef.current) {
-      videoRef.current.currentTime = target;
+  // Gesture Toast Helper
+  const showGestureToast = (feedback: { type: "seek-forward" | "seek-backward" | "volume" | "brightness"; value: string | number; percent?: number }) => {
+    setGestureFeedback(feedback);
+    if (gestureFeedbackTimerRef.current) clearTimeout(gestureFeedbackTimerRef.current);
+    gestureFeedbackTimerRef.current = window.setTimeout(() => {
+      setGestureFeedback(null);
+    }, 900);
+  };
+
+  const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (isScreenLocked) return;
+    const touch = e.touches[0];
+    if (!touch) return;
+    touchStartRef.current = {
+      x: touch.clientX,
+      y: touch.clientY,
+      time: Date.now(),
+      initialVol: volume,
+      initialBright: brightness,
+    };
+  };
+
+  const handleTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (isScreenLocked || !touchStartRef.current) return;
+    const touch = e.touches[0];
+    if (!touch) return;
+
+    const deltaY = touchStartRef.current.y - touch.clientY;
+    const containerWidth = containerRef.current?.clientWidth || window.innerWidth;
+
+    // Vertical swipe: left side = brightness, right side = volume
+    if (Math.abs(deltaY) > 25) {
+      if (touchStartRef.current.x < containerWidth * 0.45) {
+        // Brightness swipe on left side
+        const newBright = Math.min(1.0, Math.max(0.15, touchStartRef.current.initialBright + deltaY / 300));
+        setBrightness(newBright);
+        showGestureToast({
+          type: "brightness",
+          value: `${Math.round(newBright * 100)}%`,
+          percent: Math.round(newBright * 100),
+        });
+      } else if (touchStartRef.current.x > containerWidth * 0.55) {
+        // Volume swipe on right side
+        const newVol = Math.min(1.0, Math.max(0.0, touchStartRef.current.initialVol + deltaY / 300));
+        setVolume(newVol);
+        setIsMuted(newVol === 0);
+        if (videoRef.current) {
+          videoRef.current.volume = newVol;
+          videoRef.current.muted = newVol === 0;
+        }
+        showGestureToast({
+          type: "volume",
+          value: `${Math.round(newVol * 100)}%`,
+          percent: Math.round(newVol * 100),
+        });
+      }
     }
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (isScreenLocked) return;
+    const touch = e.changedTouches[0];
+    if (!touch || !touchStartRef.current) return;
+
+    const touchDuration = Date.now() - touchStartRef.current.time;
+    const deltaX = Math.abs(touch.clientX - touchStartRef.current.x);
+    const deltaY = Math.abs(touch.clientY - touchStartRef.current.y);
+    const containerWidth = containerRef.current?.clientWidth || window.innerWidth;
+
+    // Double tap detection (quick tap with minimal movement)
+    if (touchDuration < 300 && deltaX < 20 && deltaY < 20) {
+      const now = Date.now();
+      if (lastTapRef.current && now - lastTapRef.current.time < 320) {
+        // Double tap!
+        const tapX = touch.clientX;
+        if (tapX > containerWidth / 2) {
+          // Double tap right: forward 10s
+          handleSkip(10);
+          showGestureToast({ type: "seek-forward", value: "+10s" });
+        } else {
+          // Double tap left: rewind 10s
+          handleSkip(-10);
+          showGestureToast({ type: "seek-backward", value: "-10s" });
+        }
+        lastTapRef.current = null;
+      } else {
+        lastTapRef.current = { x: touch.clientX, time: now };
+      }
+    }
+
+    touchStartRef.current = null;
+  };
+
+  const cycleAspectRatio = () => {
+    setAspectRatio((prev) => {
+      if (prev === "contain") return "cover";
+      if (prev === "cover") return "fill";
+      return "contain";
+    });
   };
 
   // Auto-play Next Episode Countdown Trigger (when remaining duration <= 15s)
@@ -1249,13 +1358,23 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
       {/* Primary Video Screen Area */}
       <div
         ref={containerRef}
-        className="relative flex-1 min-h-0 bg-black flex items-center justify-center overflow-hidden"
+        className="relative flex-1 min-h-0 bg-black flex items-center justify-center overflow-hidden touch-none select-none"
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
       >
+        {/* Screen Brightness Overlay Filter (0.15 - 1.0) */}
+        <div
+          className="pointer-events-none absolute inset-0 bg-black transition-opacity duration-100 z-10"
+          style={{ opacity: Math.max(0, 1 - brightness) }}
+        />
+
         {/* HTML5 Video Layer */}
         {!isSimulating ? (
           <video
             ref={videoRef}
-            className="w-full h-full max-h-screen object-contain"
+            className="w-full h-full max-h-screen transition-all duration-300"
+            style={{ objectFit: aspectRatio }}
             onClick={handleScreenClick}
             muted={isMuted}
             onTimeUpdate={() => {
@@ -1548,6 +1667,46 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
           </div>
         )}
 
+        {/* Android Native Gesture Toast HUD Feedback */}
+        {gestureFeedback && (
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 pointer-events-none animate-in fade-in zoom-in-90 duration-150">
+            <div className="px-5 py-4 rounded-2xl bg-zinc-950/90 border border-white/20 backdrop-blur-2xl shadow-2xl flex flex-col items-center gap-2 min-w-32">
+              {gestureFeedback.type === "volume" && (
+                <>
+                  <Volume2 className="w-8 h-8 text-cyan-400 animate-pulse" />
+                  <span className="text-[10px] font-bold text-white uppercase tracking-wider font-mono">Volume</span>
+                  <div className="w-24 h-2 bg-zinc-800 rounded-full overflow-hidden">
+                    <div className="h-full bg-linear-to-r from-cyan-500 to-blue-500 rounded-full transition-all" style={{ width: `${gestureFeedback.percent}%` }} />
+                  </div>
+                  <span className="text-xs text-zinc-300 font-bold font-mono">{gestureFeedback.value}</span>
+                </>
+              )}
+              {gestureFeedback.type === "brightness" && (
+                <>
+                  <Sun className="w-8 h-8 text-amber-400 animate-pulse" />
+                  <span className="text-[10px] font-bold text-white uppercase tracking-wider font-mono">Brightness</span>
+                  <div className="w-24 h-2 bg-zinc-800 rounded-full overflow-hidden">
+                    <div className="h-full bg-linear-to-r from-amber-500 to-yellow-400 rounded-full transition-all" style={{ width: `${gestureFeedback.percent}%` }} />
+                  </div>
+                  <span className="text-xs text-zinc-300 font-bold font-mono">{gestureFeedback.value}</span>
+                </>
+              )}
+              {gestureFeedback.type === "seek-forward" && (
+                <>
+                  <RotateCw className="w-9 h-9 text-emerald-400 animate-spin" />
+                  <span className="text-base font-black text-white tracking-widest font-mono">{gestureFeedback.value}</span>
+                </>
+              )}
+              {gestureFeedback.type === "seek-backward" && (
+                <>
+                  <RotateCcw className="w-9 h-9 text-emerald-400 animate-spin" />
+                  <span className="text-base font-black text-white tracking-widest font-mono">{gestureFeedback.value}</span>
+                </>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* SCREEN LOCK FLOATING ICON (When Locked) */}
         {isScreenLocked && (
           <div className="absolute left-6 z-50" style={{ top: "calc(env(safe-area-inset-top, 0px) + 1.5rem)" }}>
@@ -1588,19 +1747,41 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
               </h1>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 sm:gap-3">
+              {/* Aspect Ratio Mode Switcher */}
+              <button
+                onClick={cycleAspectRatio}
+                className="px-2.5 py-1.5 rounded-xl bg-zinc-900/80 hover:bg-zinc-800 text-white flex items-center gap-1.5 border border-zinc-800 transition-colors shadow-lg cursor-pointer z-20 text-xs font-bold font-mono"
+                title={`Aspect Ratio: ${aspectRatio.toUpperCase()}`}
+              >
+                <Scaling className="w-4 h-4 text-cyan-400" />
+                <span className="hidden sm:inline uppercase">{aspectRatio}</span>
+              </button>
+
+              {/* Mobile Episodes Drawer Toggle (Series Only) */}
+              {movie.contentType === "series" && (
+                <button
+                  onClick={() => setActiveMobileSheet("episodes")}
+                  className="md:hidden px-2.5 py-1.5 rounded-xl bg-zinc-900/80 hover:bg-zinc-800 text-white flex items-center gap-1.5 border border-zinc-800 transition-colors shadow-lg cursor-pointer z-20 text-xs font-bold"
+                  title="Episodes Drawer"
+                >
+                  <Tv2 className="w-4 h-4 text-red-400" />
+                  <span>Episodes</span>
+                </button>
+              )}
+
               {/* Screen Lock Toggle */}
               <button
                 onClick={() => setIsScreenLocked(true)}
-                className="w-11 h-11 md:w-12 md:h-12 rounded-full bg-zinc-900/80 hover:bg-zinc-800 text-white flex items-center justify-center border border-zinc-800 transition-colors shadow-lg cursor-pointer z-20"
+                className="w-10 h-10 md:w-11 md:h-11 rounded-full bg-zinc-900/80 hover:bg-zinc-800 text-white flex items-center justify-center border border-zinc-800 transition-colors shadow-lg cursor-pointer z-20"
                 title="Lock Screen Touch"
               >
-                <Unlock className="w-5 h-5 text-zinc-300" />
+                <Unlock className="w-4 h-4 text-zinc-300" />
               </button>
 
               <button
                 onClick={handleClosePlayer}
-                className="w-11 h-11 md:w-12 md:h-12 rounded-full bg-zinc-900/80 hover:bg-red-600 text-white flex items-center justify-center border border-zinc-800 transition-colors shadow-lg cursor-pointer z-20"
+                className="w-10 h-10 md:w-11 md:h-11 rounded-full bg-zinc-900/80 hover:bg-red-600 text-white flex items-center justify-center border border-zinc-800 transition-colors shadow-lg cursor-pointer z-20"
                 id="media-player-exit"
                 title={t.exitPlayer || "Exit Player"}
               >
@@ -1767,10 +1948,14 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
                   <div className="relative">
                     <button
                       onClick={() => {
-                        setShowQualityMenu(!showQualityMenu);
-                        setShowSpeedMenu(false);
-                        setShowSubtitleMenu(false);
-                        setShowSubtitleCustomizer(false);
+                        if (typeof window !== "undefined" && window.innerWidth < 768) {
+                          setActiveMobileSheet("quality");
+                        } else {
+                          setShowQualityMenu(!showQualityMenu);
+                          setShowSpeedMenu(false);
+                          setShowSubtitleMenu(false);
+                          setShowSubtitleCustomizer(false);
+                        }
                       }}
                       className="player-menu-btn px-3 py-2 sm:py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs font-semibold backdrop-blur-md flex items-center gap-1.5 transition-all cursor-pointer min-h-11"
                       title="Video Quality"
@@ -1822,10 +2007,14 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
                 <div className="relative">
                   <button
                     onClick={() => {
-                      setShowSpeedMenu(!showSpeedMenu);
-                      setShowQualityMenu(false);
-                      setShowSubtitleMenu(false);
-                      setShowSubtitleCustomizer(false);
+                      if (typeof window !== "undefined" && window.innerWidth < 768) {
+                        setActiveMobileSheet("speed");
+                      } else {
+                        setShowSpeedMenu(!showSpeedMenu);
+                        setShowQualityMenu(false);
+                        setShowSubtitleMenu(false);
+                        setShowSubtitleCustomizer(false);
+                      }
                     }}
                     className="player-menu-btn flex items-center gap-1.5 text-zinc-300 hover:text-white text-xs font-semibold px-2.5 py-2 sm:py-1 bg-zinc-900/80 border border-zinc-800 rounded-lg transition-colors cursor-pointer min-h-11"
                     title={t.playbackSpeed || "Playback Speed"}
@@ -1856,10 +2045,14 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
                   <div className="relative flex items-center gap-1">
                     <button
                       onClick={() => {
-                        setShowSubtitleMenu(!showSubtitleMenu);
-                        setShowQualityMenu(false);
-                        setShowSpeedMenu(false);
-                        setShowSubtitleCustomizer(false);
+                        if (typeof window !== "undefined" && window.innerWidth < 768) {
+                          setActiveMobileSheet("subtitles");
+                        } else {
+                          setShowSubtitleMenu(!showSubtitleMenu);
+                          setShowQualityMenu(false);
+                          setShowSpeedMenu(false);
+                          setShowSubtitleCustomizer(false);
+                        }
                       }}
                       className={`player-menu-btn flex items-center gap-1.5 text-xs font-semibold px-2.5 py-2 sm:py-1 border rounded-lg transition-colors cursor-pointer min-h-11 ${
                         activeSubtitle !== "off"
@@ -1981,10 +2174,225 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
         </div>
       </div>
 
-      {/* Seasons / Episodes sidebar for TV Series */}
+      {/* Mobile Slide-Up Bottom Sheet Drawer (Quality, Speed, Subtitles, Episodes) */}
+      {activeMobileSheet !== "none" && (
+        <div
+          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex flex-col justify-end animate-in fade-in duration-150"
+          onClick={() => setActiveMobileSheet("none")}
+        >
+          <div
+            className="w-full max-h-[80vh] bg-zinc-950 border-t border-zinc-800 rounded-t-3xl p-5 shadow-2xl flex flex-col gap-4 animate-in slide-in-from-bottom duration-200"
+            style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 1.25rem)" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Grab Handle */}
+            <div className="w-12 h-1.5 bg-zinc-700 rounded-full mx-auto -mt-1 cursor-pointer" onClick={() => setActiveMobileSheet("none")} />
+
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-zinc-900 pb-3">
+              <h3 className="text-sm font-black text-white uppercase tracking-wider flex items-center gap-2">
+                {activeMobileSheet === "episodes" && <Tv2 className="w-4 h-4 text-red-500" />}
+                {activeMobileSheet === "quality" && <SlidersHorizontal className="w-4 h-4 text-cyan-400" />}
+                {activeMobileSheet === "speed" && <Gauge className="w-4 h-4 text-emerald-400" />}
+                {activeMobileSheet === "subtitles" && <Subtitles className="w-4 h-4 text-yellow-400" />}
+                {activeMobileSheet === "episodes" && (t.seasonsAndEpisodes || "Seasons & Episodes")}
+                {activeMobileSheet === "quality" && (t.videoQuality || "Video Quality")}
+                {activeMobileSheet === "speed" && (t.playbackSpeed || "Playback Speed")}
+                {activeMobileSheet === "subtitles" && (t.subtitles || "Subtitles & Captions")}
+              </h3>
+              <button
+                onClick={() => setActiveMobileSheet("none")}
+                className="w-8 h-8 rounded-full bg-zinc-900 flex items-center justify-center text-zinc-400 hover:text-white"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Sheet Content: Episodes */}
+            {activeMobileSheet === "episodes" && movie.seasons && (
+              <div className="flex flex-col gap-3 overflow-hidden">
+                <select
+                  value={activeSeason?.id}
+                  onChange={(e) => {
+                    const season = movie.seasons?.find((s) => s.id === e.target.value);
+                    if (season) {
+                      setActiveSeason(season);
+                      if (season.episodes.length > 0) {
+                        setActiveEpisode(season.episodes[0]);
+                        setCurrentTime(0);
+                      }
+                    }
+                  }}
+                  className="w-full bg-zinc-900 border border-zinc-800 text-xs font-bold rounded-xl px-3.5 py-3 text-white focus:outline-hidden"
+                >
+                  {movie.seasons.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.title} ({s.episodes.length} Episodes)
+                    </option>
+                  ))}
+                </select>
+
+                <div className="overflow-y-auto max-h-[50vh] space-y-2 pr-1">
+                  {activeSeason?.episodes.map((ep) => {
+                    const isCurrent = activeEpisode?.id === ep.id;
+                    return (
+                      <button
+                        key={ep.id}
+                        onClick={() => {
+                          setActiveEpisode(ep);
+                          setCurrentTime(0);
+                          setActiveMobileSheet("none");
+                        }}
+                        className={`w-full text-left p-3.5 rounded-xl border transition-all flex flex-col gap-1 ${
+                          isCurrent
+                            ? "bg-red-600/15 border-red-600 shadow-md"
+                            : "bg-zinc-900/60 border-zinc-900 hover:bg-zinc-900"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] font-bold text-red-500 font-mono">
+                            EPISODE {ep.episodeNumber}
+                          </span>
+                          <span className="text-[10px] text-zinc-500 font-mono">{ep.duration}m</span>
+                        </div>
+                        <h4 className={`text-xs font-bold ${isCurrent ? "text-red-400" : "text-white"}`}>
+                          {ep.title}
+                        </h4>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Sheet Content: Quality */}
+            {activeMobileSheet === "quality" && (
+              <div className="overflow-y-auto max-h-[50vh] space-y-1.5">
+                <button
+                  onClick={() => {
+                    handleQualitySelect("auto");
+                    setActiveMobileSheet("none");
+                  }}
+                  className={`w-full flex items-center justify-between p-3.5 rounded-xl text-xs font-bold ${
+                    selectedQuality.startsWith("Auto")
+                      ? "bg-cyan-500/20 text-cyan-400 border border-cyan-500/40"
+                      : "bg-zinc-900/60 text-zinc-300"
+                  }`}
+                >
+                  <span>Auto (Recommended)</span>
+                  {selectedQuality.startsWith("Auto") && <Check className="w-4 h-4 text-cyan-400" />}
+                </button>
+                {qualityLevels.map((lv) => {
+                  const active = !selectedQuality.startsWith("Auto") && selectedQuality === lv.label;
+                  return (
+                    <button
+                      key={lv.index}
+                      onClick={() => {
+                        handleQualitySelect(lv.index);
+                        setActiveMobileSheet("none");
+                      }}
+                      className={`w-full flex items-center justify-between p-3.5 rounded-xl text-xs font-bold ${
+                        active
+                          ? "bg-cyan-500/20 text-cyan-400 border border-cyan-500/40"
+                          : "bg-zinc-900/60 text-zinc-300"
+                      }`}
+                    >
+                      <span>{lv.label}</span>
+                      {active && <Check className="w-4 h-4 text-cyan-400" />}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Sheet Content: Speed */}
+            {activeMobileSheet === "speed" && (
+              <div className="grid grid-cols-3 gap-2 py-2">
+                {[0.5, 0.75, 1, 1.25, 1.5, 2].map((r) => (
+                  <button
+                    key={r}
+                    onClick={() => {
+                      handleSpeedSelect(r);
+                      setActiveMobileSheet("none");
+                    }}
+                    className={`py-3.5 rounded-xl text-xs font-bold border transition-all ${
+                      playbackRate === r
+                        ? "bg-emerald-500/20 border-emerald-500 text-emerald-400"
+                        : "bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-white"
+                    }`}
+                  >
+                    {r}x
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Sheet Content: Subtitles */}
+            {activeMobileSheet === "subtitles" && (
+              <div className="overflow-y-auto max-h-[50vh] space-y-3">
+                <div className="space-y-1.5">
+                  <button
+                    onClick={() => {
+                      handleSubtitleSelect("off");
+                      setActiveMobileSheet("none");
+                    }}
+                    className={`w-full flex items-center justify-between p-3.5 rounded-xl text-xs font-bold ${
+                      activeSubtitle === "off"
+                        ? "bg-red-600/20 text-red-400 border border-red-500/40"
+                        : "bg-zinc-900/60 text-zinc-300"
+                    }`}
+                  >
+                    <span>{t.noneOff || "Off (None)"}</span>
+                    {activeSubtitle === "off" && <Check className="w-4 h-4 text-red-400" />}
+                  </button>
+                  {movie.subtitles.map((sub) => (
+                    <button
+                      key={sub.id}
+                      onClick={() => {
+                        handleSubtitleSelect(sub.language);
+                        setActiveMobileSheet("none");
+                      }}
+                      className={`w-full flex items-center justify-between p-3.5 rounded-xl text-xs font-bold ${
+                        activeSubtitle === sub.language
+                          ? "bg-red-600/20 text-red-400 border border-red-500/40"
+                          : "bg-zinc-900/60 text-zinc-300"
+                      }`}
+                    >
+                      <span>{sub.label}</span>
+                      {activeSubtitle === sub.language && <Check className="w-4 h-4 text-red-400" />}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Subtitle Size */}
+                <div className="pt-2 border-t border-zinc-900">
+                  <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-2">Size</p>
+                  <div className="grid grid-cols-4 gap-1.5">
+                    {(["small", "medium", "large", "xlarge"] as const).map((sz) => (
+                      <button
+                        key={sz}
+                        onClick={() => setSubtitleSize(sz)}
+                        className={`py-2 rounded-lg text-xs font-bold capitalize border ${
+                          subtitleSize === sz
+                            ? "bg-red-600 border-red-500 text-white"
+                            : "bg-zinc-900 border-zinc-800 text-zinc-400"
+                        }`}
+                      >
+                        {sz.replace("xlarge", "XL")}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Desktop Seasons / Episodes sidebar for TV Series */}
       {movie.contentType === "series" && movie.seasons && movie.seasons.length > 0 && (
         <div
-          className="w-full landscape:w-80 md:w-80 shrink-0 border-t landscape:border-t-0 landscape:border-l md:border-t-0 md:border-l border-zinc-900 bg-zinc-950/95 flex flex-col h-1/3 landscape:h-full md:h-full z-10 text-white select-none relative"
+          className="hidden md:flex w-80 shrink-0 border-l border-zinc-900 bg-zinc-950/95 flex-col h-full z-10 text-white select-none relative"
           id="episodes-sidebar"
         >
           {/* Header */}
@@ -2057,3 +2465,4 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
     </div>
   );
 }
+
