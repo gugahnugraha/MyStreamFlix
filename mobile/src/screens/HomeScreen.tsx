@@ -23,6 +23,7 @@ export default function HomeScreen({ navigation }: any) {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
+  const [currentLanguage, setCurrentLanguage] = useState<"en" | "id">("id");
 
   useEffect(() => {
     loadData();
@@ -85,13 +86,14 @@ export default function HomeScreen({ navigation }: any) {
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#0A0A0C" />
 
-      {/* Top Header with Search & Category Slider */}
+      {/* Top Header with Search & Language Toggle */}
       <Header
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
         selectedCategory={selectedCategory}
         onCategoryChange={setSelectedCategory}
-        onProfilePress={() => navigation.navigate("Profile")}
+        currentLanguage={currentLanguage}
+        onToggleLanguage={() => setCurrentLanguage((prev) => (prev === "id" ? "en" : "id"))}
       />
 
       {loading ? (

@@ -1,8 +1,9 @@
-import React from "react";
+import React, { useState } from "react";
+import { View, StyleSheet } from "react-native";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import { Film, Radio, User, ShieldCheck } from "lucide-react-native";
+import { Film, Radio, User as UserIcon, LogIn, Tv } from "lucide-react-native";
 
 import HomeScreen from "./src/screens/HomeScreen";
 import LiveTvScreen from "./src/screens/LiveTvScreen";
@@ -20,13 +21,17 @@ function MainTabs() {
         headerShown: false,
         tabBarStyle: {
           backgroundColor: "#0F0F12",
-          borderTopColor: "#1E1E24",
-          height: 62,
+          borderTopColor: "#1A1A20",
+          height: 64,
           paddingBottom: 8,
           paddingTop: 6,
         },
         tabBarActiveTintColor: "#00ADB5",
-        tabBarInactiveTintColor: "#777",
+        tabBarInactiveTintColor: "#666",
+        tabBarLabelStyle: {
+          fontSize: 11,
+          fontWeight: "700",
+        },
       }}
     >
       <Tab.Screen
@@ -37,20 +42,30 @@ function MainTabs() {
           tabBarIcon: ({ color, size }) => <Film color={color} size={size} />,
         }}
       />
+
+      {/* 🔴 Enhanced Glowing Live TV Tab */}
       <Tab.Screen
         name="LiveTV"
         component={LiveTvScreen}
         options={{
           tabBarLabel: "Live TV",
-          tabBarIcon: ({ color, size }) => <Radio color={color} size={size} />,
+          tabBarIcon: ({ color, focused }) => (
+            <View style={styles.liveIconWrap}>
+              <Radio color={focused ? "#E50914" : color} size={22} />
+              <View style={styles.liveDot} />
+            </View>
+          ),
+          tabBarActiveTintColor: "#E50914",
         }}
       />
+
+      {/* 👤 Clean Profile Tab */}
       <Tab.Screen
         name="ProfileTab"
         component={ProfileScreen}
         options={{
-          tabBarLabel: "Account & Admin",
-          tabBarIcon: ({ color, size }) => <User color={color} size={size} />,
+          tabBarLabel: "Profile",
+          tabBarIcon: ({ color, size }) => <UserIcon color={color} size={size} />,
         }}
       />
     </Tab.Navigator>
@@ -81,3 +96,20 @@ export default function App() {
     </NavigationContainer>
   );
 }
+
+const styles = StyleSheet.create({
+  liveIconWrap: {
+    position: "relative",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  liveDot: {
+    position: "absolute",
+    top: -2,
+    right: -4,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: "#E50914",
+  },
+});

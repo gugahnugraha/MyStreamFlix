@@ -10,6 +10,7 @@ import {
   Alert,
   Switch,
   ActivityIndicator,
+  Image,
 } from "react-native";
 import {
   User as UserIcon,
@@ -28,15 +29,31 @@ import {
   KeyRound,
   UserPlus,
   LogIn,
-  Calendar,
-  CheckCircle,
+  Check,
+  RefreshCw,
+  Baby,
+  Smile,
 } from "lucide-react-native";
-import { User } from "../types";
+import { User, UserProfile } from "../types";
 import { loginUser, registerUser } from "../api/client";
 
 export default function ProfileScreen({ navigation }: any) {
-  // Real Database User State
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  // Real Database User State (default mock or live session)
+  const [currentUser, setCurrentUser] = useState<User | null>({
+    id: "usr-admin-1",
+    name: "Gugah Nugraha",
+    email: "admin@mystreamflix.com",
+    role: "admin",
+    createdAt: new Date().toISOString(),
+    isPremium: true,
+    profiles: [
+      { id: "prof-1", name: "Gugah (Main)", avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80", isKids: false },
+      { id: "prof-2", name: "Kids Zone", avatar: "https://images.unsplash.com/photo-1501196354995-cbb51c65aaea?w=150&auto=format&fit=crop&q=80", isKids: true },
+    ],
+    activeProfileId: "prof-1",
+  });
+
+  const [activeProfileId, setActiveProfileId] = useState("prof-1");
   const [loading, setLoading] = useState(false);
 
   // Auth Modal State
@@ -46,9 +63,28 @@ export default function ProfileScreen({ navigation }: any) {
   const [inputEmail, setInputEmail] = useState("");
   const [inputPassword, setInputPassword] = useState("");
 
-  // User Settings
+  // Settings
   const [autoPlayNext, setAutoPlayNext] = useState(true);
   const [hardwareAcceleration, setHardwareAcceleration] = useState(true);
+
+  // 🔄 Toggle Role (Admin <-> VIP <-> Free Viewer) like web version
+  const handleToggleRole = () => {
+    if (!currentUser) return;
+    const nextRole =
+      currentUser.role === "admin"
+        ? "user"
+        : "admin";
+
+    setCurrentUser({
+      ...currentUser,
+      role: nextRole,
+    });
+
+    Alert.alert(
+      "Role Switched",
+      `Switched mode to: ${nextRole === "admin" ? "👑 Admin (Full Access)" : "👤 Viewer (Standard Mode)"}`
+    );
+  };
 
   const handleAuthSubmit = async () => {
     if (!inputEmail || !inputPassword) {
@@ -66,10 +102,7 @@ export default function ProfileScreen({ navigation }: any) {
         setCurrentUser(result.user);
         setShowAuthModal(false);
         setInputPassword("");
-        Alert.alert(
-          "Signed In",
-          `Welcome back, ${result.user.name || result.user.email}!`
-        );
+        Alert.alert("Signed In", `Welcome back, ${result.user.name || result.user.email}!`);
       } else {
         Alert.alert("Authentication Failed", result.error || "Invalid email or password.");
       }
@@ -95,7 +128,7 @@ export default function ProfileScreen({ navigation }: any) {
   };
 
   const handleLogout = () => {
-    Alert.alert("Sign Out", "Are you sure you want to log out of your session?", [
+    Alert.alert("Sign Out", "Are you sure you want to log out?", [
       { text: "Cancel", style: "cancel" },
       {
         text: "Sign Out",
@@ -111,7 +144,7 @@ export default function ProfileScreen({ navigation }: any) {
 
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      {/* Profile Banner & Database User Info */}
+      {/* Profile Header & Info */}
       <View style={styles.header}>
         <View style={styles.avatar}>
           <UserIcon size={38} color="#00ADB5" />
@@ -126,7 +159,7 @@ export default function ProfileScreen({ navigation }: any) {
           {currentUser ? currentUser.name || currentUser.email.split("@")[0] : "Guest User"}
         </Text>
         <Text style={styles.email}>
-          {currentUser ? currentUser.email : "Not signed in to database"}
+          {currentUser ? currentUser.email : "Not signed in"}
         </Text>
 
         <View style={styles.badgeRow}>
@@ -149,13 +182,28 @@ export default function ProfileScreen({ navigation }: any) {
                 : currentUser?.isPremium
                 ? "⭐ VIP MEMBER"
                 : currentUser
-                ? "STANDARD USER"
+                ? "STANDARD VIEWER"
                 : "GUEST VISITOR"}
             </Text>
           </View>
         </View>
 
-        {!currentUser ? (
+        {/* 🔄 Switch Role Button (Identical to Web) */}
+        {currentUser ? (
+          <View style={styles.topActionsRow}>
+            <TouchableOpacity style={styles.toggleRoleBtn} onPress={handleToggleRole}>
+              <RefreshCw size={13} color="#00ADB5" />
+              <Text style={styles.toggleRoleText}>
+                Switch to {isAdmin ? "Viewer Mode" : "Admin Mode"}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
+              <LogOut size={13} color="#E50914" />
+              <Text style={styles.logoutBtnText}>Sign Out</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
           <TouchableOpacity
             style={styles.loginBtn}
             onPress={() => {
@@ -164,62 +212,64 @@ export default function ProfileScreen({ navigation }: any) {
             }}
           >
             <LogIn size={15} color="#000" />
-            <Text style={styles.loginBtnText}>Database Sign In / Register</Text>
-          </TouchableOpacity>
-        ) : (
-          <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
-            <LogOut size={14} color="#E50914" />
-            <Text style={styles.logoutBtnText}>Sign Out Session</Text>
+            <Text style={styles.loginBtnText}>Sign In / Register</Text>
           </TouchableOpacity>
         )}
       </View>
 
-      {/* Admin Panel Gateway */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>DATABASE ADMINISTRATION</Text>
-        <TouchableOpacity
-          style={styles.adminGateCard}
-          onPress={() => {
-            if (isAdmin) {
-              navigation.navigate("Admin");
-            } else {
-              Alert.alert(
-                "Admin Restricted",
-                "You must be signed in as an Administrator in the database to access the CMS Dashboard.",
-                [
-                  { text: "Cancel", style: "cancel" },
-                  {
-                    text: "Admin Sign In",
-                    onPress: () => {
-                      setAuthMode("login");
-                      setInputEmail("admin@mystreamflix.com");
-                      setShowAuthModal(true);
-                    },
-                  },
-                ]
+      {/* 🎭 Sub-Profile Switcher (Main vs Kids Zone) */}
+      {currentUser?.profiles && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>SWITCH PROFILE</Text>
+          <View style={styles.profileSwitcherRow}>
+            {currentUser.profiles.map((p) => {
+              const isSelected = activeProfileId === p.id;
+              return (
+                <TouchableOpacity
+                  key={p.id}
+                  onPress={() => setActiveProfileId(p.id)}
+                  style={[styles.profileCard, isSelected && styles.profileCardActive]}
+                >
+                  <View style={styles.profileAvatarBox}>
+                    {p.isKids ? <Baby size={22} color="#FBBF24" /> : <Smile size={22} color="#00ADB5" />}
+                  </View>
+                  <Text style={[styles.profileName, isSelected && { color: "#FFF", fontWeight: "bold" }]}>
+                    {p.name}
+                  </Text>
+                  {isSelected && <Check size={14} color="#00ADB5" style={{ marginTop: 4 }} />}
+                </TouchableOpacity>
               );
-            }
-          }}
-          activeOpacity={0.8}
-        >
-          <View style={styles.adminGateLeft}>
-            <View style={styles.adminIconBox}>
-              <ShieldCheck size={22} color="#00ADB5" />
-            </View>
-            <View>
-              <Text style={styles.adminGateTitle}>Admin CMS & Auto-Scanner</Text>
-              <Text style={styles.adminGateSub}>
-                {isAdmin ? "Access granted (Database Verified)" : "Requires Database Admin Account"}
-              </Text>
-            </View>
+            })}
           </View>
-          <KeyRound size={18} color="#00ADB5" />
-        </TouchableOpacity>
-      </View>
+        </View>
+      )}
+
+      {/* Admin Panel Gateway */}
+      {isAdmin && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>ADMINISTRATION</Text>
+          <TouchableOpacity
+            style={styles.adminGateCard}
+            onPress={() => navigation.navigate("Admin")}
+            activeOpacity={0.8}
+          >
+            <View style={styles.adminGateLeft}>
+              <View style={styles.adminIconBox}>
+                <ShieldCheck size={22} color="#00ADB5" />
+              </View>
+              <View>
+                <Text style={styles.adminGateTitle}>Admin CMS & Auto-Scanner</Text>
+                <Text style={styles.adminGateSub}>Manage Catalog, Users & GDrive Storage</Text>
+              </View>
+            </View>
+            <KeyRound size={18} color="#00ADB5" />
+          </TouchableOpacity>
+        </View>
+      )}
 
       {/* Library Section */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>DATABASE SYNCED LIBRARY</Text>
+        <Text style={styles.sectionTitle}>LIBRARY & PLAYLISTS</Text>
         <TouchableOpacity style={styles.menuItem}>
           <View style={styles.menuItemLeft}>
             <View style={styles.iconWrap}>
@@ -227,9 +277,7 @@ export default function ProfileScreen({ navigation }: any) {
             </View>
             <View>
               <Text style={styles.menuItemTitle}>My Saved Watchlist</Text>
-              <Text style={styles.menuItemSub}>
-                {currentUser?.watchlist?.length || 0} saved titles
-              </Text>
+              <Text style={styles.menuItemSub}>Synced across devices</Text>
             </View>
           </View>
           <ChevronRight size={18} color="#666" />
@@ -241,10 +289,8 @@ export default function ProfileScreen({ navigation }: any) {
               <History size={18} color="#E50914" />
             </View>
             <View>
-              <Text style={styles.menuItemTitle}>Watch History & Progress</Text>
-              <Text style={styles.menuItemSub}>
-                {currentUser?.history?.length || 0} movies watched
-              </Text>
+              <Text style={styles.menuItemTitle}>Watch History & Resume</Text>
+              <Text style={styles.menuItemSub}>Continue watching recent titles</Text>
             </View>
           </View>
           <ChevronRight size={18} color="#666" />
@@ -280,39 +326,21 @@ export default function ProfileScreen({ navigation }: any) {
         </View>
       </View>
 
-      {/* System & Database Connection Details */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>DATABASE & SYSTEM INFO</Text>
-        <View style={styles.infoRow}>
-          <Text style={styles.infoLabel}>Database Endpoint</Text>
-          <Text style={styles.infoValue}>https://mystreamflix.biz.id</Text>
-        </View>
-        <View style={styles.infoRow}>
-          <Text style={styles.infoLabel}>User ID</Text>
-          <Text style={styles.infoValue}>{currentUser?.id || "N/A"}</Text>
-        </View>
-        <View style={styles.infoRow}>
-          <Text style={styles.infoLabel}>Database Auth</Text>
-          <Text style={[styles.infoValue, { color: "#10B981" }]}>PostgreSQL / JWT Active</Text>
-        </View>
-      </View>
-
       <View style={{ height: 40 }} />
 
-      {/* Database Auth Modal (Sign In / Register) */}
+      {/* Auth Modal */}
       <Modal visible={showAuthModal} transparent animationType="slide">
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
             <Text style={styles.modalTitle}>
-              {authMode === "login" ? "Database Sign In" : "Create Account"}
+              {authMode === "login" ? "Sign In" : "Create Account"}
             </Text>
             <Text style={styles.modalSub}>
               {authMode === "login"
-                ? "Enter your registered credentials to sign in."
-                : "Register a new user account in the MyStreamFlix database."}
+                ? "Enter your email & password to sign in."
+                : "Register a new user account."}
             </Text>
 
-            {/* Switch Mode Tabs */}
             <View style={styles.authTabRow}>
               <TouchableOpacity
                 onPress={() => setAuthMode("login")}
@@ -404,21 +432,21 @@ const styles = StyleSheet.create({
   },
   header: {
     alignItems: "center",
-    padding: 24,
+    padding: 22,
     backgroundColor: "#121216",
     borderBottomWidth: 1,
     borderColor: "#1E1E24",
   },
   avatar: {
-    width: 76,
-    height: 76,
-    borderRadius: 38,
+    width: 72,
+    height: 72,
+    borderRadius: 36,
     backgroundColor: "rgba(0,173,181,0.12)",
     borderWidth: 1.5,
     borderColor: "rgba(0,173,181,0.4)",
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 12,
+    marginBottom: 10,
     position: "relative",
   },
   crownBadge: {
@@ -426,22 +454,22 @@ const styles = StyleSheet.create({
     bottom: -2,
     right: -2,
     backgroundColor: "#FACC15",
-    padding: 5,
-    borderRadius: 12,
+    padding: 4,
+    borderRadius: 10,
   },
   name: {
     color: "#FFF",
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: "bold",
     marginBottom: 2,
   },
   email: {
     color: "#888",
     fontSize: 12,
-    marginBottom: 12,
+    marginBottom: 10,
   },
   badgeRow: {
-    marginBottom: 14,
+    marginBottom: 12,
   },
   roleBadge: {
     paddingHorizontal: 12,
@@ -454,7 +482,27 @@ const styles = StyleSheet.create({
     color: "#AAA",
     fontSize: 10,
     fontWeight: "900",
-    letterSpacing: 1,
+    letterSpacing: 0.5,
+  },
+  topActionsRow: {
+    flexDirection: "row",
+    gap: 10,
+  },
+  toggleRoleBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "rgba(0,173,181,0.12)",
+    paddingVertical: 7,
+    paddingHorizontal: 14,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "rgba(0,173,181,0.3)",
+  },
+  toggleRoleText: {
+    color: "#00ADB5",
+    fontSize: 11,
+    fontWeight: "bold",
   },
   loginBtn: {
     flexDirection: "row",
@@ -474,18 +522,18 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    paddingVertical: 6,
-    paddingHorizontal: 16,
+    paddingVertical: 7,
+    paddingHorizontal: 14,
     backgroundColor: "rgba(229,9,20,0.12)",
     borderRadius: 8,
   },
   logoutBtnText: {
     color: "#E50914",
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: "bold",
   },
   section: {
-    marginTop: 20,
+    marginTop: 18,
     paddingHorizontal: 16,
   },
   sectionTitle: {
@@ -495,12 +543,43 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
     marginBottom: 10,
   },
+  profileSwitcherRow: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  profileCard: {
+    flex: 1,
+    backgroundColor: "#141418",
+    padding: 12,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "#22222A",
+    alignItems: "center",
+  },
+  profileCardActive: {
+    borderColor: "#00ADB5",
+    backgroundColor: "rgba(0,173,181,0.06)",
+  },
+  profileAvatarBox: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "#1E1E24",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 6,
+  },
+  profileName: {
+    color: "#888",
+    fontSize: 12,
+    fontWeight: "600",
+  },
   adminGateCard: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     backgroundColor: "#141418",
-    padding: 16,
+    padding: 14,
     borderRadius: 14,
     borderWidth: 1,
     borderColor: "rgba(0,173,181,0.3)",
@@ -511,8 +590,8 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   adminIconBox: {
-    width: 40,
-    height: 40,
+    width: 38,
+    height: 38,
     borderRadius: 10,
     backgroundColor: "rgba(0,173,181,0.15)",
     justifyContent: "center",
@@ -520,7 +599,7 @@ const styles = StyleSheet.create({
   },
   adminGateTitle: {
     color: "#FFF",
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: "bold",
   },
   adminGateSub: {
@@ -533,7 +612,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     backgroundColor: "#141418",
-    padding: 14,
+    padding: 13,
     borderRadius: 14,
     marginBottom: 8,
     borderWidth: 1,
@@ -567,7 +646,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     backgroundColor: "#141418",
-    padding: 14,
+    padding: 13,
     borderRadius: 14,
     marginBottom: 8,
     borderWidth: 1,
@@ -583,22 +662,6 @@ const styles = StyleSheet.create({
     fontSize: 11,
     marginTop: 2,
   },
-  infoRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderColor: "#1E1E24",
-  },
-  infoLabel: {
-    color: "#777",
-    fontSize: 12,
-  },
-  infoValue: {
-    color: "#DDD",
-    fontSize: 12,
-    fontWeight: "600",
-  },
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.8)",
@@ -608,7 +671,7 @@ const styles = StyleSheet.create({
   modalCard: {
     backgroundColor: "#141418",
     borderRadius: 20,
-    padding: 24,
+    padding: 22,
     borderWidth: 1,
     borderColor: "#2A2A32",
   },

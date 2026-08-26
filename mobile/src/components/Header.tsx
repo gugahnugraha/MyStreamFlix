@@ -8,14 +8,15 @@ import {
   ScrollView,
   Platform,
 } from "react-native";
-import { Search, X, User, Film, Sparkles } from "lucide-react-native";
+import { Search, X, Film, Globe } from "lucide-react-native";
 
 interface HeaderProps {
   searchQuery: string;
   onSearchChange: (query: string) => void;
   selectedCategory: string;
   onCategoryChange: (cat: string) => void;
-  onProfilePress: () => void;
+  currentLanguage?: "en" | "id";
+  onToggleLanguage?: () => void;
   categories?: string[];
   brandColor?: string;
 }
@@ -38,13 +39,14 @@ export default function Header({
   onSearchChange,
   selectedCategory,
   onCategoryChange,
-  onProfilePress,
+  currentLanguage = "id",
+  onToggleLanguage,
   categories = DEFAULT_CATEGORIES,
   brandColor = "#00ADB5",
 }: HeaderProps) {
   return (
     <View style={styles.container}>
-      {/* Top Row: Brand & User Avatar */}
+      {/* Top Row: Brand & Language Switcher */}
       <View style={styles.topRow}>
         <View style={styles.logoRow}>
           <View style={[styles.logoIcon, { backgroundColor: brandColor }]}>
@@ -55,12 +57,16 @@ export default function Header({
           </Text>
         </View>
 
+        {/* 🌐 Language Switcher Pill */}
         <TouchableOpacity
-          onPress={onProfilePress}
-          style={styles.avatarBtn}
+          onPress={onToggleLanguage}
+          style={styles.langPill}
           activeOpacity={0.8}
         >
-          <User size={18} color="#FFF" />
+          <Globe size={14} color="#00ADB5" />
+          <Text style={styles.langText}>
+            {currentLanguage.toUpperCase()} <Text style={styles.langAlt}>/ {currentLanguage === "id" ? "EN" : "ID"}</Text>
+          </Text>
         </TouchableOpacity>
       </View>
 
@@ -68,7 +74,7 @@ export default function Header({
       <View style={styles.searchBar}>
         <Search size={16} color="#777" />
         <TextInput
-          placeholder="Search movies, series, or live TV..."
+          placeholder={currentLanguage === "id" ? "Cari film, serial TV, atau siaran live..." : "Search movies, series, or live TV..."}
           placeholderTextColor="#777"
           value={searchQuery}
           onChangeText={onSearchChange}
@@ -148,15 +154,25 @@ const styles = StyleSheet.create({
     fontWeight: "900",
     letterSpacing: -0.5,
   },
-  avatarBtn: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: "#1C1C22",
-    borderWidth: 1,
-    borderColor: "#2A2A32",
-    justifyContent: "center",
+  langPill: {
+    flexDirection: "row",
     alignItems: "center",
+    gap: 6,
+    backgroundColor: "#141418",
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "#22222A",
+  },
+  langText: {
+    color: "#FFF",
+    fontSize: 11,
+    fontWeight: "bold",
+  },
+  langAlt: {
+    color: "#777",
+    fontSize: 10,
   },
   searchBar: {
     flexDirection: "row",
