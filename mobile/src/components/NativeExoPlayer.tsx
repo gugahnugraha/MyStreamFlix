@@ -13,9 +13,9 @@ import {
   PanResponder,
   Platform,
 } from "react-native";
-import Video, { ResizeMode, OnProgressData, OnLoadData } from "react-native-video";
+import { Video, ResizeMode, AVPlaybackStatus } from "expo-av";
 import Slider from "@react-native-community/slider";
-import Orientation from "react-native-orientation-locker";
+import * as ScreenOrientation from "expo-screen-orientation";
 import {
   Play,
   Pause,
@@ -23,21 +23,18 @@ import {
   RotateCw,
   Volume2,
   VolumeX,
-  Maximize,
-  Minimize,
   X,
   Subtitles,
   Settings,
   Lock,
   Unlock,
   Check,
-  SlidersHorizontal,
   Sun,
   Scaling,
   Tv,
   ChevronLeft,
 } from "lucide-react-native";
-import { Movie, Subtitle, Season, Episode } from "../types";
+import { Movie, Season, Episode } from "../types";
 
 interface NativeExoPlayerProps {
   movie: Movie;
@@ -54,7 +51,7 @@ export default function NativeExoPlayer({
   brandColor = "#00ADB5",
   backendUrl = "https://mystreamflix.biz.id",
 }: NativeExoPlayerProps) {
-  const videoRef = useRef<any>(null);
+  const videoRef = useRef<Video>(null);
 
   // Active season & episode for series
   const [activeSeason, setActiveSeason] = useState<Season | null>(() => {
@@ -100,13 +97,13 @@ export default function NativeExoPlayer({
   const controlsTimerRef = useRef<any>(null);
   const lastTapRef = useRef<{ time: number; x: number } | null>(null);
 
-  // Lock to Landscape upon entering player
+  // Lock to Landscape upon entering player in Expo
   useEffect(() => {
-    Orientation.lockToLandscape();
+    ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
     StatusBar.setHidden(true, "fade");
 
     return () => {
-      Orientation.unlockAllOrientations();
+      ScreenOrientation.unlockAsync();
       StatusBar.setHidden(false, "fade");
       if (controlsTimerRef.current) clearTimeout(controlsTimerRef.current);
     };
@@ -157,6 +154,7 @@ export default function NativeExoPlayer({
           const newVol = Math.min(1.0, Math.max(0.0, volume + delta));
           setVolume(newVol);
           setIsMuted(newVol === 0);
+          videoRef.current?.setStatusAsync({ volume: newVol, isMuted: newVol === 0 });
           showToast({
             type: "volume",
             value: `${Math.round(newVol * 100)}%`,
@@ -197,17 +195,21 @@ export default function NativeExoPlayer({
     }
   };
 
-  const handlePlayPause = () => {
-    setIsPlaying(!isPlaying);
+  const handlePlayPause = async () => {
+    if (isPlaying) {
+      await videoRef.current?.pauseAsync();
+      setIsPlaying(false);
+    } else {
+      await videoRef.current?.playAsync();
+      setIsPlaying(true);
+    }
     resetControlsTimer();
   };
 
-  const handleSeek = (time: number) => {
-    const target = Math.max(0, Math.min(duration, time));
+  const handleSeek = async (timeInSeconds: number) => {
+    const target = Math.max(0, Math.min(duration, timeInSeconds));
     setCurrentTime(target);
-    if (videoRef.current) {
-      videoRef.current.seek(target);
-    }
+    await videoRef.current?.setPositionAsync(target * 1000);
     resetControlsTimer();
   };
 
@@ -218,6 +220,20 @@ export default function NativeExoPlayer({
       return "contain";
     });
     resetControlsTimer();
+  };
+
+  const onPlaybackStatusUpdate = (status: AVPlaybackStatus) => {
+    if (!status.isLoaded) {
+      setIsBuffering(true);
+      return;
+    }
+
+    setIsBuffering(status.isBuffering);
+    setIsPlaying(status.isPlaying);
+    setCurrentTime(status.positionMillis / 1000);
+    if (status.durationMillis) {
+      setDuration(status.durationMillis / 1000);
+    }
   };
 
   // Format seconds to mm:ss or hh:mm:ss
@@ -232,7 +248,7 @@ export default function NativeExoPlayer({
     return `${m < 10 ? "0" : ""}${m}:${s < 10 ? "0" : ""}${s}`;
   };
 
-  // Resolve target streaming URL
+  // Resolve target streaming URL (with Google Drive backend proxy fallback)
   let targetUrl = activeEpisode ? activeEpisode.videoUrl : movie.videoUrl;
   if (targetUrl.includes("drive.google.com")) {
     const match = targetUrl.match(/[?&]id=([a-zA-Z0-9_-]+)/) || targetUrl.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
@@ -250,28 +266,19 @@ export default function NativeExoPlayer({
 
   return (
     <View style={styles.container}>
-      {/* ExoPlayer Video Core */}
+      {/* ExoPlayer Core via Expo AV */}
       <Video
         ref={videoRef}
-        source={{
-          uri: targetUrl,
-          type: targetUrl.includes(".m3u8") ? "m3u8" : targetUrl.includes(".mpd") ? "mpd" : undefined,
-        }}
+        source={{ uri: targetUrl }}
         style={StyleSheet.absoluteFill}
         resizeMode={resizeModeProp}
-        paused={!isPlaying}
-        volume={isMuted ? 0 : volume}
+        shouldPlay={isPlaying}
+        isMuted={isMuted}
+        volume={volume}
         rate={playbackRate}
-        onProgress={(data: OnProgressData) => {
-          setCurrentTime(data.currentTime);
-        }}
-        onLoad={(data: OnLoadData) => {
-          setDuration(data.duration);
-          setIsBuffering(false);
-        }}
-        onBuffer={({ isBuffering: buffering }) => setIsBuffering(buffering)}
-        onError={(e) => console.warn("ExoPlayer error:", e)}
-        useExoPlayer={true}
+        onPlaybackStatusUpdate={onPlaybackStatusUpdate}
+        usePoster={true}
+        posterSource={{ uri: movie.backdropUrl || movie.posterUrl }}
       />
 
       {/* Screen Brightness Overlay Filter */}
@@ -388,7 +395,14 @@ export default function NativeExoPlayer({
             {/* Bottom Actions Row */}
             <View style={styles.bottomActionsRow}>
               {/* Volume Toggle */}
-              <TouchableOpacity onPress={() => setIsMuted(!isMuted)} style={styles.iconBtn}>
+              <TouchableOpacity
+                onPress={() => {
+                  const targetMute = !isMuted;
+                  setIsMuted(targetMute);
+                  videoRef.current?.setStatusAsync({ isMuted: targetMute });
+                }}
+                style={styles.iconBtn}
+              >
                 {isMuted ? <VolumeX size={20} color="#E50914" /> : <Volume2 size={20} color="#FFF" />}
               </TouchableOpacity>
 
@@ -421,8 +435,9 @@ export default function NativeExoPlayer({
               {[0.5, 0.75, 1.0, 1.25, 1.5, 2.0].map((rate) => (
                 <TouchableOpacity
                   key={rate}
-                  onPress={() => {
+                  onPress={async () => {
                     setPlaybackRate(rate);
+                    await videoRef.current?.setStatusAsync({ rate });
                     setShowSpeedModal(false);
                   }}
                   style={[styles.modalItem, playbackRate === rate && styles.modalItemActive]}
