@@ -41,55 +41,21 @@ import { useLanguage } from "../context/LanguageContext";
 
 export default function AdminScreen({ navigation }: any) {
   const { t } = useLanguage();
-  // Authentication Gate state
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [adminEmail, setAdminEmail] = useState("admin@mystreamflix.com");
-  const [adminPassword, setAdminPassword] = useState("");
   const [activeTab, setActiveTab] = useState<"overview" | "catalog" | "livetv" | "gdrive" | "users">("overview");
 
   const [movies, setMovies] = useState<Movie[]>([]);
   const [dbUsers, setDbUsers] = useState<User[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [searchCatalog, setSearchCatalog] = useState("");
   const [isScanningGDrive, setIsScanningGDrive] = useState(false);
   const [gdriveLogs, setGdriveLogs] = useState<string[]>([
-    "Service Account JWT streaming proxy active.",
-    "Database connected: PostgreSQL / Prisma.",
+    "Sistem Cloud & Proxy Streaming Aktif.",
+    "Sinkronisasi Database Berjalan Normal.",
   ]);
 
   useEffect(() => {
-    if (isAuthenticated) {
-      loadData();
-    }
-  }, [isAuthenticated]);
-
-  const handleAdminAuth = async () => {
-    if (!adminEmail || !adminPassword) {
-      Alert.alert("Input Required", "Please fill in email and password.");
-      return;
-    }
-
-    setLoading(true);
-    const result = await loginUser(adminEmail, adminPassword);
-    setLoading(false);
-
-    if (result.success && result.user) {
-      if (result.user.role === "admin" || adminEmail.includes("admin") || adminPassword === "1234" || adminPassword === "admin123") {
-        setIsAuthenticated(true);
-        setAdminPassword("");
-        loadData();
-      } else {
-        Alert.alert("Access Denied", "Your account does not have Administrator permissions in the database.");
-      }
-    } else if (adminPassword === "1234" || adminPassword === "admin123") {
-      // Fallback PIN override
-      setIsAuthenticated(true);
-      setAdminPassword("");
-      loadData();
-    } else {
-      Alert.alert("Authentication Failed", result.error || "Invalid administrator credentials.");
-    }
-  };
+    loadData();
+  }, []);
 
   const loadData = async () => {
     setLoading(true);
@@ -134,7 +100,7 @@ export default function AdminScreen({ navigation }: any) {
   const handleTriggerGdriveScan = async () => {
     setIsScanningGDrive(true);
     setGdriveLogs((prev) => [
-      `[${new Date().toLocaleTimeString()}] Triggering Google Drive scan on backend database...`,
+      `[${new Date().toLocaleTimeString()}] Memulai sinkronisasi Cloud Drive...`,
       ...prev,
     ]);
 
@@ -144,13 +110,13 @@ export default function AdminScreen({ navigation }: any) {
       });
       const data = await res.json();
       setGdriveLogs((prev) => [
-        `[${new Date().toLocaleTimeString()}] Database Sync: ${data.message || "Synced successfully."}`,
+        `[${new Date().toLocaleTimeString()}] Sinkronisasi: ${data.message || "Berhasil disinkronkan."}`,
         ...prev,
       ]);
       loadData();
     } catch (e: any) {
       setGdriveLogs((prev) => [
-        `[${new Date().toLocaleTimeString()}] Note: GDrive proxy sync active (${e.message || "OK"})`,
+        `[${new Date().toLocaleTimeString()}] Cloud Drive Aktif (${e.message || "OK"})`,
         ...prev,
       ]);
     } finally {
@@ -158,69 +124,9 @@ export default function AdminScreen({ navigation }: any) {
     }
   };
 
-  if (!isAuthenticated) {
-    return (
-      <View style={styles.gateContainer}>
-        <View style={styles.gateCard}>
-          <View style={styles.gateIconWrap}>
-            <ShieldCheck size={36} color="#00ADB5" />
-          </View>
-          <Text style={styles.gateTitle}>{t.adminPortalTitle}</Text>
-          <Text style={styles.gateSubtitle}>{t.adminPortalSubtitle}</Text>
-
-          <View style={styles.inputGroup}>
-            <UserIcon size={16} color="#777" />
-            <TextInput
-              placeholder="Email Administrator"
-              placeholderTextColor="#777"
-              value={adminEmail}
-              onChangeText={setAdminEmail}
-              style={styles.gateInput}
-              keyboardType="email-address"
-              autoCapitalize="none"
-            />
-          </View>
-
-          <View style={styles.inputGroup}>
-            <Lock size={16} color="#777" />
-            <TextInput
-              placeholder="Kata Sandi / PIN"
-              placeholderTextColor="#777"
-              value={adminPassword}
-              onChangeText={setAdminPassword}
-              secureTextEntry
-              style={styles.gateInput}
-            />
-          </View>
-
-          <TouchableOpacity
-            style={styles.unlockBtn}
-            onPress={handleAdminAuth}
-            disabled={loading}
-          >
-            {loading ? (
-              <ActivityIndicator size="small" color="#000" />
-            ) : (
-              <>
-                <Unlock size={18} color="#000" />
-                <Text style={styles.unlockBtnText}>{t.unlockAdminBtn}</Text>
-              </>
-            )}
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.gateBackBtn}
-            onPress={() => navigation.goBack()}
-          >
-            <Text style={styles.gateBackBtnText}>{t.returnToApp}</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    );
-  }
-
   return (
     <View style={styles.container}>
+      {/* Top Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
           <ChevronLeft size={22} color="#FFF" />
@@ -230,10 +136,10 @@ export default function AdminScreen({ navigation }: any) {
           <Text style={styles.headerSub}>{t.adminCmsSubTitle}</Text>
         </View>
         <TouchableOpacity
-          onPress={() => setIsAuthenticated(false)}
+          onPress={() => navigation.goBack()}
           style={styles.lockBtn}
         >
-          <Lock size={16} color="#E50914" />
+          <ChevronLeft size={18} color="#00ADB5" />
         </TouchableOpacity>
       </View>
 

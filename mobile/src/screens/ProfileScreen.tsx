@@ -41,9 +41,9 @@ export default function ProfileScreen({ navigation }: any) {
   const { t } = useLanguage();
   // Real Database User State (default mock or live session)
   const [currentUser, setCurrentUser] = useState<User | null>({
-    id: "usr-admin-1",
+    id: "usr-admin-streamcms",
     name: "Gugah Nugraha",
-    email: "admin@mystreamflix.com",
+    email: "admin@streamcms.com",
     role: "admin",
     createdAt: new Date().toISOString(),
     isPremium: true,
