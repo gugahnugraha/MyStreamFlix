@@ -90,6 +90,8 @@ export default function AdminScreen({ navigation }: any) {
   const [m3uUrl, setM3uUrl] = useState("https://iptv-org.github.io/iptv/countries/id.m3u");
   const [isScanningM3u, setIsScanningM3u] = useState(false);
   const [scannedChannels, setScannedChannels] = useState<any[]>([]);
+  const [selectedChannelIndices, setSelectedChannelIndices] = useState<number[]>([]);
+  const [searchScannedQuery, setSearchScannedQuery] = useState("");
   const [isImportingM3u, setIsImportingM3u] = useState(false);
 
   useEffect(() => {
@@ -192,20 +194,41 @@ export default function AdminScreen({ navigation }: any) {
 
     if (res.success && res.channels && res.channels.length > 0) {
       setScannedChannels(res.channels);
+      // Select all by default
+      setSelectedChannelIndices(res.channels.map((_, i) => i));
       Alert.alert(
         "Pemindaian Sukses",
-        `Ditemukan ${res.channels.length} saluran TV aktif dari playlist M3U!`
+        `Ditemukan ${res.channels.length} saluran TV. Anda dapat memilih saluran mana saja yang ingin diimpor di bawah!`
       );
     } else {
       Alert.alert("Gagal Memindai", res.error || "Tidak dapat memuat playlist M3U.");
     }
   };
 
+  const toggleSelectAll = () => {
+    if (selectedChannelIndices.length === scannedChannels.length) {
+      setSelectedChannelIndices([]);
+    } else {
+      setSelectedChannelIndices(scannedChannels.map((_, i) => i));
+    }
+  };
+
+  const toggleChannelSelect = (index: number) => {
+    setSelectedChannelIndices((prev) =>
+      prev.includes(index) ? prev.filter((i) => i !== index) : [...prev, index]
+    );
+  };
+
   const handleImportM3u = async () => {
-    if (scannedChannels.length === 0) return;
+    if (selectedChannelIndices.length === 0) {
+      Alert.alert("Pilih Saluran", "Silakan centang minimal satu saluran yang ingin diimpor.");
+      return;
+    }
+
+    const channelsToImport = selectedChannelIndices.map((i) => scannedChannels[i]);
 
     setIsImportingM3u(true);
-    const res = await importM3uChannels(scannedChannels);
+    const res = await importM3uChannels(channelsToImport);
     setIsImportingM3u(false);
 
     if (res.success) {
@@ -214,9 +237,10 @@ export default function AdminScreen({ navigation }: any) {
         setMovies((prev) => [...res.importedChannels!, ...prev]);
       }
       setScannedChannels([]);
+      setSelectedChannelIndices([]);
       Alert.alert(
         "Sinkronisasi Berhasil",
-        `Sebanyak ${res.importedCount} saluran TV telah berhasil diimpor dan siap ditonton!`
+        `Sebanyak ${res.importedCount} saluran TV pilihan Anda telah berhasil diimpor dan siap ditonton!`
       );
     } else {
       Alert.alert("Gagal Mengimpor", res.error || "Gagal menyimpan saluran.");
@@ -777,15 +801,110 @@ export default function AdminScreen({ navigation }: any) {
               </TouchableOpacity>
 
               {scannedChannels.length > 0 && (
-                <View style={styles.scannedSummaryBox}>
-                  <Text style={styles.scannedSummaryText}>
-                    ✅ Ditemukan <Text style={{ color: "#00ADB5", fontWeight: "bold" }}>{scannedChannels.length}</Text> saluran TV siap diimpor.
-                  </Text>
+                <View style={styles.scannedSection}>
+                  <View style={styles.scannedHeaderRow}>
+                    <Text style={styles.scannedCountTitle}>
+                      Daftar Saluran ({selectedChannelIndices.length}/{scannedChannels.length} Terpilih)
+                    </Text>
 
+                    <TouchableOpacity
+                      onPress={toggleSelectAll}
+                      style={styles.selectAllBtn}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={styles.selectAllBtnText}>
+                        {selectedChannelIndices.length === scannedChannels.length
+                          ? "Batal Pilih Semua"
+                          : "Pilih Semua"}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  {/* Filter Search inside Scanned Channels */}
+                  <View style={styles.scannedSearchBox}>
+                    <Search size={14} color="#777" />
+                    <TextInput
+                      placeholder="Cari di daftar hasil scan..."
+                      placeholderTextColor="#777"
+                      value={searchScannedQuery}
+                      onChangeText={setSearchScannedQuery}
+                      style={styles.scannedSearchInput}
+                    />
+                    {searchScannedQuery ? (
+                      <TouchableOpacity onPress={() => setSearchScannedQuery("")}>
+                        <X size={14} color="#AAA" />
+                      </TouchableOpacity>
+                    ) : null}
+                  </View>
+
+                  {/* Scrollable Scanned Channels Selection List */}
+                  <ScrollView style={styles.scannedChannelsScroll} nestedScrollEnabled>
+                    {scannedChannels
+                      .map((ch, originalIdx) => ({ ch, originalIdx }))
+                      .filter(({ ch }) =>
+                        !searchScannedQuery ||
+                        ch.name.toLowerCase().includes(searchScannedQuery.toLowerCase()) ||
+                        ch.group?.toLowerCase().includes(searchScannedQuery.toLowerCase())
+                      )
+                      .map(({ ch, originalIdx }) => {
+                        const isSelected = selectedChannelIndices.includes(originalIdx);
+                        return (
+                          <TouchableOpacity
+                            key={originalIdx}
+                            style={[
+                              styles.scannedChannelItem,
+                              isSelected && styles.scannedChannelItemActive,
+                            ]}
+                            onPress={() => toggleChannelSelect(originalIdx)}
+                            activeOpacity={0.7}
+                          >
+                            <View
+                              style={[
+                                styles.checkboxCircle,
+                                isSelected && styles.checkboxCircleActive,
+                              ]}
+                            >
+                              {isSelected && <Check size={12} color="#000" />}
+                            </View>
+
+                            <Image
+                              source={{
+                                uri:
+                                  ch.logo ||
+                                  "https://images.unsplash.com/photo-1593784991095-a205069470b6?w=120&auto=format&fit=crop&q=80",
+                              }}
+                              style={styles.scannedLogo}
+                              resizeMode="contain"
+                            />
+
+                            <View style={{ flex: 1 }}>
+                              <Text style={styles.scannedName} numberOfLines={1}>
+                                {ch.name}
+                              </Text>
+                              <View style={styles.scannedMetaRow}>
+                                <View style={styles.scannedGroupPill}>
+                                  <Text style={styles.scannedGroupPillText}>
+                                    {ch.group || "TV"}
+                                  </Text>
+                                </View>
+                                <Text style={styles.scannedUrlText} numberOfLines={1}>
+                                  {ch.streamUrl}
+                                </Text>
+                              </View>
+                            </View>
+                          </TouchableOpacity>
+                        );
+                      })}
+                  </ScrollView>
+
+                  {/* Selective Import Button */}
                   <TouchableOpacity
-                    style={styles.submitModalBtn}
+                    style={[
+                      styles.submitModalBtn,
+                      selectedChannelIndices.length === 0 && { opacity: 0.5 },
+                    ]}
                     onPress={handleImportM3u}
-                    disabled={isImportingM3u}
+                    disabled={isImportingM3u || selectedChannelIndices.length === 0}
                   >
                     {isImportingM3u ? (
                       <ActivityIndicator size="small" color="#000" />
@@ -793,7 +912,7 @@ export default function AdminScreen({ navigation }: any) {
                       <>
                         <DownloadCloud size={16} color="#000" />
                         <Text style={styles.submitModalBtnText}>
-                          Impor {scannedChannels.length} Saluran ke Database
+                          Impor ({selectedChannelIndices.length}) Saluran Terpilih
                         </Text>
                       </>
                     )}
@@ -1414,17 +1533,121 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "bold",
   },
-  scannedSummaryBox: {
+  scannedSection: {
+    marginTop: 14,
     backgroundColor: "#0E0E12",
-    borderRadius: 14,
+    borderRadius: 16,
     padding: 14,
     borderWidth: 1,
     borderColor: "#1E1E26",
-    marginTop: 10,
   },
-  scannedSummaryText: {
+  scannedHeaderRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 10,
+  },
+  scannedCountTitle: {
     color: "#FFF",
     fontSize: 12,
+    fontWeight: "bold",
+    flex: 1,
+  },
+  selectAllBtn: {
+    backgroundColor: "rgba(0,173,181,0.15)",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "rgba(0,173,181,0.4)",
+  },
+  selectAllBtnText: {
+    color: "#00ADB5",
+    fontSize: 10,
+    fontWeight: "bold",
+  },
+  scannedSearchBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#141418",
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    height: 36,
+    borderWidth: 1,
+    borderColor: "#22222A",
+    gap: 6,
     marginBottom: 10,
+  },
+  scannedSearchInput: {
+    flex: 1,
+    color: "#FFF",
+    fontSize: 12,
+    paddingVertical: 0,
+  },
+  scannedChannelsScroll: {
+    maxHeight: 240,
+    marginBottom: 14,
+  },
+  scannedChannelItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#141418",
+    padding: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#1C1C24",
+    marginBottom: 6,
+    gap: 10,
+  },
+  scannedChannelItemActive: {
+    borderColor: "rgba(0,173,181,0.6)",
+    backgroundColor: "rgba(0,173,181,0.06)",
+  },
+  checkboxCircle: {
+    width: 20,
+    height: 20,
+    borderRadius: 6,
+    borderWidth: 1.5,
+    borderColor: "#555",
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#181820",
+  },
+  checkboxCircleActive: {
+    backgroundColor: "#00ADB5",
+    borderColor: "#00ADB5",
+  },
+  scannedLogo: {
+    width: 38,
+    height: 28,
+    borderRadius: 4,
+    backgroundColor: "#000",
+  },
+  scannedName: {
+    color: "#FFF",
+    fontSize: 12,
+    fontWeight: "bold",
+  },
+  scannedMetaRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginTop: 2,
+  },
+  scannedGroupPill: {
+    backgroundColor: "#202028",
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+    borderRadius: 4,
+  },
+  scannedGroupPillText: {
+    color: "#00ADB5",
+    fontSize: 8,
+    fontWeight: "bold",
+  },
+  scannedUrlText: {
+    color: "#666",
+    fontSize: 9,
+    flex: 1,
   },
 });
