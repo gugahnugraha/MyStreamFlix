@@ -43,11 +43,13 @@ import {
 } from "lucide-react-native";
 import { Movie } from "../types";
 import { fetchMovies } from "../api/client";
+import { translations } from "../translations";
 
 const { width } = Dimensions.get("window");
 
 export default function LiveTvScreen({ navigation }: any) {
   const isFocused = useIsFocused();
+  const t = translations.id; // Default Indonesian (clean fallback)
   const [channels, setChannels] = useState<Movie[]>([]);
   const [activeChannel, setActiveChannel] = useState<Movie | null>(null);
   const [search, setSearch] = useState("");

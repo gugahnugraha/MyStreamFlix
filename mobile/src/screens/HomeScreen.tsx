@@ -15,6 +15,7 @@ import { Play, Info, Flame, Film, Tv, Radio } from "lucide-react-native";
 import Header from "../components/Header";
 import { Movie } from "../types";
 import { fetchMovies } from "../api/client";
+import { translations, LanguageCode } from "../translations";
 
 const { width } = Dimensions.get("window");
 
@@ -23,13 +24,15 @@ export default function HomeScreen({ navigation }: any) {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
-  const [currentLanguage, setCurrentLanguage] = useState<"en" | "id">("id");
+  const [currentLanguage, setCurrentLanguage] = useState<LanguageCode>("id");
+
+  const t = translations[currentLanguage] || translations.id;
 
   useEffect(() => {
-    loadData();
+    loadCatalog();
   }, []);
 
-  const loadData = async () => {
+  const loadCatalog = async () => {
     setLoading(true);
     const data = await fetchMovies();
     setMovies(data);
@@ -61,7 +64,7 @@ export default function HomeScreen({ navigation }: any) {
   const renderMovieCard = ({ item }: { item: Movie }) => (
     <TouchableOpacity
       style={styles.card}
-      onPress={() => navigation.navigate("Player", { movie: item })}
+      onPress={() => navigation.navigate("Player", { movie: item, language: currentLanguage })}
       activeOpacity={0.8}
     >
       <Image
@@ -97,7 +100,7 @@ export default function HomeScreen({ navigation }: any) {
       {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#00ADB5" />
-          <Text style={styles.loadingText}>Loading MyStreamFlix...</Text>
+          <Text style={styles.loadingText}>{t.loadingCatalog}</Text>
         </View>
       ) : (
         <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
@@ -111,7 +114,7 @@ export default function HomeScreen({ navigation }: any) {
               <View style={styles.heroGradient}>
                 <View style={styles.heroBadge}>
                   <Flame size={14} color="#E50914" />
-                  <Text style={styles.heroBadgeText}>FEATURED TODAY</Text>
+                  <Text style={styles.heroBadgeText}>{t.trendingSpotlight}</Text>
                 </View>
                 <Text style={styles.heroTitle}>{featured.title}</Text>
                 <Text style={styles.heroDesc} numberOfLines={2}>
@@ -122,10 +125,10 @@ export default function HomeScreen({ navigation }: any) {
                 <View style={styles.heroActions}>
                   <TouchableOpacity
                     style={styles.playButton}
-                    onPress={() => navigation.navigate("Player", { movie: featured })}
+                    onPress={() => navigation.navigate("Player", { movie: featured, language: currentLanguage })}
                   >
                     <Play size={18} color="#000" fill="#000" />
-                    <Text style={styles.playButtonText}>Watch Now</Text>
+                    <Text style={styles.playButtonText}>{t.playNow}</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -136,14 +139,14 @@ export default function HomeScreen({ navigation }: any) {
           {searchQuery ? (
             <View style={styles.searchGridSection}>
               <Text style={styles.searchGridTitle}>
-                Search Results for "{searchQuery}" ({filteredMovies.length})
+                {t.searchPlaceholder} "{searchQuery}" ({filteredMovies.length})
               </Text>
               <View style={styles.gridContainer}>
                 {filteredMovies.map((item) => (
                   <TouchableOpacity
                     key={item.id}
                     style={styles.gridCard}
-                    onPress={() => navigation.navigate("Player", { movie: item })}
+                    onPress={() => navigation.navigate("Player", { movie: item, language: currentLanguage })}
                   >
                     <Image
                       source={{ uri: item.posterUrl || item.backdropUrl }}
@@ -164,7 +167,7 @@ export default function HomeScreen({ navigation }: any) {
                 <View style={styles.section}>
                   <View style={styles.sectionHeader}>
                     <Film size={18} color="#00ADB5" />
-                    <Text style={styles.sectionTitle}>Trending Movies</Text>
+                    <Text style={styles.sectionTitle}>{t.popularMovies}</Text>
                   </View>
                   <FlatList
                     horizontal
@@ -181,8 +184,8 @@ export default function HomeScreen({ navigation }: any) {
               {seriesList.length > 0 && (
                 <View style={styles.section}>
                   <View style={styles.sectionHeader}>
-                    <Tv size={18} color="#E50914" />
-                    <Text style={styles.sectionTitle}>Popular TV Series</Text>
+                    <Tv size={18} color="#00ADB5" />
+                    <Text style={styles.sectionTitle}>{t.popularSeries}</Text>
                   </View>
                   <FlatList
                     horizontal

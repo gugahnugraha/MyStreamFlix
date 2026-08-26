@@ -36,8 +36,10 @@ import {
 } from "lucide-react-native";
 import { User, UserProfile } from "../types";
 import { loginUser, registerUser } from "../api/client";
+import { translations } from "../translations";
 
 export default function ProfileScreen({ navigation }: any) {
+  const t = translations.id; // Indonesian primary
   // Real Database User State (default mock or live session)
   const [currentUser, setCurrentUser] = useState<User | null>({
     id: "usr-admin-1",
@@ -47,7 +49,7 @@ export default function ProfileScreen({ navigation }: any) {
     createdAt: new Date().toISOString(),
     isPremium: true,
     profiles: [
-      { id: "prof-1", name: "Gugah (Main)", avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80", isKids: false },
+      { id: "prof-1", name: "Gugah (Utama)", avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80", isKids: false },
       { id: "prof-2", name: "Kids Zone", avatar: "https://images.unsplash.com/photo-1501196354995-cbb51c65aaea?w=150&auto=format&fit=crop&q=80", isKids: true },
     ],
     activeProfileId: "prof-1",
@@ -81,8 +83,8 @@ export default function ProfileScreen({ navigation }: any) {
     });
 
     Alert.alert(
-      "Role Switched",
-      `Switched mode to: ${nextRole === "admin" ? "👑 Admin (Full Access)" : "👤 Viewer (Standard Mode)"}`
+      t.roleSwitched,
+      nextRole === "admin" ? t.switchToAdmin : t.switchToViewer
     );
   };
 
@@ -128,10 +130,10 @@ export default function ProfileScreen({ navigation }: any) {
   };
 
   const handleLogout = () => {
-    Alert.alert("Sign Out", "Are you sure you want to log out?", [
-      { text: "Cancel", style: "cancel" },
+    Alert.alert(t.signOut, t.confirmSignOut, [
+      { text: t.cancel, style: "cancel" },
       {
-        text: "Sign Out",
+        text: t.signOut,
         style: "destructive",
         onPress: () => {
           setCurrentUser(null);
@@ -156,10 +158,10 @@ export default function ProfileScreen({ navigation }: any) {
         </View>
 
         <Text style={styles.name}>
-          {currentUser ? currentUser.name || currentUser.email.split("@")[0] : "Guest User"}
+          {currentUser ? currentUser.name || currentUser.email.split("@")[0] : t.guestUser}
         </Text>
         <Text style={styles.email}>
-          {currentUser ? currentUser.email : "Not signed in"}
+          {currentUser ? currentUser.email : t.notSignedIn}
         </Text>
 
         <View style={styles.badgeRow}>
@@ -178,12 +180,12 @@ export default function ProfileScreen({ navigation }: any) {
               ]}
             >
               {isAdmin
-                ? "👑 DATABASE ADMINISTRATOR"
+                ? t.databaseAdmin
                 : currentUser?.isPremium
-                ? "⭐ VIP MEMBER"
+                ? t.vipMember
                 : currentUser
-                ? "STANDARD VIEWER"
-                : "GUEST VISITOR"}
+                ? t.standardUser
+                : t.guestVisitor}
             </Text>
           </View>
         </View>
@@ -194,13 +196,13 @@ export default function ProfileScreen({ navigation }: any) {
             <TouchableOpacity style={styles.toggleRoleBtn} onPress={handleToggleRole}>
               <RefreshCw size={13} color="#00ADB5" />
               <Text style={styles.toggleRoleText}>
-                Switch to {isAdmin ? "Viewer Mode" : "Admin Mode"}
+                {isAdmin ? t.switchToViewer : t.switchToAdmin}
               </Text>
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
               <LogOut size={13} color="#E50914" />
-              <Text style={styles.logoutBtnText}>Sign Out</Text>
+              <Text style={styles.logoutBtnText}>{t.signOut}</Text>
             </TouchableOpacity>
           </View>
         ) : (
@@ -212,7 +214,7 @@ export default function ProfileScreen({ navigation }: any) {
             }}
           >
             <LogIn size={15} color="#000" />
-            <Text style={styles.loginBtnText}>Sign In / Register</Text>
+            <Text style={styles.loginBtnText}>{t.signInRegister}</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -220,7 +222,7 @@ export default function ProfileScreen({ navigation }: any) {
       {/* 🎭 Sub-Profile Switcher (Main vs Kids Zone) */}
       {currentUser?.profiles && (
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>SWITCH PROFILE</Text>
+          <Text style={styles.sectionTitle}>{t.switchProfile}</Text>
           <View style={styles.profileSwitcherRow}>
             {currentUser.profiles.map((p) => {
               const isSelected = activeProfileId === p.id;

@@ -9,13 +9,14 @@ interface PlayerScreenProps {
       movie: Movie;
       initialProgress?: number;
       backendUrl?: string;
+      language?: "en" | "id";
     };
   };
   navigation: any;
 }
 
 export default function PlayerScreen({ route, navigation }: PlayerScreenProps) {
-  const { movie, initialProgress = 0, backendUrl } = route.params;
+  const { movie, initialProgress = 0, backendUrl, language = "id" } = route.params;
 
   return (
     <View style={styles.container}>
@@ -24,6 +25,7 @@ export default function PlayerScreen({ route, navigation }: PlayerScreenProps) {
         initialProgress={initialProgress}
         onClose={() => navigation.goBack()}
         backendUrl={backendUrl}
+        language={language}
       />
     </View>
   );

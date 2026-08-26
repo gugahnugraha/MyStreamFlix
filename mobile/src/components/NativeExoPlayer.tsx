@@ -47,6 +47,7 @@ import {
   Layers,
 } from "lucide-react-native";
 import { Movie, Season, Episode, Subtitle } from "../types";
+import { translations, LanguageCode } from "../translations";
 
 interface NativeExoPlayerProps {
   movie: Movie;
@@ -54,6 +55,7 @@ interface NativeExoPlayerProps {
   onClose: () => void;
   brandColor?: string;
   backendUrl?: string;
+  language?: LanguageCode;
 }
 
 interface Cue {
@@ -194,7 +196,7 @@ export default function NativeExoPlayer({
   const [subtitleCues, setSubtitleCues] = useState<Cue[]>([]);
   const subtitleCuesRef = useRef<Cue[]>([]);
   const [currentCueText, setCurrentCueText] = useState<string>("");
-  const [subtitleStyle, setSubtitleStyle] = useState<"shadow" | "clean-yellow" | "box" | "yellow">("shadow");
+  const [subtitleStyle, setSubtitleStyle] = useState<"shadow" | "clean-yellow" | "clean-teal" | "box" | "yellow" | "teal-box">("shadow");
   const [subtitleSize, setSubtitleSize] = useState<"small" | "medium" | "large" | "xlarge">("medium");
 
   const [showSubtitleModal, setShowSubtitleModal] = useState(false);
@@ -509,14 +511,17 @@ export default function NativeExoPlayer({
                 styles.subtitleDefaultWrapper,
                 subtitleStyle === "box" && styles.subtitleBoxStyle,
                 subtitleStyle === "yellow" && styles.subtitleYellowStyle,
+                subtitleStyle === "teal-box" && styles.subtitleTealBoxStyle,
               ]}
             >
               <Text
                 style={[
                   styles.subtitleText,
                   { fontSize: subFontSize },
-                  (subtitleStyle === "shadow" || subtitleStyle === "clean-yellow") && styles.subtitleShadowStyle,
+                  (subtitleStyle === "shadow" || subtitleStyle === "clean-yellow" || subtitleStyle === "clean-teal") &&
+                    styles.subtitleShadowStyle,
                   (subtitleStyle === "yellow" || subtitleStyle === "clean-yellow") && { color: "#FACC15" },
+                  (subtitleStyle === "teal-box" || subtitleStyle === "clean-teal") && { color: "#00ADB5" },
                 ]}
               >
                 {currentCueText}
@@ -854,31 +859,37 @@ export default function NativeExoPlayer({
                     {/* Subtitle Style Options */}
                     <Text style={[styles.glassMiniLabel, { marginTop: 12 }]}>STYLE PRESET</Text>
                     <View style={styles.glassPillsWrap}>
-                      {(["shadow", "clean-yellow", "box", "yellow"] as const).map((styleOpt) => (
-                        <TouchableOpacity
-                          key={styleOpt}
-                          onPress={() => setSubtitleStyle(styleOpt)}
-                          style={[
-                            styles.glassMiniPill,
-                            subtitleStyle === styleOpt && styles.glassMiniPillActive,
-                          ]}
-                        >
-                          <Text
+                      {(["shadow", "clean-yellow", "clean-teal", "box", "yellow", "teal-box"] as const).map(
+                        (styleOpt) => (
+                          <TouchableOpacity
+                            key={styleOpt}
+                            onPress={() => setSubtitleStyle(styleOpt)}
                             style={[
-                              styles.glassMiniPillText,
-                              subtitleStyle === styleOpt && styles.glassMiniPillTextActive,
+                              styles.glassMiniPill,
+                              subtitleStyle === styleOpt && styles.glassMiniPillActive,
                             ]}
                           >
-                            {styleOpt === "shadow"
-                              ? "Clean White"
-                              : styleOpt === "clean-yellow"
-                              ? "Clean Yellow"
-                              : styleOpt === "box"
-                              ? "Black Box"
-                              : "Yellow Box"}
-                          </Text>
-                        </TouchableOpacity>
-                      ))}
+                            <Text
+                              style={[
+                                styles.glassMiniPillText,
+                                subtitleStyle === styleOpt && styles.glassMiniPillTextActive,
+                              ]}
+                            >
+                              {styleOpt === "shadow"
+                                ? "Clean White"
+                                : styleOpt === "clean-yellow"
+                                ? "Clean Yellow"
+                                : styleOpt === "clean-teal"
+                                ? "Clean Teal"
+                                : styleOpt === "box"
+                                ? "Black Box"
+                                : styleOpt === "yellow"
+                                ? "Yellow Box"
+                                : "Teal Box"}
+                            </Text>
+                          </TouchableOpacity>
+                        )
+                      )}
                     </View>
 
                     {/* Font Sizing */}
@@ -1051,6 +1062,14 @@ const styles = StyleSheet.create({
     textShadowColor: "rgba(0, 0, 0, 0.95)",
     textShadowOffset: { width: 1, height: 1 },
     textShadowRadius: 4,
+  },
+  subtitleTealBoxStyle: {
+    backgroundColor: "rgba(10, 20, 25, 0.88)",
+    borderWidth: 1,
+    borderColor: "rgba(0, 173, 181, 0.4)",
+    paddingVertical: 4,
+    paddingHorizontal: 12,
+    borderRadius: 8,
   },
   centerOverlay: {
     ...StyleSheet.absoluteFillObject,
