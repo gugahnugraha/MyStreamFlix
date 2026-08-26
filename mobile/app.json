@@ -4,7 +4,6 @@
     "slug": "mystreamflix",
     "version": "1.0.0",
     "orientation": "default",
-    "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
     "splash": {
       "backgroundColor": "#0A0A0C"
@@ -13,9 +12,6 @@
       "supportsTablet": true
     },
     "android": {
-      "adaptiveIcon": {
-        "backgroundColor": "#0A0A0C"
-      },
       "permissions": [
         "android.permission.INTERNET",
         "android.permission.WAKE_LOCK",
