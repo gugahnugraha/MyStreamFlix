@@ -1,20 +1,23 @@
-import React, { useState } from "react";
+import React from "react";
 import { View, StyleSheet } from "react-native";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import { Film, Radio, User as UserIcon, LogIn, Tv } from "lucide-react-native";
+import { Film, Radio, User as UserIcon } from "lucide-react-native";
 
 import HomeScreen from "./src/screens/HomeScreen";
 import LiveTvScreen from "./src/screens/LiveTvScreen";
 import PlayerScreen from "./src/screens/PlayerScreen";
 import ProfileScreen from "./src/screens/ProfileScreen";
 import AdminScreen from "./src/screens/AdminScreen";
+import { LanguageProvider, useLanguage } from "./src/context/LanguageContext";
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
 function MainTabs() {
+  const { t } = useLanguage();
+
   return (
     <Tab.Navigator
       screenOptions={{
@@ -38,7 +41,7 @@ function MainTabs() {
         name="Catalog"
         component={HomeScreen}
         options={{
-          tabBarLabel: "Movies & Series",
+          tabBarLabel: t.moviesSeries,
           tabBarIcon: ({ color, size }) => <Film color={color} size={size} />,
         }}
       />
@@ -48,18 +51,18 @@ function MainTabs() {
         name="LiveTV"
         component={LiveTvScreen}
         options={{
-          tabBarLabel: "Live TV",
+          tabBarLabel: t.liveTv,
           tabBarIcon: ({ color }) => <Radio color={color} size={22} />,
           tabBarActiveTintColor: "#00ADB5",
         }}
       />
 
-      {/* 👤 Clean Profile Tab */}
+      {/* 👤 Profile Tab */}
       <Tab.Screen
         name="ProfileTab"
         component={ProfileScreen}
         options={{
-          tabBarLabel: "Profile",
+          tabBarLabel: t.profile,
           tabBarIcon: ({ color, size }) => <UserIcon color={color} size={size} />,
         }}
       />
@@ -69,26 +72,28 @@ function MainTabs() {
 
 export default function App() {
   return (
-    <NavigationContainer>
-      <Stack.Navigator
-        screenOptions={{
-          headerShown: false,
-          animation: "fade",
-        }}
-      >
-        <Stack.Screen name="Main" component={MainTabs} />
-        <Stack.Screen name="Profile" component={ProfileScreen} />
-        <Stack.Screen name="Admin" component={AdminScreen} />
-        <Stack.Screen
-          name="Player"
-          component={PlayerScreen}
-          options={{
-            orientation: "default",
+    <LanguageProvider>
+      <NavigationContainer>
+        <Stack.Navigator
+          screenOptions={{
             headerShown: false,
+            animation: "fade",
           }}
-        />
-      </Stack.Navigator>
-    </NavigationContainer>
+        >
+          <Stack.Screen name="Main" component={MainTabs} />
+          <Stack.Screen name="Profile" component={ProfileScreen} />
+          <Stack.Screen name="Admin" component={AdminScreen} />
+          <Stack.Screen
+            name="Player"
+            component={PlayerScreen}
+            options={{
+              orientation: "default",
+              headerShown: false,
+            }}
+          />
+        </Stack.Navigator>
+      </NavigationContainer>
+    </LanguageProvider>
   );
 }
 

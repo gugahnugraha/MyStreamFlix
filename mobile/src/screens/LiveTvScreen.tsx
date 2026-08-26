@@ -43,13 +43,13 @@ import {
 } from "lucide-react-native";
 import { Movie } from "../types";
 import { fetchMovies } from "../api/client";
-import { translations } from "../translations";
+import { useLanguage } from "../context/LanguageContext";
 
 const { width } = Dimensions.get("window");
 
 export default function LiveTvScreen({ navigation }: any) {
   const isFocused = useIsFocused();
-  const t = translations.id; // Default Indonesian (clean fallback)
+  const { t } = useLanguage();
   const [channels, setChannels] = useState<Movie[]>([]);
   const [activeChannel, setActiveChannel] = useState<Movie | null>(null);
   const [search, setSearch] = useState("");
@@ -460,10 +460,10 @@ export default function LiveTvScreen({ navigation }: any) {
                   <View style={styles.activeMetaRow}>
                     <View style={styles.activeLivePill}>
                       <View style={styles.activeLiveDot} />
-                      <Text style={styles.activeLivePillText}>ONLINE</Text>
+                      <Text style={styles.activeLivePillText}>{t.onlineStatus}</Text>
                     </View>
                     <Text style={styles.activeChannelMetaText}>
-                      HLS Stream • {activeChannel.quality || "1080p FHD"}
+                      {t.hlsStream} • {activeChannel.quality || "1080p FHD"}
                     </Text>
                   </View>
                 </View>
@@ -480,7 +480,7 @@ export default function LiveTvScreen({ navigation }: any) {
           <View style={styles.searchBox}>
             <Search size={16} color="#777" />
             <TextInput
-              placeholder="Search live TV channels or categories..."
+              placeholder={t.searchChannels}
               placeholderTextColor="#777"
               value={search}
               onChangeText={setSearch}
@@ -501,6 +501,7 @@ export default function LiveTvScreen({ navigation }: any) {
           >
             {genres.map((g) => {
               const isActive = selectedGenre === g;
+              const label = (t as any)[g] || g;
               return (
                 <TouchableOpacity
                   key={g}
@@ -509,7 +510,7 @@ export default function LiveTvScreen({ navigation }: any) {
                   activeOpacity={0.7}
                 >
                   <Text style={[styles.genreText, isActive && styles.genreTextActive]}>
-                    {g}
+                    {label}
                   </Text>
                 </TouchableOpacity>
               );
@@ -518,8 +519,8 @@ export default function LiveTvScreen({ navigation }: any) {
 
           {/* Channel Grid Section Header */}
           <View style={styles.sectionHeaderRow}>
-            <Text style={styles.sectionHeaderTitle}>AVAILABLE CHANNELS</Text>
-            <Text style={styles.sectionHeaderCount}>{filtered.length} channels</Text>
+            <Text style={styles.sectionHeaderTitle}>{t.availableChannels}</Text>
+            <Text style={styles.sectionHeaderCount}>{filtered.length} {t.channelsCount}</Text>
           </View>
 
           {/* Channel Cards Grid */}

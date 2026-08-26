@@ -19,6 +19,7 @@ export const translations = {
     seeAll: "Lihat Semua",
     loadingCatalog: "Memuat katalog hiburan...",
     noResults: "Tidak ada konten yang cocok ditemukan.",
+    searchResultsFor: "Hasil Pencarian untuk",
 
     // Kategori
     All: "Semua",
@@ -62,6 +63,10 @@ export const translations = {
     seasonsEpisodes: "Daftar Musim & Episode",
     starring: "Pemeran: ",
     speedNormal: "Normal",
+    aspectRatio: "Aspek Rasio",
+    channelsDrawer: "Saluran TV",
+    lockScreen: "Kunci Layar",
+    unlockScreen: "Buka Kunci Layar",
 
     // Live TV Screen
     availableChannels: "SALURAN TV TERSEDIA",
@@ -100,6 +105,30 @@ export const translations = {
     userId: "ID Pengguna",
     dbStatus: "Status Autentikasi",
 
+    // Admin CMS
+    adminPortalTitle: "Admin Management Portal",
+    adminPortalSubtitle: "Masukkan kredensial administrator untuk mengelola konten.",
+    adminCmsPortal: "Admin CMS Portal",
+    adminCmsSubTitle: "Sistem Pengelolaan Konten & Saluran",
+    overviewTab: "Ringkasan",
+    catalogTab: "Film & Serial",
+    liveTvTab: "Live TV",
+    cloudDriveTab: "Cloud Drive",
+    usersTab: "Pengguna",
+    totalMovies: "Total Film",
+    totalSeries: "Serial TV",
+    totalLiveChannels: "Saluran TV",
+    activeUsers: "Pengguna Aktif",
+    cloudSyncTitle: "Sistem Cloud & Sinkronisasi",
+    cloudSyncDesc: "Semua konten film, serial TV, siaran langsung, dan profil pengguna tersinkronisasi secara otomatis di seluruh perangkat.",
+    searchCatalogPlaceholder: "Cari film atau serial...",
+    searchLivePlaceholder: "Cari saluran siaran langsung...",
+    unlockAdminBtn: "Buka Panel Admin",
+    returnToApp: "← Kembali ke MyStreamFlix",
+    confirmDeleteTitle: "Konfirmasi Hapus",
+    confirmDeleteMsg: 'Apakah Anda yakin ingin menghapus "{title}"?',
+    deleteSuccess: "Berhasil Dihapus",
+
     // Dialog & Form
     modalSignIn: "Masuk Akun",
     modalRegister: "Daftar Akun Baru",
@@ -130,6 +159,7 @@ export const translations = {
     seeAll: "See All",
     loadingCatalog: "Loading catalog...",
     noResults: "No matching content found.",
+    searchResultsFor: "Search Results for",
 
     // Categories
     All: "All",
@@ -173,6 +203,10 @@ export const translations = {
     seasonsEpisodes: "Seasons & Episodes",
     starring: "Starring: ",
     speedNormal: "Normal",
+    aspectRatio: "Aspect Ratio",
+    channelsDrawer: "Channels",
+    lockScreen: "Lock Screen",
+    unlockScreen: "Unlock Screen",
 
     // Live TV Screen
     availableChannels: "AVAILABLE CHANNELS",
@@ -210,6 +244,30 @@ export const translations = {
     dbEndpoint: "Database Endpoint",
     userId: "User ID",
     dbStatus: "Auth Status",
+
+    // Admin CMS
+    adminPortalTitle: "Admin Management Portal",
+    adminPortalSubtitle: "Please authenticate with administrator credentials to manage contents.",
+    adminCmsPortal: "Admin CMS Portal",
+    adminCmsSubTitle: "Content & Channel Management System",
+    overviewTab: "Overview",
+    catalogTab: "Movies & Series",
+    liveTvTab: "Live TV",
+    cloudDriveTab: "Cloud Drive",
+    usersTab: "Users",
+    totalMovies: "Total Movies",
+    totalSeries: "TV Series",
+    totalLiveChannels: "Live Channels",
+    activeUsers: "Active Users",
+    cloudSyncTitle: "Cloud Content & Sync System",
+    cloudSyncDesc: "All movies, TV series, live broadcasts, and user profiles are automatically synchronized across all devices.",
+    searchCatalogPlaceholder: "Search movies & series...",
+    searchLivePlaceholder: "Search live broadcast channels...",
+    unlockAdminBtn: "Unlock Admin Panel",
+    returnToApp: "← Return to MyStreamFlix",
+    confirmDeleteTitle: "Confirm Deletion",
+    confirmDeleteMsg: 'Are you sure you want to remove "{title}"?',
+    deleteSuccess: "Successfully Removed",
 
     // Dialogs & Forms
     modalSignIn: "Sign In",

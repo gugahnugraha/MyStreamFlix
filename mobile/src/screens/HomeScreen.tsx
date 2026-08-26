@@ -15,18 +15,16 @@ import { Play, Info, Flame, Film, Tv, Radio } from "lucide-react-native";
 import Header from "../components/Header";
 import { Movie } from "../types";
 import { fetchMovies } from "../api/client";
-import { translations, LanguageCode } from "../translations";
+import { useLanguage } from "../context/LanguageContext";
 
 const { width } = Dimensions.get("window");
 
 export default function HomeScreen({ navigation }: any) {
+  const { language, t } = useLanguage();
   const [movies, setMovies] = useState<Movie[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
-  const [currentLanguage, setCurrentLanguage] = useState<LanguageCode>("id");
-
-  const t = translations[currentLanguage] || translations.id;
 
   useEffect(() => {
     loadCatalog();
@@ -64,7 +62,7 @@ export default function HomeScreen({ navigation }: any) {
   const renderMovieCard = ({ item }: { item: Movie }) => (
     <TouchableOpacity
       style={styles.card}
-      onPress={() => navigation.navigate("Player", { movie: item, language: currentLanguage })}
+      onPress={() => navigation.navigate("Player", { movie: item, language })}
       activeOpacity={0.8}
     >
       <Image
@@ -93,8 +91,6 @@ export default function HomeScreen({ navigation }: any) {
         onSearchChange={setSearchQuery}
         selectedCategory={selectedCategory}
         onCategoryChange={setSelectedCategory}
-        currentLanguage={currentLanguage}
-        onToggleLanguage={() => setCurrentLanguage((prev) => (prev === "id" ? "en" : "id"))}
       />
 
       {loading ? (
@@ -125,7 +121,7 @@ export default function HomeScreen({ navigation }: any) {
                 <View style={styles.heroActions}>
                   <TouchableOpacity
                     style={styles.playButton}
-                    onPress={() => navigation.navigate("Player", { movie: featured, language: currentLanguage })}
+                    onPress={() => navigation.navigate("Player", { movie: featured, language })}
                   >
                     <Play size={18} color="#000" fill="#000" />
                     <Text style={styles.playButtonText}>{t.playNow}</Text>
@@ -139,14 +135,14 @@ export default function HomeScreen({ navigation }: any) {
           {searchQuery ? (
             <View style={styles.searchGridSection}>
               <Text style={styles.searchGridTitle}>
-                {t.searchPlaceholder} "{searchQuery}" ({filteredMovies.length})
+                {t.searchResultsFor} "{searchQuery}" ({filteredMovies.length})
               </Text>
               <View style={styles.gridContainer}>
                 {filteredMovies.map((item) => (
                   <TouchableOpacity
                     key={item.id}
                     style={styles.gridCard}
-                    onPress={() => navigation.navigate("Player", { movie: item, language: currentLanguage })}
+                    onPress={() => navigation.navigate("Player", { movie: item, language })}
                   >
                     <Image
                       source={{ uri: item.posterUrl || item.backdropUrl }}

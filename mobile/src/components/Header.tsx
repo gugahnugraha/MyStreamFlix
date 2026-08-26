@@ -9,14 +9,13 @@ import {
   Platform,
 } from "react-native";
 import { Search, X, Film, Globe } from "lucide-react-native";
+import { useLanguage } from "../context/LanguageContext";
 
 interface HeaderProps {
   searchQuery: string;
   onSearchChange: (query: string) => void;
   selectedCategory: string;
   onCategoryChange: (cat: string) => void;
-  currentLanguage?: "en" | "id";
-  onToggleLanguage?: () => void;
   categories?: string[];
   brandColor?: string;
 }
@@ -38,11 +37,11 @@ export default function Header({
   onSearchChange,
   selectedCategory,
   onCategoryChange,
-  currentLanguage = "id",
-  onToggleLanguage,
   categories = DEFAULT_CATEGORIES,
   brandColor = "#00ADB5",
 }: HeaderProps) {
+  const { language, toggleLanguage, t } = useLanguage();
+
   return (
     <View style={styles.container}>
       {/* Top Row: Brand & Language Switcher */}
@@ -58,13 +57,13 @@ export default function Header({
 
         {/* 🌐 Language Switcher Pill */}
         <TouchableOpacity
-          onPress={onToggleLanguage}
+          onPress={toggleLanguage}
           style={styles.langPill}
           activeOpacity={0.8}
         >
           <Globe size={14} color="#00ADB5" />
           <Text style={styles.langText}>
-            {currentLanguage.toUpperCase()} <Text style={styles.langAlt}>/ {currentLanguage === "id" ? "EN" : "ID"}</Text>
+            {language.toUpperCase()} <Text style={styles.langAlt}>/ {language === "id" ? "EN" : "ID"}</Text>
           </Text>
         </TouchableOpacity>
       </View>
@@ -73,7 +72,7 @@ export default function Header({
       <View style={styles.searchBar}>
         <Search size={16} color="#777" />
         <TextInput
-          placeholder={currentLanguage === "id" ? "Cari film, serial TV, atau siaran live..." : "Search movies, series, or live TV..."}
+          placeholder={t.searchPlaceholder}
           placeholderTextColor="#777"
           value={searchQuery}
           onChangeText={onSearchChange}
@@ -95,6 +94,7 @@ export default function Header({
       >
         {categories.map((cat) => {
           const isActive = selectedCategory === cat;
+          const label = (t as any)[cat] || cat;
           return (
             <TouchableOpacity
               key={cat}
@@ -111,7 +111,7 @@ export default function Header({
                   isActive && { color: "#000", fontWeight: "900" },
                 ]}
               >
-                {cat}
+                {label}
               </Text>
             </TouchableOpacity>
           );

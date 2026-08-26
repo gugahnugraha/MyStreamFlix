@@ -33,11 +33,14 @@ import {
   Activity,
   Users,
   UserCheck,
+  Mail,
 } from "lucide-react-native";
 import { Movie, User } from "../types";
 import { fetchMovies, loginUser, fetchDatabaseUsers } from "../api/client";
+import { useLanguage } from "../context/LanguageContext";
 
 export default function AdminScreen({ navigation }: any) {
+  const { t } = useLanguage();
   // Authentication Gate state
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [adminEmail, setAdminEmail] = useState("admin@mystreamflix.com");
@@ -54,9 +57,15 @@ export default function AdminScreen({ navigation }: any) {
     "Database connected: PostgreSQL / Prisma.",
   ]);
 
-  const handleVerifyLogin = async () => {
+  useEffect(() => {
+    if (isAuthenticated) {
+      loadData();
+    }
+  }, [isAuthenticated]);
+
+  const handleAdminAuth = async () => {
     if (!adminEmail || !adminPassword) {
-      Alert.alert("Input Required", "Enter admin email and password.");
+      Alert.alert("Input Required", "Please fill in email and password.");
       return;
     }
 
@@ -97,22 +106,29 @@ export default function AdminScreen({ navigation }: any) {
   const seriesCount = movies.filter((m) => m.contentType === "series").length;
   const liveCount = movies.filter((m) => m.contentType === "livetv").length;
 
-  const filteredCatalog = movies.filter((m) =>
-    m.title.toLowerCase().includes(searchCatalog.toLowerCase())
+  const filteredCatalog = movies.filter(
+    (m) =>
+      m.contentType !== "livetv" &&
+      !m.id.startsWith("tv-") &&
+      m.title.toLowerCase().includes(searchCatalog.toLowerCase())
   );
 
   const handleDelete = (title: string) => {
-    Alert.alert("Confirm Deletion", `Are you sure you want to remove "${title}" from the catalog?`, [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Delete",
-        style: "destructive",
-        onPress: () => {
-          setMovies((prev) => prev.filter((m) => m.title !== title));
-          Alert.alert("Deleted", `"${title}" has been removed.`);
+    Alert.alert(
+      t.confirmDeleteTitle,
+      t.confirmDeleteMsg.replace("{title}", title),
+      [
+        { text: t.cancel, style: "cancel" },
+        {
+          text: "Hapus",
+          style: "destructive",
+          onPress: () => {
+            setMovies((prev) => prev.filter((m) => m.title !== title));
+            Alert.alert(t.deleteSuccess, `"${title}" telah dihapus.`);
+          },
         },
-      },
-    ]);
+      ]
+    );
   };
 
   const handleTriggerGdriveScan = async () => {
@@ -149,10 +165,8 @@ export default function AdminScreen({ navigation }: any) {
           <View style={styles.gateIconWrap}>
             <ShieldCheck size={36} color="#00ADB5" />
           </View>
-          <Text style={styles.gateTitle}>Admin Management Portal</Text>
-          <Text style={styles.gateSubtitle}>
-            Masukkan kredensial administrator untuk mengelola konten.
-          </Text>
+          <Text style={styles.gateTitle}>{t.adminPortalTitle}</Text>
+          <Text style={styles.gateSubtitle}>{t.adminPortalSubtitle}</Text>
 
           <View style={styles.inputGroup}>
             <Mail size={16} color="#777" />
@@ -189,7 +203,7 @@ export default function AdminScreen({ navigation }: any) {
             ) : (
               <>
                 <Unlock size={18} color="#000" />
-                <Text style={styles.unlockBtnText}>Buka Panel Admin</Text>
+                <Text style={styles.unlockBtnText}>{t.unlockAdminBtn}</Text>
               </>
             )}
           </TouchableOpacity>
@@ -198,7 +212,7 @@ export default function AdminScreen({ navigation }: any) {
             style={styles.gateBackBtn}
             onPress={() => navigation.goBack()}
           >
-            <Text style={styles.gateBackBtnText}>← Kembali ke MyStreamFlix</Text>
+            <Text style={styles.gateBackBtnText}>{t.returnToApp}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -212,8 +226,8 @@ export default function AdminScreen({ navigation }: any) {
           <ChevronLeft size={22} color="#FFF" />
         </TouchableOpacity>
         <View style={{ flex: 1, marginLeft: 8 }}>
-          <Text style={styles.headerTitle}>Admin CMS Portal</Text>
-          <Text style={styles.headerSub}>Sistem Pengelolaan Konten & Saluran</Text>
+          <Text style={styles.headerTitle}>{t.adminCmsPortal}</Text>
+          <Text style={styles.headerSub}>{t.adminCmsSubTitle}</Text>
         </View>
         <TouchableOpacity
           onPress={() => setIsAuthenticated(false)}
@@ -225,11 +239,11 @@ export default function AdminScreen({ navigation }: any) {
 
       <View style={styles.tabBar}>
         {[
-          { id: "overview", label: "Ringkasan", icon: Activity },
-          { id: "catalog", label: "Film & Serial", icon: Film },
-          { id: "livetv", label: "Live TV", icon: Radio },
-          { id: "gdrive", label: "Cloud Drive", icon: HardDrive },
-          { id: "users", label: "Pengguna", icon: Users },
+          { id: "overview", label: t.overviewTab, icon: Activity },
+          { id: "catalog", label: t.catalogTab, icon: Film },
+          { id: "livetv", label: t.liveTvTab, icon: Radio },
+          { id: "gdrive", label: t.cloudDriveTab, icon: HardDrive },
+          { id: "users", label: t.usersTab, icon: Users },
         ].map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -255,35 +269,35 @@ export default function AdminScreen({ navigation }: any) {
               <View style={styles.statCard}>
                 <Film size={22} color="#00ADB5" />
                 <Text style={styles.statNumber}>{moviesCount}</Text>
-                <Text style={styles.statLabel}>Total Film</Text>
+                <Text style={styles.statLabel}>{t.totalMovies}</Text>
               </View>
 
               <View style={styles.statCard}>
                 <Tv size={22} color="#E50914" />
                 <Text style={styles.statNumber}>{seriesCount}</Text>
-                <Text style={styles.statLabel}>Serial TV</Text>
+                <Text style={styles.statLabel}>{t.totalSeries}</Text>
               </View>
 
               <View style={styles.statCard}>
                 <Radio size={22} color="#10B981" />
                 <Text style={styles.statNumber}>{liveCount}</Text>
-                <Text style={styles.statLabel}>Saluran TV</Text>
+                <Text style={styles.statLabel}>{t.totalLiveChannels}</Text>
               </View>
 
               <View style={styles.statCard}>
                 <Users size={22} color="#FBBF24" />
                 <Text style={styles.statNumber}>{dbUsers.length || "1+"}</Text>
-                <Text style={styles.statLabel}>Pengguna Aktif</Text>
+                <Text style={styles.statLabel}>{t.activeUsers}</Text>
               </View>
             </View>
 
             <View style={styles.infoCard}>
               <View style={styles.infoCardHeader}>
                 <CheckCircle size={18} color="#10B981" />
-                <Text style={styles.infoCardTitle}>Sistem Cloud & Sinkronisasi</Text>
+                <Text style={styles.infoCardTitle}>{t.cloudSyncTitle}</Text>
               </View>
               <Text style={styles.infoCardDesc}>
-                Semua konten film, serial TV, siaran langsung, dan profil pengguna tersinkronisasi secara otomatis di seluruh perangkat.
+                {t.cloudSyncDesc}
               </Text>
             </View>
           </View>
@@ -294,7 +308,7 @@ export default function AdminScreen({ navigation }: any) {
             <View style={styles.searchBox}>
               <Search size={16} color="#777" />
               <TextInput
-                placeholder="Cari film atau serial..."
+                placeholder={t.searchCatalogPlaceholder}
                 placeholderTextColor="#777"
                 value={searchCatalog}
                 onChangeText={setSearchCatalog}

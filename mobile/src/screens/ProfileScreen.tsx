@@ -36,10 +36,10 @@ import {
 } from "lucide-react-native";
 import { User, UserProfile } from "../types";
 import { loginUser, registerUser } from "../api/client";
-import { translations } from "../translations";
+import { useLanguage } from "../context/LanguageContext";
 
 export default function ProfileScreen({ navigation }: any) {
-  const t = translations.id; // Indonesian primary
+  const { t } = useLanguage();
   // Real Database User State (default mock or live session)
   const [currentUser, setCurrentUser] = useState<User | null>({
     id: "usr-admin-1",
@@ -61,70 +61,65 @@ export default function ProfileScreen({ navigation }: any) {
   // Auth Modal State
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authMode, setAuthMode] = useState<"login" | "register">("login");
-  const [inputName, setInputName] = useState("");
-  const [inputEmail, setInputEmail] = useState("");
-  const [inputPassword, setInputPassword] = useState("");
+  const [authName, setAuthName] = useState("");
+  const [authEmail, setAuthEmail] = useState("");
+  const [authPassword, setAuthPassword] = useState("");
+  const [authError, setAuthError] = useState("");
 
-  // Settings
+  // Preference Toggles
   const [autoPlayNext, setAutoPlayNext] = useState(true);
   const [hardwareAcceleration, setHardwareAcceleration] = useState(true);
 
-  // 🔄 Toggle Role (Admin <-> VIP <-> Free Viewer) like web version
   const handleToggleRole = () => {
     if (!currentUser) return;
-    const nextRole =
-      currentUser.role === "admin"
-        ? "user"
-        : "admin";
-
+    const targetRole = currentUser.role === "admin" ? "user" : "admin";
     setCurrentUser({
       ...currentUser,
-      role: nextRole,
+      role: targetRole,
     });
-
     Alert.alert(
       t.roleSwitched,
-      nextRole === "admin" ? t.switchToAdmin : t.switchToViewer
+      targetRole === "admin" ? t.switchToAdmin : t.switchToViewer
     );
   };
 
   const handleAuthSubmit = async () => {
-    if (!inputEmail || !inputPassword) {
-      Alert.alert("Input Required", "Please fill in all credentials.");
+    if (!authEmail || !authPassword) {
+      setAuthError("Please fill in all credentials.");
       return;
     }
 
     setLoading(true);
 
     if (authMode === "login") {
-      const result = await loginUser(inputEmail, inputPassword);
+      const result = await loginUser(authEmail, authPassword);
       setLoading(false);
 
       if (result.success && result.user) {
         setCurrentUser(result.user);
         setShowAuthModal(false);
-        setInputPassword("");
+        setAuthPassword("");
         Alert.alert("Signed In", `Welcome back, ${result.user.name || result.user.email}!`);
       } else {
-        Alert.alert("Authentication Failed", result.error || "Invalid email or password.");
+        setAuthError(result.error || "Invalid email or password.");
       }
     } else {
-      if (!inputName) {
+      if (!authName) {
         setLoading(false);
-        Alert.alert("Input Required", "Please enter your name.");
+        setAuthError("Please enter your name.");
         return;
       }
 
-      const result = await registerUser(inputName, inputEmail, inputPassword);
+      const result = await registerUser(authName, authEmail, authPassword);
       setLoading(false);
 
       if (result.success && result.user) {
         setCurrentUser(result.user);
         setShowAuthModal(false);
-        setInputPassword("");
+        setAuthPassword("");
         Alert.alert("Account Created", "Your account has been registered in the database!");
       } else {
-        Alert.alert("Registration Failed", result.error || "Could not register account.");
+        setAuthError(result.error || "Could not register account.");
       }
     }
   };
@@ -190,7 +185,7 @@ export default function ProfileScreen({ navigation }: any) {
           </View>
         </View>
 
-        {/* 🔄 Switch Role Button (Identical to Web) */}
+        {/* 🔄 Switch Role Button */}
         {currentUser ? (
           <View style={styles.topActionsRow}>
             <TouchableOpacity style={styles.toggleRoleBtn} onPress={handleToggleRole}>
@@ -232,13 +227,15 @@ export default function ProfileScreen({ navigation }: any) {
                   onPress={() => setActiveProfileId(p.id)}
                   style={[styles.profileCard, isSelected && styles.profileCardActive]}
                 >
-                  <View style={styles.profileAvatarBox}>
-                    {p.isKids ? <Baby size={22} color="#FBBF24" /> : <Smile size={22} color="#00ADB5" />}
-                  </View>
-                  <Text style={[styles.profileName, isSelected && { color: "#FFF", fontWeight: "bold" }]}>
+                  <Image source={{ uri: p.avatar }} style={styles.profileAvatar} />
+                  <Text style={[styles.profileName, isSelected && { color: "#00ADB5", fontWeight: "bold" }]}>
                     {p.name}
                   </Text>
-                  {isSelected && <Check size={14} color="#00ADB5" style={{ marginTop: 4 }} />}
+                  {p.isKids && (
+                    <View style={styles.kidsBadge}>
+                      <Text style={styles.kidsBadgeText}>KIDS</Text>
+                    </View>
+                  )}
                 </TouchableOpacity>
               );
             })}
@@ -246,53 +243,56 @@ export default function ProfileScreen({ navigation }: any) {
         </View>
       )}
 
-      {/* Admin Panel Gateway */}
-      {isAdmin && (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>ADMINISTRATION</Text>
-          <TouchableOpacity
-            style={styles.adminGateCard}
-            onPress={() => navigation.navigate("Admin")}
-            activeOpacity={0.8}
-          >
-            <View style={styles.adminGateLeft}>
-              <View style={styles.adminIconBox}>
-                <ShieldCheck size={22} color="#00ADB5" />
-              </View>
-              <View>
-                <Text style={styles.adminGateTitle}>Admin CMS & Auto-Scanner</Text>
-                <Text style={styles.adminGateSub}>Manage Catalog, Users & GDrive Storage</Text>
-              </View>
-            </View>
-            <KeyRound size={18} color="#00ADB5" />
-          </TouchableOpacity>
-        </View>
-      )}
-
-      {/* Library Section */}
+      {/* Admin Panel Quick Access */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>LIBRARY & PLAYLISTS</Text>
-        <TouchableOpacity style={styles.menuItem}>
+        <Text style={styles.sectionTitle}>{t.adminManagement}</Text>
+        <TouchableOpacity
+          style={styles.menuItem}
+          onPress={() => navigation.navigate("Admin")}
+        >
+          <View style={styles.menuItemLeft}>
+            <View style={[styles.iconWrap, { backgroundColor: "rgba(0,173,181,0.15)" }]}>
+              <Settings size={18} color="#00ADB5" />
+            </View>
+            <View>
+              <Text style={styles.menuItemTitle}>{t.adminCmsPortal}</Text>
+              <Text style={styles.menuItemSub}>{t.adminCmsSub}</Text>
+            </View>
+          </View>
+          <ChevronRight size={18} color="#666" />
+        </TouchableOpacity>
+      </View>
+
+      {/* Synced Library */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>{t.syncedLibrary}</Text>
+        <TouchableOpacity
+          style={styles.menuItem}
+          onPress={() => navigation.navigate("Catalog")}
+        >
           <View style={styles.menuItemLeft}>
             <View style={styles.iconWrap}>
               <Bookmark size={18} color="#00ADB5" />
             </View>
             <View>
-              <Text style={styles.menuItemTitle}>My Saved Watchlist</Text>
-              <Text style={styles.menuItemSub}>Synced across devices</Text>
+              <Text style={styles.menuItemTitle}>{t.savedWatchlist}</Text>
+              <Text style={styles.menuItemSub}>{t.savedWatchlistSub}</Text>
             </View>
           </View>
           <ChevronRight size={18} color="#666" />
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.menuItem}>
+        <TouchableOpacity
+          style={styles.menuItem}
+          onPress={() => navigation.navigate("Catalog")}
+        >
           <View style={styles.menuItemLeft}>
             <View style={styles.iconWrap}>
               <History size={18} color="#E50914" />
             </View>
             <View>
-              <Text style={styles.menuItemTitle}>Watch History & Resume</Text>
-              <Text style={styles.menuItemSub}>Continue watching recent titles</Text>
+              <Text style={styles.menuItemTitle}>{t.watchHistory}</Text>
+              <Text style={styles.menuItemSub}>{t.watchHistorySub}</Text>
             </View>
           </View>
           <ChevronRight size={18} color="#666" />
@@ -301,12 +301,12 @@ export default function ProfileScreen({ navigation }: any) {
 
       {/* Playback Preferences */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>PLAYBACK PREFERENCES</Text>
+        <Text style={styles.sectionTitle}>{t.playbackPreferences}</Text>
 
         <View style={styles.switchItem}>
           <View>
-            <Text style={styles.switchTitle}>Auto-play Next Episode</Text>
-            <Text style={styles.switchSub}>Automatically load the next serial episode</Text>
+            <Text style={styles.switchTitle}>{t.autoPlayNext}</Text>
+            <Text style={styles.switchSub}>{t.autoPlayNextSub}</Text>
           </View>
           <Switch
             value={autoPlayNext}
@@ -317,8 +317,8 @@ export default function ProfileScreen({ navigation }: any) {
 
         <View style={styles.switchItem}>
           <View>
-            <Text style={styles.switchTitle}>ExoPlayer Hardware Acceleration</Text>
-            <Text style={styles.switchSub}>Ultra-smooth native hardware decoding</Text>
+            <Text style={styles.switchTitle}>{t.hwAcceleration}</Text>
+            <Text style={styles.switchSub}>{t.hwAccelerationSub}</Text>
           </View>
           <Switch
             value={hardwareAcceleration}
@@ -335,12 +335,12 @@ export default function ProfileScreen({ navigation }: any) {
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
             <Text style={styles.modalTitle}>
-              {authMode === "login" ? "Sign In" : "Create Account"}
+              {authMode === "login" ? t.modalSignIn : t.modalRegister}
             </Text>
             <Text style={styles.modalSub}>
               {authMode === "login"
-                ? "Enter your email & password to sign in."
-                : "Register a new user account."}
+                ? t.modalSignInSub
+                : t.modalRegisterSub}
             </Text>
 
             <View style={styles.authTabRow}>
@@ -348,77 +348,98 @@ export default function ProfileScreen({ navigation }: any) {
                 onPress={() => setAuthMode("login")}
                 style={[styles.authTab, authMode === "login" && styles.authTabActive]}
               >
-                <Text style={[styles.authTabText, authMode === "login" && styles.authTabTextActive]}>
-                  Sign In
+                <Text
+                  style={[
+                    styles.authTabText,
+                    authMode === "login" && styles.authTabTextActive,
+                  ]}
+                >
+                  {t.modalSignIn}
                 </Text>
               </TouchableOpacity>
+
               <TouchableOpacity
                 onPress={() => setAuthMode("register")}
-                style={[styles.authTab, authMode === "register" && styles.authTabActive]}
+                style={[
+                  styles.authTab,
+                  authMode === "register" && styles.authTabActive,
+                ]}
               >
-                <Text style={[styles.authTabText, authMode === "register" && styles.authTabTextActive]}>
-                  Register
+                <Text
+                  style={[
+                    styles.authTabText,
+                    authMode === "register" && styles.authTabTextActive,
+                  ]}
+                >
+                  {t.modalRegister}
                 </Text>
               </TouchableOpacity>
             </View>
 
+            {authError ? (
+              <Text style={styles.authErrorText}>{authError}</Text>
+            ) : null}
+
             {authMode === "register" && (
-              <View style={styles.inputBox}>
+              <View style={styles.inputWrap}>
                 <UserIcon size={16} color="#777" />
                 <TextInput
-                  placeholder="Full Name"
+                  placeholder={t.fullName}
                   placeholderTextColor="#777"
-                  value={inputName}
-                  onChangeText={setInputName}
-                  style={styles.input}
+                  value={authName}
+                  onChangeText={setAuthName}
+                  style={styles.modalInput}
                 />
               </View>
             )}
 
-            <View style={styles.inputBox}>
+            <View style={styles.inputWrap}>
               <Mail size={16} color="#777" />
               <TextInput
-                placeholder="Email Address"
+                placeholder={t.emailAddress}
                 placeholderTextColor="#777"
-                value={inputEmail}
-                onChangeText={setInputEmail}
-                style={styles.input}
-                autoCapitalize="none"
+                value={authEmail}
+                onChangeText={setAuthEmail}
+                style={styles.modalInput}
                 keyboardType="email-address"
+                autoCapitalize="none"
               />
             </View>
 
-            <View style={styles.inputBox}>
+            <View style={styles.inputWrap}>
               <Lock size={16} color="#777" />
               <TextInput
-                placeholder="Password"
+                placeholder={t.password}
                 placeholderTextColor="#777"
-                value={inputPassword}
-                onChangeText={setInputPassword}
-                style={styles.input}
+                value={authPassword}
+                onChangeText={setAuthPassword}
                 secureTextEntry
+                style={styles.modalInput}
               />
             </View>
 
             <TouchableOpacity
-              style={[styles.submitBtn, loading && { opacity: 0.7 }]}
+              style={styles.modalSubmitBtn}
               onPress={handleAuthSubmit}
               disabled={loading}
             >
               {loading ? (
                 <ActivityIndicator size="small" color="#000" />
               ) : (
-                <Text style={styles.submitBtnText}>
-                  {authMode === "login" ? "Sign In" : "Register Account"}
+                <Text style={styles.modalSubmitBtnText}>
+                  {authMode === "login" ? t.modalSignIn : t.modalRegister}
                 </Text>
               )}
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={styles.cancelBtn}
-              onPress={() => setShowAuthModal(false)}
+              style={styles.modalCancelBtn}
+              onPress={() => {
+                setShowAuthModal(false);
+                setAuthError("");
+              }}
             >
-              <Text style={styles.cancelBtnText}>Cancel</Text>
+              <Text style={styles.modalCancelBtnText}>{t.cancel}</Text>
             </TouchableOpacity>
           </View>
         </View>
