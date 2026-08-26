@@ -133,6 +133,8 @@ function parseSubtitles(text: string): Cue[] {
   return cues;
 }
 
+import * as NavigationBar from "expo-navigation-bar";
+
 export default function NativeExoPlayer({
   movie,
   initialProgress = 0,
@@ -206,6 +208,9 @@ export default function NativeExoPlayer({
     return () => {
       ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT);
       StatusBar.setHidden(false, "fade");
+      if (Platform.OS === "android") {
+        NavigationBar.setVisibilityAsync("visible");
+      }
       if (controlsTimerRef.current) clearTimeout(controlsTimerRef.current);
     };
   }, []);
@@ -214,10 +219,21 @@ export default function NativeExoPlayer({
     if (isFullscreen) {
       await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT);
       StatusBar.setHidden(false, "fade");
+      if (Platform.OS === "android") {
+        try {
+          await NavigationBar.setVisibilityAsync("visible");
+        } catch (e) {}
+      }
       setIsFullscreen(false);
     } else {
       await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
       StatusBar.setHidden(true, "fade");
+      if (Platform.OS === "android") {
+        try {
+          await NavigationBar.setVisibilityAsync("hidden");
+          await NavigationBar.setBehaviorAsync("overlay-swipe");
+        } catch (e) {}
+      }
       setIsFullscreen(true);
     }
     resetControlsTimer();
@@ -383,7 +399,12 @@ export default function NativeExoPlayer({
       return;
     }
 
-    setIsBuffering(status.isBuffering);
+    if (status.isPlaying) {
+      setIsBuffering(false);
+    } else {
+      setIsBuffering(status.isBuffering);
+    }
+
     setIsPlaying(status.isPlaying);
 
     const posSec = status.positionMillis / 1000;

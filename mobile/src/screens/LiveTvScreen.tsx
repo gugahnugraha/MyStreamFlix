@@ -11,10 +11,12 @@ import {
   ScrollView,
   StatusBar,
   Modal,
-  Dimensions,
+  Platform,
 } from "react-native";
-import { Video, ResizeMode } from "expo-av";
+import { useIsFocused } from "@react-navigation/native";
+import { Video, ResizeMode, AVPlaybackStatus } from "expo-av";
 import * as ScreenOrientation from "expo-screen-orientation";
+import * as NavigationBar from "expo-navigation-bar";
 import {
   Radio,
   Search,
@@ -32,6 +34,7 @@ import { Movie } from "../types";
 import { fetchMovies } from "../api/client";
 
 export default function LiveTvScreen({ navigation }: any) {
+  const isFocused = useIsFocused();
   const [channels, setChannels] = useState<Movie[]>([]);
   const [activeChannel, setActiveChannel] = useState<Movie | null>(null);
   const [search, setSearch] = useState("");
@@ -51,8 +54,22 @@ export default function LiveTvScreen({ navigation }: any) {
     return () => {
       ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT);
       StatusBar.setHidden(false, "fade");
+      if (Platform.OS === "android") {
+        NavigationBar.setVisibilityAsync("visible");
+      }
     };
   }, []);
+
+  // 🛑 Stop playback immediately when leaving Live TV tab
+  useEffect(() => {
+    if (!isFocused) {
+      if (isFullscreen) {
+        exitFullscreen();
+      }
+      videoRef.current?.pauseAsync();
+      fullscreenVideoRef.current?.pauseAsync();
+    }
+  }, [isFocused]);
 
   const loadChannels = async () => {
     setLoading(true);
@@ -68,13 +85,38 @@ export default function LiveTvScreen({ navigation }: any) {
   const enterFullscreen = async () => {
     await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
     StatusBar.setHidden(true, "fade");
+    if (Platform.OS === "android") {
+      try {
+        await NavigationBar.setVisibilityAsync("hidden");
+        await NavigationBar.setBehaviorAsync("overlay-swipe");
+      } catch (e) {}
+    }
     setIsFullscreen(true);
   };
 
   const exitFullscreen = async () => {
     await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT);
     StatusBar.setHidden(false, "fade");
+    if (Platform.OS === "android") {
+      try {
+        await NavigationBar.setVisibilityAsync("visible");
+      } catch (e) {}
+    }
     setIsFullscreen(false);
+  };
+
+  const handlePlaybackStatusUpdate = (status: AVPlaybackStatus) => {
+    if (!status.isLoaded) {
+      setIsBuffering(true);
+      return;
+    }
+
+    // Only show buffering spinner when video is NOT playing or stuck buffering
+    if (status.isPlaying) {
+      setIsBuffering(false);
+    } else {
+      setIsBuffering(status.isBuffering);
+    }
   };
 
   const filtered = channels.filter((c) => {
@@ -96,17 +138,13 @@ export default function LiveTvScreen({ navigation }: any) {
             source={{ uri: activeChannel.videoUrl }}
             style={StyleSheet.absoluteFill}
             resizeMode={ResizeMode.CONTAIN}
-            shouldPlay={true}
+            shouldPlay={isFocused}
             isMuted={isMuted}
             progressUpdateIntervalMillis={200}
-            onPlaybackStatusUpdate={(status) => {
-              if (status.isLoaded) {
-                setIsBuffering(status.isBuffering);
-              }
-            }}
+            onPlaybackStatusUpdate={handlePlaybackStatusUpdate}
           />
 
-          {/* Buffering Indicator */}
+          {/* Buffering Indicator (Only when actually buffering) */}
           {isBuffering && (
             <View style={styles.centerOverlay} pointerEvents="none">
               <ActivityIndicator size="large" color="#00ADB5" />
@@ -155,7 +193,7 @@ export default function LiveTvScreen({ navigation }: any) {
         </View>
       ) : null}
 
-      {/* 🌟 100% Clean Native Modal Fullscreen Player (Zero Bottom Nav Remnants) */}
+      {/* 🌟 100% Clean Native Modal Fullscreen Player (Zero Bottom Nav & Zero Android Buttons) */}
       {activeChannel && (
         <Modal
           visible={isFullscreen}
@@ -169,14 +207,10 @@ export default function LiveTvScreen({ navigation }: any) {
               source={{ uri: activeChannel.videoUrl }}
               style={StyleSheet.absoluteFill}
               resizeMode={ResizeMode.CONTAIN}
-              shouldPlay={true}
+              shouldPlay={isFocused && isFullscreen}
               isMuted={isMuted}
               progressUpdateIntervalMillis={200}
-              onPlaybackStatusUpdate={(status) => {
-                if (status.isLoaded) {
-                  setIsBuffering(status.isBuffering);
-                }
-              }}
+              onPlaybackStatusUpdate={handlePlaybackStatusUpdate}
             />
 
             {/* Buffering Indicator */}
