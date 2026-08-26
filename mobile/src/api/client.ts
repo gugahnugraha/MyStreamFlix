@@ -76,11 +76,13 @@ export async function fetchDatabaseUsers(
 ): Promise<User[]> {
   try {
     const res = await fetch(`${backendUrl}/api/users`);
-    if (!res.ok) throw new Error("Failed to fetch database users");
+    if (!res.ok) {
+      // 403 Forbidden when unauthenticated (expected for non-admin viewers)
+      return [];
+    }
     const data = await res.json();
     return Array.isArray(data) ? data : data.users || [];
   } catch (error) {
-    console.error("API Error fetching database users:", error);
     return [];
   }
 }
