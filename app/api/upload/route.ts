@@ -2,7 +2,68 @@ import { NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { google } from "googleapis";
+import { Readable } from "stream";
 
+// ─── Google Drive Upload ────────────────────────────────────────────────────
+async function uploadToGoogleDrive(
+  buffer: Buffer,
+  filename: string,
+  mimeType: string,
+  folderId?: string
+): Promise<string> {
+  const serviceAccountEmail = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
+  const privateKey = process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY?.replace(/\\n/g, "\n");
+
+  if (!serviceAccountEmail || !privateKey) {
+    throw new Error(
+      "Google Drive credentials are not configured. Please set GOOGLE_SERVICE_ACCOUNT_EMAIL and GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY."
+    );
+  }
+
+  const auth = new google.auth.JWT({
+    email: serviceAccountEmail,
+    key: privateKey,
+    scopes: ["https://www.googleapis.com/auth/drive.file"],
+  });
+
+  const drive = google.drive({ version: "v3", auth });
+
+  const fileMetadata: { name: string; parents?: string[] } = { name: filename };
+  if (folderId) fileMetadata.parents = [folderId];
+
+  // Convert Buffer to Readable stream for googleapis
+  const readableStream = new Readable();
+  readableStream.push(buffer);
+  readableStream.push(null);
+
+  const response = await drive.files.create({
+    requestBody: fileMetadata,
+    media: {
+      mimeType: mimeType || "application/octet-stream",
+      body: readableStream,
+    },
+    fields: "id",
+  });
+
+  const fileId = response.data.id;
+  if (!fileId) throw new Error("Google Drive upload failed: no file ID returned.");
+
+  // Make file publicly readable (anyone with the link)
+  await drive.permissions.create({
+    fileId,
+    requestBody: { role: "reader", type: "anyone" },
+  });
+
+  // Return a direct-access URL
+  // For video: export=download allows direct playback in some players
+  const isVideo = mimeType.startsWith("video/");
+  return isVideo
+    ? `https://drive.google.com/uc?export=download&id=${fileId}`
+    : `https://drive.google.com/uc?id=${fileId}`;
+}
+
+// ─── Route Handler ──────────────────────────────────────────────────────────
 export async function POST(req: Request) {
   try {
     const formData = await req.formData();
@@ -16,11 +77,25 @@ export async function POST(req: Request) {
 
     const { searchParams } = new URL(req.url);
     const folder = searchParams.get("folder") || "";
+    // provider: 'gdrive' | 'r2' | 'auto' (default)
+    const provider = searchParams.get("provider") || "auto";
 
     const filename = `${Date.now()}-${file.name.replace(/\s+/g, "_")}`;
     const key = folder ? `${folder}/${filename}` : filename;
 
-    // Cloudflare R2 S3 Upload Configuration
+    // ── Google Drive ──────────────────────────────────────────────────────
+    if (provider === "gdrive") {
+      const folderId = process.env.GOOGLE_DRIVE_FOLDER_ID;
+      const url = await uploadToGoogleDrive(
+        buffer,
+        filename,
+        file.type || "application/octet-stream",
+        folderId
+      );
+      return NextResponse.json({ url, provider: "gdrive" });
+    }
+
+    // ── Cloudflare R2 ─────────────────────────────────────────────────────
     const r2Endpoint = process.env.R2_ENDPOINT;
     const r2AccessKeyId = process.env.R2_ACCESS_KEY_ID;
     const r2SecretAccessKey = process.env.R2_SECRET_ACCESS_KEY;
@@ -50,7 +125,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ url, provider: "r2" });
     }
 
-    // Local Disk Storage Fallback (for offline development)
+    // ── Local Disk Storage Fallback (offline development) ─────────────────
     const uploadDir = folder
       ? path.join(process.cwd(), "public", "uploads", folder)
       : path.join(process.cwd(), "public", "uploads");

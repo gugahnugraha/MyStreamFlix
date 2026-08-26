@@ -355,12 +355,23 @@ export default function AdminCMS({
   const [uploadingPoster, setUploadingPoster] = useState(false);
   const [uploadingBackdrop, setUploadingBackdrop] = useState(false);
 
-  const handleGenericFileUpload = async (file: File, folder: string, onSuccess: (url: string) => void, setBusy?: (b: boolean) => void) => {
+  // Storage provider toggle per-field (video & subtitle only)
+  const [videoUploadProvider, setVideoUploadProvider] = useState<"r2" | "gdrive">("r2");
+  const [subtitleUploadProvider, setSubtitleUploadProvider] = useState<"r2" | "gdrive">("r2");
+
+  const handleGenericFileUpload = async (
+    file: File,
+    folder: string,
+    onSuccess: (url: string) => void,
+    setBusy?: (b: boolean) => void,
+    provider: "r2" | "gdrive" | "auto" = "auto"
+  ) => {
     if (setBusy) setBusy(true);
     try {
       const formData = new FormData();
       formData.append("file", file);
-      const res = await fetch(`/api/upload?folder=${folder}`, {
+      const providerParam = provider !== "auto" ? `&provider=${provider}` : "";
+      const res = await fetch(`/api/upload?folder=${folder}${providerParam}`, {
         method: "POST",
         body: formData,
       });
@@ -368,7 +379,7 @@ export default function AdminCMS({
       const data = await res.json();
       onSuccess(data.url);
     } catch (err: any) {
-      showAlert(err.message || "Failed to upload file to Cloudflare R2.");
+      showAlert(err.message || "Failed to upload file.");
     } finally {
       if (setBusy) setBusy(false);
     }
@@ -2142,15 +2153,45 @@ export default function AdminCMS({
                               ⚡ Convert to cdn.mystreamflix.biz.id
                             </button>
                           )}
-                          <label className="text-[10px] text-red-400 font-bold hover:underline cursor-pointer flex items-center gap-1">
-                            <Upload className="w-3 h-3" /> Upload Video to R2
+                          {/* Storage provider toggle for video */}
+                          <div className="flex items-center rounded overflow-hidden border border-zinc-700 text-[9px] font-bold">
+                            <button
+                              type="button"
+                              onClick={() => setVideoUploadProvider("r2")}
+                              className={`px-1.5 py-0.5 transition-colors ${
+                                videoUploadProvider === "r2"
+                                  ? "bg-orange-500 text-white"
+                                  : "bg-zinc-800 text-zinc-400 hover:text-zinc-200"
+                              }`}
+                              title="Upload to Cloudflare R2"
+                            >
+                              R2
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setVideoUploadProvider("gdrive")}
+                              className={`px-1.5 py-0.5 transition-colors ${
+                                videoUploadProvider === "gdrive"
+                                  ? "bg-blue-500 text-white"
+                                  : "bg-zinc-800 text-zinc-400 hover:text-zinc-200"
+                              }`}
+                              title="Upload to Google Drive"
+                            >
+                              GDrive
+                            </button>
+                          </div>
+                          <label className={`text-[10px] font-bold hover:underline cursor-pointer flex items-center gap-1 ${
+                            videoUploadProvider === "gdrive" ? "text-blue-400" : "text-red-400"
+                          }`}>
+                            <Upload className="w-3 h-3" />
+                            {videoUploadProvider === "gdrive" ? "Upload to GDrive" : "Upload to R2"}
                             <input
                               type="file"
                               accept="video/*"
                               className="hidden"
                               onChange={(e) => {
                                 if (e.target.files && e.target.files[0]) {
-                                  handleGenericFileUpload(e.target.files[0], "videos", (url) => setVideoUrl(url));
+                                  handleGenericFileUpload(e.target.files[0], "videos", (url) => setVideoUrl(url), undefined, videoUploadProvider);
                                 }
                               }}
                             />
@@ -2512,22 +2553,54 @@ export default function AdminCMS({
                                 />
                               </div>
                                <div className="space-y-0.5">
-                                <div className="flex items-center justify-between">
-                                  <label className="text-[9px] font-bold uppercase text-zinc-600">{t.cmsSubFileUrl || "Subtitle File URL (.vtt) *"}</label>
-                                  <label className="text-[9px] text-red-400 font-bold hover:underline cursor-pointer flex items-center gap-0.5">
-                                    <Upload className="w-2.5 h-2.5" /> Upload File
-                                    <input
-                                      type="file"
-                                      accept=".vtt,.srt,text/vtt,text/plain"
-                                      className="hidden"
-                                      onChange={(e) => {
-                                        if (e.target.files && e.target.files[0]) {
-                                          handleGenericFileUpload(e.target.files[0], "subtitles", (url) => handleUpdateSubtitle(sub.id, "fileUrl", url));
-                                        }
-                                      }}
-                                    />
-                                  </label>
-                                </div>
+                                 <div className="flex items-center justify-between gap-1">
+                                   <label className="text-[9px] font-bold uppercase text-zinc-600">{t.cmsSubFileUrl || "Subtitle File URL (.vtt) *"}</label>
+                                   <div className="flex items-center gap-1">
+                                     {/* Storage provider toggle for subtitle */}
+                                     <div className="flex items-center rounded overflow-hidden border border-zinc-700 text-[8px] font-bold">
+                                       <button
+                                         type="button"
+                                         onClick={() => setSubtitleUploadProvider("r2")}
+                                         className={`px-1 py-0.5 transition-colors ${
+                                           subtitleUploadProvider === "r2"
+                                             ? "bg-orange-500 text-white"
+                                             : "bg-zinc-800 text-zinc-400 hover:text-zinc-200"
+                                         }`}
+                                         title="Upload to Cloudflare R2"
+                                       >
+                                         R2
+                                       </button>
+                                       <button
+                                         type="button"
+                                         onClick={() => setSubtitleUploadProvider("gdrive")}
+                                         className={`px-1 py-0.5 transition-colors ${
+                                           subtitleUploadProvider === "gdrive"
+                                             ? "bg-blue-500 text-white"
+                                             : "bg-zinc-800 text-zinc-400 hover:text-zinc-200"
+                                         }`}
+                                         title="Upload to Google Drive"
+                                       >
+                                         GDrive
+                                       </button>
+                                     </div>
+                                     <label className={`text-[9px] font-bold hover:underline cursor-pointer flex items-center gap-0.5 ${
+                                       subtitleUploadProvider === "gdrive" ? "text-blue-400" : "text-red-400"
+                                     }`}>
+                                       <Upload className="w-2.5 h-2.5" />
+                                       {subtitleUploadProvider === "gdrive" ? "GDrive" : "Upload"}
+                                       <input
+                                         type="file"
+                                         accept=".vtt,.srt,text/vtt,text/plain"
+                                         className="hidden"
+                                         onChange={(e) => {
+                                           if (e.target.files && e.target.files[0]) {
+                                             handleGenericFileUpload(e.target.files[0], "subtitles", (url) => handleUpdateSubtitle(sub.id, "fileUrl", url), undefined, subtitleUploadProvider);
+                                           }
+                                         }}
+                                       />
+                                     </label>
+                                   </div>
+                                 </div>
                                 <input
                                   type="url"
                                   required
