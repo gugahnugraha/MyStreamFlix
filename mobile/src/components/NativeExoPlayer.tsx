@@ -59,22 +59,28 @@ interface Cue {
   text: string;
 }
 
-// Subtitle parser identical to web player
+// Universal Robust VTT / SRT Subtitle Parser
+function parseTimeToSeconds(timeStr: string): number {
+  if (!timeStr) return 0;
+  const clean = timeStr.trim().replace(",", ".");
+  const parts = clean.split(":");
+  if (parts.length === 3) {
+    const h = parseFloat(parts[0]) || 0;
+    const m = parseFloat(parts[1]) || 0;
+    const s = parseFloat(parts[2]) || 0;
+    return h * 3600 + m * 60 + s;
+  } else if (parts.length === 2) {
+    const m = parseFloat(parts[0]) || 0;
+    const s = parseFloat(parts[1]) || 0;
+    return m * 60 + s;
+  }
+  return 0;
+}
+
 function parseSubtitles(text: string): Cue[] {
   const cues: Cue[] = [];
   const normalizedText = text.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
   const blocks = normalizedText.split(/\n\n+/);
-
-  const parseTimeToSeconds = (timeStr: string): number => {
-    const match = timeStr.trim().match(/(?:(\d+):)?(\d+):(\d+)[.,](\d+)/);
-    if (!match) return 0;
-    const hours = parseInt(match[1] || "0", 10);
-    const minutes = parseInt(match[2], 10);
-    const seconds = parseInt(match[3], 10);
-    const msStr = match[4].padEnd(3, "0").substring(0, 3);
-    const ms = parseInt(msStr, 10);
-    return hours * 3600 + minutes * 60 + seconds + ms / 1000;
-  };
 
   for (const block of blocks) {
     const lines = block.trim().split("\n");
@@ -97,9 +103,12 @@ function parseSubtitles(text: string): Cue[] {
     const end = parseTimeToSeconds(timeParts[1]);
 
     const textLines = lines.slice(timeLineIndex + 1);
-    const cueText = textLines.join("\n").replace(/<[^>]+>/g, "").trim();
+    const cueText = textLines
+      .join("\n")
+      .replace(/<[^>]+>/g, "")
+      .trim();
 
-    if (cueText) {
+    if (cueText && end > start) {
       cues.push({ start, end, text: cueText });
     }
   }
@@ -159,15 +168,17 @@ export default function NativeExoPlayer({
   } | null>(null);
 
   // Subtitles & Audio modal
-  const [activeSubtitle, setActiveSubtitle] = useState<string>("off");
+  const [activeSubtitle, setActiveSubtitle] = useState<string>(() => {
+    return movie.subtitles && movie.subtitles.length > 0 ? movie.subtitles[0].language : "off";
+  });
   const [subtitleCues, setSubtitleCues] = useState<Cue[]>([]);
+  const subtitleCuesRef = useRef<Cue[]>([]);
   const [currentCueText, setCurrentCueText] = useState<string>("");
   const [subtitleStyle, setSubtitleStyle] = useState<"shadow" | "box" | "yellow">("shadow");
   const [subtitleSize, setSubtitleSize] = useState<"small" | "medium" | "large" | "xlarge">("medium");
 
   const [showSubtitleModal, setShowSubtitleModal] = useState(false);
   const [showSpeedModal, setShowSpeedModal] = useState(false);
-  const [showEpisodeDrawer, setShowEpisodeDrawer] = useState(false);
 
   const controlsTimerRef = useRef<any>(null);
   const lastTapRef = useRef<{ time: number; x: number } | null>(null);
@@ -186,12 +197,10 @@ export default function NativeExoPlayer({
   // Handle Fullscreen Toggle
   const toggleFullscreen = async () => {
     if (isFullscreen) {
-      // Exit fullscreen -> Portrait
       await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT);
       StatusBar.setHidden(false, "fade");
       setIsFullscreen(false);
     } else {
-      // Enter fullscreen -> Landscape
       await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
       StatusBar.setHidden(true, "fade");
       setIsFullscreen(true);
@@ -199,10 +208,11 @@ export default function NativeExoPlayer({
     resetControlsTimer();
   };
 
-  // Fetch subtitle content if active subtitle changed
+  // Fetch subtitle content when active subtitle language changes
   useEffect(() => {
     if (activeSubtitle === "off") {
       setSubtitleCues([]);
+      subtitleCuesRef.current = [];
       setCurrentCueText("");
       return;
     }
@@ -214,22 +224,29 @@ export default function NativeExoPlayer({
         .then((text) => {
           const cues = parseSubtitles(text);
           setSubtitleCues(cues);
+          subtitleCuesRef.current = cues;
         })
-        .catch((err) => console.log("Failed to load subtitle:", err));
+        .catch((err) => {
+          console.log("Failed to load subtitle:", err);
+          subtitleCuesRef.current = [];
+        });
     }
   }, [activeSubtitle, movie]);
 
-  // Update current active subtitle cue based on currentTime
-  useEffect(() => {
-    if (subtitleCues.length === 0) {
-      setCurrentCueText("");
+  // Continuous Subtitle Matcher during Playback
+  const updateSubtitleCue = (posInSeconds: number) => {
+    const cues = subtitleCuesRef.current;
+    if (cues.length === 0) {
+      if (currentCueText) setCurrentCueText("");
       return;
     }
-    const match = subtitleCues.find(
-      (c) => currentTime >= c.start && currentTime <= c.end
-    );
-    setCurrentCueText(match ? match.text : "");
-  }, [currentTime, subtitleCues]);
+
+    const match = cues.find((c) => posInSeconds >= c.start && posInSeconds <= c.end);
+    const newText = match ? match.text : "";
+    if (newText !== currentCueText) {
+      setCurrentCueText(newText);
+    }
+  };
 
   // Controls auto-hide timer (4 seconds)
   const resetControlsTimer = () => {
@@ -299,7 +316,6 @@ export default function NativeExoPlayer({
     const touchX = evt.nativeEvent.pageX;
 
     if (lastTapRef.current && now - lastTapRef.current.time < 300) {
-      // Double tap detected!
       if (touchX > screenWidth / 2) {
         handleSeek(currentTime + 10);
         showToast({ type: "seek-forward", value: "+10s" });
@@ -332,6 +348,7 @@ export default function NativeExoPlayer({
   const handleSeek = async (timeInSeconds: number) => {
     const target = Math.max(0, Math.min(duration, timeInSeconds));
     setCurrentTime(target);
+    updateSubtitleCue(target);
     await videoRef.current?.setPositionAsync(target * 1000);
     resetControlsTimer();
   };
@@ -353,7 +370,11 @@ export default function NativeExoPlayer({
 
     setIsBuffering(status.isBuffering);
     setIsPlaying(status.isPlaying);
-    setCurrentTime(status.positionMillis / 1000);
+
+    const posSec = status.positionMillis / 1000;
+    setCurrentTime(posSec);
+    updateSubtitleCue(posSec);
+
     if (status.durationMillis) {
       setDuration(status.durationMillis / 1000);
     }
@@ -411,6 +432,7 @@ export default function NativeExoPlayer({
           isMuted={isMuted}
           volume={volume}
           rate={playbackRate}
+          progressUpdateIntervalMillis={150}
           onPlaybackStatusUpdate={onPlaybackStatusUpdate}
           usePoster={true}
           posterSource={{ uri: movie.backdropUrl || movie.posterUrl }}
@@ -422,11 +444,12 @@ export default function NativeExoPlayer({
           style={[styles.brightnessOverlay, { opacity: Math.max(0, 1 - brightness) }]}
         />
 
-        {/* Live Subtitle Rendering Engine */}
+        {/* 💬 Solid Non-Flicker Subtitle Rendering Engine */}
         {currentCueText ? (
           <View pointerEvents="none" style={styles.subtitleContainer}>
             <View
               style={[
+                styles.subtitleDefaultWrapper,
                 subtitleStyle === "box" && styles.subtitleBoxStyle,
                 subtitleStyle === "yellow" && styles.subtitleYellowStyle,
               ]}
@@ -890,11 +913,17 @@ const styles = StyleSheet.create({
   },
   subtitleContainer: {
     position: "absolute",
-    bottom: 50,
+    bottom: 45,
     left: 16,
     right: 16,
     alignItems: "center",
     justifyContent: "center",
+    zIndex: 10,
+  },
+  subtitleDefaultWrapper: {
+    paddingVertical: 4,
+    paddingHorizontal: 12,
+    maxWidth: "90%",
   },
   subtitleBoxStyle: {
     backgroundColor: "rgba(0,0,0,0.85)",
@@ -1293,7 +1322,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderColor: "#1E1E22",
+    borderColor: "#1E1E24",
   },
   modalItemActive: {
     backgroundColor: "rgba(0,173,181,0.08)",

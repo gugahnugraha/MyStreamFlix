@@ -10,6 +10,7 @@ import {
   TextInput,
   ScrollView,
   StatusBar,
+  Dimensions,
 } from "react-native";
 import { Video, ResizeMode } from "expo-av";
 import * as ScreenOrientation from "expo-screen-orientation";
@@ -29,6 +30,15 @@ import {
 import { Movie } from "../types";
 import { fetchMovies } from "../api/client";
 
+const DEFAULT_TAB_BAR_STYLE = {
+  backgroundColor: "#0F0F12",
+  borderTopColor: "#1A1A20",
+  height: 64,
+  paddingBottom: 8,
+  paddingTop: 6,
+  display: "flex",
+};
+
 export default function LiveTvScreen({ navigation }: any) {
   const [channels, setChannels] = useState<Movie[]>([]);
   const [activeChannel, setActiveChannel] = useState<Movie | null>(null);
@@ -44,6 +54,13 @@ export default function LiveTvScreen({ navigation }: any) {
 
   useEffect(() => {
     loadChannels();
+
+    return () => {
+      // Restore orientation and bottom tab on screen exit
+      ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT);
+      StatusBar.setHidden(false, "fade");
+      navigation.getParent()?.setOptions({ tabBarStyle: DEFAULT_TAB_BAR_STYLE });
+    };
   }, []);
 
   const loadChannels = async () => {
@@ -59,12 +76,16 @@ export default function LiveTvScreen({ navigation }: any) {
 
   const toggleFullscreen = async () => {
     if (isFullscreen) {
+      // Exit fullscreen -> Portrait and restore bottom navigation bar
       await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT);
       StatusBar.setHidden(false, "fade");
+      navigation.getParent()?.setOptions({ tabBarStyle: DEFAULT_TAB_BAR_STYLE });
       setIsFullscreen(false);
     } else {
+      // Enter fullscreen -> Landscape and HIDE bottom navigation bar completely
       await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
       StatusBar.setHidden(true, "fade");
+      navigation.getParent()?.setOptions({ tabBarStyle: { display: "none" } });
       setIsFullscreen(true);
     }
   };
@@ -90,6 +111,7 @@ export default function LiveTvScreen({ navigation }: any) {
             resizeMode={ResizeMode.CONTAIN}
             shouldPlay={true}
             isMuted={isMuted}
+            progressUpdateIntervalMillis={200}
             onPlaybackStatusUpdate={(status) => {
               if (status.isLoaded) {
                 setIsBuffering(status.isBuffering);
@@ -136,7 +158,7 @@ export default function LiveTvScreen({ navigation }: any) {
                   <Text style={styles.qualityTagText}>{activeChannel.quality || "HD 1080p"}</Text>
                 </View>
 
-                {/* Fullscreen Toggle */}
+                {/* Fullscreen Toggle Button */}
                 <TouchableOpacity onPress={toggleFullscreen} style={styles.hudBtn}>
                   {isFullscreen ? <Minimize size={18} color="#FFF" /> : <Maximize size={18} color="#FFF" />}
                 </TouchableOpacity>
@@ -146,7 +168,7 @@ export default function LiveTvScreen({ navigation }: any) {
         </View>
       ) : null}
 
-      {/* Channel Browser & List (Hidden in Fullscreen mode) */}
+      {/* Channel Browser & List (Hidden completely in Fullscreen mode) */}
       {!isFullscreen && (
         <View style={styles.browserContainer}>
           {/* Search Box */}
@@ -237,7 +259,12 @@ const styles = StyleSheet.create({
   },
   containerFullscreen: {
     ...StyleSheet.absoluteFillObject,
-    zIndex: 999,
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 9999,
   },
   playerContainer: {
     width: "100%",
