@@ -186,52 +186,54 @@ export const ModernDialogProvider: React.FC<{ children: React.ReactNode }> = ({
     >
       {children}
 
-      <Modal visible={visible} transparent animationType="fade" onRequestClose={hideDialog}>
-        <View style={styles.overlay}>
-          <View style={styles.dialogCard}>
-            {/* Top Icon */}
-            {renderIcon()}
+      {visible && (
+        <Modal visible={visible} transparent animationType="fade" onRequestClose={hideDialog}>
+          <View style={styles.overlay}>
+            <View style={styles.dialogCard}>
+              {/* Top Icon */}
+              {renderIcon()}
 
-            {/* Title & Message */}
-            <Text style={styles.titleText}>{config?.title}</Text>
-            {config?.message ? (
-              <Text style={styles.messageText}>{config.message}</Text>
-            ) : null}
-
-            {/* Action Buttons */}
-            <View style={styles.buttonRow}>
-              {config?.cancelText ? (
-                <TouchableOpacity
-                  style={styles.cancelBtn}
-                  onPress={config.onCancel || hideDialog}
-                  activeOpacity={0.8}
-                >
-                  <Text style={styles.cancelBtnText}>{config.cancelText}</Text>
-                </TouchableOpacity>
+              {/* Title & Message */}
+              <Text style={styles.titleText}>{config?.title}</Text>
+              {config?.message ? (
+                <Text style={styles.messageText}>{config.message}</Text>
               ) : null}
 
-              <TouchableOpacity
-                style={[
-                  styles.confirmBtn,
-                  config?.isDestructive && styles.confirmBtnDestructive,
-                  !config?.cancelText && { flex: 1 },
-                ]}
-                onPress={config?.onConfirm || hideDialog}
-                activeOpacity={0.8}
-              >
-                <Text
+              {/* Action Buttons */}
+              <View style={styles.buttonRow}>
+                {config?.cancelText ? (
+                  <TouchableOpacity
+                    style={styles.cancelBtn}
+                    onPress={config.onCancel || hideDialog}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={styles.cancelBtnText}>{config.cancelText}</Text>
+                  </TouchableOpacity>
+                ) : null}
+
+                <TouchableOpacity
                   style={[
-                    styles.confirmBtnText,
-                    config?.isDestructive && styles.confirmBtnTextDestructive,
+                    styles.confirmBtn,
+                    config?.isDestructive && styles.confirmBtnDestructive,
+                    !config?.cancelText && { flex: 1 },
                   ]}
+                  onPress={config?.onConfirm || hideDialog}
+                  activeOpacity={0.8}
                 >
-                  {config?.confirmText || "OK"}
-                </Text>
-              </TouchableOpacity>
+                  <Text
+                    style={[
+                      styles.confirmBtnText,
+                      config?.isDestructive && styles.confirmBtnTextDestructive,
+                    ]}
+                  >
+                    {config?.confirmText || "OK"}
+                  </Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
-        </View>
-      </Modal>
+        </Modal>
+      )}
     </ModernDialogContext.Provider>
   );
 };

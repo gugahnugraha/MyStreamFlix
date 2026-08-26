@@ -86,24 +86,41 @@ const FALLBACK_MOVIES: Movie[] = [
   },
 ];
 
+let cachedMovies: Movie[] = [...FALLBACK_MOVIES];
+let isFetchingMovies = false;
+
 export async function fetchMovies(backendUrl: string = DEFAULT_BACKEND_URL): Promise<Movie[]> {
-  try {
-    const res = await fetch(`${backendUrl}/api/movies`);
-    if (res.ok) {
-      const data = await res.json();
-      const list: Movie[] = Array.isArray(data) ? data : data.movies || [];
-      if (list.length > 0) {
-        return list.filter((m) => !deletedMovieIds.has(m.id));
-      }
-    }
-  } catch (error) {
-    console.warn("API fetchMovies warning, using fallback catalog:", error);
+  // Trigger background refresh non-blockingly (0ms UI latency!)
+  if (!isFetchingMovies) {
+    isFetchingMovies = true;
+    fetch(`${backendUrl}/api/movies`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data) {
+          const list: Movie[] = Array.isArray(data) ? data : data.movies || [];
+          if (list.length > 0) {
+            cachedMovies = list;
+          }
+        }
+      })
+      .catch(() => {})
+      .finally(() => {
+        isFetchingMovies = false;
+      });
   }
-  return FALLBACK_MOVIES.filter((m) => !deletedMovieIds.has(m.id));
+
+  return cachedMovies.filter((m) => !deletedMovieIds.has(m.id));
+}
+
+export function appendCachedMovies(newMovies: Movie[]) {
+  cachedMovies = [...newMovies, ...cachedMovies];
 }
 
 export async function fetchMovieById(id: string, backendUrl: string = DEFAULT_BACKEND_URL): Promise<Movie | null> {
   if (deletedMovieIds.has(id)) return null;
+  const local = cachedMovies.find((m) => m.id === id);
+  if (local) return local;
+
   try {
     const res = await fetch(`${backendUrl}/api/movies/${id}`);
     if (!res.ok) throw new Error("Failed to fetch movie details");

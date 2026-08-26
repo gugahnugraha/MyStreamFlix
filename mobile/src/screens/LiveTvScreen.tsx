@@ -110,11 +110,9 @@ export default function LiveTvScreen({ navigation }: any) {
     }
   }, [isFullscreen, navigation]);
 
-  // 🛑 Synchronize playback and reload channels when focusing/leaving Live TV tab
+  // 🛑 Stop playback immediately when leaving Live TV tab
   useEffect(() => {
-    if (isFocused) {
-      loadChannels();
-    } else {
+    if (!isFocused) {
       if (isFullscreen) {
         exitFullscreen();
       }
