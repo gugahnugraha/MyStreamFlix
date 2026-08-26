@@ -17,7 +17,6 @@ import {
   ShieldCheck,
   LogOut,
   Lock,
-  Mail,
   Film,
   Sparkles,
   Settings,
@@ -394,7 +393,7 @@ export default function ProfileScreen({ navigation }: any) {
             )}
 
             <View style={styles.inputWrap}>
-              <Mail size={16} color="#777" />
+              <UserIcon size={16} color="#777" />
               <TextInput
                 placeholder={t.emailAddress}
                 placeholderTextColor="#777"

@@ -33,7 +33,7 @@ import {
   Activity,
   Users,
   UserCheck,
-  Mail,
+  User as UserIcon,
 } from "lucide-react-native";
 import { Movie, User } from "../types";
 import { fetchMovies, loginUser, fetchDatabaseUsers } from "../api/client";
@@ -169,7 +169,7 @@ export default function AdminScreen({ navigation }: any) {
           <Text style={styles.gateSubtitle}>{t.adminPortalSubtitle}</Text>
 
           <View style={styles.inputGroup}>
-            <Mail size={16} color="#777" />
+            <UserIcon size={16} color="#777" />
             <TextInput
               placeholder="Email Administrator"
               placeholderTextColor="#777"
