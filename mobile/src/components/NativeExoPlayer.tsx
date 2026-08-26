@@ -33,8 +33,11 @@ import {
   Scaling,
   Tv,
   ChevronLeft,
+  Radio,
+  Sliders,
+  Sparkles,
 } from "lucide-react-native";
-import { Movie, Season, Episode } from "../types";
+import { Movie, Season, Episode, Subtitle } from "../types";
 
 interface NativeExoPlayerProps {
   movie: Movie;
@@ -42,6 +45,60 @@ interface NativeExoPlayerProps {
   onClose: () => void;
   brandColor?: string;
   backendUrl?: string;
+}
+
+interface Cue {
+  start: number;
+  end: number;
+  text: string;
+}
+
+// Subtitle parser identical to web player
+function parseSubtitles(text: string): Cue[] {
+  const cues: Cue[] = [];
+  const normalizedText = text.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+  const blocks = normalizedText.split(/\n\n+/);
+
+  const parseTimeToSeconds = (timeStr: string): number => {
+    const match = timeStr.trim().match(/(?:(\d+):)?(\d+):(\d+)[.,](\d+)/);
+    if (!match) return 0;
+    const hours = parseInt(match[1] || "0", 10);
+    const minutes = parseInt(match[2], 10);
+    const seconds = parseInt(match[3], 10);
+    const msStr = match[4].padEnd(3, "0").substring(0, 3);
+    const ms = parseInt(msStr, 10);
+    return hours * 3600 + minutes * 60 + seconds + ms / 1000;
+  };
+
+  for (const block of blocks) {
+    const lines = block.trim().split("\n");
+    if (lines.length < 2) continue;
+
+    let timeLineIndex = -1;
+    for (let i = 0; i < lines.length; i++) {
+      if (lines[i].includes("-->")) {
+        timeLineIndex = i;
+        break;
+      }
+    }
+
+    if (timeLineIndex === -1) continue;
+
+    const timeParts = lines[timeLineIndex].split("-->");
+    if (timeParts.length !== 2) continue;
+
+    const start = parseTimeToSeconds(timeParts[0]);
+    const end = parseTimeToSeconds(timeParts[1]);
+
+    const textLines = lines.slice(timeLineIndex + 1);
+    const cueText = textLines.join("\n").replace(/<[^>]+>/g, "").trim();
+
+    if (cueText) {
+      cues.push({ start, end, text: cueText });
+    }
+  }
+
+  return cues;
 }
 
 export default function NativeExoPlayer({
@@ -81,6 +138,10 @@ export default function NativeExoPlayer({
   const [aspectRatio, setAspectRatio] = useState<"contain" | "cover" | "stretch">("contain");
   const [brightness, setBrightness] = useState(1.0);
 
+  // Quality selector
+  const [selectedQuality, setSelectedQuality] = useState<string>("Auto (1080p)");
+  const [showQualityModal, setShowQualityModal] = useState(false);
+
   // Gestures & Toast Feedback
   const [gestureToast, setGestureToast] = useState<{
     type: "volume" | "brightness" | "seek-forward" | "seek-backward";
@@ -90,6 +151,11 @@ export default function NativeExoPlayer({
 
   // Subtitles & Audio modal
   const [activeSubtitle, setActiveSubtitle] = useState<string>("off");
+  const [subtitleCues, setSubtitleCues] = useState<Cue[]>([]);
+  const [currentCueText, setCurrentCueText] = useState<string>("");
+  const [subtitleStyle, setSubtitleStyle] = useState<"shadow" | "box" | "yellow">("shadow");
+  const [subtitleSize, setSubtitleSize] = useState<"small" | "medium" | "large" | "xlarge">("medium");
+
   const [showSubtitleModal, setShowSubtitleModal] = useState(false);
   const [showSpeedModal, setShowSpeedModal] = useState(false);
   const [showEpisodeDrawer, setShowEpisodeDrawer] = useState(false);
@@ -109,6 +175,38 @@ export default function NativeExoPlayer({
     };
   }, []);
 
+  // Fetch subtitle content if active subtitle changed
+  useEffect(() => {
+    if (activeSubtitle === "off") {
+      setSubtitleCues([]);
+      setCurrentCueText("");
+      return;
+    }
+
+    const sub = movie.subtitles?.find((s) => s.language === activeSubtitle);
+    if (sub && sub.url) {
+      fetch(sub.url)
+        .then((res) => res.text())
+        .then((text) => {
+          const cues = parseSubtitles(text);
+          setSubtitleCues(cues);
+        })
+        .catch((err) => console.log("Failed to load subtitle:", err));
+    }
+  }, [activeSubtitle, movie]);
+
+  // Update current active subtitle cue based on currentTime
+  useEffect(() => {
+    if (subtitleCues.length === 0) {
+      setCurrentCueText("");
+      return;
+    }
+    const match = subtitleCues.find(
+      (c) => currentTime >= c.start && currentTime <= c.end
+    );
+    setCurrentCueText(match ? match.text : "");
+  }, [currentTime, subtitleCues]);
+
   // Controls auto-hide timer (4 seconds)
   const resetControlsTimer = () => {
     if (controlsTimerRef.current) clearTimeout(controlsTimerRef.current);
@@ -120,7 +218,11 @@ export default function NativeExoPlayer({
     }, 4000);
   };
 
-  const showToast = (toast: { type: "volume" | "brightness" | "seek-forward" | "seek-backward"; value: string; percent?: number }) => {
+  const showToast = (toast: {
+    type: "volume" | "brightness" | "seek-forward" | "seek-backward";
+    value: string;
+    percent?: number;
+  }) => {
     setGestureToast(toast);
     setTimeout(() => {
       setGestureToast(null);
@@ -175,18 +277,15 @@ export default function NativeExoPlayer({
     if (lastTapRef.current && now - lastTapRef.current.time < 300) {
       // Double tap detected!
       if (touchX > screenWidth / 2) {
-        // Forward +10s
         handleSeek(currentTime + 10);
         showToast({ type: "seek-forward", value: "+10s" });
       } else {
-        // Rewind -10s
         handleSeek(Math.max(0, currentTime - 10));
         showToast({ type: "seek-backward", value: "-10s" });
       }
       lastTapRef.current = null;
     } else {
       lastTapRef.current = { time: now, x: touchX };
-      // Single tap toggles HUD
       if (showControls) {
         setShowControls(false);
       } else {
@@ -236,7 +335,6 @@ export default function NativeExoPlayer({
     }
   };
 
-  // Format seconds to mm:ss or hh:mm:ss
   const formatTime = (secs: number) => {
     if (isNaN(secs)) return "00:00";
     const h = Math.floor(secs / 3600);
@@ -248,7 +346,7 @@ export default function NativeExoPlayer({
     return `${m < 10 ? "0" : ""}${m}:${s < 10 ? "0" : ""}${s}`;
   };
 
-  // Resolve target streaming URL (with Google Drive backend proxy fallback)
+  // Resolve target streaming URL
   let targetUrl = activeEpisode ? activeEpisode.videoUrl : movie.videoUrl;
   if (targetUrl.includes("drive.google.com")) {
     const match = targetUrl.match(/[?&]id=([a-zA-Z0-9_-]+)/) || targetUrl.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
@@ -263,6 +361,18 @@ export default function NativeExoPlayer({
       : aspectRatio === "stretch"
       ? ResizeMode.STRETCH
       : ResizeMode.CONTAIN;
+
+  const isLive = movie.contentType === "livetv" || movie.id.startsWith("tv-");
+
+  // Subtitle font size mapping
+  const subFontSize =
+    subtitleSize === "small"
+      ? 14
+      : subtitleSize === "large"
+      ? 20
+      : subtitleSize === "xlarge"
+      ? 24
+      : 17;
 
   return (
     <View style={styles.container}>
@@ -286,6 +396,29 @@ export default function NativeExoPlayer({
         pointerEvents="none"
         style={[styles.brightnessOverlay, { opacity: Math.max(0, 1 - brightness) }]}
       />
+
+      {/* Live On-Screen Subtitle Rendering Engine */}
+      {currentCueText ? (
+        <View pointerEvents="none" style={styles.subtitleContainer}>
+          <View
+            style={[
+              subtitleStyle === "box" && styles.subtitleBoxStyle,
+              subtitleStyle === "yellow" && styles.subtitleYellowStyle,
+            ]}
+          >
+            <Text
+              style={[
+                styles.subtitleText,
+                { fontSize: subFontSize },
+                subtitleStyle === "shadow" && styles.subtitleShadowStyle,
+                subtitleStyle === "yellow" && { color: "#FACC15" },
+              ]}
+            >
+              {currentCueText}
+            </Text>
+          </View>
+        </View>
+      ) : null}
 
       {/* Gesture Pan Responder Surface */}
       <TouchableWithoutFeedback onPress={handleScreenPress}>
@@ -324,30 +457,50 @@ export default function NativeExoPlayer({
       {/* HUD Controls Layer */}
       {showControls && !isScreenLocked && (
         <View style={styles.hudOverlay} pointerEvents="box-none">
-          {/* Top Bar Header */}
+          {/* Top Bar Header with Title & Badges */}
           <View style={styles.topBar}>
             <TouchableOpacity onPress={onClose} style={styles.iconBtn}>
               <ChevronLeft size={26} color="#FFF" />
             </TouchableOpacity>
 
             <View style={styles.titleContainer}>
+              <View style={styles.metaRow}>
+                {isLive ? (
+                  <View style={styles.liveBadge}>
+                    <Radio size={10} color="#FFF" />
+                    <Text style={styles.liveBadgeText}>LIVE STREAM</Text>
+                  </View>
+                ) : (
+                  <Text style={styles.nowStreamingText}>NOW STREAMING</Text>
+                )}
+                <Text style={styles.qualityTag}>{movie.quality || "1080p HD"}</Text>
+              </View>
+
               <Text style={styles.movieTitle} numberOfLines={1}>
-                {movie.title}{" "}
-                {activeEpisode ? `• S${activeSeason?.seasonNumber}E${activeEpisode.episodeNumber}: ${activeEpisode.title}` : ""}
+                {movie.title}
+                {activeEpisode
+                  ? ` • S${activeSeason?.seasonNumber}E${activeEpisode.episodeNumber}: ${activeEpisode.title}`
+                  : ""}
               </Text>
             </View>
 
             <View style={styles.topActions}>
+              {/* Quality Switcher Button */}
+              <TouchableOpacity onPress={() => setShowQualityModal(true)} style={styles.pillBtn}>
+                <Sliders size={14} color="#00ADB5" />
+                <Text style={styles.pillBtnText}>{selectedQuality.split(" ")[0]}</Text>
+              </TouchableOpacity>
+
               {/* Aspect Ratio Switcher */}
               <TouchableOpacity onPress={cycleAspectRatio} style={styles.pillBtn}>
-                <Scaling size={16} color="#00ADB5" />
+                <Scaling size={14} color="#00ADB5" />
                 <Text style={styles.pillBtnText}>{aspectRatio.toUpperCase()}</Text>
               </TouchableOpacity>
 
               {/* Series Episodes Drawer Toggle */}
               {movie.contentType === "series" && (
                 <TouchableOpacity onPress={() => setShowEpisodeDrawer(true)} style={styles.pillBtn}>
-                  <Tv size={16} color="#E50914" />
+                  <Tv size={14} color="#E50914" />
                   <Text style={styles.pillBtnText}>EPISODES</Text>
                 </TouchableOpacity>
               )}
@@ -361,70 +514,125 @@ export default function NativeExoPlayer({
 
           {/* Center Playback Controller */}
           <View style={styles.centerControls} pointerEvents="box-none">
-            <TouchableOpacity onPress={() => handleSeek(currentTime - 10)} style={styles.roundBtn}>
-              <RotateCcw size={26} color="#FFF" />
-            </TouchableOpacity>
+            {!isLive && (
+              <TouchableOpacity onPress={() => handleSeek(currentTime - 10)} style={styles.roundBtn}>
+                <RotateCcw size={26} color="#FFF" />
+              </TouchableOpacity>
+            )}
 
             <TouchableOpacity onPress={handlePlayPause} style={styles.playPauseBtn}>
               {isPlaying ? <Pause size={36} color="#FFF" /> : <Play size={36} color="#FFF" />}
             </TouchableOpacity>
 
-            <TouchableOpacity onPress={() => handleSeek(currentTime + 10)} style={styles.roundBtn}>
-              <RotateCw size={26} color="#FFF" />
-            </TouchableOpacity>
+            {!isLive && (
+              <TouchableOpacity onPress={() => handleSeek(currentTime + 10)} style={styles.roundBtn}>
+                <RotateCw size={26} color="#FFF" />
+              </TouchableOpacity>
+            )}
           </View>
 
           {/* Bottom Control Bar */}
           <View style={styles.bottomBar}>
-            {/* Timeline Progress Slider */}
-            <View style={styles.progressRow}>
-              <Text style={styles.timeText}>{formatTime(currentTime)}</Text>
-              <Slider
-                style={styles.slider}
-                minimumValue={0}
-                maximumValue={duration || 1}
-                value={currentTime}
-                onSlidingComplete={handleSeek}
-                minimumTrackTintColor={brandColor}
-                maximumTrackTintColor="rgba(255,255,255,0.3)"
-                thumbTintColor={brandColor}
-              />
-              <Text style={styles.timeText}>{formatTime(duration)}</Text>
-            </View>
+            {/* Timeline Progress Slider (Hidden on Live TV) */}
+            {!isLive && (
+              <View style={styles.progressRow}>
+                <Text style={styles.timeText}>{formatTime(currentTime)}</Text>
+                <Slider
+                  style={styles.slider}
+                  minimumValue={0}
+                  maximumValue={duration || 1}
+                  value={currentTime}
+                  onSlidingComplete={handleSeek}
+                  minimumTrackTintColor={brandColor}
+                  maximumTrackTintColor="rgba(255,255,255,0.3)"
+                  thumbTintColor={brandColor}
+                />
+                <Text style={styles.timeText}>{formatTime(duration)}</Text>
+              </View>
+            )}
 
-            {/* Bottom Actions Row */}
+            {/* Bottom Actions Row with Volume Slider */}
             <View style={styles.bottomActionsRow}>
-              {/* Volume Toggle */}
-              <TouchableOpacity
-                onPress={() => {
-                  const targetMute = !isMuted;
-                  setIsMuted(targetMute);
-                  videoRef.current?.setStatusAsync({ isMuted: targetMute });
-                }}
-                style={styles.iconBtn}
-              >
-                {isMuted ? <VolumeX size={20} color="#E50914" /> : <Volume2 size={20} color="#FFF" />}
-              </TouchableOpacity>
+              {/* Volume Controller with Horizontal Slider */}
+              <View style={styles.volumeGroup}>
+                <TouchableOpacity
+                  onPress={() => {
+                    const targetMute = !isMuted;
+                    setIsMuted(targetMute);
+                    videoRef.current?.setStatusAsync({ isMuted: targetMute });
+                  }}
+                  style={styles.iconBtn}
+                >
+                  {isMuted || volume === 0 ? (
+                    <VolumeX size={20} color="#E50914" />
+                  ) : (
+                    <Volume2 size={20} color="#FFF" />
+                  )}
+                </TouchableOpacity>
+
+                <Slider
+                  style={styles.volumeSlider}
+                  minimumValue={0}
+                  maximumValue={1}
+                  value={isMuted ? 0 : volume}
+                  onValueChange={(val) => {
+                    setVolume(val);
+                    setIsMuted(val === 0);
+                    videoRef.current?.setStatusAsync({ volume: val, isMuted: val === 0 });
+                  }}
+                  minimumTrackTintColor="#00ADB5"
+                  maximumTrackTintColor="rgba(255,255,255,0.3)"
+                  thumbTintColor="#00ADB5"
+                />
+              </View>
 
               <View style={styles.bottomRightActions}>
                 {/* Speed Selector */}
-                <TouchableOpacity onPress={() => setShowSpeedModal(true)} style={styles.menuBtn}>
-                  <Settings size={16} color="#FFF" />
-                  <Text style={styles.menuBtnText}>{playbackRate}x</Text>
-                </TouchableOpacity>
-
-                {/* Subtitles Selector */}
-                {movie.subtitles && movie.subtitles.length > 0 && (
-                  <TouchableOpacity onPress={() => setShowSubtitleModal(true)} style={styles.menuBtn}>
-                    <Subtitles size={16} color={activeSubtitle !== "off" ? "#E50914" : "#FFF"} />
-                    <Text style={styles.menuBtnText}>SUB</Text>
+                {!isLive && (
+                  <TouchableOpacity onPress={() => setShowSpeedModal(true)} style={styles.menuBtn}>
+                    <Settings size={15} color="#FFF" />
+                    <Text style={styles.menuBtnText}>{playbackRate}x</Text>
                   </TouchableOpacity>
                 )}
+
+                {/* Subtitles Selector */}
+                <TouchableOpacity onPress={() => setShowSubtitleModal(true)} style={styles.menuBtn}>
+                  <Subtitles size={15} color={activeSubtitle !== "off" ? "#E50914" : "#FFF"} />
+                  <Text style={styles.menuBtnText}>
+                    SUB {activeSubtitle !== "off" ? `(${activeSubtitle.toUpperCase()})` : ""}
+                  </Text>
+                </TouchableOpacity>
               </View>
             </View>
           </View>
         </View>
       )}
+
+      {/* Video Quality Selector Modal */}
+      <Modal visible={showQualityModal} transparent animationType="slide">
+        <TouchableWithoutFeedback onPress={() => setShowQualityModal(false)}>
+          <View style={styles.modalBackdrop}>
+            <View style={styles.bottomSheet}>
+              <Text style={styles.modalTitle}>Stream Quality</Text>
+              {["Auto (1080p)", "1080p FHD", "720p HD", "480p SD", "360p Low"].map((q) => (
+                <TouchableOpacity
+                  key={q}
+                  onPress={() => {
+                    setSelectedQuality(q);
+                    setShowQualityModal(false);
+                  }}
+                  style={[styles.modalItem, selectedQuality === q && styles.modalItemActive]}
+                >
+                  <Text style={[styles.modalItemText, selectedQuality === q && { color: brandColor }]}>
+                    {q}
+                  </Text>
+                  {selectedQuality === q && <Check size={18} color={brandColor} />}
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
 
       {/* Speed Selector Modal */}
       <Modal visible={showSpeedModal} transparent animationType="slide">
@@ -453,17 +661,17 @@ export default function NativeExoPlayer({
         </TouchableWithoutFeedback>
       </Modal>
 
-      {/* Subtitles Modal */}
+      {/* Subtitles & Styling Modal */}
       <Modal visible={showSubtitleModal} transparent animationType="slide">
         <TouchableWithoutFeedback onPress={() => setShowSubtitleModal(false)}>
           <View style={styles.modalBackdrop}>
             <View style={styles.bottomSheet}>
               <Text style={styles.modalTitle}>Subtitles & Captions</Text>
+
+              {/* Subtitle Track Picker */}
+              <Text style={styles.subHeading}>SELECT LANGUAGE</Text>
               <TouchableOpacity
-                onPress={() => {
-                  setActiveSubtitle("off");
-                  setShowSubtitleModal(false);
-                }}
+                onPress={() => setActiveSubtitle("off")}
                 style={[styles.modalItem, activeSubtitle === "off" && styles.modalItemActive]}
               >
                 <Text style={styles.modalItemText}>Off (None)</Text>
@@ -472,16 +680,74 @@ export default function NativeExoPlayer({
               {movie.subtitles?.map((sub) => (
                 <TouchableOpacity
                   key={sub.id}
-                  onPress={() => {
-                    setActiveSubtitle(sub.language);
-                    setShowSubtitleModal(false);
-                  }}
+                  onPress={() => setActiveSubtitle(sub.language)}
                   style={[styles.modalItem, activeSubtitle === sub.language && styles.modalItemActive]}
                 >
                   <Text style={styles.modalItemText}>{sub.label}</Text>
                   {activeSubtitle === sub.language && <Check size={18} color={brandColor} />}
                 </TouchableOpacity>
               ))}
+
+              {/* Subtitle Style Options (Matching Web Player) */}
+              {activeSubtitle !== "off" && (
+                <>
+                  <Text style={[styles.subHeading, { marginTop: 14 }]}>SUBTITLE STYLE</Text>
+                  <View style={styles.pillsRow}>
+                    {(["shadow", "box", "yellow"] as const).map((styleOpt) => (
+                      <TouchableOpacity
+                        key={styleOpt}
+                        onPress={() => setSubtitleStyle(styleOpt)}
+                        style={[
+                          styles.styleOptionPill,
+                          subtitleStyle === styleOpt && {
+                            borderColor: brandColor,
+                            backgroundColor: "rgba(0,173,181,0.15)",
+                          },
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.styleOptionText,
+                            subtitleStyle === styleOpt && { color: brandColor, fontWeight: "bold" },
+                          ]}
+                        >
+                          {styleOpt === "shadow"
+                            ? "Clean Shadow"
+                            : styleOpt === "box"
+                            ? "Black Box"
+                            : "Yellow Cinema"}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+
+                  <Text style={[styles.subHeading, { marginTop: 14 }]}>TEXT SIZE</Text>
+                  <View style={styles.pillsRow}>
+                    {(["small", "medium", "large", "xlarge"] as const).map((sizeOpt) => (
+                      <TouchableOpacity
+                        key={sizeOpt}
+                        onPress={() => setSubtitleSize(sizeOpt)}
+                        style={[
+                          styles.styleOptionPill,
+                          subtitleSize === sizeOpt && {
+                            borderColor: brandColor,
+                            backgroundColor: "rgba(0,173,181,0.15)",
+                          },
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.styleOptionText,
+                            subtitleSize === sizeOpt && { color: brandColor, fontWeight: "bold" },
+                          ]}
+                        >
+                          {sizeOpt.toUpperCase()}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </>
+              )}
             </View>
           </View>
         </TouchableWithoutFeedback>
@@ -537,6 +803,37 @@ const styles = StyleSheet.create({
   brightnessOverlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: "#000",
+  },
+  subtitleContainer: {
+    position: "absolute",
+    bottom: 60,
+    left: 20,
+    right: 20,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  subtitleBoxStyle: {
+    backgroundColor: "rgba(0,0,0,0.85)",
+    paddingVertical: 6,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+  },
+  subtitleYellowStyle: {
+    backgroundColor: "rgba(0,0,0,0.7)",
+    paddingVertical: 6,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+  },
+  subtitleText: {
+    color: "#FFFFFF",
+    fontWeight: "bold",
+    textAlign: "center",
+    lineHeight: 24,
+  },
+  subtitleShadowStyle: {
+    textShadowColor: "rgba(0, 0, 0, 0.95)",
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 4,
   },
   centerOverlay: {
     ...StyleSheet.absoluteFillObject,
@@ -596,9 +893,39 @@ const styles = StyleSheet.create({
     flex: 1,
     marginHorizontal: 12,
   },
+  metaRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginBottom: 2,
+  },
+  liveBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "#E50914",
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  liveBadgeText: {
+    color: "#FFF",
+    fontSize: 9,
+    fontWeight: "bold",
+  },
+  nowStreamingText: {
+    color: "#00ADB5",
+    fontSize: 10,
+    fontWeight: "bold",
+    letterSpacing: 1,
+  },
+  qualityTag: {
+    color: "#888",
+    fontSize: 10,
+  },
   movieTitle: {
     color: "#FFF",
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: "bold",
   },
   topActions: {
@@ -663,6 +990,15 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
   },
+  volumeGroup: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  volumeSlider: {
+    width: 90,
+    height: 20,
+  },
   bottomRightActions: {
     flexDirection: "row",
     alignItems: "center",
@@ -694,6 +1030,7 @@ const styles = StyleSheet.create({
     padding: 20,
     borderTopWidth: 1,
     borderColor: "#27272A",
+    maxHeight: 400,
   },
   episodesDrawer: {
     backgroundColor: "#121214",
@@ -706,7 +1043,31 @@ const styles = StyleSheet.create({
     color: "#FFF",
     fontSize: 15,
     fontWeight: "bold",
-    marginBottom: 14,
+    marginBottom: 10,
+  },
+  subHeading: {
+    color: "#777",
+    fontSize: 10,
+    fontWeight: "bold",
+    letterSpacing: 1,
+    marginBottom: 8,
+  },
+  pillsRow: {
+    flexDirection: "row",
+    gap: 8,
+    marginBottom: 10,
+  },
+  styleOptionPill: {
+    backgroundColor: "#1C1C22",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#2A2A32",
+  },
+  styleOptionText: {
+    color: "#AAA",
+    fontSize: 11,
   },
   modalItem: {
     flexDirection: "row",

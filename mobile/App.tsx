@@ -2,11 +2,13 @@ import React from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import { Film, Radio, Tv } from "lucide-react-native";
+import { Film, Radio, User, ShieldCheck } from "lucide-react-native";
 
 import HomeScreen from "./src/screens/HomeScreen";
 import LiveTvScreen from "./src/screens/LiveTvScreen";
 import PlayerScreen from "./src/screens/PlayerScreen";
+import ProfileScreen from "./src/screens/ProfileScreen";
+import AdminScreen from "./src/screens/AdminScreen";
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -19,7 +21,7 @@ function MainTabs() {
         tabBarStyle: {
           backgroundColor: "#0F0F12",
           borderTopColor: "#1E1E24",
-          height: 60,
+          height: 62,
           paddingBottom: 8,
           paddingTop: 6,
         },
@@ -43,6 +45,14 @@ function MainTabs() {
           tabBarIcon: ({ color, size }) => <Radio color={color} size={size} />,
         }}
       />
+      <Tab.Screen
+        name="Profile"
+        component={ProfileScreen}
+        options={{
+          tabBarLabel: "Account & Admin",
+          tabBarIcon: ({ color, size }) => <User color={color} size={size} />,
+        }}
+      />
     </Tab.Navigator>
   );
 }
@@ -57,6 +67,7 @@ export default function App() {
         }}
       >
         <Stack.Screen name="Main" component={MainTabs} />
+        <Stack.Screen name="Admin" component={AdminScreen} />
         <Stack.Screen
           name="Player"
           component={PlayerScreen}
