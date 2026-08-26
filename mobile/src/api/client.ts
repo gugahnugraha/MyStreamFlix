@@ -120,56 +120,23 @@ export async function loginUser(
   password?: string,
   backendUrl: string = DEFAULT_BACKEND_URL
 ): Promise<{ success: boolean; user?: User; error?: string }> {
+  if (!email || !password) {
+    return { success: false, error: "Email dan password wajib diisi." };
+  }
+
   try {
     const res = await fetch(`${backendUrl}/api/auth/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ email: email.trim().toLowerCase(), password }),
     });
     const data = await res.json();
-    if (!res.ok) {
-      // Direct Admin Fallback if database has admin@streamcms.com
-      if (email === "admin@streamcms.com") {
-        return {
-          success: true,
-          user: {
-            id: "usr-1",
-            name: "Admin",
-            email: "admin@streamcms.com",
-            role: "admin",
-            createdAt: new Date().toISOString(),
-            isPremium: true,
-            profiles: [
-              { id: "prof-1", name: "Admin (Adult)", avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80", isKids: false },
-              { id: "prof-2", name: "Kids Zone", avatar: "https://images.unsplash.com/photo-1501196354995-cbb51c65aaea?w=150&auto=format&fit=crop&q=80", isKids: true },
-            ],
-            activeProfileId: "prof-1",
-          },
-        };
-      }
-      return { success: false, error: data.error || "Kredensial tidak valid." };
+    if (!res.ok || !data.success) {
+      return { success: false, error: data.error || "Email atau password yang dimasukkan salah." };
     }
     return { success: true, user: data.user };
   } catch (error: any) {
-    if (email === "admin@streamcms.com") {
-      return {
-        success: true,
-        user: {
-          id: "usr-1",
-          name: "Admin",
-          email: "admin@streamcms.com",
-          role: "admin",
-          createdAt: new Date().toISOString(),
-          isPremium: true,
-          profiles: [
-            { id: "prof-1", name: "Admin (Adult)", avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80", isKids: false },
-            { id: "prof-2", name: "Kids Zone", avatar: "https://images.unsplash.com/photo-1501196354995-cbb51c65aaea?w=150&auto=format&fit=crop&q=80", isKids: true },
-          ],
-          activeProfileId: "prof-1",
-        },
-      };
-    }
-    return { success: false, error: error.message || "Gagal menghubungi database." };
+    return { success: false, error: error.message || "Gagal menghubungi server database." };
   }
 }
 
