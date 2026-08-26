@@ -368,12 +368,6 @@ export default function AdminScreen({ navigation }: any) {
                     <Text style={styles.itemTitle}>{channel.title}</Text>
                     <Text style={styles.itemMeta}>HLS / IPTV Stream • {channel.quality}</Text>
                   </View>
-                  <TouchableOpacity
-                    style={styles.actionBtn}
-                    onPress={() => navigation.navigate("Player", { movie: channel })}
-                  >
-                    <Eye size={16} color="#00ADB5" />
-                  </TouchableOpacity>
                 </View>
               ))}
           </View>

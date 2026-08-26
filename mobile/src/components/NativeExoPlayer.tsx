@@ -194,7 +194,7 @@ export default function NativeExoPlayer({
   const [subtitleCues, setSubtitleCues] = useState<Cue[]>([]);
   const subtitleCuesRef = useRef<Cue[]>([]);
   const [currentCueText, setCurrentCueText] = useState<string>("");
-  const [subtitleStyle, setSubtitleStyle] = useState<"shadow" | "box" | "yellow">("shadow");
+  const [subtitleStyle, setSubtitleStyle] = useState<"shadow" | "clean-yellow" | "box" | "yellow">("shadow");
   const [subtitleSize, setSubtitleSize] = useState<"small" | "medium" | "large" | "xlarge">("medium");
 
   const [showSubtitleModal, setShowSubtitleModal] = useState(false);
@@ -499,8 +499,8 @@ export default function NativeExoPlayer({
                 style={[
                   styles.subtitleText,
                   { fontSize: subFontSize },
-                  subtitleStyle === "shadow" && styles.subtitleShadowStyle,
-                  subtitleStyle === "yellow" && { color: "#FACC15" },
+                  (subtitleStyle === "shadow" || subtitleStyle === "clean-yellow") && styles.subtitleShadowStyle,
+                  (subtitleStyle === "yellow" || subtitleStyle === "clean-yellow") && { color: "#FACC15" },
                 ]}
               >
                 {currentCueText}
@@ -838,7 +838,7 @@ export default function NativeExoPlayer({
                     {/* Subtitle Style Options */}
                     <Text style={[styles.glassMiniLabel, { marginTop: 12 }]}>STYLE PRESET</Text>
                     <View style={styles.glassPillsWrap}>
-                      {(["shadow", "box", "yellow"] as const).map((styleOpt) => (
+                      {(["shadow", "clean-yellow", "box", "yellow"] as const).map((styleOpt) => (
                         <TouchableOpacity
                           key={styleOpt}
                           onPress={() => setSubtitleStyle(styleOpt)}
@@ -854,10 +854,12 @@ export default function NativeExoPlayer({
                             ]}
                           >
                             {styleOpt === "shadow"
-                              ? "Clean Shadow"
+                              ? "Clean White"
+                              : styleOpt === "clean-yellow"
+                              ? "Clean Yellow"
                               : styleOpt === "box"
                               ? "Black Box"
-                              : "Yellow Cinema"}
+                              : "Yellow Box"}
                           </Text>
                         </TouchableOpacity>
                       ))}

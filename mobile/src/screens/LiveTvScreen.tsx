@@ -12,6 +12,7 @@ import {
   StatusBar,
   Modal,
   Platform,
+  TouchableWithoutFeedback,
 } from "react-native";
 import Slider from "@react-native-community/slider";
 import { useIsFocused } from "@react-navigation/native";
@@ -30,6 +31,10 @@ import {
   Tv,
   CheckCircle,
   Sparkles,
+  ChevronLeft,
+  Scaling,
+  ListFilter,
+  X,
 } from "lucide-react-native";
 import { Movie } from "../types";
 import { fetchMovies } from "../api/client";
@@ -47,6 +52,9 @@ export default function LiveTvScreen({ navigation }: any) {
   const [isMuted, setIsMuted] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isBuffering, setIsBuffering] = useState(false);
+  const [aspectRatio, setAspectRatio] = useState<"contain" | "cover" | "stretch">("contain");
+  const [showChannelDrawer, setShowChannelDrawer] = useState(false);
+
   const videoRef = useRef<Video>(null);
   const fullscreenVideoRef = useRef<Video>(null);
 
@@ -104,7 +112,16 @@ export default function LiveTvScreen({ navigation }: any) {
         await NavigationBar.setVisibilityAsync("visible");
       } catch (e) {}
     }
+    setShowChannelDrawer(false);
     setIsFullscreen(false);
+  };
+
+  const cycleAspectRatio = () => {
+    setAspectRatio((prev) => {
+      if (prev === "contain") return "cover";
+      if (prev === "cover") return "stretch";
+      return "contain";
+    });
   };
 
   const handlePlaybackStatusUpdate = (status: AVPlaybackStatus) => {
@@ -119,6 +136,13 @@ export default function LiveTvScreen({ navigation }: any) {
       setIsBuffering(status.isBuffering);
     }
   };
+
+  const resizeModeProp =
+    aspectRatio === "cover"
+      ? ResizeMode.COVER
+      : aspectRatio === "stretch"
+      ? ResizeMode.STRETCH
+      : ResizeMode.CONTAIN;
 
   const filtered = channels.filter((c) => {
     const matchSearch = c.title.toLowerCase().includes(search.toLowerCase());
@@ -138,7 +162,7 @@ export default function LiveTvScreen({ navigation }: any) {
             ref={videoRef}
             source={{ uri: activeChannel.videoUrl }}
             style={StyleSheet.absoluteFill}
-            resizeMode={ResizeMode.CONTAIN}
+            resizeMode={resizeModeProp}
             shouldPlay={isFocused}
             isMuted={isMuted}
             volume={volume}
@@ -156,18 +180,37 @@ export default function LiveTvScreen({ navigation }: any) {
 
           {/* Live Player HUD Overlay */}
           <View style={styles.playerHud}>
-            {/* Top Row: Live Badge & Channel Info */}
+            {/* Top Row: Back Button, Live Badge & Channel Info */}
             <View style={styles.playerTopRow}>
+              <TouchableOpacity
+                onPress={() => {
+                  if (navigation.canGoBack()) {
+                    navigation.goBack();
+                  } else {
+                    navigation.navigate("Catalog");
+                  }
+                }}
+                style={styles.glassCircleBtn}
+              >
+                <ChevronLeft size={18} color="#FFF" />
+              </TouchableOpacity>
+
               <View style={styles.liveBadge}>
-                <Radio size={12} color="#FFF" />
+                <Radio size={11} color="#FFF" />
                 <Text style={styles.liveBadgeText}>LIVE STREAM</Text>
               </View>
               <Text style={styles.playerChannelTitle} numberOfLines={1}>
                 {activeChannel.title}
               </Text>
+
+              {/* Aspect Ratio Button (Inline) */}
+              <TouchableOpacity onPress={cycleAspectRatio} style={styles.glassPillBtn}>
+                <Scaling size={12} color="#00ADB5" />
+                <Text style={styles.glassPillText}>{aspectRatio.toUpperCase()}</Text>
+              </TouchableOpacity>
             </View>
 
-            {/* Bottom Row: Controls */}
+            {/* Bottom Row: Volume Slider & Fullscreen */}
             <View style={styles.playerBottomRow}>
               <View style={styles.modernVolumePill}>
                 <TouchableOpacity
@@ -215,7 +258,7 @@ export default function LiveTvScreen({ navigation }: any) {
         </View>
       ) : null}
 
-      {/* 🌟 100% Clean Native Modal Fullscreen Player */}
+      {/* 🌟 100% Clean Native Modal Fullscreen Player with Back, Aspect Ratio & Glassmorphic Channel Drawer */}
       {activeChannel && (
         <Modal
           visible={isFullscreen}
@@ -228,7 +271,7 @@ export default function LiveTvScreen({ navigation }: any) {
               ref={fullscreenVideoRef}
               source={{ uri: activeChannel.videoUrl }}
               style={StyleSheet.absoluteFill}
-              resizeMode={ResizeMode.CONTAIN}
+              resizeMode={resizeModeProp}
               shouldPlay={isFocused && isFullscreen}
               isMuted={isMuted}
               volume={volume}
@@ -246,16 +289,40 @@ export default function LiveTvScreen({ navigation }: any) {
 
             {/* Fullscreen Overlay HUD */}
             <View style={styles.playerHud}>
+              {/* Top Row: Back Button, Title, Aspect Ratio & Channel List Drawer Toggle */}
               <View style={styles.playerTopRow}>
+                <TouchableOpacity onPress={exitFullscreen} style={styles.glassCircleBtn}>
+                  <ChevronLeft size={20} color="#FFF" />
+                </TouchableOpacity>
+
                 <View style={styles.liveBadge}>
-                  <Radio size={12} color="#FFF" />
+                  <Radio size={11} color="#FFF" />
                   <Text style={styles.liveBadgeText}>LIVE STREAM</Text>
                 </View>
+
                 <Text style={styles.playerChannelTitle} numberOfLines={1}>
                   {activeChannel.title}
                 </Text>
+
+                {/* Aspect Ratio Toggle (Contain, Cover, Stretch) */}
+                <TouchableOpacity onPress={cycleAspectRatio} style={styles.glassPillBtn}>
+                  <Scaling size={13} color="#00ADB5" />
+                  <Text style={styles.glassPillText}>{aspectRatio.toUpperCase()}</Text>
+                </TouchableOpacity>
+
+                {/* Glassmorphic Channels Drawer Toggle */}
+                <TouchableOpacity
+                  onPress={() => setShowChannelDrawer(!showChannelDrawer)}
+                  style={[styles.glassPillBtn, showChannelDrawer && styles.glassPillBtnActive]}
+                >
+                  <ListFilter size={13} color={showChannelDrawer ? "#00ADB5" : "#FFF"} />
+                  <Text style={[styles.glassPillText, showChannelDrawer && { color: "#00ADB5" }]}>
+                    Channels ({channels.length})
+                  </Text>
+                </TouchableOpacity>
               </View>
 
+              {/* Bottom Row: Volume Slider, Quality & Fullscreen Toggle */}
               <View style={styles.playerBottomRow}>
                 <View style={styles.modernVolumePill}>
                   <TouchableOpacity
@@ -300,11 +367,60 @@ export default function LiveTvScreen({ navigation }: any) {
                 </View>
               </View>
             </View>
+
+            {/* 🪟 Fullscreen Glassmorphic Channel Drawer Overlay */}
+            {showChannelDrawer && (
+              <View style={styles.drawerSidebar}>
+                <View style={styles.drawerHeader}>
+                  <Text style={styles.drawerTitle}>Live Channels</Text>
+                  <TouchableOpacity onPress={() => setShowChannelDrawer(false)} style={styles.drawerCloseBtn}>
+                    <X size={16} color="#AAA" />
+                  </TouchableOpacity>
+                </View>
+
+                <FlatList
+                  data={channels}
+                  keyExtractor={(item) => item.id}
+                  showsVerticalScrollIndicator={false}
+                  contentContainerStyle={{ padding: 10, gap: 6 }}
+                  renderItem={({ item }) => {
+                    const isSelected = activeChannel?.id === item.id;
+                    return (
+                      <TouchableOpacity
+                        style={[styles.drawerItem, isSelected && styles.drawerItemActive]}
+                        onPress={() => {
+                          setActiveChannel(item);
+                          setShowChannelDrawer(false);
+                        }}
+                      >
+                        <Image
+                          source={{ uri: item.posterUrl || item.backdropUrl }}
+                          style={styles.drawerLogo}
+                          resizeMode="contain"
+                        />
+                        <View style={{ flex: 1 }}>
+                          <Text
+                            style={[styles.drawerChannelName, isSelected && { color: "#00ADB5", fontWeight: "bold" }]}
+                            numberOfLines={1}
+                          >
+                            {item.title}
+                          </Text>
+                          <Text style={styles.drawerChannelMeta}>
+                            {item.genres?.[0] || "IPTV"} • {item.quality}
+                          </Text>
+                        </View>
+                        {isSelected && <Play size={12} color="#00ADB5" fill="#00ADB5" />}
+                      </TouchableOpacity>
+                    );
+                  }}
+                />
+              </View>
+            )}
           </View>
         </Modal>
       )}
 
-      {/* Channel Browser & List */}
+      {/* Channel Browser & List (When in Inline Mode) */}
       <View style={styles.browserContainer}>
         {/* Search Box */}
         <View style={styles.searchBox}>
@@ -426,6 +542,36 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 8,
   },
+  glassCircleBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: "rgba(20,20,28,0.75)",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.12)",
+  },
+  glassPillBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    backgroundColor: "rgba(20,20,28,0.75)",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.12)",
+  },
+  glassPillBtnActive: {
+    borderColor: "#00ADB5",
+    backgroundColor: "rgba(0,173,181,0.2)",
+  },
+  glassPillText: {
+    color: "#FFF",
+    fontSize: 10,
+    fontWeight: "bold",
+  },
   liveBadge: {
     flexDirection: "row",
     alignItems: "center",
@@ -443,7 +589,7 @@ const styles = StyleSheet.create({
   },
   playerChannelTitle: {
     color: "#FFF",
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: "bold",
     flex: 1,
   },
@@ -492,6 +638,63 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1,
     borderColor: "#00ADB5",
+  },
+  drawerSidebar: {
+    position: "absolute",
+    top: 0,
+    right: 0,
+    bottom: 0,
+    width: 270,
+    backgroundColor: "rgba(14,14,20,0.94)",
+    borderLeftWidth: 1,
+    borderColor: "rgba(255,255,255,0.12)",
+    elevation: 20,
+    zIndex: 9999,
+  },
+  drawerHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: 14,
+    borderBottomWidth: 1,
+    borderColor: "rgba(255,255,255,0.08)",
+  },
+  drawerTitle: {
+    color: "#FFF",
+    fontSize: 13,
+    fontWeight: "bold",
+  },
+  drawerCloseBtn: {
+    padding: 4,
+  },
+  drawerItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(255,255,255,0.04)",
+    padding: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.06)",
+    gap: 10,
+  },
+  drawerItemActive: {
+    borderColor: "#00ADB5",
+    backgroundColor: "rgba(0,173,181,0.15)",
+  },
+  drawerLogo: {
+    width: 40,
+    height: 28,
+    borderRadius: 4,
+    backgroundColor: "#000",
+  },
+  drawerChannelName: {
+    color: "#DDD",
+    fontSize: 11,
+  },
+  drawerChannelMeta: {
+    color: "#777",
+    fontSize: 9,
+    marginTop: 1,
   },
   browserContainer: {
     flex: 1,
