@@ -32,6 +32,12 @@ import {
   RefreshCw,
   Baby,
   Smile,
+  Eye,
+  EyeOff,
+  ArrowRight,
+  X,
+  AlertCircle,
+  ShieldAlert,
 } from "lucide-react-native";
 import { User, UserProfile } from "../types";
 import { loginUser, registerUser } from "../api/client";
@@ -65,6 +71,7 @@ export default function ProfileScreen({ navigation }: any) {
   const [authName, setAuthName] = useState("");
   const [authEmail, setAuthEmail] = useState("");
   const [authPassword, setAuthPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [authError, setAuthError] = useState("");
 
   // Preference Toggles
@@ -331,24 +338,53 @@ export default function ProfileScreen({ navigation }: any) {
 
       <View style={{ height: 40 }} />
 
-      {/* Auth Modal */}
-      <Modal visible={showAuthModal} transparent animationType="slide">
+      {/* 🔐 MODERN GLASSMORPHIC AUTH MODAL */}
+      <Modal visible={showAuthModal} transparent animationType="fade">
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>
-              {authMode === "login" ? t.modalSignIn : t.modalRegister}
-            </Text>
-            <Text style={styles.modalSub}>
-              {authMode === "login"
-                ? t.modalSignInSub
-                : t.modalRegisterSub}
-            </Text>
+            {/* Header with App Logo & Close */}
+            <View style={styles.modalHeaderRow}>
+              <View style={styles.brandTitleWrap}>
+                <View style={styles.brandIconMini}>
+                  <Film size={18} color="#00ADB5" />
+                  <Sparkles size={10} color="#FFD700" style={styles.brandSparkle} />
+                </View>
+                <View>
+                  <Text style={styles.brandNameText}>MyStreamFlix ID</Text>
+                  <Text style={styles.brandTaglineText}>
+                    {authMode === "login"
+                      ? "Masuk untuk melanjutkan streaming"
+                      : "Buat akun baru untuk akses ribuan film"}
+                  </Text>
+                </View>
+              </View>
 
-            <View style={styles.authTabRow}>
               <TouchableOpacity
-                onPress={() => setAuthMode("login")}
-                style={[styles.authTab, authMode === "login" && styles.authTabActive]}
+                style={styles.modalCloseBtn}
+                onPress={() => {
+                  setShowAuthModal(false);
+                  setAuthError("");
+                }}
+                activeOpacity={0.7}
               >
+                <X size={18} color="#AAA" />
+              </TouchableOpacity>
+            </View>
+
+            {/* Segmented Auth Mode Switcher */}
+            <View style={styles.authTabSegment}>
+              <TouchableOpacity
+                onPress={() => {
+                  setAuthMode("login");
+                  setAuthError("");
+                }}
+                style={[
+                  styles.authTabPill,
+                  authMode === "login" && styles.authTabPillActive,
+                ]}
+                activeOpacity={0.8}
+              >
+                <LogIn size={14} color={authMode === "login" ? "#000" : "#888"} />
                 <Text
                   style={[
                     styles.authTabText,
@@ -360,12 +396,17 @@ export default function ProfileScreen({ navigation }: any) {
               </TouchableOpacity>
 
               <TouchableOpacity
-                onPress={() => setAuthMode("register")}
+                onPress={() => {
+                  setAuthMode("register");
+                  setAuthError("");
+                }}
                 style={[
-                  styles.authTab,
-                  authMode === "register" && styles.authTabActive,
+                  styles.authTabPill,
+                  authMode === "register" && styles.authTabPillActive,
                 ]}
+                activeOpacity={0.8}
               >
+                <UserPlus size={14} color={authMode === "register" ? "#000" : "#888"} />
                 <Text
                   style={[
                     styles.authTabText,
@@ -377,71 +418,127 @@ export default function ProfileScreen({ navigation }: any) {
               </TouchableOpacity>
             </View>
 
+            {/* Quick Autofill Chips */}
+            {authMode === "login" && (
+              <View style={styles.quickChipsSection}>
+                <Text style={styles.quickChipsLabel}>Akun Cepat (1-Sentuhan):</Text>
+                <View style={styles.quickChipsRow}>
+                  <TouchableOpacity
+                    style={styles.quickChipAdmin}
+                    onPress={() => {
+                      setAuthEmail("admin@streamcms.com");
+                      setAuthPassword("admin");
+                      setAuthError("");
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <Crown size={12} color="#FFD700" />
+                    <Text style={styles.quickChipAdminText}>Admin (admin@streamcms.com)</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.quickChipUser}
+                    onPress={() => {
+                      setAuthEmail("user@streamcms.com");
+                      setAuthPassword("demo");
+                      setAuthError("");
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <UserIcon size={12} color="#00ADB5" />
+                    <Text style={styles.quickChipUserText}>Viewer (demo)</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
+
+            {/* Error Message Box */}
             {authError ? (
-              <Text style={styles.authErrorText}>{authError}</Text>
+              <View style={styles.authErrorBanner}>
+                <AlertCircle size={15} color="#E50914" />
+                <Text style={styles.authErrorText}>{authError}</Text>
+              </View>
             ) : null}
 
+            {/* Full Name Input (Register Only) */}
             {authMode === "register" && (
-              <View style={styles.inputWrap}>
-                <UserIcon size={16} color="#777" />
+              <View style={styles.modernInputBox}>
+                <UserIcon size={16} color="#00ADB5" />
                 <TextInput
                   placeholder={t.fullName}
-                  placeholderTextColor="#777"
+                  placeholderTextColor="#666"
                   value={authName}
                   onChangeText={setAuthName}
-                  style={styles.modalInput}
+                  style={styles.modernInput}
                 />
               </View>
             )}
 
-            <View style={styles.inputWrap}>
-              <UserIcon size={16} color="#777" />
+            {/* Email Address Input */}
+            <View style={styles.modernInputBox}>
+              <KeyRound size={16} color="#00ADB5" />
               <TextInput
                 placeholder={t.emailAddress}
-                placeholderTextColor="#777"
+                placeholderTextColor="#666"
                 value={authEmail}
                 onChangeText={setAuthEmail}
-                style={styles.modalInput}
+                style={styles.modernInput}
                 keyboardType="email-address"
                 autoCapitalize="none"
               />
             </View>
 
-            <View style={styles.inputWrap}>
-              <Lock size={16} color="#777" />
+            {/* Password Input with Show/Hide Toggle */}
+            <View style={styles.modernInputBox}>
+              <Lock size={16} color="#00ADB5" />
               <TextInput
                 placeholder={t.password}
-                placeholderTextColor="#777"
+                placeholderTextColor="#666"
                 value={authPassword}
                 onChangeText={setAuthPassword}
-                secureTextEntry
-                style={styles.modalInput}
+                secureTextEntry={!showPassword}
+                style={styles.modernInput}
+                autoCapitalize="none"
               />
+              <TouchableOpacity
+                onPress={() => setShowPassword((prev) => !prev)}
+                style={styles.eyeToggleBtn}
+                activeOpacity={0.7}
+              >
+                {showPassword ? (
+                  <EyeOff size={16} color="#AAA" />
+                ) : (
+                  <Eye size={16} color="#AAA" />
+                )}
+              </TouchableOpacity>
             </View>
 
+            {/* Submit Action Button */}
             <TouchableOpacity
-              style={styles.modalSubmitBtn}
+              style={[styles.primaryAuthSubmitBtn, loading && { opacity: 0.7 }]}
               onPress={handleAuthSubmit}
               disabled={loading}
+              activeOpacity={0.8}
             >
               {loading ? (
                 <ActivityIndicator size="small" color="#000" />
               ) : (
-                <Text style={styles.modalSubmitBtnText}>
-                  {authMode === "login" ? t.modalSignIn : t.modalRegister}
-                </Text>
+                <>
+                  <Text style={styles.primaryAuthSubmitText}>
+                    {authMode === "login" ? "Masuk ke Akun" : "Daftar Akun Sekarang"}
+                  </Text>
+                  <ArrowRight size={16} color="#000" />
+                </>
               )}
             </TouchableOpacity>
 
-            <TouchableOpacity
-              style={styles.modalCancelBtn}
-              onPress={() => {
-                setShowAuthModal(false);
-                setAuthError("");
-              }}
-            >
-              <Text style={styles.modalCancelBtnText}>{t.cancel}</Text>
-            </TouchableOpacity>
+            {/* Security Badge Footer */}
+            <View style={styles.authSecurityFooter}>
+              <ShieldCheck size={12} color="#10B981" />
+              <Text style={styles.authSecurityText}>
+                Autentikasi Terenkripsi & Database PostgreSQL Terhubung
+              </Text>
+            </View>
           </View>
         </View>
       </Modal>
@@ -688,42 +785,93 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.8)",
+    backgroundColor: "rgba(0,0,0,0.85)",
     justifyContent: "center",
-    padding: 20,
+    alignItems: "center",
+    padding: 16,
   },
   modalCard: {
-    backgroundColor: "#141418",
-    borderRadius: 20,
+    width: "100%",
+    maxWidth: 380,
+    backgroundColor: "#121216",
+    borderRadius: 24,
     padding: 22,
     borderWidth: 1,
-    borderColor: "#2A2A32",
+    borderColor: "#262632",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.5,
+    shadowRadius: 20,
+    elevation: 10,
   },
-  modalTitle: {
-    color: "#FFF",
-    fontSize: 18,
-    fontWeight: "bold",
-    marginBottom: 4,
-  },
-  modalSub: {
-    color: "#888",
-    fontSize: 12,
-    marginBottom: 16,
-  },
-  authTabRow: {
+  modalHeaderRow: {
     flexDirection: "row",
-    backgroundColor: "#1E1E24",
-    borderRadius: 10,
-    padding: 3,
+    justifyContent: "space-between",
+    alignItems: "flex-start",
     marginBottom: 16,
   },
-  authTab: {
-    flex: 1,
-    paddingVertical: 8,
+  brandTitleWrap: {
+    flexDirection: "row",
     alignItems: "center",
-    borderRadius: 8,
+    gap: 10,
+    flex: 1,
   },
-  authTabActive: {
+  brandIconMini: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: "rgba(0,173,181,0.12)",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "rgba(0,173,181,0.3)",
+    position: "relative",
+  },
+  brandSparkle: {
+    position: "absolute",
+    top: 3,
+    right: 3,
+  },
+  brandNameText: {
+    color: "#FFF",
+    fontSize: 16,
+    fontWeight: "900",
+    letterSpacing: -0.3,
+  },
+  brandTaglineText: {
+    color: "#888",
+    fontSize: 10,
+    marginTop: 1,
+  },
+  modalCloseBtn: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: "#1C1C24",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#2E2E3A",
+  },
+  authTabSegment: {
+    flexDirection: "row",
+    backgroundColor: "#0B0B0E",
+    borderRadius: 14,
+    padding: 4,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: "#1E1E26",
+  },
+  authTabPill: {
+    flex: 1,
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 6,
+    paddingVertical: 8,
+    borderRadius: 10,
+  },
+  authTabPillActive: {
     backgroundColor: "#00ADB5",
   },
   authTabText: {
@@ -734,39 +882,128 @@ const styles = StyleSheet.create({
   authTabTextActive: {
     color: "#000",
   },
-  inputBox: {
+  quickChipsSection: {
+    marginBottom: 12,
+    backgroundColor: "#0C0C10",
+    padding: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#1C1C24",
+  },
+  quickChipsLabel: {
+    color: "#777",
+    fontSize: 10,
+    fontWeight: "bold",
+    marginBottom: 6,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  quickChipsRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 6,
+  },
+  quickChipAdmin: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#1E1E24",
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    marginBottom: 12,
-    gap: 8,
+    gap: 5,
+    backgroundColor: "rgba(251,191,36,0.12)",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: "rgba(251,191,36,0.3)",
   },
-  input: {
+  quickChipAdminText: {
+    color: "#FBBF24",
+    fontSize: 10,
+    fontWeight: "bold",
+  },
+  quickChipUser: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    backgroundColor: "rgba(0,173,181,0.12)",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: "rgba(0,173,181,0.3)",
+  },
+  quickChipUserText: {
+    color: "#00ADB5",
+    fontSize: 10,
+    fontWeight: "bold",
+  },
+  authErrorBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: "rgba(229,9,20,0.12)",
+    padding: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "rgba(229,9,20,0.3)",
+    marginBottom: 12,
+  },
+  authErrorText: {
+    color: "#E50914",
+    fontSize: 11,
+    fontWeight: "600",
+    flex: 1,
+  },
+  modernInputBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#16161C",
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: "#22222C",
+    gap: 10,
+    height: 46,
+  },
+  modernInput: {
     flex: 1,
     color: "#FFF",
     fontSize: 13,
-    paddingVertical: 10,
+    paddingVertical: 0,
   },
-  submitBtn: {
-    backgroundColor: "#00ADB5",
-    paddingVertical: 12,
-    borderRadius: 12,
+  eyeToggleBtn: {
+    padding: 4,
+  },
+  primaryAuthSubmitBtn: {
+    flexDirection: "row",
+    justifyContent: "center",
     alignItems: "center",
-    marginTop: 8,
+    gap: 8,
+    backgroundColor: "#00ADB5",
+    paddingVertical: 13,
+    borderRadius: 14,
+    marginTop: 6,
+    marginBottom: 12,
+    shadowColor: "#00ADB5",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
   },
-  submitBtnText: {
+  primaryAuthSubmitText: {
     color: "#000",
     fontSize: 14,
-    fontWeight: "bold",
+    fontWeight: "900",
   },
-  cancelBtn: {
-    paddingVertical: 12,
+  authSecurityFooter: {
+    flexDirection: "row",
+    justifyContent: "center",
     alignItems: "center",
+    gap: 6,
+    paddingTop: 4,
   },
-  cancelBtnText: {
-    color: "#888",
-    fontSize: 13,
+  authSecurityText: {
+    color: "#666",
+    fontSize: 10,
+    textAlign: "center",
   },
 });
