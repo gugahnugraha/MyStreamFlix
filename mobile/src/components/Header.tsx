@@ -25,7 +25,6 @@ const DEFAULT_CATEGORIES = [
   "All",
   "Movies",
   "TV Series",
-  "Live TV",
   "Action",
   "Comedy",
   "Drama",

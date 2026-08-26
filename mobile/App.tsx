@@ -43,19 +43,14 @@ function MainTabs() {
         }}
       />
 
-      {/* 🔴 Enhanced Glowing Live TV Tab */}
+      {/* 📺 Live TV Tab */}
       <Tab.Screen
         name="LiveTV"
         component={LiveTvScreen}
         options={{
           tabBarLabel: "Live TV",
-          tabBarIcon: ({ color, focused }) => (
-            <View style={styles.liveIconWrap}>
-              <Radio color={focused ? "#E50914" : color} size={22} />
-              <View style={styles.liveDot} />
-            </View>
-          ),
-          tabBarActiveTintColor: "#E50914",
+          tabBarIcon: ({ color }) => <Radio color={color} size={22} />,
+          tabBarActiveTintColor: "#00ADB5",
         }}
       />
 

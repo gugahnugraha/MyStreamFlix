@@ -191,10 +191,8 @@ export default function LiveTvScreen({ navigation }: any) {
 
     if (status.isPlaying) {
       setIsBuffering(false);
-      setIsPlaying(true);
     } else {
       setIsBuffering(status.isBuffering);
-      setIsPlaying(false);
     }
   };
 

@@ -48,7 +48,6 @@ export default function HomeScreen({ navigation }: any) {
     if (selectedCategory === "All") return true;
     if (selectedCategory === "Movies") return item.contentType === "movie";
     if (selectedCategory === "TV Series") return item.contentType === "series";
-    if (selectedCategory === "Live TV") return item.contentType === "livetv";
 
     return item.genres?.some(
       (g) => g.toLowerCase() === selectedCategory.toLowerCase()
@@ -58,7 +57,6 @@ export default function HomeScreen({ navigation }: any) {
   const featured = movies[0];
   const moviesList = filteredMovies.filter((m) => m.contentType === "movie");
   const seriesList = filteredMovies.filter((m) => m.contentType === "series");
-  const liveTvList = filteredMovies.filter((m) => m.contentType === "livetv");
 
   const renderMovieCard = ({ item }: { item: Movie }) => (
     <TouchableOpacity
@@ -189,24 +187,6 @@ export default function HomeScreen({ navigation }: any) {
                   <FlatList
                     horizontal
                     data={seriesList}
-                    renderItem={renderMovieCard}
-                    keyExtractor={(item) => item.id}
-                    showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={styles.listContent}
-                  />
-                </View>
-              )}
-
-              {/* Live TV Channels Row */}
-              {liveTvList.length > 0 && (
-                <View style={styles.section}>
-                  <View style={styles.sectionHeader}>
-                    <Radio size={18} color="#10B981" />
-                    <Text style={styles.sectionTitle}>Live Broadcasts</Text>
-                  </View>
-                  <FlatList
-                    horizontal
-                    data={liveTvList}
                     renderItem={renderMovieCard}
                     keyExtractor={(item) => item.id}
                     showsHorizontalScrollIndicator={false}
