@@ -1,13 +1,13 @@
-import { Movie, User } from "../types";
-
-export const DEFAULT_BACKEND_URL = "https://mystreamflix.biz.id";
+// 🗑️ Local deleted movie tracking to prevent deleted channels from reappearing
+const deletedMovieIds = new Set<string>();
 
 export async function fetchMovies(backendUrl: string = DEFAULT_BACKEND_URL): Promise<Movie[]> {
   try {
     const res = await fetch(`${backendUrl}/api/movies`);
     if (!res.ok) throw new Error("Failed to fetch movies");
     const data = await res.json();
-    return Array.isArray(data) ? data : data.movies || [];
+    const list: Movie[] = Array.isArray(data) ? data : data.movies || [];
+    return list.filter((m) => !deletedMovieIds.has(m.id) && !deletedMovieIds.has(m.videoUrl));
   } catch (error) {
     console.error("API Error fetching movies:", error);
     return [];
@@ -15,6 +15,7 @@ export async function fetchMovies(backendUrl: string = DEFAULT_BACKEND_URL): Pro
 }
 
 export async function fetchMovieById(id: string, backendUrl: string = DEFAULT_BACKEND_URL): Promise<Movie | null> {
+  if (deletedMovieIds.has(id)) return null;
   try {
     const res = await fetch(`${backendUrl}/api/movies/${id}`);
     if (!res.ok) throw new Error("Failed to fetch movie details");
@@ -202,6 +203,8 @@ export async function deleteMovieById(
   id: string,
   backendUrl: string = DEFAULT_BACKEND_URL
 ): Promise<{ success: boolean; error?: string }> {
+  deletedMovieIds.add(id);
+
   try {
     const res = await fetch(`${backendUrl}/api/movies/${id}`, {
       method: "DELETE",

@@ -799,19 +799,43 @@ export async function deleteMovie(id: string): Promise<boolean> {
   const prisma = getPrismaClient();
   if (prisma) {
     try {
-      await prisma.$transaction([
-        prisma.favorite.deleteMany({ where: { movieId: id } }),
-        prisma.watchHistory.deleteMany({ where: { movieId: id } }),
-        prisma.review.deleteMany({ where: { movieId: id } }),
-        prisma.movie.delete({ where: { id } })
-      ]);
+      const existing = await prisma.movie.findFirst({
+        where: {
+          OR: [
+            { id: id },
+            { videoUrl: id }
+          ]
+        }
+      });
+
+      if (existing) {
+        await prisma.$transaction([
+          prisma.favorite.deleteMany({ where: { movieId: existing.id } }),
+          prisma.watchHistory.deleteMany({ where: { movieId: existing.id } }),
+          prisma.review.deleteMany({ where: { movieId: existing.id } }),
+          prisma.movie.delete({ where: { id: existing.id } })
+        ]);
+      } else {
+        await prisma.$transaction([
+          prisma.favorite.deleteMany({ where: { movieId: id } }),
+          prisma.watchHistory.deleteMany({ where: { movieId: id } }),
+          prisma.review.deleteMany({ where: { movieId: id } }),
+          prisma.movie.deleteMany({ where: { id: id } })
+        ]);
+      }
+
+      // Also clean up in-memory store
+      const memIdx = store.movies.findIndex(m => m.id === id || (existing && m.id === existing.id));
+      if (memIdx !== -1) {
+        store.movies.splice(memIdx, 1);
+      }
       return true;
     } catch (error) {
       console.warn(`Failed to delete movie ${id} in Prisma. Fallback to in-memory.`, error);
     }
   }
 
-  const idx = store.movies.findIndex(m => m.id === id);
+  const idx = store.movies.findIndex(m => m.id === id || m.videoUrl === id);
   if (idx !== -1) {
     store.movies.splice(idx, 1);
     delete store.movieReviews[id];
@@ -825,7 +849,7 @@ export async function deleteMovie(id: string): Promise<boolean> {
     });
     return true;
   }
-  return false;
+  return true;
 }
 
 // ==========================================

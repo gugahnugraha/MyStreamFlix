@@ -110,9 +110,11 @@ export default function LiveTvScreen({ navigation }: any) {
     }
   }, [isFullscreen, navigation]);
 
-  // 🛑 Stop playback immediately when leaving Live TV tab
+  // 🛑 Synchronize playback and reload channels when focusing/leaving Live TV tab
   useEffect(() => {
-    if (!isFocused) {
+    if (isFocused) {
+      loadChannels();
+    } else {
       if (isFullscreen) {
         exitFullscreen();
       }
@@ -121,11 +123,10 @@ export default function LiveTvScreen({ navigation }: any) {
   }, [isFocused]);
 
   const loadChannels = async () => {
-    setLoading(true);
     const data = await fetchMovies();
     const live = data.filter((m) => m.contentType === "livetv" || m.id.startsWith("tv-"));
     setChannels(live);
-    if (live.length > 0) {
+    if (live.length > 0 && !activeChannel) {
       setActiveChannel(live[0]);
     }
     setLoading(false);
