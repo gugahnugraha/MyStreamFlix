@@ -73,9 +73,8 @@ export default function App() {
           name="Player"
           component={PlayerScreen}
           options={{
-            orientation: "landscape",
-            navigationBarHidden: true,
-            statusBarHidden: true,
+            orientation: "default",
+            headerShown: false,
           }}
         />
       </Stack.Navigator>
