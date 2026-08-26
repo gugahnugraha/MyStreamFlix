@@ -11,6 +11,7 @@ import PlayerScreen from "./src/screens/PlayerScreen";
 import ProfileScreen from "./src/screens/ProfileScreen";
 import AdminScreen from "./src/screens/AdminScreen";
 import { LanguageProvider, useLanguage } from "./src/context/LanguageContext";
+import { ModernDialogProvider } from "./src/context/ModernDialogContext";
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -73,26 +74,28 @@ function MainTabs() {
 export default function App() {
   return (
     <LanguageProvider>
-      <NavigationContainer>
-        <Stack.Navigator
-          screenOptions={{
-            headerShown: false,
-            animation: "fade",
-          }}
-        >
-          <Stack.Screen name="Main" component={MainTabs} />
-          <Stack.Screen name="Profile" component={ProfileScreen} />
-          <Stack.Screen name="Admin" component={AdminScreen} />
-          <Stack.Screen
-            name="Player"
-            component={PlayerScreen}
-            options={{
-              orientation: "default",
+      <ModernDialogProvider>
+        <NavigationContainer>
+          <Stack.Navigator
+            screenOptions={{
               headerShown: false,
+              animation: "fade",
             }}
-          />
-        </Stack.Navigator>
-      </NavigationContainer>
+          >
+            <Stack.Screen name="Main" component={MainTabs} />
+            <Stack.Screen name="Profile" component={ProfileScreen} />
+            <Stack.Screen name="Admin" component={AdminScreen} />
+            <Stack.Screen
+              name="Player"
+              component={PlayerScreen}
+              options={{
+                orientation: "default",
+                headerShown: false,
+              }}
+            />
+          </Stack.Navigator>
+        </NavigationContainer>
+      </ModernDialogProvider>
     </LanguageProvider>
   );
 }

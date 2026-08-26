@@ -36,9 +36,11 @@ import {
 import { User, UserProfile } from "../types";
 import { loginUser, registerUser } from "../api/client";
 import { useLanguage } from "../context/LanguageContext";
+import { useModernDialog } from "../context/ModernDialogContext";
 
 export default function ProfileScreen({ navigation }: any) {
   const { t } = useLanguage();
+  const { showSuccess, showError, showConfirm } = useModernDialog();
   // Real Database User State (default mock or live session)
   const [currentUser, setCurrentUser] = useState<User | null>({
     id: "usr-admin-streamcms",
@@ -76,7 +78,7 @@ export default function ProfileScreen({ navigation }: any) {
       ...currentUser,
       role: targetRole,
     });
-    Alert.alert(
+    showSuccess(
       t.roleSwitched,
       targetRole === "admin" ? t.switchToAdmin : t.switchToViewer
     );
@@ -98,7 +100,7 @@ export default function ProfileScreen({ navigation }: any) {
         setCurrentUser(result.user);
         setShowAuthModal(false);
         setAuthPassword("");
-        Alert.alert("Signed In", `Welcome back, ${result.user.name || result.user.email}!`);
+        showSuccess("Berhasil Masuk", `Selamat datang kembali, ${result.user.name || result.user.email}!`);
       } else {
         setAuthError(result.error || "Invalid email or password.");
       }
@@ -116,7 +118,7 @@ export default function ProfileScreen({ navigation }: any) {
         setCurrentUser(result.user);
         setShowAuthModal(false);
         setAuthPassword("");
-        Alert.alert("Account Created", "Your account has been registered in the database!");
+        showSuccess("Akun Dibuat", "Akun Anda telah berhasil terdaftar di database!");
       } else {
         setAuthError(result.error || "Could not register account.");
       }
@@ -124,16 +126,16 @@ export default function ProfileScreen({ navigation }: any) {
   };
 
   const handleLogout = () => {
-    Alert.alert(t.signOut, t.confirmSignOut, [
-      { text: t.cancel, style: "cancel" },
-      {
-        text: t.signOut,
-        style: "destructive",
-        onPress: () => {
-          setCurrentUser(null);
-        },
+    showConfirm(
+      t.signOut,
+      t.confirmSignOut,
+      () => {
+        setCurrentUser(null);
       },
-    ]);
+      t.signOut,
+      t.cancel,
+      true
+    );
   };
 
   const isAdmin = currentUser?.role === "admin";

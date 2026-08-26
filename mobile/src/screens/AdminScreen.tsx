@@ -52,6 +52,7 @@ import {
   importM3uChannels,
 } from "../api/client";
 import { useLanguage } from "../context/LanguageContext";
+import { useModernDialog } from "../context/ModernDialogContext";
 
 const { width } = Dimensions.get("window");
 
@@ -64,6 +65,7 @@ const M3U_PRESETS = [
 
 export default function AdminScreen({ navigation }: any) {
   const { t } = useLanguage();
+  const { showSuccess, showError, showDeleteConfirm, showConfirm } = useModernDialog();
   const [activeTab, setActiveTab] = useState<"overview" | "catalog" | "livetv" | "gdrive" | "users">("overview");
 
   const [movies, setMovies] = useState<Movie[]>([]);
@@ -127,27 +129,20 @@ export default function AdminScreen({ navigation }: any) {
   );
 
   const handleDelete = (item: Movie) => {
-    Alert.alert(
+    showDeleteConfirm(
       t.confirmDeleteTitle,
       t.confirmDeleteMsg.replace("{title}", item.title),
-      [
-        { text: t.cancel, style: "cancel" },
-        {
-          text: "Hapus",
-          style: "destructive",
-          onPress: async () => {
-            setMovies((prev) => prev.filter((m) => m.id !== item.id));
-            await deleteMovieById(item.id);
-            Alert.alert(t.deleteSuccess, `"${item.title}" telah dihapus.`);
-          },
-        },
-      ]
+      async () => {
+        setMovies((prev) => prev.filter((m) => m.id !== item.id));
+        await deleteMovieById(item.id);
+        showSuccess(t.deleteSuccess, `"${item.title}" telah dihapus.`);
+      }
     );
   };
 
   const handleCreateChannel = async () => {
     if (!channelTitle || !channelStreamUrl) {
-      Alert.alert("Input Diperlukan", "Nama Saluran dan Stream URL (.m3u8) wajib diisi.");
+      showError("Input Diperlukan", "Nama Saluran dan Stream URL (.m3u8) wajib diisi.");
       return;
     }
 
@@ -176,15 +171,15 @@ export default function AdminScreen({ navigation }: any) {
       setChannelStreamUrl("");
       setChannelLogoUrl("");
       setMovies((prev) => [result.movie!, ...prev]);
-      Alert.alert("Sukses", `Saluran "${channelTitle}" berhasil ditambahkan dan aktif!`);
+      showSuccess("Saluran Ditambahkan", `Saluran "${channelTitle}" berhasil ditambahkan dan siap ditonton!`);
     } else {
-      Alert.alert("Gagal", result.error || "Tidak dapat menambahkan saluran.");
+      showError("Gagal Menambahkan", result.error || "Tidak dapat menambahkan saluran.");
     }
   };
 
   const handleScanM3u = async () => {
     if (!m3uUrl) {
-      Alert.alert("Input Diperlukan", "Silakan masukkan URL Playlist M3U.");
+      showError("Input Diperlukan", "Silakan masukkan URL Playlist M3U.");
       return;
     }
 
@@ -196,12 +191,12 @@ export default function AdminScreen({ navigation }: any) {
       setScannedChannels(res.channels);
       // Select all by default
       setSelectedChannelIndices(res.channels.map((_, i) => i));
-      Alert.alert(
+      showSuccess(
         "Pemindaian Sukses",
-        `Ditemukan ${res.channels.length} saluran TV. Anda dapat memilih saluran mana saja yang ingin diimpor di bawah!`
+        `Ditemukan ${res.channels.length} saluran TV. Pilih saluran yang ingin diimpor di daftar bawah.`
       );
     } else {
-      Alert.alert("Gagal Memindai", res.error || "Tidak dapat memuat playlist M3U.");
+      showError("Gagal Memindai", res.error || "Tidak dapat memuat playlist M3U dari sumber tersebut.");
     }
   };
 
@@ -221,7 +216,7 @@ export default function AdminScreen({ navigation }: any) {
 
   const handleImportM3u = async () => {
     if (selectedChannelIndices.length === 0) {
-      Alert.alert("Pilih Saluran", "Silakan centang minimal satu saluran yang ingin diimpor.");
+      showError("Pilih Saluran", "Silakan centang minimal satu saluran yang ingin diimpor.");
       return;
     }
 
@@ -238,12 +233,12 @@ export default function AdminScreen({ navigation }: any) {
       }
       setScannedChannels([]);
       setSelectedChannelIndices([]);
-      Alert.alert(
+      showSuccess(
         "Sinkronisasi Berhasil",
-        `Sebanyak ${res.importedCount} saluran TV pilihan Anda telah berhasil diimpor dan siap ditonton!`
+        `Sebanyak ${res.importedCount} saluran TV pilihan Anda telah berhasil diimpor dan aktif!`
       );
     } else {
-      Alert.alert("Gagal Mengimpor", res.error || "Gagal menyimpan saluran.");
+      showError("Gagal Mengimpor", res.error || "Gagal menyimpan saluran.");
     }
   };
 
