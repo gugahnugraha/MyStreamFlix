@@ -5,14 +5,20 @@
     "version": "1.0.0",
     "orientation": "default",
     "userInterfaceStyle": "dark",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     "splash": {
       "backgroundColor": "#0A0A0C"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.gugahnugraha.mystreamflix"
     },
     "android": {
+      "package": "com.gugahnugraha.mystreamflix",
+      "versionCode": 1,
+      "adaptiveIcon": {
+        "backgroundColor": "#0A0A0C"
+      },
       "permissions": [
         "android.permission.INTERNET",
         "android.permission.WAKE_LOCK",
