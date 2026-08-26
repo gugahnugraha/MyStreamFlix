@@ -111,10 +111,28 @@ export default function LiveTvScreen({ navigation }: any) {
     }, 3500);
   };
 
+  // 🛑 Synchronize Bottom Tab Bar visibility with Fullscreen state
+  useEffect(() => {
+    if (isFullscreen) {
+      navigation.setOptions({ tabBarStyle: { display: "none" } });
+    } else {
+      navigation.setOptions({
+        tabBarStyle: {
+          backgroundColor: "#0F0F12",
+          borderTopColor: "#1A1A20",
+          height: 64,
+          paddingBottom: 8,
+          paddingTop: 6,
+          display: "flex",
+        },
+      });
+    }
+  }, [isFullscreen, navigation]);
+
   const enterFullscreen = async () => {
     await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
     StatusBar.setHidden(true, "fade");
-    navigation.getParent()?.setOptions({ tabBarStyle: { display: "none" } });
+    navigation.setOptions({ tabBarStyle: { display: "none" } });
     if (Platform.OS === "android") {
       try {
         await NavigationBar.setVisibilityAsync("hidden");
@@ -128,7 +146,16 @@ export default function LiveTvScreen({ navigation }: any) {
   const exitFullscreen = async () => {
     await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT);
     StatusBar.setHidden(false, "fade");
-    navigation.getParent()?.setOptions({ tabBarStyle: DEFAULT_TAB_BAR_STYLE });
+    navigation.setOptions({
+      tabBarStyle: {
+        backgroundColor: "#0F0F12",
+        borderTopColor: "#1A1A20",
+        height: 64,
+        paddingBottom: 8,
+        paddingTop: 6,
+        display: "flex",
+      },
+    });
     if (Platform.OS === "android") {
       try {
         await NavigationBar.setVisibilityAsync("visible");
