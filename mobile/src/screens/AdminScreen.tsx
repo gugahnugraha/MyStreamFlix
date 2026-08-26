@@ -142,48 +142,46 @@ export default function AdminScreen({ navigation }: any) {
     }
   };
 
-  // 🔒 Security Gate Screen if not authenticated
   if (!isAuthenticated) {
     return (
-      <View style={styles.authGateContainer}>
-        <View style={styles.authGateCard}>
-          <View style={styles.lockIconWrap}>
-            <ShieldAlert size={36} color="#E50914" />
+      <View style={styles.gateContainer}>
+        <View style={styles.gateCard}>
+          <View style={styles.gateIconWrap}>
+            <ShieldCheck size={36} color="#00ADB5" />
           </View>
-          <Text style={styles.gateTitle}>Admin Database Security Gate</Text>
+          <Text style={styles.gateTitle}>Admin Management Portal</Text>
           <Text style={styles.gateSubtitle}>
-            This area requires verified Database Administrator credentials or Security PIN.
+            Masukkan kredensial administrator untuk mengelola konten.
           </Text>
 
-          <View style={styles.pinInputWrap}>
-            <Search size={16} color="#777" />
+          <View style={styles.inputGroup}>
+            <Mail size={16} color="#777" />
             <TextInput
-              placeholder="Admin Email (admin@mystreamflix.com)"
+              placeholder="Email Administrator"
               placeholderTextColor="#777"
               value={adminEmail}
               onChangeText={setAdminEmail}
-              style={styles.pinInput}
-              autoCapitalize="none"
+              style={styles.gateInput}
               keyboardType="email-address"
+              autoCapitalize="none"
             />
           </View>
 
-          <View style={styles.pinInputWrap}>
+          <View style={styles.inputGroup}>
             <Lock size={16} color="#777" />
             <TextInput
-              placeholder="Password / Security PIN (e.g. 1234)"
+              placeholder="Kata Sandi / PIN"
               placeholderTextColor="#777"
               value={adminPassword}
               onChangeText={setAdminPassword}
-              style={styles.pinInput}
               secureTextEntry
-              onSubmitEditing={handleVerifyLogin}
+              style={styles.gateInput}
             />
           </View>
 
           <TouchableOpacity
-            style={[styles.unlockBtn, loading && { opacity: 0.7 }]}
-            onPress={handleVerifyLogin}
+            style={styles.unlockBtn}
+            onPress={handleAdminAuth}
             disabled={loading}
           >
             {loading ? (
@@ -191,7 +189,7 @@ export default function AdminScreen({ navigation }: any) {
             ) : (
               <>
                 <Unlock size={18} color="#000" />
-                <Text style={styles.unlockBtnText}>Verify & Unlock CMS</Text>
+                <Text style={styles.unlockBtnText}>Buka Panel Admin</Text>
               </>
             )}
           </TouchableOpacity>
@@ -200,24 +198,22 @@ export default function AdminScreen({ navigation }: any) {
             style={styles.gateBackBtn}
             onPress={() => navigation.goBack()}
           >
-            <Text style={styles.gateBackBtnText}>← Return to MyStreamFlix</Text>
+            <Text style={styles.gateBackBtnText}>← Kembali ke MyStreamFlix</Text>
           </TouchableOpacity>
         </View>
       </View>
     );
   }
 
-  // 🔓 Unlocked Admin Dashboard with Database Tabs
   return (
     <View style={styles.container}>
-      {/* Top Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
           <ChevronLeft size={22} color="#FFF" />
         </TouchableOpacity>
         <View style={{ flex: 1, marginLeft: 8 }}>
-          <Text style={styles.headerTitle}>Database Admin CMS</Text>
-          <Text style={styles.headerSub}>Connected to PostgreSQL Database</Text>
+          <Text style={styles.headerTitle}>Admin CMS Portal</Text>
+          <Text style={styles.headerSub}>Sistem Pengelolaan Konten & Saluran</Text>
         </View>
         <TouchableOpacity
           onPress={() => setIsAuthenticated(false)}
@@ -227,14 +223,13 @@ export default function AdminScreen({ navigation }: any) {
         </TouchableOpacity>
       </View>
 
-      {/* Tabs Navigation Bar */}
       <View style={styles.tabBar}>
         {[
-          { id: "overview", label: "Overview", icon: Activity },
-          { id: "catalog", label: "Catalog", icon: Film },
+          { id: "overview", label: "Ringkasan", icon: Activity },
+          { id: "catalog", label: "Film & Serial", icon: Film },
           { id: "livetv", label: "Live TV", icon: Radio },
-          { id: "gdrive", label: "GDrive", icon: HardDrive },
-          { id: "users", label: "Users", icon: Users },
+          { id: "gdrive", label: "Cloud Drive", icon: HardDrive },
+          { id: "users", label: "Pengguna", icon: Users },
         ].map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -253,57 +248,53 @@ export default function AdminScreen({ navigation }: any) {
         })}
       </View>
 
-      {/* Content for Active Tab */}
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Tab 1: Overview */}
         {activeTab === "overview" && (
           <View style={styles.overviewSection}>
             <View style={styles.statsGrid}>
               <View style={styles.statCard}>
                 <Film size={22} color="#00ADB5" />
                 <Text style={styles.statNumber}>{moviesCount}</Text>
-                <Text style={styles.statLabel}>Total Movies</Text>
+                <Text style={styles.statLabel}>Total Film</Text>
               </View>
 
               <View style={styles.statCard}>
                 <Tv size={22} color="#E50914" />
                 <Text style={styles.statNumber}>{seriesCount}</Text>
-                <Text style={styles.statLabel}>TV Series</Text>
+                <Text style={styles.statLabel}>Serial TV</Text>
               </View>
 
               <View style={styles.statCard}>
                 <Radio size={22} color="#10B981" />
                 <Text style={styles.statNumber}>{liveCount}</Text>
-                <Text style={styles.statLabel}>Live Channels</Text>
+                <Text style={styles.statLabel}>Saluran TV</Text>
               </View>
 
               <View style={styles.statCard}>
                 <Users size={22} color="#FBBF24" />
                 <Text style={styles.statNumber}>{dbUsers.length || "1+"}</Text>
-                <Text style={styles.statLabel}>DB Users</Text>
+                <Text style={styles.statLabel}>Pengguna Aktif</Text>
               </View>
             </View>
 
-            {/* Storage & Service Account Status */}
             <View style={styles.infoCard}>
               <View style={styles.infoCardHeader}>
                 <CheckCircle size={18} color="#10B981" />
-                <Text style={styles.infoCardTitle}>Database & Streaming Engine</Text>
+                <Text style={styles.infoCardTitle}>Sistem Cloud & Sinkronisasi</Text>
               </View>
               <Text style={styles.infoCardDesc}>
-                PostgreSQL database connection is live. User authentication, roles, streaming history, and Google Drive JWT proxy are fully synchronized with the web platform.
+                Semua konten film, serial TV, siaran langsung, dan profil pengguna tersinkronisasi secara otomatis di seluruh perangkat.
               </Text>
             </View>
           </View>
         )}
 
-        {/* Tab 2: Catalog Management */}
         {activeTab === "catalog" && (
           <View style={styles.catalogSection}>
             <View style={styles.searchBox}>
               <Search size={16} color="#777" />
               <TextInput
-                placeholder="Search catalog items in database..."
+                placeholder="Cari film atau serial..."
                 placeholderTextColor="#777"
                 value={searchCatalog}
                 onChangeText={setSearchCatalog}
