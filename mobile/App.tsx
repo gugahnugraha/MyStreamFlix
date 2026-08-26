@@ -46,7 +46,7 @@ function MainTabs() {
         }}
       />
       <Tab.Screen
-        name="Profile"
+        name="ProfileTab"
         component={ProfileScreen}
         options={{
           tabBarLabel: "Account & Admin",
@@ -67,6 +67,7 @@ export default function App() {
         }}
       >
         <Stack.Screen name="Main" component={MainTabs} />
+        <Stack.Screen name="Profile" component={ProfileScreen} />
         <Stack.Screen name="Admin" component={AdminScreen} />
         <Stack.Screen
           name="Player"
