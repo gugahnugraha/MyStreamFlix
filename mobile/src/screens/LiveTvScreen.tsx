@@ -10,7 +10,6 @@ import {
   TextInput,
   ScrollView,
   StatusBar,
-  Modal,
   Platform,
   TouchableWithoutFeedback,
   Dimensions,
@@ -40,6 +39,15 @@ import {
 import { Movie } from "../types";
 import { fetchMovies } from "../api/client";
 
+const DEFAULT_TAB_BAR_STYLE = {
+  backgroundColor: "#0F0F12",
+  borderTopColor: "#1A1A20",
+  height: 64,
+  paddingBottom: 8,
+  paddingTop: 6,
+  display: "flex",
+};
+
 export default function LiveTvScreen({ navigation }: any) {
   const isFocused = useIsFocused();
   const [channels, setChannels] = useState<Movie[]>([]);
@@ -58,7 +66,6 @@ export default function LiveTvScreen({ navigation }: any) {
   const [showChannelDrawer, setShowChannelDrawer] = useState(false);
 
   const videoRef = useRef<Video>(null);
-  const fullscreenVideoRef = useRef<Video>(null);
   const controlsTimerRef = useRef<any>(null);
 
   useEffect(() => {
@@ -67,6 +74,7 @@ export default function LiveTvScreen({ navigation }: any) {
     return () => {
       ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT);
       StatusBar.setHidden(false, "fade");
+      navigation.getParent()?.setOptions({ tabBarStyle: DEFAULT_TAB_BAR_STYLE });
       if (Platform.OS === "android") {
         NavigationBar.setVisibilityAsync("visible");
       }
@@ -81,7 +89,6 @@ export default function LiveTvScreen({ navigation }: any) {
         exitFullscreen();
       }
       videoRef.current?.pauseAsync();
-      fullscreenVideoRef.current?.pauseAsync();
     }
   }, [isFocused]);
 
@@ -107,6 +114,7 @@ export default function LiveTvScreen({ navigation }: any) {
   const enterFullscreen = async () => {
     await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
     StatusBar.setHidden(true, "fade");
+    navigation.getParent()?.setOptions({ tabBarStyle: { display: "none" } });
     if (Platform.OS === "android") {
       try {
         await NavigationBar.setVisibilityAsync("hidden");
@@ -120,6 +128,7 @@ export default function LiveTvScreen({ navigation }: any) {
   const exitFullscreen = async () => {
     await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT);
     StatusBar.setHidden(false, "fade");
+    navigation.getParent()?.setOptions({ tabBarStyle: DEFAULT_TAB_BAR_STYLE });
     if (Platform.OS === "android") {
       try {
         await NavigationBar.setVisibilityAsync("visible");
@@ -169,10 +178,16 @@ export default function LiveTvScreen({ navigation }: any) {
   const genres = ["All", "News", "Sports", "Entertainment", "Movies", "Kids", "Music"];
 
   return (
-    <View style={styles.container}>
-      {/* 📺 Top Live TV ExoPlayer Viewport (Inline Mode) */}
-      {activeChannel && !isFullscreen ? (
-        <View style={styles.playerContainer}>
+    <View style={[styles.container, isFullscreen && styles.containerFullscreen]}>
+      <StatusBar
+        barStyle="light-content"
+        backgroundColor="#000"
+        hidden={isFullscreen}
+      />
+
+      {/* 📺 Single Unified Live TV Video Viewport */}
+      {activeChannel ? (
+        <View style={[styles.playerViewport, isFullscreen && styles.playerViewportFullscreen]}>
           <Video
             ref={videoRef}
             source={{ uri: activeChannel.videoUrl }}
@@ -185,6 +200,19 @@ export default function LiveTvScreen({ navigation }: any) {
             onPlaybackStatusUpdate={handlePlaybackStatusUpdate}
           />
 
+          {/* Tap surface to toggle HUD controls */}
+          <TouchableWithoutFeedback
+            onPress={() => {
+              if (showControls) {
+                setShowControls(false);
+              } else {
+                resetControlsTimer();
+              }
+            }}
+          >
+            <View style={StyleSheet.absoluteFill} />
+          </TouchableWithoutFeedback>
+
           {/* Buffering Indicator */}
           {isBuffering && (
             <View style={styles.centerOverlay} pointerEvents="none">
@@ -193,154 +221,46 @@ export default function LiveTvScreen({ navigation }: any) {
             </View>
           )}
 
-          {/* Live Player HUD Overlay (Inline) */}
-          <View style={styles.playerHud}>
-            {/* Top Row: Back Button, Live Badge & Channel Info */}
-            <View style={styles.playerTopRow}>
-              <TouchableOpacity
-                onPress={() => {
-                  if (navigation.canGoBack()) {
-                    navigation.goBack();
-                  } else {
-                    navigation.navigate("Catalog");
-                  }
-                }}
-                style={styles.glassCircleBtn}
-              >
-                <ChevronLeft size={18} color="#FFF" />
-              </TouchableOpacity>
-
-              <View style={styles.liveBadge}>
-                <Radio size={11} color="#FFF" />
-                <Text style={styles.liveBadgeText}>LIVE STREAM</Text>
-              </View>
-              <Text style={styles.playerChannelTitle} numberOfLines={1}>
-                {activeChannel.title}
-              </Text>
-
-              {/* Aspect Ratio Button (Inline) */}
-              <TouchableOpacity onPress={cycleAspectRatio} style={styles.glassPillBtn}>
-                <Scaling size={12} color="#00ADB5" />
-                <Text style={styles.glassPillText}>{aspectRatio.toUpperCase()}</Text>
-              </TouchableOpacity>
-            </View>
-
-            {/* Bottom Row: Volume Slider & Fullscreen */}
-            <View style={styles.playerBottomRow}>
-              <View style={styles.modernVolumePill}>
+          {/* 🪟 Live Player HUD Overlay */}
+          {showControls && (
+            <View
+              style={[styles.playerHud, isFullscreen && styles.playerHudFullscreen]}
+              pointerEvents="box-none"
+            >
+              {/* Top Row: Back, Title, Aspect Ratio & Channels */}
+              <View style={styles.playerTopRow}>
                 <TouchableOpacity
                   onPress={() => {
-                    const targetMute = !isMuted;
-                    setIsMuted(targetMute);
-                    videoRef.current?.setStatusAsync({ isMuted: targetMute });
+                    if (isFullscreen) {
+                      exitFullscreen();
+                    } else if (navigation.canGoBack()) {
+                      navigation.goBack();
+                    } else {
+                      navigation.navigate("Catalog");
+                    }
                   }}
+                  style={styles.glassCircleBtn}
                 >
-                  {isMuted || volume === 0 ? (
-                    <VolumeX size={15} color="#E50914" />
-                  ) : (
-                    <Volume2 size={15} color="#00ADB5" />
-                  )}
+                  <ChevronLeft size={18} color="#FFF" />
                 </TouchableOpacity>
 
-                <Slider
-                  style={styles.modernVolumeSlider}
-                  minimumValue={0}
-                  maximumValue={1}
-                  value={isMuted ? 0 : volume}
-                  onValueChange={(val) => {
-                    setVolume(val);
-                    setIsMuted(val === 0);
-                    videoRef.current?.setStatusAsync({ volume: val, isMuted: val === 0 });
-                  }}
-                  minimumTrackTintColor="#00ADB5"
-                  maximumTrackTintColor="rgba(255,255,255,0.2)"
-                  thumbTintColor="#00ADB5"
-                />
-              </View>
-
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                <View style={styles.qualityTag}>
-                  <Text style={styles.qualityTagText}>{activeChannel.quality || "HD 1080p"}</Text>
+                <View style={styles.liveBadge}>
+                  <Radio size={10} color="#FFF" />
+                  <Text style={styles.liveBadgeText}>LIVE STREAM</Text>
                 </View>
 
-                {/* ⛶ Fullscreen Toggle Button */}
-                <TouchableOpacity onPress={enterFullscreen} style={styles.glassFullscreenBtn}>
-                  <Maximize size={16} color="#FFF" />
+                <Text style={styles.playerChannelTitle} numberOfLines={1}>
+                  {activeChannel.title}
+                </Text>
+
+                {/* Aspect Ratio Button */}
+                <TouchableOpacity onPress={cycleAspectRatio} style={styles.glassPillBtn}>
+                  <Scaling size={12} color="#00ADB5" />
+                  <Text style={styles.glassPillText}>{aspectRatio.toUpperCase()}</Text>
                 </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-        </View>
-      ) : null}
 
-      {/* 🌟 100% Perfectly Positioned Fullscreen Modal Player with Auto-Hide HUD and Glassmorphic Channel Drawer */}
-      {activeChannel && (
-        <Modal
-          visible={isFullscreen}
-          animationType="none"
-          statusBarTranslucent={true}
-          onRequestClose={exitFullscreen}
-        >
-          <View style={styles.fullscreenModalContainer}>
-            {/* Fullscreen Video Element */}
-            <Video
-              ref={fullscreenVideoRef}
-              source={{ uri: activeChannel.videoUrl }}
-              style={StyleSheet.absoluteFill}
-              resizeMode={resizeModeProp}
-              shouldPlay={isFocused && isFullscreen}
-              isMuted={isMuted}
-              volume={volume}
-              progressUpdateIntervalMillis={200}
-              onPlaybackStatusUpdate={handlePlaybackStatusUpdate}
-            />
-
-            {/* Tap Surface to Toggle Controls */}
-            <TouchableWithoutFeedback
-              onPress={() => {
-                if (showControls) {
-                  setShowControls(false);
-                } else {
-                  resetControlsTimer();
-                }
-              }}
-            >
-              <View style={StyleSheet.absoluteFill} />
-            </TouchableWithoutFeedback>
-
-            {/* Buffering Indicator */}
-            {isBuffering && (
-              <View style={styles.centerOverlay} pointerEvents="none">
-                <ActivityIndicator size="large" color="#00ADB5" />
-                <Text style={styles.bufferingText}>Connecting Live IPTV Stream...</Text>
-              </View>
-            )}
-
-            {/* Fullscreen Auto-Hiding Overlay HUD with Safe Margins */}
-            {showControls && (
-              <View style={styles.fullscreenPlayerHud} pointerEvents="box-none">
-                {/* Top Row: Back Button, Title, Aspect Ratio & Channel List Drawer Toggle */}
-                <View style={styles.fullscreenTopRow}>
-                  <TouchableOpacity onPress={exitFullscreen} style={styles.glassCircleBtn}>
-                    <ChevronLeft size={20} color="#FFF" />
-                  </TouchableOpacity>
-
-                  <View style={styles.liveBadge}>
-                    <Radio size={11} color="#FFF" />
-                    <Text style={styles.liveBadgeText}>LIVE STREAM</Text>
-                  </View>
-
-                  <Text style={styles.playerChannelTitle} numberOfLines={1}>
-                    {activeChannel.title}
-                  </Text>
-
-                  {/* Aspect Ratio Toggle */}
-                  <TouchableOpacity onPress={cycleAspectRatio} style={styles.glassPillBtn}>
-                    <Scaling size={13} color="#00ADB5" />
-                    <Text style={styles.glassPillText}>{aspectRatio.toUpperCase()}</Text>
-                  </TouchableOpacity>
-
-                  {/* Glassmorphic Channels Drawer Toggle */}
+                {/* Channels Drawer Button (Visible in Fullscreen) */}
+                {isFullscreen && (
                   <TouchableOpacity
                     onPress={() => {
                       setShowChannelDrawer(!showChannelDrawer);
@@ -348,193 +268,199 @@ export default function LiveTvScreen({ navigation }: any) {
                     }}
                     style={[styles.glassPillBtn, showChannelDrawer && styles.glassPillBtnActive]}
                   >
-                    <ListFilter size={13} color={showChannelDrawer ? "#00ADB5" : "#FFF"} />
+                    <ListFilter size={12} color={showChannelDrawer ? "#00ADB5" : "#FFF"} />
                     <Text style={[styles.glassPillText, showChannelDrawer && { color: "#00ADB5" }]}>
-                      Channels ({channels.length})
+                      Channels
                     </Text>
                   </TouchableOpacity>
+                )}
+              </View>
+
+              {/* Bottom Row: Volume Slider & Fullscreen Toggle */}
+              <View style={styles.playerBottomRow}>
+                <View style={styles.modernVolumePill}>
+                  <TouchableOpacity
+                    onPress={() => {
+                      const targetMute = !isMuted;
+                      setIsMuted(targetMute);
+                      videoRef.current?.setStatusAsync({ isMuted: targetMute });
+                      resetControlsTimer();
+                    }}
+                  >
+                    {isMuted || volume === 0 ? (
+                      <VolumeX size={15} color="#E50914" />
+                    ) : (
+                      <Volume2 size={15} color="#00ADB5" />
+                    )}
+                  </TouchableOpacity>
+
+                  <Slider
+                    style={[styles.modernVolumeSlider, isFullscreen && { width: 130 }]}
+                    minimumValue={0}
+                    maximumValue={1}
+                    value={isMuted ? 0 : volume}
+                    onValueChange={(val) => {
+                      setVolume(val);
+                      setIsMuted(val === 0);
+                      videoRef.current?.setStatusAsync({ volume: val, isMuted: val === 0 });
+                      resetControlsTimer();
+                    }}
+                    minimumTrackTintColor="#00ADB5"
+                    maximumTrackTintColor="rgba(255,255,255,0.2)"
+                    thumbTintColor="#00ADB5"
+                  />
+                  <Text style={styles.volPercentText}>{Math.round(volume * 100)}%</Text>
                 </View>
 
-                {/* Bottom Row: Volume Slider & Fullscreen Toggle */}
-                <View style={styles.fullscreenBottomRow}>
-                  <View style={styles.modernVolumePill}>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                  <View style={styles.qualityTag}>
+                    <Text style={styles.qualityTagText}>{activeChannel.quality || "HD 1080p"}</Text>
+                  </View>
+
+                  {/* Fullscreen Toggle */}
+                  <TouchableOpacity
+                    onPress={isFullscreen ? exitFullscreen : enterFullscreen}
+                    style={styles.glassFullscreenBtn}
+                  >
+                    {isFullscreen ? <Minimize size={16} color="#FFF" /> : <Maximize size={16} color="#FFF" />}
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+          )}
+
+          {/* 🪟 Fullscreen Glassmorphic Channel Drawer Overlay */}
+          {isFullscreen && showChannelDrawer && (
+            <View style={styles.drawerSidebar}>
+              <View style={styles.drawerHeader}>
+                <Text style={styles.drawerTitle}>Live TV Channels</Text>
+                <TouchableOpacity onPress={() => setShowChannelDrawer(false)} style={styles.drawerCloseBtn}>
+                  <X size={16} color="#AAA" />
+                </TouchableOpacity>
+              </View>
+
+              <FlatList
+                data={channels}
+                keyExtractor={(item) => item.id}
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={{ padding: 10, gap: 6 }}
+                renderItem={({ item }) => {
+                  const isSelected = activeChannel?.id === item.id;
+                  return (
                     <TouchableOpacity
+                      style={[styles.drawerItem, isSelected && styles.drawerItemActive]}
                       onPress={() => {
-                        const targetMute = !isMuted;
-                        setIsMuted(targetMute);
-                        fullscreenVideoRef.current?.setStatusAsync({ isMuted: targetMute });
+                        setActiveChannel(item);
+                        setShowChannelDrawer(false);
                         resetControlsTimer();
                       }}
                     >
-                      {isMuted || volume === 0 ? (
-                        <VolumeX size={16} color="#E50914" />
-                      ) : (
-                        <Volume2 size={16} color="#00ADB5" />
-                      )}
+                      <Image
+                        source={{ uri: item.posterUrl || item.backdropUrl }}
+                        style={styles.drawerLogo}
+                        resizeMode="contain"
+                      />
+                      <View style={{ flex: 1 }}>
+                        <Text
+                          style={[styles.drawerChannelName, isSelected && { color: "#00ADB5", fontWeight: "bold" }]}
+                          numberOfLines={1}
+                        >
+                          {item.title}
+                        </Text>
+                        <Text style={styles.drawerChannelMeta}>
+                          {item.genres?.[0] || "IPTV"} • {item.quality}
+                        </Text>
+                      </View>
+                      {isSelected && <Play size={12} color="#00ADB5" fill="#00ADB5" />}
                     </TouchableOpacity>
-
-                    <Slider
-                      style={[styles.modernVolumeSlider, { width: 140 }]}
-                      minimumValue={0}
-                      maximumValue={1}
-                      value={isMuted ? 0 : volume}
-                      onValueChange={(val) => {
-                        setVolume(val);
-                        setIsMuted(val === 0);
-                        fullscreenVideoRef.current?.setStatusAsync({ volume: val, isMuted: val === 0 });
-                        resetControlsTimer();
-                      }}
-                      minimumTrackTintColor="#00ADB5"
-                      maximumTrackTintColor="rgba(255,255,255,0.2)"
-                      thumbTintColor="#00ADB5"
-                    />
-                    <Text style={styles.volPercentText}>{Math.round(volume * 100)}%</Text>
-                  </View>
-
-                  <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-                    <View style={styles.qualityTag}>
-                      <Text style={styles.qualityTagText}>{activeChannel.quality || "HD 1080p"}</Text>
-                    </View>
-
-                    <TouchableOpacity onPress={exitFullscreen} style={styles.glassFullscreenBtn}>
-                      <Minimize size={16} color="#FFF" />
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              </View>
-            )}
-
-            {/* 🪟 Fullscreen Glassmorphic Channel Drawer Overlay */}
-            {showChannelDrawer && (
-              <View style={styles.drawerSidebar}>
-                <View style={styles.drawerHeader}>
-                  <Text style={styles.drawerTitle}>Live TV Channels</Text>
-                  <TouchableOpacity onPress={() => setShowChannelDrawer(false)} style={styles.drawerCloseBtn}>
-                    <X size={16} color="#AAA" />
-                  </TouchableOpacity>
-                </View>
-
-                <FlatList
-                  data={channels}
-                  keyExtractor={(item) => item.id}
-                  showsVerticalScrollIndicator={false}
-                  contentContainerStyle={{ padding: 10, gap: 6 }}
-                  renderItem={({ item }) => {
-                    const isSelected = activeChannel?.id === item.id;
-                    return (
-                      <TouchableOpacity
-                        style={[styles.drawerItem, isSelected && styles.drawerItemActive]}
-                        onPress={() => {
-                          setActiveChannel(item);
-                          setShowChannelDrawer(false);
-                          resetControlsTimer();
-                        }}
-                      >
-                        <Image
-                          source={{ uri: item.posterUrl || item.backdropUrl }}
-                          style={styles.drawerLogo}
-                          resizeMode="contain"
-                        />
-                        <View style={{ flex: 1 }}>
-                          <Text
-                            style={[styles.drawerChannelName, isSelected && { color: "#00ADB5", fontWeight: "bold" }]}
-                            numberOfLines={1}
-                          >
-                            {item.title}
-                          </Text>
-                          <Text style={styles.drawerChannelMeta}>
-                            {item.genres?.[0] || "IPTV"} • {item.quality}
-                          </Text>
-                        </View>
-                        {isSelected && <Play size={12} color="#00ADB5" fill="#00ADB5" />}
-                      </TouchableOpacity>
-                    );
-                  }}
-                />
-              </View>
-            )}
-          </View>
-        </Modal>
-      )}
-
-      {/* Channel Browser & List (When in Inline Mode) */}
-      <View style={styles.browserContainer}>
-        {/* Search Box */}
-        <View style={styles.searchBox}>
-          <Search size={16} color="#777" />
-          <TextInput
-            placeholder="Search Live IPTV Channels..."
-            placeholderTextColor="#777"
-            value={search}
-            onChangeText={setSearch}
-            style={styles.searchInput}
-          />
+                  );
+                }}
+              />
+            </View>
+          )}
         </View>
+      ) : null}
 
-        {/* Genres Category Slider */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.genreScroll}
-        >
-          {genres.map((g) => {
-            const isActive = selectedGenre === g;
-            return (
-              <TouchableOpacity
-                key={g}
-                onPress={() => setSelectedGenre(g)}
-                style={[styles.genrePill, isActive && styles.genrePillActive]}
-              >
-                <Text style={[styles.genreText, isActive && styles.genreTextActive]}>
-                  {g}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
-
-        {/* Channels Grid / List */}
-        {loading ? (
-          <View style={styles.center}>
-            <ActivityIndicator size="large" color="#00ADB5" />
+      {/* 📋 Channel Browser & List (Visible when NOT in Fullscreen) */}
+      {!isFullscreen && (
+        <View style={styles.browserContainer}>
+          {/* Search Box */}
+          <View style={styles.searchBox}>
+            <Search size={15} color="#777" />
+            <TextInput
+              placeholder="Search Live IPTV Channels..."
+              placeholderTextColor="#777"
+              value={search}
+              onChangeText={setSearch}
+              style={styles.searchInput}
+            />
           </View>
-        ) : (
-          <FlatList
-            data={filtered}
-            keyExtractor={(item) => item.id}
-            contentContainerStyle={styles.list}
-            renderItem={({ item }) => {
-              const isSelected = activeChannel?.id === item.id;
+
+          {/* Genres Category Slider */}
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.genreScroll}
+          >
+            {genres.map((g) => {
+              const isActive = selectedGenre === g;
               return (
                 <TouchableOpacity
-                  style={[styles.channelCard, isSelected && styles.channelCardActive]}
-                  onPress={() => setActiveChannel(item)}
-                  activeOpacity={0.8}
+                  key={g}
+                  onPress={() => setSelectedGenre(g)}
+                  style={[styles.genrePill, isActive && styles.genrePillActive]}
                 >
-                  <Image
-                    source={{ uri: item.posterUrl || item.backdropUrl }}
-                    style={styles.logo}
-                    resizeMode="contain"
-                  />
-                  <View style={styles.info}>
-                    <Text style={[styles.channelName, isSelected && { color: "#00ADB5" }]}>
-                      {item.title}
-                    </Text>
-                    <Text style={styles.channelMeta}>
-                      {item.genres?.join(", ") || "Live Stream"} • {item.quality}
-                    </Text>
-                  </View>
-                  {isSelected ? (
-                    <View style={styles.activePlayBadge}>
-                      <Play size={14} color="#000" fill="#000" />
-                    </View>
-                  ) : null}
+                  <Text style={[styles.genreText, isActive && styles.genreTextActive]}>
+                    {g}
+                  </Text>
                 </TouchableOpacity>
               );
-            }}
-          />
-        )}
-      </View>
+            })}
+          </ScrollView>
+
+          {/* Channels Grid / List */}
+          {loading ? (
+            <View style={styles.center}>
+              <ActivityIndicator size="large" color="#00ADB5" />
+            </View>
+          ) : (
+            <FlatList
+              data={filtered}
+              keyExtractor={(item) => item.id}
+              contentContainerStyle={styles.list}
+              renderItem={({ item }) => {
+                const isSelected = activeChannel?.id === item.id;
+                return (
+                  <TouchableOpacity
+                    style={[styles.channelCard, isSelected && styles.channelCardActive]}
+                    onPress={() => setActiveChannel(item)}
+                    activeOpacity={0.8}
+                  >
+                    <Image
+                      source={{ uri: item.posterUrl || item.backdropUrl }}
+                      style={styles.logo}
+                      resizeMode="contain"
+                    />
+                    <View style={styles.info}>
+                      <Text style={[styles.channelName, isSelected && { color: "#00ADB5" }]}>
+                        {item.title}
+                      </Text>
+                      <Text style={styles.channelMeta}>
+                        {item.genres?.join(", ") || "Live Stream"} • {item.quality}
+                      </Text>
+                    </View>
+                    {isSelected ? (
+                      <View style={styles.activePlayBadge}>
+                        <Play size={14} color="#000" fill="#000" />
+                      </View>
+                    ) : null}
+                  </TouchableOpacity>
+                );
+              }}
+            />
+          )}
+        </View>
+      )}
     </View>
   );
 }
@@ -544,19 +470,20 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#0A0A0C",
   },
-  fullscreenModalContainer: {
-    flex: 1,
-    backgroundColor: "#000",
-    width: "100%",
-    height: "100%",
-    justifyContent: "center",
-    alignItems: "center",
+  containerFullscreen: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 99999,
   },
-  playerContainer: {
+  playerViewport: {
     width: "100%",
     height: 230,
     backgroundColor: "#000",
     position: "relative",
+  },
+  playerViewportFullscreen: {
+    ...StyleSheet.absoluteFillObject,
+    width: "100%",
+    height: "100%",
   },
   centerOverlay: {
     ...StyleSheet.absoluteFillObject,
@@ -573,12 +500,12 @@ const styles = StyleSheet.create({
   playerHud: {
     ...StyleSheet.absoluteFillObject,
     justifyContent: "space-between",
-    padding: 12,
+    paddingTop: Platform.OS === "android" ? 10 : 8,
+    paddingBottom: 10,
+    paddingHorizontal: 12,
     backgroundColor: "rgba(0,0,0,0.38)",
   },
-  fullscreenPlayerHud: {
-    ...StyleSheet.absoluteFillObject,
-    justifyContent: "space-between",
+  playerHudFullscreen: {
     paddingTop: Platform.OS === "android" ? 18 : 24,
     paddingBottom: Platform.OS === "android" ? 18 : 24,
     paddingHorizontal: 24,
@@ -589,25 +516,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 8,
   },
-  fullscreenTopRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-  },
   playerBottomRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
   },
-  fullscreenBottomRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
   glassCircleBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     backgroundColor: "rgba(20,20,28,0.75)",
     justifyContent: "center",
     alignItems: "center",
@@ -619,9 +536,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 5,
     backgroundColor: "rgba(20,20,28,0.75)",
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 14,
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.12)",
   },
@@ -639,13 +556,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 4,
     backgroundColor: "#E50914",
-    paddingHorizontal: 8,
+    paddingHorizontal: 7,
     paddingVertical: 3,
-    borderRadius: 6,
+    borderRadius: 5,
   },
   liveBadgeText: {
     color: "#FFF",
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: "900",
     letterSpacing: 0.5,
   },
@@ -667,7 +584,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   modernVolumeSlider: {
-    width: 95,
+    width: 90,
     height: 18,
   },
   volPercentText: {
@@ -701,7 +618,7 @@ const styles = StyleSheet.create({
     top: 0,
     right: 0,
     bottom: 0,
-    width: 280,
+    width: 270,
     backgroundColor: "rgba(14,14,20,0.95)",
     borderLeftWidth: 1,
     borderColor: "rgba(255,255,255,0.12)",
@@ -712,7 +629,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    padding: 16,
+    padding: 14,
     borderBottomWidth: 1,
     borderColor: "rgba(255,255,255,0.08)",
   },
