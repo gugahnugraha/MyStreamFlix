@@ -357,6 +357,15 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
     });
   };
 
+  // Skip Intro Handler (fast forward 85 seconds)
+  const handleSkipIntro = () => {
+    const target = Math.min(duration - 5, 85);
+    setCurrentTime(target);
+    if (!isSimulating && videoRef.current) {
+      videoRef.current.currentTime = target;
+    }
+  };
+
   // Auto-play Next Episode Countdown Trigger (when remaining duration <= 15s)
   useEffect(() => {
     if (!nextEpisodeInfo || isNextEpisodeDismissed) return;
