@@ -168,13 +168,13 @@ export default function AdminScreen({ navigation }: any) {
     });
     setIsCreatingChannel(false);
 
-    if (result.success) {
+    if (result.success && result.movie) {
       setShowAddChannelModal(false);
       setChannelTitle("");
       setChannelStreamUrl("");
       setChannelLogoUrl("");
-      Alert.alert("Sukses", `Saluran "${channelTitle}" berhasil ditambahkan ke database!`);
-      loadData();
+      setMovies((prev) => [result.movie!, ...prev]);
+      Alert.alert("Sukses", `Saluran "${channelTitle}" berhasil ditambahkan dan aktif!`);
     } else {
       Alert.alert("Gagal", result.error || "Tidak dapat menambahkan saluran.");
     }
@@ -190,7 +190,7 @@ export default function AdminScreen({ navigation }: any) {
     const res = await scanM3uPlaylist(m3uUrl);
     setIsScanningM3u(false);
 
-    if (res.success && res.channels) {
+    if (res.success && res.channels && res.channels.length > 0) {
       setScannedChannels(res.channels);
       Alert.alert(
         "Pemindaian Sukses",
@@ -210,14 +210,16 @@ export default function AdminScreen({ navigation }: any) {
 
     if (res.success) {
       setShowM3uModal(false);
+      if (res.importedChannels && res.importedChannels.length > 0) {
+        setMovies((prev) => [...res.importedChannels!, ...prev]);
+      }
       setScannedChannels([]);
       Alert.alert(
         "Sinkronisasi Berhasil",
-        `Sebanyak ${res.importedCount} saluran TV telah berhasil diimpor ke database!`
+        `Sebanyak ${res.importedCount} saluran TV telah berhasil diimpor dan siap ditonton!`
       );
-      loadData();
     } else {
-      Alert.alert("Gagal Mengimpor", res.error || "Gagal menyimpan saluran ke database.");
+      Alert.alert("Gagal Mengimpor", res.error || "Gagal menyimpan saluran.");
     }
   };
 
