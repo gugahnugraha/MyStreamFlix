@@ -377,12 +377,16 @@ export default function NativeExoPlayer({
     resetControlsTimer();
   };
 
+  const isSeekingRef = useRef(false);
+
   // ⏩ Smooth Non-Stop Seek (Auto-Plays Immediately)
   const handleSeek = async (timeInSeconds: number) => {
     const target = Math.max(0, Math.min(duration, timeInSeconds));
     setCurrentTime(target);
     updateSubtitleCue(target);
     setIsPlaying(true);
+    isSeekingRef.current = true;
+
     try {
       await videoRef.current?.setStatusAsync({
         positionMillis: target * 1000,
@@ -392,6 +396,10 @@ export default function NativeExoPlayer({
       await videoRef.current?.setPositionAsync(target * 1000);
       await videoRef.current?.playAsync();
     }
+
+    setTimeout(() => {
+      isSeekingRef.current = false;
+    }, 1200);
     resetControlsTimer();
   };
 
@@ -412,11 +420,13 @@ export default function NativeExoPlayer({
 
     if (status.isPlaying) {
       setIsBuffering(false);
+      setIsPlaying(true);
     } else {
       setIsBuffering(status.isBuffering);
+      if (!isSeekingRef.current && !status.isBuffering) {
+        setIsPlaying(status.isPlaying);
+      }
     }
-
-    setIsPlaying(status.isPlaying);
 
     const posSec = status.positionMillis / 1000;
     setCurrentTime(posSec);
