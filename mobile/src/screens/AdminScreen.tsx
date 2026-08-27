@@ -44,7 +44,6 @@ import {
 } from "lucide-react-native";
 import { Movie, User } from "../types";
 import {
-  fetchMovies,
   fetchDatabaseUsers,
   createLiveTvChannel,
   deleteMovieById,
@@ -52,6 +51,7 @@ import {
   importM3uChannels,
   checkChannelsHealth,
 } from "../api/client";
+import { useMovies } from "../context/MovieContext";
 import { useLanguage } from "../context/LanguageContext";
 import { useModernDialog } from "../context/ModernDialogContext";
 
@@ -67,11 +67,11 @@ const M3U_PRESETS = [
 export default function AdminScreen({ navigation }: any) {
   const { t } = useLanguage();
   const { showSuccess, showError, showDeleteConfirm, showConfirm } = useModernDialog();
+  const { movies, loading, refresh: refreshMovies } = useMovies();
   const [activeTab, setActiveTab] = useState<"overview" | "catalog" | "livetv" | "gdrive" | "users">("overview");
 
-  const [movies, setMovies] = useState<Movie[]>([]);
   const [dbUsers, setDbUsers] = useState<User[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loadingUsers, setLoadingUsers] = useState(true);
   const [searchCatalog, setSearchCatalog] = useState("");
   const [isScanningGDrive, setIsScanningGDrive] = useState(false);
   const [gdriveLogs, setGdriveLogs] = useState<string[]>([
@@ -104,18 +104,14 @@ export default function AdminScreen({ navigation }: any) {
   const [isCheckingHealth, setIsCheckingHealth] = useState(false);
 
   useEffect(() => {
-    loadData();
+    loadUsers();
   }, []);
 
-  const loadData = async () => {
-    setLoading(true);
-    const [moviesData, usersData] = await Promise.all([
-      fetchMovies(),
-      fetchDatabaseUsers(),
-    ]);
-    setMovies(moviesData);
+  const loadUsers = async () => {
+    setLoadingUsers(true);
+    const usersData = await fetchDatabaseUsers();
     setDbUsers(usersData);
-    setLoading(false);
+    setLoadingUsers(false);
   };
 
   const moviesCount = movies.filter((m) => m.contentType === "movie").length;
@@ -140,8 +136,8 @@ export default function AdminScreen({ navigation }: any) {
       t.confirmDeleteTitle,
       t.confirmDeleteMsg.replace("{title}", item.title),
       async () => {
-        setMovies((prev) => prev.filter((m) => m.id !== item.id));
         await deleteMovieById(item.id);
+        await refreshMovies();
         showSuccess(t.deleteSuccess, `"${item.title}" telah dihapus.`);
       }
     );
@@ -177,7 +173,7 @@ export default function AdminScreen({ navigation }: any) {
       setChannelTitle("");
       setChannelStreamUrl("");
       setChannelLogoUrl("");
-      setMovies((prev) => [result.movie!, ...prev]);
+      await refreshMovies();
       showSuccess("Saluran Ditambahkan", `Saluran "${channelTitle}" berhasil ditambahkan dan siap ditonton!`);
     } else {
       showError("Gagal Menambahkan", result.error || "Tidak dapat menambahkan saluran.");
@@ -274,9 +270,7 @@ export default function AdminScreen({ navigation }: any) {
 
     if (res.success) {
       setShowM3uModal(false);
-      if (res.importedChannels && res.importedChannels.length > 0) {
-        setMovies((prev) => [...res.importedChannels!, ...prev]);
-      }
+      await refreshMovies();
       setScannedChannels([]);
       setSelectedChannelIndices([]);
       setChannelHealthMap({});
@@ -305,7 +299,7 @@ export default function AdminScreen({ navigation }: any) {
         `[${new Date().toLocaleTimeString()}] Sinkronisasi: ${data.message || "Berhasil disinkronkan."}`,
         ...prev,
       ]);
-      loadData();
+      await refreshMovies();
     } catch (e: any) {
       setGdriveLogs((prev) => [
         `[${new Date().toLocaleTimeString()}] Sinkronisasi Selesai (${e.message || "OK"})`,
@@ -345,7 +339,7 @@ export default function AdminScreen({ navigation }: any) {
         </View>
 
         <TouchableOpacity
-          onPress={loadData}
+          onPress={refreshMovies}
           style={styles.refreshBtn}
           activeOpacity={0.8}
         >

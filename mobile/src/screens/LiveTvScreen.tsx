@@ -42,7 +42,7 @@ import {
   Zap,
 } from "lucide-react-native";
 import { Movie } from "../types";
-import { fetchMovies } from "../api/client";
+import { useMovies } from "../context/MovieContext";
 import { useLanguage } from "../context/LanguageContext";
 
 const { width } = Dimensions.get("window");
@@ -50,6 +50,7 @@ const { width } = Dimensions.get("window");
 export default function LiveTvScreen({ navigation }: any) {
   const isFocused = useIsFocused();
   const { t } = useLanguage();
+  const { movies: allMovies, refresh } = useMovies();
   const [channels, setChannels] = useState<Movie[]>([]);
   const [activeChannel, setActiveChannel] = useState<Movie | null>(null);
   const [search, setSearch] = useState("");
@@ -70,8 +71,6 @@ export default function LiveTvScreen({ navigation }: any) {
   const controlsTimerRef = useRef<any>(null);
 
   useEffect(() => {
-    loadChannels();
-
     return () => {
       ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT);
       StatusBar.setHidden(false, "fade");
@@ -91,6 +90,11 @@ export default function LiveTvScreen({ navigation }: any) {
       if (controlsTimerRef.current) clearTimeout(controlsTimerRef.current);
     };
   }, []);
+
+  // Sync channels from shared MovieContext whenever data updates
+  useEffect(() => {
+    loadChannels();
+  }, [allMovies]);
 
   // 🛑 Synchronize Bottom Tab Bar visibility with Fullscreen state
   useEffect(() => {
@@ -120,10 +124,8 @@ export default function LiveTvScreen({ navigation }: any) {
     }
   }, [isFocused]);
 
-  const loadChannels = async () => {
-    if (channels.length === 0) setLoading(true);
-    const data = await fetchMovies();
-    const live = data.filter((m) => m.contentType === "livetv" || m.id.startsWith("tv-"));
+  const loadChannels = () => {
+    const live = allMovies.filter((m) => m.contentType === "livetv" || m.id.startsWith("tv-"));
     setChannels(live);
     if (live.length > 0 && !activeChannel) {
       setActiveChannel(live[0]);
