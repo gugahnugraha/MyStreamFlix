@@ -47,20 +47,8 @@ import { useModernDialog } from "../context/ModernDialogContext";
 export default function ProfileScreen({ navigation }: any) {
   const { t } = useLanguage();
   const { showSuccess, showError, showConfirm } = useModernDialog();
-  // Real Database User State (default mock or live session)
-  const [currentUser, setCurrentUser] = useState<User | null>({
-    id: "usr-admin-streamcms",
-    name: "Gugah Nugraha",
-    email: "admin@streamcms.com",
-    role: "admin",
-    createdAt: new Date().toISOString(),
-    isPremium: true,
-    profiles: [
-      { id: "prof-1", name: "Gugah (Utama)", avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80", isKids: false },
-      { id: "prof-2", name: "Kids Zone", avatar: "https://images.unsplash.com/photo-1501196354995-cbb51c65aaea?w=150&auto=format&fit=crop&q=80", isKids: true },
-    ],
-    activeProfileId: "prof-1",
-  });
+  // Real Database User State
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
 
   const [activeProfileId, setActiveProfileId] = useState("prof-1");
   const [loading, setLoading] = useState(false);

@@ -121,6 +121,7 @@ export default function LiveTvScreen({ navigation }: any) {
   }, [isFocused]);
 
   const loadChannels = async () => {
+    if (channels.length === 0) setLoading(true);
     const data = await fetchMovies();
     const live = data.filter((m) => m.contentType === "livetv" || m.id.startsWith("tv-"));
     setChannels(live);

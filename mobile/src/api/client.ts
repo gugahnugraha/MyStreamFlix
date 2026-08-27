@@ -5,108 +5,27 @@ export const DEFAULT_BACKEND_URL = "https://mystreamflix.biz.id";
 // 🗑️ Local deleted movie tracking to prevent deleted channels from reappearing
 const deletedMovieIds = new Set<string>();
 
-const FALLBACK_MOVIES: Movie[] = [
-  {
-    id: "mov-1",
-    title: "Big Buck Bunny",
-    contentType: "movie",
-    videoUrl: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
-    posterUrl: "https://images.unsplash.com/photo-1534447677768-be436bb09401?w=500&auto=format&fit=crop&q=80",
-    backdropUrl: "https://images.unsplash.com/photo-1534447677768-be436bb09401?w=1200&auto=format&fit=crop&q=80",
-    genres: ["Animation", "Comedy", "Family"],
-    quality: "4K UHD",
-    year: 2024,
-    rating: 4.8,
-    description: "Cerita petualangan seru kelinci besar dan teman-temannya di hutan yang indah.",
-  },
-  {
-    id: "mov-2",
-    title: "Sintel",
-    contentType: "movie",
-    videoUrl: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4",
-    posterUrl: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=500&auto=format&fit=crop&q=80",
-    backdropUrl: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=1200&auto=format&fit=crop&q=80",
-    genres: ["Fantasy", "Action", "Adventure"],
-    quality: "1080p FHD",
-    year: 2023,
-    rating: 4.9,
-    description: "Petualangan emosional seorang gadis muda mencari teman naga kecilnya yang hilang.",
-  },
-  {
-    id: "mov-3",
-    title: "Tears of Steel",
-    contentType: "movie",
-    videoUrl: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4",
-    posterUrl: "https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=500&auto=format&fit=crop&q=80",
-    backdropUrl: "https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=1200&auto=format&fit=crop&q=80",
-    genres: ["Sci-Fi", "Action"],
-    quality: "4K UHD",
-    year: 2024,
-    rating: 4.7,
-    description: "Pertarungan masa depan fiksi ilmiah antara manusia dan teknologi canggih.",
-  },
-  {
-    id: "tv-1",
-    title: "TVRI Nasional HD",
-    contentType: "livetv",
-    videoUrl: "https://tvri-live.cdn.jkt.boz.co.id/live/tvri-nasional/master.m3u8",
-    posterUrl: "https://images.unsplash.com/photo-1593784991095-a205069470b6?w=500&auto=format&fit=crop&q=80",
-    backdropUrl: "https://images.unsplash.com/photo-1593784991095-a205069470b6?w=1200&auto=format&fit=crop&q=80",
-    genres: ["Nasional", "Berita"],
-    quality: "1080p FHD",
-    year: 2025,
-    rating: 4.9,
-    description: "Saluran televisi nasional publik Republik Indonesia.",
-  },
-  {
-    id: "tv-2",
-    title: "Kompas TV HD",
-    contentType: "livetv",
-    videoUrl: "https://live.kompas.tv/hls/kompastv.m3u8",
-    posterUrl: "https://images.unsplash.com/photo-1585829365295-ab7cd400c167?w=500&auto=format&fit=crop&q=80",
-    backdropUrl: "https://images.unsplash.com/photo-1585829365295-ab7cd400c167?w=1200&auto=format&fit=crop&q=80",
-    genres: ["Berita", "Nasional"],
-    quality: "1080p FHD",
-    year: 2025,
-    rating: 4.8,
-    description: "Saluran berita independen dan terpercaya 24 jam.",
-  },
-  {
-    id: "tv-3",
-    title: "BeritaSatu News HD",
-    contentType: "livetv",
-    videoUrl: "https://live.beritasatu.com/hls/live.m3u8",
-    posterUrl: "https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=500&auto=format&fit=crop&q=80",
-    backdropUrl: "https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=1200&auto=format&fit=crop&q=80",
-    genres: ["Berita", "Bisnis"],
-    quality: "1080p FHD",
-    year: 2025,
-    rating: 4.7,
-    description: "Berita terkini, ekonomi, dan investigasi terkini Indonesia.",
-  },
-];
-
-let cachedMovies: Movie[] = [...FALLBACK_MOVIES];
+let cachedMovies: Movie[] = [];
 let isFetchingMovies = false;
 
+// 🎬 Fetch Real Production Database Movies & Live TV
 export async function fetchMovies(backendUrl: string = DEFAULT_BACKEND_URL): Promise<Movie[]> {
-  // Trigger background refresh non-blockingly (0ms UI latency!)
-  if (!isFetchingMovies) {
-    isFetchingMovies = true;
-    fetch(`${backendUrl}/api/movies`)
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
-        if (data) {
-          const list: Movie[] = Array.isArray(data) ? data : data.movies || [];
-          if (list.length > 0) {
-            cachedMovies = list;
-          }
-        }
-      })
-      .catch(() => {})
-      .finally(() => {
-        isFetchingMovies = false;
-      });
+  try {
+    const res = await fetch(`${backendUrl}/api/movies`, {
+      headers: {
+        Accept: "application/json",
+        "User-Agent": "MyStreamFlix-Mobile-App/1.0",
+      },
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      const list: Movie[] = Array.isArray(data) ? data : data.movies || [];
+      cachedMovies = list;
+      return list.filter((m) => !deletedMovieIds.has(m.id));
+    }
+  } catch (error) {
+    console.warn("Real database fetch error:", error);
   }
 
   return cachedMovies.filter((m) => !deletedMovieIds.has(m.id));
@@ -123,12 +42,13 @@ export async function fetchMovieById(id: string, backendUrl: string = DEFAULT_BA
 
   try {
     const res = await fetch(`${backendUrl}/api/movies/${id}`);
-    if (!res.ok) throw new Error("Failed to fetch movie details");
-    return await res.json();
+    if (res.ok) {
+      return await res.json();
+    }
   } catch (error) {
     console.error("API Error fetching movie by ID:", error);
-    return null;
   }
+  return null;
 }
 
 // 🔐 Real Database Authentication Client (Connected to Next.js Database API)

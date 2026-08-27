@@ -471,80 +471,43 @@ export async function getMovies(filters?: {
   const prisma = getPrismaClient();
   if (prisma) {
     try {
-      const count = await prisma.movie.count();
-      if (count > 0) {
-        const whereClause: any = {};
-        const { genre, search, sortBy, contentType } = filters || {};
-        
-        if (contentType && contentType !== "all") {
-          whereClause.contentType = contentType;
-        }
-        
-        if (genre && genre !== "All") {
-          whereClause.genres = { has: genre };
-        }
-        
-        if (search) {
-          whereClause.OR = [
-            { title: { contains: search, mode: "insensitive" } },
-            { description: { contains: search, mode: "insensitive" } }
-          ];
-        }
-        
-        let orderBy: any = { createdAt: "desc" };
-        if (sortBy === "rating") {
-          orderBy = { rating: "desc" };
-        } else if (sortBy === "year") {
-          orderBy = { releaseYear: "desc" };
-        } else if (sortBy === "views") {
-          orderBy = { views: "desc" };
-        }
-        
-        const movies = await prisma.movie.findMany({
-          where: whereClause,
-          orderBy
-        });
-        return movies.map(mapPrismaMovie);
+      const whereClause: any = {};
+      const { genre, search, sortBy, contentType } = filters || {};
+      
+      if (contentType && contentType !== "all") {
+        whereClause.contentType = contentType;
       }
+      
+      if (genre && genre !== "All") {
+        whereClause.genres = { has: genre };
+      }
+      
+      if (search) {
+        whereClause.OR = [
+          { title: { contains: search, mode: "insensitive" } },
+          { description: { contains: search, mode: "insensitive" } }
+        ];
+      }
+      
+      let orderBy: any = { createdAt: "desc" };
+      if (sortBy === "rating") {
+        orderBy = { rating: "desc" };
+      } else if (sortBy === "year") {
+        orderBy = { releaseYear: "desc" };
+      } else if (sortBy === "views") {
+        orderBy = { views: "desc" };
+      }
+      
+      const movies = await prisma.movie.findMany({
+        where: whereClause,
+        orderBy
+      });
+      return movies.map(mapPrismaMovie);
     } catch (error) {
-      console.warn("Failed to fetch movies from Prisma. Fallback to in-memory.", error);
+      console.warn("Failed to fetch movies from Prisma.", error);
     }
   }
-  
-  // In-memory catalog query
-  let filteredMovies = [...store.movies];
-  const { genre, search, sortBy, contentType } = filters || {};
-
-  if (contentType && contentType !== "all") {
-    filteredMovies = filteredMovies.filter(m => m.contentType === contentType);
-  }
-
-  if (genre && genre !== "All") {
-    filteredMovies = filteredMovies.filter(m => 
-      m.genres.some(g => g.toLowerCase() === genre.toLowerCase())
-    );
-  }
-
-  if (search) {
-    const q = search.toLowerCase();
-    filteredMovies = filteredMovies.filter(m => 
-      m.title.toLowerCase().includes(q) || 
-      m.description.toLowerCase().includes(q) ||
-      m.directors.some(d => d.toLowerCase().includes(q))
-    );
-  }
-
-  if (sortBy === "rating") {
-    filteredMovies.sort((a, b) => b.rating - a.rating);
-  } else if (sortBy === "year") {
-    filteredMovies.sort((a, b) => b.releaseYear - a.releaseYear);
-  } else if (sortBy === "views") {
-    filteredMovies.sort((a, b) => b.views - a.views);
-  } else {
-    filteredMovies.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-  }
-
-  return filteredMovies;
+  return [];
 }
 
 export async function getMovieById(id: string, incrementViews = false): Promise<(Movie & { reviews: Review[] }) | null> {
