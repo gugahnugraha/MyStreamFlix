@@ -52,6 +52,7 @@ import {
   checkChannelsHealth,
 } from "../api/client";
 import { useMovies } from "../context/MovieContext";
+import { useAuth } from "../context/AuthContext";
 import { useLanguage } from "../context/LanguageContext";
 import { useModernDialog } from "../context/ModernDialogContext";
 
@@ -68,8 +69,8 @@ export default function AdminScreen({ navigation }: any) {
   const { t } = useLanguage();
   const { showSuccess, showError, showDeleteConfirm, showConfirm } = useModernDialog();
   const { movies, loading, refresh: refreshMovies } = useMovies();
+  const { isAdmin } = useAuth();
   const [activeTab, setActiveTab] = useState<"overview" | "catalog" | "livetv" | "gdrive" | "users">("overview");
-
   const [dbUsers, setDbUsers] = useState<User[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(true);
   const [searchCatalog, setSearchCatalog] = useState("");
@@ -78,8 +79,6 @@ export default function AdminScreen({ navigation }: any) {
     "Sistem Cloud Storage & Database Siap.",
     "Sinkronisasi Akun & Konten Berjalan Normal.",
   ]);
-
-  // 📺 Add Channel Modal State
   const [showAddChannelModal, setShowAddChannelModal] = useState(false);
   const [channelTitle, setChannelTitle] = useState("");
   const [channelStreamUrl, setChannelStreamUrl] = useState("");
@@ -87,8 +86,6 @@ export default function AdminScreen({ navigation }: any) {
   const [channelCategory, setChannelCategory] = useState("Nasional");
   const [channelQuality, setChannelQuality] = useState("1080p FHD");
   const [isCreatingChannel, setIsCreatingChannel] = useState(false);
-
-  // 📡 M3U Sync Modal State
   const [showM3uModal, setShowM3uModal] = useState(false);
   const [m3uUrl, setM3uUrl] = useState("https://iptv-org.github.io/iptv/countries/id.m3u");
   const [isScanningM3u, setIsScanningM3u] = useState(false);
@@ -96,16 +93,14 @@ export default function AdminScreen({ navigation }: any) {
   const [selectedChannelIndices, setSelectedChannelIndices] = useState<number[]>([]);
   const [searchScannedQuery, setSearchScannedQuery] = useState("");
   const [isImportingM3u, setIsImportingM3u] = useState(false);
-
-  // 🩺 Channel Health State
   const [channelHealthMap, setChannelHealthMap] = useState<
     Record<string, { status: "online" | "offline"; responseTime?: number }>
   >({});
   const [isCheckingHealth, setIsCheckingHealth] = useState(false);
 
   useEffect(() => {
-    loadUsers();
-  }, []);
+    if (isAdmin) loadUsers();
+  }, [isAdmin]);
 
   const loadUsers = async () => {
     setLoadingUsers(true);
@@ -113,6 +108,27 @@ export default function AdminScreen({ navigation }: any) {
     setDbUsers(usersData);
     setLoadingUsers(false);
   };
+
+  // ⛔ Auth guard — show access denied if not admin (after all hooks)
+  if (!isAdmin) {
+    return (
+      <View style={{ flex: 1, backgroundColor: "#080810", justifyContent: "center", alignItems: "center", gap: 16, paddingHorizontal: 32 }}>
+        <View style={{ width: 72, height: 72, borderRadius: 36, backgroundColor: "rgba(255,68,68,0.1)", borderWidth: 1, borderColor: "rgba(255,68,68,0.3)", justifyContent: "center", alignItems: "center" }}>
+          <ShieldCheck size={32} color="#FF4444" />
+        </View>
+        <Text style={{ color: "#FFF", fontSize: 20, fontWeight: "900", textAlign: "center" }}>Akses Ditolak</Text>
+        <Text style={{ color: "#777", fontSize: 13, textAlign: "center", lineHeight: 20 }}>
+          {"Halaman ini hanya dapat diakses oleh Admin.\nSilakan login dengan akun yang memiliki role Admin."}
+        </Text>
+        <TouchableOpacity
+          style={{ backgroundColor: "#FF4444", paddingVertical: 12, paddingHorizontal: 28, borderRadius: 20, marginTop: 8 }}
+          onPress={() => navigation.goBack()}
+        >
+          <Text style={{ color: "#FFF", fontWeight: "800", fontSize: 14 }}>Kembali</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   const moviesCount = movies.filter((m) => m.contentType === "movie").length;
   const seriesCount = movies.filter((m) => m.contentType === "series").length;

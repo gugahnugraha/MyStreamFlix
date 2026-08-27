@@ -40,100 +40,36 @@ import {
   ShieldAlert,
 } from "lucide-react-native";
 import { User, UserProfile } from "../types";
-import { loginUser, registerUser } from "../api/client";
 import { useLanguage } from "../context/LanguageContext";
 import { useModernDialog } from "../context/ModernDialogContext";
+import { useAuth } from "../context/AuthContext";
+import AuthGateModal from "../components/AuthGateModal";
 
 export default function ProfileScreen({ navigation }: any) {
   const { t } = useLanguage();
   const { showSuccess, showError, showConfirm } = useModernDialog();
-  // Real Database User State
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const { currentUser, isLoggedIn, isAdmin, logout } = useAuth();
 
   const [activeProfileId, setActiveProfileId] = useState("prof-1");
-  const [loading, setLoading] = useState(false);
-
-  // Auth Modal State
   const [showAuthModal, setShowAuthModal] = useState(false);
-  const [authMode, setAuthMode] = useState<"login" | "register">("login");
-  const [authName, setAuthName] = useState("");
-  const [authEmail, setAuthEmail] = useState("");
-  const [authPassword, setAuthPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [authError, setAuthError] = useState("");
 
   // Preference Toggles
   const [autoPlayNext, setAutoPlayNext] = useState(true);
   const [hardwareAcceleration, setHardwareAcceleration] = useState(true);
-
-  const handleToggleRole = () => {
-    if (!currentUser) return;
-    const targetRole = currentUser.role === "admin" ? "user" : "admin";
-    setCurrentUser({
-      ...currentUser,
-      role: targetRole,
-    });
-    showSuccess(
-      t.roleSwitched,
-      targetRole === "admin" ? t.switchToAdmin : t.switchToViewer
-    );
-  };
-
-  const handleAuthSubmit = async () => {
-    if (!authEmail || !authPassword) {
-      setAuthError("Please fill in all credentials.");
-      return;
-    }
-
-    setLoading(true);
-
-    if (authMode === "login") {
-      const result = await loginUser(authEmail, authPassword);
-      setLoading(false);
-
-      if (result.success && result.user) {
-        setCurrentUser(result.user);
-        setShowAuthModal(false);
-        setAuthPassword("");
-        showSuccess("Berhasil Masuk", `Selamat datang kembali, ${result.user.name || result.user.email}!`);
-      } else {
-        setAuthError(result.error || "Invalid email or password.");
-      }
-    } else {
-      if (!authName) {
-        setLoading(false);
-        setAuthError("Please enter your name.");
-        return;
-      }
-
-      const result = await registerUser(authName, authEmail, authPassword);
-      setLoading(false);
-
-      if (result.success && result.user) {
-        setCurrentUser(result.user);
-        setShowAuthModal(false);
-        setAuthPassword("");
-        showSuccess("Akun Dibuat", "Akun Anda telah berhasil terdaftar di database!");
-      } else {
-        setAuthError(result.error || "Could not register account.");
-      }
-    }
-  };
 
   const handleLogout = () => {
     showConfirm(
       t.signOut,
       t.confirmSignOut,
       () => {
-        setCurrentUser(null);
+        logout();
+        showSuccess("Berhasil Keluar", "Anda telah berhasil keluar dari akun.");
       },
       t.signOut,
       t.cancel,
       true
     );
   };
-
-  const isAdmin = currentUser?.role === "admin";
 
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
@@ -199,10 +135,7 @@ export default function ProfileScreen({ navigation }: any) {
         ) : (
           <TouchableOpacity
             style={styles.loginBtn}
-            onPress={() => {
-              setAuthMode("login");
-              setShowAuthModal(true);
-            }}
+            onPress={() => setShowAuthModal(true)}
           >
             <LogIn size={15} color="#000" />
             <Text style={styles.loginBtnText}>{t.signInRegister}</Text>
@@ -239,25 +172,27 @@ export default function ProfileScreen({ navigation }: any) {
         </View>
       )}
 
-      {/* Admin Panel Quick Access */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>{t.adminManagement}</Text>
-        <TouchableOpacity
-          style={styles.menuItem}
-          onPress={() => navigation.navigate("Admin")}
-        >
-          <View style={styles.menuItemLeft}>
-            <View style={[styles.iconWrap, { backgroundColor: "rgba(0,173,181,0.15)" }]}>
-              <Settings size={18} color="#00ADB5" />
+      {/* Admin Panel Quick Access (Only for Admin Role) */}
+      {isAdmin && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>{t.adminManagement}</Text>
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={() => navigation.navigate("Admin")}
+          >
+            <View style={styles.menuItemLeft}>
+              <View style={[styles.iconWrap, { backgroundColor: "rgba(0,173,181,0.15)" }]}>
+                <Settings size={18} color="#00ADB5" />
+              </View>
+              <View>
+                <Text style={styles.menuItemTitle}>{t.adminCmsPortal}</Text>
+                <Text style={styles.menuItemSub}>{t.adminCmsSub}</Text>
+              </View>
             </View>
-            <View>
-              <Text style={styles.menuItemTitle}>{t.adminCmsPortal}</Text>
-              <Text style={styles.menuItemSub}>{t.adminCmsSub}</Text>
-            </View>
-          </View>
-          <ChevronRight size={18} color="#666" />
-        </TouchableOpacity>
-      </View>
+            <ChevronRight size={18} color="#666" />
+          </TouchableOpacity>
+        </View>
+      )}
 
       {/* Synced Library */}
       <View style={styles.section}>
@@ -326,210 +261,11 @@ export default function ProfileScreen({ navigation }: any) {
 
       <View style={{ height: 40 }} />
 
-      {/* 🔐 MODERN GLASSMORPHIC AUTH MODAL */}
-      <Modal visible={showAuthModal} transparent animationType="fade">
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalCard}>
-            {/* Header with App Logo & Close */}
-            <View style={styles.modalHeaderRow}>
-              <View style={styles.brandTitleWrap}>
-                <View style={styles.brandIconMini}>
-                  <Film size={18} color="#00ADB5" />
-                  <Sparkles size={10} color="#FFD700" style={styles.brandSparkle} />
-                </View>
-                <View>
-                  <Text style={styles.brandNameText}>MyStreamFlix ID</Text>
-                  <Text style={styles.brandTaglineText}>
-                    {authMode === "login"
-                      ? "Masuk untuk melanjutkan streaming"
-                      : "Buat akun baru untuk akses ribuan film"}
-                  </Text>
-                </View>
-              </View>
-
-              <TouchableOpacity
-                style={styles.modalCloseBtn}
-                onPress={() => {
-                  setShowAuthModal(false);
-                  setAuthError("");
-                }}
-                activeOpacity={0.7}
-              >
-                <X size={18} color="#AAA" />
-              </TouchableOpacity>
-            </View>
-
-            {/* Segmented Auth Mode Switcher */}
-            <View style={styles.authTabSegment}>
-              <TouchableOpacity
-                onPress={() => {
-                  setAuthMode("login");
-                  setAuthError("");
-                }}
-                style={[
-                  styles.authTabPill,
-                  authMode === "login" && styles.authTabPillActive,
-                ]}
-                activeOpacity={0.8}
-              >
-                <LogIn size={14} color={authMode === "login" ? "#000" : "#888"} />
-                <Text
-                  style={[
-                    styles.authTabText,
-                    authMode === "login" && styles.authTabTextActive,
-                  ]}
-                >
-                  {t.modalSignIn}
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                onPress={() => {
-                  setAuthMode("register");
-                  setAuthError("");
-                }}
-                style={[
-                  styles.authTabPill,
-                  authMode === "register" && styles.authTabPillActive,
-                ]}
-                activeOpacity={0.8}
-              >
-                <UserPlus size={14} color={authMode === "register" ? "#000" : "#888"} />
-                <Text
-                  style={[
-                    styles.authTabText,
-                    authMode === "register" && styles.authTabTextActive,
-                  ]}
-                >
-                  {t.modalRegister}
-                </Text>
-              </TouchableOpacity>
-            </View>
-
-            {/* Quick Autofill Chips */}
-            {authMode === "login" && (
-              <View style={styles.quickChipsSection}>
-                <Text style={styles.quickChipsLabel}>Akun Cepat (1-Sentuhan):</Text>
-                <View style={styles.quickChipsRow}>
-                  <TouchableOpacity
-                    style={styles.quickChipAdmin}
-                    onPress={() => {
-                      setAuthEmail("admin@streamcms.com");
-                      setAuthPassword("admin");
-                      setAuthError("");
-                    }}
-                    activeOpacity={0.7}
-                  >
-                    <Crown size={12} color="#FFD700" />
-                    <Text style={styles.quickChipAdminText}>Admin (admin@streamcms.com)</Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={styles.quickChipUser}
-                    onPress={() => {
-                      setAuthEmail("user@streamcms.com");
-                      setAuthPassword("demo");
-                      setAuthError("");
-                    }}
-                    activeOpacity={0.7}
-                  >
-                    <UserIcon size={12} color="#00ADB5" />
-                    <Text style={styles.quickChipUserText}>Viewer (demo)</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            )}
-
-            {/* Error Message Box */}
-            {authError ? (
-              <View style={styles.authErrorBanner}>
-                <AlertCircle size={15} color="#E50914" />
-                <Text style={styles.authErrorText}>{authError}</Text>
-              </View>
-            ) : null}
-
-            {/* Full Name Input (Register Only) */}
-            {authMode === "register" && (
-              <View style={styles.modernInputBox}>
-                <UserIcon size={16} color="#00ADB5" />
-                <TextInput
-                  placeholder={t.fullName}
-                  placeholderTextColor="#666"
-                  value={authName}
-                  onChangeText={setAuthName}
-                  style={styles.modernInput}
-                />
-              </View>
-            )}
-
-            {/* Email Address Input */}
-            <View style={styles.modernInputBox}>
-              <KeyRound size={16} color="#00ADB5" />
-              <TextInput
-                placeholder={t.emailAddress}
-                placeholderTextColor="#666"
-                value={authEmail}
-                onChangeText={setAuthEmail}
-                style={styles.modernInput}
-                keyboardType="email-address"
-                autoCapitalize="none"
-              />
-            </View>
-
-            {/* Password Input with Show/Hide Toggle */}
-            <View style={styles.modernInputBox}>
-              <Lock size={16} color="#00ADB5" />
-              <TextInput
-                placeholder={t.password}
-                placeholderTextColor="#666"
-                value={authPassword}
-                onChangeText={setAuthPassword}
-                secureTextEntry={!showPassword}
-                style={styles.modernInput}
-                autoCapitalize="none"
-              />
-              <TouchableOpacity
-                onPress={() => setShowPassword((prev) => !prev)}
-                style={styles.eyeToggleBtn}
-                activeOpacity={0.7}
-              >
-                {showPassword ? (
-                  <EyeOff size={16} color="#AAA" />
-                ) : (
-                  <Eye size={16} color="#AAA" />
-                )}
-              </TouchableOpacity>
-            </View>
-
-            {/* Submit Action Button */}
-            <TouchableOpacity
-              style={[styles.primaryAuthSubmitBtn, loading && { opacity: 0.7 }]}
-              onPress={handleAuthSubmit}
-              disabled={loading}
-              activeOpacity={0.8}
-            >
-              {loading ? (
-                <ActivityIndicator size="small" color="#000" />
-              ) : (
-                <>
-                  <Text style={styles.primaryAuthSubmitText}>
-                    {authMode === "login" ? "Masuk ke Akun" : "Daftar Akun Sekarang"}
-                  </Text>
-                  <ArrowRight size={16} color="#000" />
-                </>
-              )}
-            </TouchableOpacity>
-
-            {/* Security Badge Footer */}
-            <View style={styles.authSecurityFooter}>
-              <ShieldCheck size={12} color="#10B981" />
-              <Text style={styles.authSecurityText}>
-                Autentikasi Terenkripsi & Database PostgreSQL Terhubung
-              </Text>
-            </View>
-          </View>
-        </View>
-      </Modal>
+      {/* 🔐 AUTH GATE MODAL */}
+      <AuthGateModal
+        visible={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+      />
     </ScrollView>
   );
 }

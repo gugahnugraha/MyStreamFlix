@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { View, StyleSheet } from "react-native";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
@@ -13,62 +13,84 @@ import AdminScreen from "./src/screens/AdminScreen";
 import { LanguageProvider, useLanguage } from "./src/context/LanguageContext";
 import { ModernDialogProvider } from "./src/context/ModernDialogContext";
 import { MovieProvider } from "./src/context/MovieContext";
+import { AuthProvider, useAuth } from "./src/context/AuthContext";
+import AuthGateModal from "./src/components/AuthGateModal";
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
 function MainTabs() {
   const { t } = useLanguage();
+  const { isLoggedIn } = useAuth();
+  const [showLiveTvGate, setShowLiveTvGate] = useState(false);
 
   return (
-    <Tab.Navigator
-      screenOptions={{
-        headerShown: false,
-        tabBarStyle: {
-          backgroundColor: "#0F0F12",
-          borderTopColor: "#1A1A20",
-          height: 64,
-          paddingBottom: 8,
-          paddingTop: 6,
-        },
-        tabBarActiveTintColor: "#00ADB5",
-        tabBarInactiveTintColor: "#666",
-        tabBarLabelStyle: {
-          fontSize: 11,
-          fontWeight: "700",
-        },
-      }}
-    >
-      <Tab.Screen
-        name="Catalog"
-        component={HomeScreen}
-        options={{
-          tabBarLabel: t.moviesSeries,
-          tabBarIcon: ({ color, size }) => <Film color={color} size={size} />,
-        }}
-      />
-
-      {/* 📺 Live TV Tab */}
-      <Tab.Screen
-        name="LiveTV"
-        component={LiveTvScreen}
-        options={{
-          tabBarLabel: t.liveTv,
-          tabBarIcon: ({ color }) => <Radio color={color} size={22} />,
+    <>
+      <Tab.Navigator
+        screenOptions={{
+          headerShown: false,
+          tabBarStyle: {
+            backgroundColor: "#0F0F12",
+            borderTopColor: "#1A1A20",
+            height: 64,
+            paddingBottom: 8,
+            paddingTop: 6,
+          },
           tabBarActiveTintColor: "#00ADB5",
+          tabBarInactiveTintColor: "#666",
+          tabBarLabelStyle: {
+            fontSize: 11,
+            fontWeight: "700",
+          },
         }}
-      />
+      >
+        <Tab.Screen
+          name="Catalog"
+          component={HomeScreen}
+          options={{
+            tabBarLabel: t.moviesSeries,
+            tabBarIcon: ({ color, size }) => <Film color={color} size={size} />,
+          }}
+        />
 
-      {/* 👤 Profile Tab */}
-      <Tab.Screen
-        name="ProfileTab"
-        component={ProfileScreen}
-        options={{
-          tabBarLabel: t.profile,
-          tabBarIcon: ({ color, size }) => <UserIcon color={color} size={size} />,
-        }}
+        {/* 📺 Live TV Tab — requires auth */}
+        <Tab.Screen
+          name="LiveTV"
+          component={LiveTvScreen}
+          listeners={{
+            tabPress: (e) => {
+              if (!isLoggedIn) {
+                e.preventDefault();
+                setShowLiveTvGate(true);
+              }
+            },
+          }}
+          options={{
+            tabBarLabel: t.liveTv,
+            tabBarIcon: ({ color }) => <Radio color={color} size={22} />,
+            tabBarActiveTintColor: "#00ADB5",
+          }}
+        />
+
+        {/* 👤 Profile Tab */}
+        <Tab.Screen
+          name="ProfileTab"
+          component={ProfileScreen}
+          options={{
+            tabBarLabel: t.profile,
+            tabBarIcon: ({ color, size }) => <UserIcon color={color} size={size} />,
+          }}
+        />
+      </Tab.Navigator>
+
+      {/* Auth gate for Live TV tab */}
+      <AuthGateModal
+        visible={showLiveTvGate}
+        onClose={() => setShowLiveTvGate(false)}
+        reason="Login diperlukan untuk menonton Live TV."
+        onAuthSuccess={() => setShowLiveTvGate(false)}
       />
-    </Tab.Navigator>
+    </>
   );
 }
 
@@ -76,28 +98,30 @@ export default function App() {
   return (
     <LanguageProvider>
       <ModernDialogProvider>
-        <MovieProvider>
-          <NavigationContainer>
-            <Stack.Navigator
-              screenOptions={{
-                headerShown: false,
-                animation: "fade",
-              }}
-            >
-              <Stack.Screen name="Main" component={MainTabs} />
-              <Stack.Screen name="Profile" component={ProfileScreen} />
-              <Stack.Screen name="Admin" component={AdminScreen} />
-              <Stack.Screen
-                name="Player"
-                component={PlayerScreen}
-                options={{
-                  orientation: "default",
+        <AuthProvider>
+          <MovieProvider>
+            <NavigationContainer>
+              <Stack.Navigator
+                screenOptions={{
                   headerShown: false,
+                  animation: "fade",
                 }}
-              />
-            </Stack.Navigator>
-          </NavigationContainer>
-        </MovieProvider>
+              >
+                <Stack.Screen name="Main" component={MainTabs} />
+                <Stack.Screen name="Profile" component={ProfileScreen} />
+                <Stack.Screen name="Admin" component={AdminScreen} />
+                <Stack.Screen
+                  name="Player"
+                  component={PlayerScreen}
+                  options={{
+                    orientation: "default",
+                    headerShown: false,
+                  }}
+                />
+              </Stack.Navigator>
+            </NavigationContainer>
+          </MovieProvider>
+        </AuthProvider>
       </ModernDialogProvider>
     </LanguageProvider>
   );

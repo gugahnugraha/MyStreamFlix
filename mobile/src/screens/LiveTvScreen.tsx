@@ -43,14 +43,19 @@ import {
 } from "lucide-react-native";
 import { Movie } from "../types";
 import { useMovies } from "../context/MovieContext";
+import { useAuth } from "../context/AuthContext";
 import { useLanguage } from "../context/LanguageContext";
+import AuthGateModal from "../components/AuthGateModal";
+import { Lock } from "lucide-react-native";
 
 const { width } = Dimensions.get("window");
 
 export default function LiveTvScreen({ navigation }: any) {
   const isFocused = useIsFocused();
   const { t } = useLanguage();
+  const { isLoggedIn } = useAuth();
   const { movies: allMovies, refresh } = useMovies();
+  const [showAuthGate, setShowAuthGate] = useState(false);
   const [channels, setChannels] = useState<Movie[]>([]);
   const [activeChannel, setActiveChannel] = useState<Movie | null>(null);
   const [search, setSearch] = useState("");
@@ -224,6 +229,38 @@ export default function LiveTvScreen({ navigation }: any) {
     "Music",
     "Documentary",
   ];
+
+  if (!isLoggedIn) {
+    return (
+      <View style={styles.container}>
+        <StatusBar barStyle="light-content" backgroundColor="#0A0A0C" />
+        <View style={{ flex: 1, justifyContent: "center", alignItems: "center", paddingHorizontal: 28, backgroundColor: "#080810" }}>
+          <View style={{ width: 72, height: 72, borderRadius: 36, backgroundColor: "rgba(0,173,181,0.12)", borderWidth: 1, borderColor: "rgba(0,173,181,0.3)", justifyContent: "center", alignItems: "center", marginBottom: 16 }}>
+            <Lock size={36} color="#00ADB5" />
+          </View>
+          <Text style={{ color: "#FFF", fontSize: 20, fontWeight: "900", marginBottom: 8, textAlign: "center" }}>
+            Live TV Terproteksi
+          </Text>
+          <Text style={{ color: "#888", fontSize: 13, textAlign: "center", lineHeight: 20, marginBottom: 24 }}>
+            Anda harus masuk ke akun untuk dapat menonton seluruh siaran langsung Live TV.
+          </Text>
+          <TouchableOpacity
+            style={{ backgroundColor: "#00ADB5", paddingVertical: 12, paddingHorizontal: 28, borderRadius: 20 }}
+            onPress={() => setShowAuthGate(true)}
+          >
+            <Text style={{ color: "#000", fontWeight: "800", fontSize: 14 }}>Masuk ke Akun</Text>
+          </TouchableOpacity>
+        </View>
+
+        <AuthGateModal
+          visible={showAuthGate}
+          onClose={() => setShowAuthGate(false)}
+          reason="Login diperlukan untuk menonton siaran langsung Live TV."
+          onAuthSuccess={() => setShowAuthGate(false)}
+        />
+      </View>
+    );
+  }
 
   return (
     <View style={[styles.container, isFullscreen && styles.containerFullscreen]}>
