@@ -70,6 +70,7 @@ export default function App() {
 
   // Catalog, Search, Filters
   const [movies, setMovies] = useState<Movie[]>([]);
+  const [allMovies, setAllMovies] = useState<Movie[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [showMobileSearch, setShowMobileSearch] = useState(false);
   const [selectedGenre, setSelectedGenre] = useState("All");
@@ -118,6 +119,18 @@ export default function App() {
       }
     } catch (e) {
       console.warn("Auth session fetch error:", e);
+    }
+  };
+
+  const fetchAllMovies = async () => {
+    try {
+      const res = await fetch("/api/movies");
+      if (res.ok) {
+        const data = await res.json();
+        setAllMovies(data);
+      }
+    } catch (e) {
+      console.warn("Failed fetching complete database catalog:", e);
     }
   };
 
@@ -174,6 +187,7 @@ export default function App() {
   useEffect(() => {
     fetchGlobalSettings();
     fetchSession();
+    fetchAllMovies();
   }, []);
 
   // Sync catalog whenever filtering/sorting shifts
@@ -186,9 +200,11 @@ export default function App() {
     fetchUserPersonalization();
   }, [currentUser]);
 
-  // Revert settings if leaving admin mode without saving
+  // Revert settings if leaving admin mode without saving, and fetch fresh database list when entering admin
   useEffect(() => {
-    if (activeTab !== "admin") {
+    if (activeTab === "admin") {
+      fetchAllMovies();
+    } else {
       fetchGlobalSettings();
     }
   }, [activeTab]);
@@ -319,8 +335,12 @@ export default function App() {
   // Separate Live TV channels from movies/series catalog
   const nonLiveTvMovies = movies.filter(m => m.contentType !== "livetv" && !m.id.startsWith("tv-"));
   const displayedMovies = isKidsMode ? nonLiveTvMovies.filter(isKidsFriendly) : nonLiveTvMovies;
-  const bannerMovies = displayedMovies.filter((m) => m.isBanner);
-  const featuredMovies = displayedMovies.filter((m) => m.isFeatured);
+  const bannerMovies = (displayedMovies.filter((m) => m.isBanner).length > 0
+    ? displayedMovies.filter((m) => m.isBanner)
+    : displayedMovies).slice(0, 5);
+  const featuredMovies = (displayedMovies.filter((m) => m.isFeatured).length > 0
+    ? displayedMovies.filter((m) => m.isFeatured)
+    : displayedMovies).slice(0, 10);
   const displayedFavorites = (isKidsMode ? favorites.filter(isKidsFriendly) : favorites)
     .filter(m => m.contentType !== "livetv" && !m.id.startsWith("tv-"));
   const displayedWatchHistory = (isKidsMode 
@@ -391,8 +411,11 @@ export default function App() {
         ) : activeTab === "admin" && currentUser?.role === "admin" ? (
           /* CMS ADMINISTRATOR PANEL */
           <AdminCMS 
-            movies={movies} 
-            onRefreshMovies={fetchCatalogMovies} 
+            movies={allMovies.length > 0 ? allMovies : movies} 
+            onRefreshMovies={() => {
+              fetchAllMovies();
+              fetchCatalogMovies();
+            }} 
             globalSettings={settings}
             onUpdateGlobalSettings={setSettings}
             currentUser={currentUser}

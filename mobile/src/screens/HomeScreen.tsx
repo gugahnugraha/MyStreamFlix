@@ -37,8 +37,11 @@ export default function HomeScreen({ navigation }: any) {
     setLoading(false);
   };
 
+  const nonLiveTv = movies.filter((m) => m.contentType !== "livetv" && !m.id.startsWith("tv-"));
+  const featured = nonLiveTv.find((m) => m.isBanner || m.isFeatured) || nonLiveTv[0] || movies[0];
+
   // Filter movies by search query and category
-  const filteredMovies = movies.filter((item) => {
+  const filteredMovies = (selectedCategory === "Live TV" ? movies : nonLiveTv).filter((item) => {
     const matchesSearch =
       !searchQuery ||
       item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -47,16 +50,16 @@ export default function HomeScreen({ navigation }: any) {
     if (!matchesSearch) return false;
 
     if (selectedCategory === "All") return true;
-    if (selectedCategory === "Movies") return item.contentType === "movie";
+    if (selectedCategory === "Movies") return item.contentType === "movie" || !item.contentType;
     if (selectedCategory === "TV Series") return item.contentType === "series";
+    if (selectedCategory === "Live TV") return item.contentType === "livetv" || item.id.startsWith("tv-");
 
     return item.genres?.some(
       (g) => g.toLowerCase() === selectedCategory.toLowerCase()
     );
   });
 
-  const featured = movies[0];
-  const moviesList = filteredMovies.filter((m) => m.contentType === "movie");
+  const moviesList = filteredMovies.filter((m) => m.contentType === "movie" || !m.contentType);
   const seriesList = filteredMovies.filter((m) => m.contentType === "series");
 
   const renderMovieCard = ({ item }: { item: Movie }) => (
@@ -75,7 +78,7 @@ export default function HomeScreen({ navigation }: any) {
           {item.title}
         </Text>
         <Text style={styles.cardMeta}>
-          {item.year || "2024"} • {item.quality}
+          {item.year || "2024"} • {item.quality || "HD"}
         </Text>
       </View>
     </TouchableOpacity>
@@ -100,7 +103,7 @@ export default function HomeScreen({ navigation }: any) {
         </View>
       ) : (
         <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
-          {/* Featured Hero Banner (Only shown when not searching) */}
+          {/* Featured Hero Banner (Only shown when on All and not searching) */}
           {!searchQuery && selectedCategory === "All" && featured && (
             <View style={styles.heroContainer}>
               <Image
@@ -131,11 +134,13 @@ export default function HomeScreen({ navigation }: any) {
             </View>
           )}
 
-          {/* Search Result Grid View when searching */}
-          {searchQuery ? (
+          {/* Grid View when Searching OR Filtered by Category */}
+          {searchQuery || selectedCategory !== "All" ? (
             <View style={styles.searchGridSection}>
               <Text style={styles.searchGridTitle}>
-                {t.searchResultsFor} "{searchQuery}" ({filteredMovies.length})
+                {searchQuery
+                  ? `${t.searchResultsFor} "${searchQuery}" (${filteredMovies.length})`
+                  : `${selectedCategory} (${filteredMovies.length})`}
               </Text>
               <View style={styles.gridContainer}>
                 {filteredMovies.map((item) => (
