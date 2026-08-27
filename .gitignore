@@ -6,6 +6,9 @@ build/
 dist/
 .next/
 out/
+mobile/android/
+mobile/ios/
+mobile/.expo/
 
 # TypeScript cache
 tsconfig.tsbuildinfo
@@ -43,7 +46,9 @@ public/uploads/*
 
 # AI Studio / Metadata
 metadata.json
-assets/
+/assets/
+!mobile/assets/
+!mobile/assets/**
 
 # Test coverage
 coverage/
