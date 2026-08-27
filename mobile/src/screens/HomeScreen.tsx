@@ -1,4 +1,4 @@
-﻿import React, { useState, useCallback } from "react";
+import React, { useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -89,7 +89,7 @@ export default function HomeScreen({ navigation }: any) {
         )}
       </View>
       <Text style={styles.cardTitle} numberOfLines={2}>{item.title}</Text>
-      <Text style={styles.cardMeta}>{item.year || "2024"}</Text>
+      <Text style={styles.cardMeta}>{item.releaseYear || item.year || ""}</Text>
     </TouchableOpacity>
   );
 
@@ -163,9 +163,13 @@ export default function HomeScreen({ navigation }: any) {
                 <Text style={styles.heroTitle} numberOfLines={2}>{heroItem.title}</Text>
                 <View style={styles.heroMeta}>
                   <Star size={11} color="#FFD700" fill="#FFD700" />
-                  <Text style={styles.heroRating}>{(heroItem.rating || 8.5).toFixed(1)}</Text>
-                  <Text style={styles.heroDot}>{"\u2022"}</Text>
-                  <Text style={styles.heroYear}>{heroItem.year || "2024"}</Text>
+                  <Text style={styles.heroRating}>{(Number(heroItem.rating) || 8.5).toFixed(1)}</Text>
+                  {(heroItem.releaseYear || heroItem.year) && (
+                    <>
+                      <Text style={styles.heroDot}>{"\u2022"}</Text>
+                      <Text style={styles.heroYear}>{heroItem.releaseYear || heroItem.year}</Text>
+                    </>
+                  )}
                 </View>
                 <Text style={styles.heroDesc} numberOfLines={2}>{heroItem.description}</Text>
                 <TouchableOpacity style={styles.playBtn} onPress={() => navigateToPlayer(heroItem)}>

@@ -517,7 +517,7 @@ export default function AdminScreen({ navigation }: any) {
                         {item.title}
                       </Text>
                       <Text style={styles.itemMeta}>
-                        {item.year || "2024"} • {item.genres?.join(", ") || "Entertainment"}
+                        {(item.releaseYear || item.year || "") ? `${item.releaseYear || item.year} • ` : ""}{item.genres?.join(", ") || "Entertainment"}
                       </Text>
                     </View>
 

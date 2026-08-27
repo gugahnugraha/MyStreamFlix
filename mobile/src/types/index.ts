@@ -30,10 +30,11 @@ export interface Movie {
   videoUrl: string;
   posterUrl: string;
   backdropUrl: string;
-  year: number;
-  duration: number;
-  rating: string;
-  quality: string;
+  releaseYear?: number;
+  year?: number;
+  duration?: number;
+  rating?: string | number;
+  quality?: string;
   genres: string[];
   cast: string[];
   directors: string[];

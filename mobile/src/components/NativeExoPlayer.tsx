@@ -539,7 +539,7 @@ export default function NativeExoPlayer({
         {isBuffering && (
           <View style={styles.centerOverlay} pointerEvents="none">
             <ActivityIndicator size="large" color={brandColor} />
-            <Text style={styles.bufferingText}>Buffering ExoPlayer...</Text>
+            <Text style={styles.bufferingText}>{t.buffering || "Memuat video..."}</Text>
           </View>
         )}
 
@@ -726,7 +726,9 @@ export default function NativeExoPlayer({
           <View style={styles.detailHeader}>
             <Text style={styles.detailTitle}>{movie.title}</Text>
             <View style={styles.detailMetaRow}>
-              <Text style={styles.metaYear}>{movie.year || "2024"}</Text>
+              {(movie.releaseYear || movie.year) && (
+                <Text style={styles.metaYear}>{movie.releaseYear || movie.year}</Text>
+              )}
               <Text style={styles.metaBadge}>{movie.quality || "HD 1080p"}</Text>
               <Text style={styles.metaBadge}>{movie.ageRating || "13+"}</Text>
               {movie.duration ? (
@@ -740,7 +742,7 @@ export default function NativeExoPlayer({
 
           {/* Synopsis */}
           <Text style={styles.synopsisText}>
-            {movie.description || "Stream this amazing title directly on MyStreamFlix with seamless ExoPlayer acceleration."}
+            {movie.description || "Tonton tayangan berkualitas ini langsung di MyStreamFlix."}
           </Text>
 
           {/* Genres Pills */}

@@ -21,76 +21,56 @@ const Tab = createBottomTabNavigator();
 
 function MainTabs() {
   const { t } = useLanguage();
-  const { isLoggedIn } = useAuth();
-  const [showLiveTvGate, setShowLiveTvGate] = useState(false);
 
   return (
-    <>
-      <Tab.Navigator
-        screenOptions={{
-          headerShown: false,
-          tabBarStyle: {
-            backgroundColor: "#0F0F12",
-            borderTopColor: "#1A1A20",
-            height: 64,
-            paddingBottom: 8,
-            paddingTop: 6,
-          },
-          tabBarActiveTintColor: "#00ADB5",
-          tabBarInactiveTintColor: "#666",
-          tabBarLabelStyle: {
-            fontSize: 11,
-            fontWeight: "700",
-          },
+    <Tab.Navigator
+      screenOptions={{
+        headerShown: false,
+        tabBarStyle: {
+          backgroundColor: "#0F0F12",
+          borderTopColor: "#1A1A20",
+          height: 64,
+          paddingBottom: 8,
+          paddingTop: 6,
+        },
+        tabBarActiveTintColor: "#00ADB5",
+        tabBarInactiveTintColor: "#666",
+        tabBarLabelStyle: {
+          fontSize: 11,
+          fontWeight: "700",
+        },
+      }}
+    >
+      <Tab.Screen
+        name="Catalog"
+        component={HomeScreen}
+        options={{
+          tabBarLabel: t.moviesSeries,
+          tabBarIcon: ({ color, size }) => <Film color={color} size={size} />,
         }}
-      >
-        <Tab.Screen
-          name="Catalog"
-          component={HomeScreen}
-          options={{
-            tabBarLabel: t.moviesSeries,
-            tabBarIcon: ({ color, size }) => <Film color={color} size={size} />,
-          }}
-        />
-
-        {/* 📺 Live TV Tab — requires auth */}
-        <Tab.Screen
-          name="LiveTV"
-          component={LiveTvScreen}
-          listeners={{
-            tabPress: (e) => {
-              if (!isLoggedIn) {
-                e.preventDefault();
-                setShowLiveTvGate(true);
-              }
-            },
-          }}
-          options={{
-            tabBarLabel: t.liveTv,
-            tabBarIcon: ({ color }) => <Radio color={color} size={22} />,
-            tabBarActiveTintColor: "#00ADB5",
-          }}
-        />
-
-        {/* 👤 Profile Tab */}
-        <Tab.Screen
-          name="ProfileTab"
-          component={ProfileScreen}
-          options={{
-            tabBarLabel: t.profile,
-            tabBarIcon: ({ color, size }) => <UserIcon color={color} size={size} />,
-          }}
-        />
-      </Tab.Navigator>
-
-      {/* Auth gate for Live TV tab */}
-      <AuthGateModal
-        visible={showLiveTvGate}
-        onClose={() => setShowLiveTvGate(false)}
-        reason="Login diperlukan untuk menonton Live TV."
-        onAuthSuccess={() => setShowLiveTvGate(false)}
       />
-    </>
+
+      {/* 📺 Live TV Tab */}
+      <Tab.Screen
+        name="LiveTV"
+        component={LiveTvScreen}
+        options={{
+          tabBarLabel: t.liveTv,
+          tabBarIcon: ({ color }) => <Radio color={color} size={22} />,
+          tabBarActiveTintColor: "#00ADB5",
+        }}
+      />
+
+      {/* 👤 Profile Tab */}
+      <Tab.Screen
+        name="ProfileTab"
+        component={ProfileScreen}
+        options={{
+          tabBarLabel: t.profile,
+          tabBarIcon: ({ color, size }) => <UserIcon color={color} size={size} />,
+        }}
+      />
+    </Tab.Navigator>
   );
 }
 
