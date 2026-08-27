@@ -8,8 +8,9 @@
     "userInterfaceStyle": "dark",
     "newArchEnabled": false,
     "splash": {
-      "backgroundColor": "#0A0A0C",
-      "resizeMode": "contain"
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0A0A0C"
     },
     "ios": {
       "supportsTablet": true
@@ -17,6 +18,7 @@
     "android": {
       "package": "com.gugahnugraha.mystreamflix",
       "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#0A0A0C"
       }
     },
