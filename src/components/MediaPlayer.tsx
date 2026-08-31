@@ -537,6 +537,21 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
         dashPlayer.on(dashjs.MediaPlayer.events.STREAM_INITIALIZED, () => {
           setIsBuffering(false);
           clearStreamTimers();
+          try {
+            const playerAny = dashPlayer as any;
+            const bitrates = (typeof playerAny.getBitrateInfoListFor === "function" ? playerAny.getBitrateInfoListFor("video") : playerAny.getBitratesForWithInfo?.("video")) || [];
+            if (bitrates.length > 0) {
+              const lvls = bitrates.map((b: any, idx: number) => {
+                const height = b.height || 0;
+                const bitrate = b.bitrate || 0;
+                const label = describeQualityLabel(height, bitrate) || (height ? `${height}p` : `Level ${idx + 1}`);
+                return { index: idx, height, bitrate, label };
+              });
+              setQualityLevels(lvls);
+            }
+          } catch (err) {
+            console.warn("Could not extract DASH bitrate list:", err);
+          }
           video.volume = volume;
           video.muted = false;
           video.play().then(() => {
@@ -1146,8 +1161,10 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
     }
   };
 
-  const handleQualitySelect = (mode: "auto" | number) => {
+  const handleQualitySelect = (mode: "auto" | number | string) => {
     const hls = hlsRef.current;
+    const dash = dashRef.current;
+
     if (mode === "auto") {
       if (hls) {
         hls.currentLevel = -1;
@@ -1158,10 +1175,15 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
         } else {
           setSelectedQuality("Auto");
         }
+      } else if (dash) {
+        try {
+          dash.updateSettings({ streaming: { abr: { autoSwitchBitrate: { video: true } } } });
+        } catch {}
+        setSelectedQuality("Auto");
       } else {
         setSelectedQuality("Auto");
       }
-    } else {
+    } else if (typeof mode === "number") {
       if (hls) {
         hls.currentLevel = mode;
         const lv = hls.levels[mode];
@@ -1169,10 +1191,24 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
           const label = describeQualityLabel(lv.height || 0, lv.bitrate || 0) || `Level ${mode + 1}`;
           setSelectedQuality(label);
         }
+      } else if (dash) {
+        try {
+          dash.updateSettings({ streaming: { abr: { autoSwitchBitrate: { video: false } } } });
+          dash.setQualityFor("video", mode);
+          const dashAny = dash as any;
+          const bitrates = (typeof dashAny.getBitrateInfoListFor === "function" ? dashAny.getBitrateInfoListFor("video") : dashAny.getBitratesForWithInfo?.("video")) || [];
+          const b = bitrates[mode];
+          if (b) {
+            const label = describeQualityLabel(b.height || 0, b.bitrate || 0) || (b.height ? `${b.height}p` : `Level ${mode + 1}`);
+            setSelectedQuality(label);
+          }
+        } catch {}
       } else {
         const lv = qualityLevels.find((l) => l.index === mode);
         setSelectedQuality(lv?.label || "Auto");
       }
+    } else if (typeof mode === "string") {
+      setSelectedQuality(mode);
     }
     setShowQualityMenu(false);
   };
@@ -1291,6 +1327,14 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
 
     return `${sizeClass} ${bgStyle}`;
   };
+
+  const defaultQualityPresets = [
+    { index: 0, height: 1080, bitrate: 5000000, label: "1080p FHD" },
+    { index: 1, height: 720, bitrate: 2500000, label: "720p HD" },
+    { index: 2, height: 480, bitrate: 1200000, label: "480p SD" },
+    { index: 3, height: 360, bitrate: 700000, label: "360p Hemat Data" },
+  ];
+  const displayQualityLevels = qualityLevels.length > 0 ? qualityLevels : defaultQualityPresets;
 
   // HUD padding to keep controls clear of system UI on all platforms:
   //
@@ -1963,64 +2007,80 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
               {/* Right Section: Video Quality, Speed, Subtitles & Customizer */}
               <div className="flex items-center gap-1.5 sm:gap-2.5 relative">
                 {/* Video Quality Selector */}
-                {qualityLevels.length > 0 && (
-                  <div className="relative">
-                    <button
-                      onClick={() => {
-                        if (typeof window !== "undefined" && window.innerWidth < 768) {
-                          setActiveMobileSheet("quality");
-                        } else {
-                          setShowQualityMenu(!showQualityMenu);
-                          setShowSpeedMenu(false);
-                          setShowSubtitleMenu(false);
-                          setShowSubtitleCustomizer(false);
-                        }
-                      }}
-                      className="player-menu-btn px-3 py-2 sm:py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs font-semibold backdrop-blur-md flex items-center gap-1.5 transition-all cursor-pointer min-h-11"
-                      title="Video Quality"
-                    >
-                      <SlidersHorizontal className="w-3.5 h-3.5" style={{ color: brandColor }} />
-                      <span className="hidden sm:inline whitespace-nowrap">{selectedQuality}</span>
-                    </button>
+                <div className="relative">
+                  <button
+                    onClick={() => {
+                      if (typeof window !== "undefined" && window.innerWidth < 768) {
+                        setActiveMobileSheet("quality");
+                      } else {
+                        setShowQualityMenu(!showQualityMenu);
+                        setShowSpeedMenu(false);
+                        setShowSubtitleMenu(false);
+                        setShowSubtitleCustomizer(false);
+                      }
+                    }}
+                    className="player-menu-btn flex items-center gap-1.5 text-zinc-300 hover:text-white text-xs font-semibold px-2.5 py-2 sm:py-1 bg-zinc-900/80 hover:bg-zinc-800 border border-zinc-800 rounded-lg transition-colors cursor-pointer min-h-11 shadow-sm"
+                    title={t.videoQuality || "Video Quality"}
+                  >
+                    <SlidersHorizontal className="w-3.5 h-3.5" style={{ color: brandColor }} />
+                    <span className="hidden sm:inline whitespace-nowrap font-mono text-[11px] sm:text-xs">
+                      {selectedQuality}
+                    </span>
+                  </button>
 
-                    {showQualityMenu && (
-                      <div className="player-menu-popover absolute bottom-12 right-0 z-50 w-56 rounded-xl bg-zinc-900/95 border border-white/10 backdrop-blur-xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-2">
-                        <div className="px-3 py-2 border-b border-white/10">
-                          <p className="text-[10px] font-black uppercase tracking-widest font-mono" style={{ color: brandColor }}>
-                            {t.videoQuality || "Video Quality"}
-                          </p>
-                        </div>
-                        <div className="max-h-64 overflow-y-auto py-1">
-                          <button
-                            onClick={() => handleQualitySelect("auto")}
-                            className={`w-full flex items-center justify-between gap-2 px-3 py-2 text-xs font-semibold transition-all hover:bg-white/10 cursor-pointer text-white`}
-                            style={selectedQuality.startsWith("Auto") ? { backgroundColor: `${brandColor}25`, color: brandColor } : undefined}
-                          >
-                            <span>Auto</span>
-                            {selectedQuality.startsWith("Auto") && <Check className="w-3.5 h-3.5" style={{ color: brandColor }} />}
-                          </button>
-                          {qualityLevels
-                            .slice()
-                            .sort((a, b) => b.height - a.height || b.bitrate - a.bitrate)
-                            .map((lv) => {
-                              const active = !selectedQuality.startsWith("Auto") && selectedQuality === lv.label;
-                              return (
-                                <button
-                                  key={lv.index}
-                                  onClick={() => handleQualitySelect(lv.index)}
-                                  className={`w-full flex items-center justify-between gap-2 px-3 py-2 text-xs font-medium transition-all hover:bg-white/10 cursor-pointer ${active ? "text-white" : "text-zinc-200"}`}
-                                  style={active ? { backgroundColor: `${brandColor}25`, color: brandColor } : undefined}
-                                >
-                                  <span>{lv.label}</span>
-                                  {active && <Check className="w-3.5 h-3.5 shrink-0" style={{ color: brandColor }} />}
-                                </button>
-                              );
-                            })}
-                        </div>
+                  {showQualityMenu && (
+                    <div className="player-menu-popover absolute bottom-12 right-0 z-50 w-56 rounded-xl bg-zinc-900/95 border border-white/10 backdrop-blur-xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-2">
+                      <div className="px-3 py-2 border-b border-white/10 flex items-center justify-between">
+                        <p className="text-[10px] font-black uppercase tracking-widest font-mono flex items-center gap-1.5" style={{ color: brandColor }}>
+                          <SlidersHorizontal className="w-3 h-3" />
+                          {t.videoQuality || "Video Quality"}
+                        </p>
+                        <span className="text-[9px] text-zinc-400 uppercase font-mono bg-white/5 px-1.5 py-0.5 rounded">
+                          {movie.quality || "HD"}
+                        </span>
                       </div>
-                    )}
-                  </div>
-                )}
+                      <div className="max-h-64 overflow-y-auto py-1">
+                        <button
+                          onClick={() => handleQualitySelect("auto")}
+                          className={`w-full flex items-center justify-between gap-2 px-3 py-2 text-xs font-semibold transition-all hover:bg-white/10 cursor-pointer text-white`}
+                          style={selectedQuality.startsWith("Auto") ? { backgroundColor: `${brandColor}25`, color: brandColor } : undefined}
+                        >
+                          <div className="flex flex-col text-left">
+                            <span>Auto</span>
+                            <span className="text-[10px] text-zinc-400 font-normal">
+                              Otomatis menyesuaikan koneksi
+                            </span>
+                          </div>
+                          {selectedQuality.startsWith("Auto") && <Check className="w-3.5 h-3.5 shrink-0" style={{ color: brandColor }} />}
+                        </button>
+                        {displayQualityLevels
+                          .slice()
+                          .sort((a, b) => b.height - a.height || b.bitrate - a.bitrate)
+                          .map((lv) => {
+                            const active = !selectedQuality.startsWith("Auto") && selectedQuality === lv.label;
+                            return (
+                              <button
+                                key={lv.index}
+                                onClick={() => handleQualitySelect(qualityLevels.length > 0 ? lv.index : lv.label)}
+                                className={`w-full flex items-center justify-between gap-2 px-3 py-2 text-xs font-medium transition-all hover:bg-white/10 cursor-pointer ${active ? "text-white" : "text-zinc-200"}`}
+                                style={active ? { backgroundColor: `${brandColor}25`, color: brandColor } : undefined}
+                              >
+                                <div className="flex items-center gap-1.5">
+                                  <span>{lv.label}</span>
+                                  {lv.height >= 1080 && (
+                                    <span className="text-[9px] bg-red-600/30 text-red-400 border border-red-500/30 px-1 py-0.2 rounded font-mono font-bold">
+                                      HD
+                                    </span>
+                                  )}
+                                </div>
+                                {active && <Check className="w-3.5 h-3.5 shrink-0" style={{ color: brandColor }} />}
+                              </button>
+                            );
+                          })}
+                      </div>
+                    </div>
+                  )}
+                </div>
 
                 {/* Playback speed selector */}
                 <div className="relative">
@@ -2298,16 +2358,21 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
                       : "bg-zinc-900/60 text-zinc-300"
                   }`}
                 >
-                  <span>Auto (Recommended)</span>
+                  <div className="flex flex-col text-left">
+                    <span>Auto (Rekomendasi)</span>
+                    <span className="text-[10px] text-zinc-400 font-normal">
+                      Menyesuaikan kecepatan koneksi otomatis
+                    </span>
+                  </div>
                   {selectedQuality.startsWith("Auto") && <Check className="w-4 h-4 text-cyan-400" />}
                 </button>
-                {qualityLevels.map((lv) => {
+                {displayQualityLevels.map((lv) => {
                   const active = !selectedQuality.startsWith("Auto") && selectedQuality === lv.label;
                   return (
                     <button
                       key={lv.index}
                       onClick={() => {
-                        handleQualitySelect(lv.index);
+                        handleQualitySelect(qualityLevels.length > 0 ? lv.index : lv.label);
                         setActiveMobileSheet("none");
                       }}
                       className={`w-full flex items-center justify-between p-3.5 rounded-xl text-xs font-bold ${
@@ -2316,7 +2381,14 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
                           : "bg-zinc-900/60 text-zinc-300"
                       }`}
                     >
-                      <span>{lv.label}</span>
+                      <div className="flex items-center gap-2">
+                        <span>{lv.label}</span>
+                        {lv.height >= 1080 && (
+                          <span className="text-[9px] bg-red-600/30 text-red-400 border border-red-500/30 px-1.5 py-0.5 rounded font-mono font-bold">
+                            HD
+                          </span>
+                        )}
+                      </div>
                       {active && <Check className="w-4 h-4 text-cyan-400" />}
                     </button>
                   );
