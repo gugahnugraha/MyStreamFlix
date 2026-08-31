@@ -154,7 +154,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
   const [aspectRatio, setAspectRatio] = useState<"contain" | "cover" | "fill">("contain");
   const [brightness, setBrightness] = useState<number>(1.0);
   const [gestureFeedback, setGestureFeedback] = useState<{
-    type: "seek-forward" | "seek-backward" | "volume" | "brightness" | "quality";
+    type: "seek-forward" | "seek-backward" | "volume" | "brightness";
     value: string | number;
     percent?: number;
   } | null>(null);
@@ -257,12 +257,12 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
   };
 
   // Gesture Toast Helper
-  const showGestureToast = (feedback: { type: "seek-forward" | "seek-backward" | "volume" | "brightness" | "quality"; value: string | number; percent?: number }) => {
+  const showGestureToast = (feedback: { type: "seek-forward" | "seek-backward" | "volume" | "brightness"; value: string | number; percent?: number }) => {
     setGestureFeedback(feedback);
     if (gestureFeedbackTimerRef.current) clearTimeout(gestureFeedbackTimerRef.current);
     gestureFeedbackTimerRef.current = window.setTimeout(() => {
       setGestureFeedback(null);
-    }, 1100);
+    }, 900);
   };
 
   const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
@@ -1174,16 +1174,13 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
         const hint = lv ? shortQualityHint(lv.height || 0, lv.bitrate || 0) : "";
         const label = `Auto${hint ? ` • ${hint}` : ""}`;
         setSelectedQuality(label);
-        showGestureToast({ type: "quality", value: label });
       } else if (dash) {
         try {
           dash.updateSettings({ streaming: { abr: { autoSwitchBitrate: { video: true } } } });
         } catch {}
         setSelectedQuality("Auto");
-        showGestureToast({ type: "quality", value: "Auto" });
       } else {
         setSelectedQuality("Auto");
-        showGestureToast({ type: "quality", value: "Auto (Rekomendasi)" });
       }
     } else if (typeof mode === "number") {
       if (hls) {
@@ -1193,7 +1190,6 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
         const lv = hls.levels[mode];
         const label = lv ? (describeQualityLabel(lv.height || 0, lv.bitrate || 0) || `Level ${mode + 1}`) : `Level ${mode + 1}`;
         setSelectedQuality(label);
-        showGestureToast({ type: "quality", value: label });
       } else if (dash) {
         try {
           dash.updateSettings({ streaming: { abr: { autoSwitchBitrate: { video: false } } } });
@@ -1203,17 +1199,14 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
           const b = bitrates[mode];
           const label = b ? (describeQualityLabel(b.height || 0, b.bitrate || 0) || (b.height ? `${b.height}p` : `Level ${mode + 1}`)) : `Level ${mode + 1}`;
           setSelectedQuality(label);
-          showGestureToast({ type: "quality", value: label });
         } catch {}
       } else {
         const lv = qualityLevels.find((l) => l.index === mode);
         const label = lv?.label || "Auto";
         setSelectedQuality(label);
-        showGestureToast({ type: "quality", value: label });
       }
     } else if (typeof mode === "string") {
       setSelectedQuality(mode);
-      showGestureToast({ type: "quality", value: mode });
     }
     setShowQualityMenu(false);
   };
@@ -1794,13 +1787,6 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
                 <>
                   <RotateCcw className="w-9 h-9 text-emerald-400 animate-spin" />
                   <span className="text-base font-black text-white tracking-widest font-mono">{gestureFeedback.value}</span>
-                </>
-              )}
-              {gestureFeedback.type === "quality" && (
-                <>
-                  <SlidersHorizontal className="w-8 h-8 text-cyan-400 animate-pulse" />
-                  <span className="text-[10px] font-bold text-white uppercase tracking-wider font-mono">Video Quality</span>
-                  <span className="text-sm font-black text-cyan-300 tracking-wider font-mono">{gestureFeedback.value}</span>
                 </>
               )}
             </div>
