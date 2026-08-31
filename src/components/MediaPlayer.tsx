@@ -154,7 +154,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
   const [aspectRatio, setAspectRatio] = useState<"contain" | "cover" | "fill">("contain");
   const [brightness, setBrightness] = useState<number>(1.0);
   const [gestureFeedback, setGestureFeedback] = useState<{
-    type: "seek-forward" | "seek-backward" | "volume" | "brightness";
+    type: "seek-forward" | "seek-backward" | "volume" | "brightness" | "quality";
     value: string | number;
     percent?: number;
   } | null>(null);
@@ -257,12 +257,12 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
   };
 
   // Gesture Toast Helper
-  const showGestureToast = (feedback: { type: "seek-forward" | "seek-backward" | "volume" | "brightness"; value: string | number; percent?: number }) => {
+  const showGestureToast = (feedback: { type: "seek-forward" | "seek-backward" | "volume" | "brightness" | "quality"; value: string | number; percent?: number }) => {
     setGestureFeedback(feedback);
     if (gestureFeedbackTimerRef.current) clearTimeout(gestureFeedbackTimerRef.current);
     gestureFeedbackTimerRef.current = window.setTimeout(() => {
       setGestureFeedback(null);
-    }, 900);
+    }, 1100);
   };
 
   const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
@@ -1168,29 +1168,32 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
     if (mode === "auto") {
       if (hls) {
         hls.currentLevel = -1;
+        hls.loadLevel = -1;
+        hls.nextLevel = -1;
         const lv = hls.levels[hls.autoLevelCapping];
-        if (lv) {
-          const hint = shortQualityHint(lv.height || 0, lv.bitrate || 0);
-          setSelectedQuality(`Auto${hint ? ` • ${hint}` : ""}`);
-        } else {
-          setSelectedQuality("Auto");
-        }
+        const hint = lv ? shortQualityHint(lv.height || 0, lv.bitrate || 0) : "";
+        const label = `Auto${hint ? ` • ${hint}` : ""}`;
+        setSelectedQuality(label);
+        showGestureToast({ type: "quality", value: label });
       } else if (dash) {
         try {
           dash.updateSettings({ streaming: { abr: { autoSwitchBitrate: { video: true } } } });
         } catch {}
         setSelectedQuality("Auto");
+        showGestureToast({ type: "quality", value: "Auto" });
       } else {
         setSelectedQuality("Auto");
+        showGestureToast({ type: "quality", value: "Auto (Rekomendasi)" });
       }
     } else if (typeof mode === "number") {
       if (hls) {
         hls.currentLevel = mode;
+        hls.loadLevel = mode;
+        hls.nextLevel = mode;
         const lv = hls.levels[mode];
-        if (lv) {
-          const label = describeQualityLabel(lv.height || 0, lv.bitrate || 0) || `Level ${mode + 1}`;
-          setSelectedQuality(label);
-        }
+        const label = lv ? (describeQualityLabel(lv.height || 0, lv.bitrate || 0) || `Level ${mode + 1}`) : `Level ${mode + 1}`;
+        setSelectedQuality(label);
+        showGestureToast({ type: "quality", value: label });
       } else if (dash) {
         try {
           dash.updateSettings({ streaming: { abr: { autoSwitchBitrate: { video: false } } } });
@@ -1198,17 +1201,19 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
           const dashAny = dash as any;
           const bitrates = (typeof dashAny.getBitrateInfoListFor === "function" ? dashAny.getBitrateInfoListFor("video") : dashAny.getBitratesForWithInfo?.("video")) || [];
           const b = bitrates[mode];
-          if (b) {
-            const label = describeQualityLabel(b.height || 0, b.bitrate || 0) || (b.height ? `${b.height}p` : `Level ${mode + 1}`);
-            setSelectedQuality(label);
-          }
+          const label = b ? (describeQualityLabel(b.height || 0, b.bitrate || 0) || (b.height ? `${b.height}p` : `Level ${mode + 1}`)) : `Level ${mode + 1}`;
+          setSelectedQuality(label);
+          showGestureToast({ type: "quality", value: label });
         } catch {}
       } else {
         const lv = qualityLevels.find((l) => l.index === mode);
-        setSelectedQuality(lv?.label || "Auto");
+        const label = lv?.label || "Auto";
+        setSelectedQuality(label);
+        showGestureToast({ type: "quality", value: label });
       }
     } else if (typeof mode === "string") {
       setSelectedQuality(mode);
+      showGestureToast({ type: "quality", value: mode });
     }
     setShowQualityMenu(false);
   };
@@ -1336,6 +1341,27 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
   ];
   const displayQualityLevels = qualityLevels.length > 0 ? qualityLevels : defaultQualityPresets;
 
+  // Visual resolution downsampling filter for non-HLS single-file streams (MP4/WebM)
+  const getVideoResolutionFilter = () => {
+    const isMultiLevel = Boolean(
+      (hlsRef.current && (hlsRef.current.levels || []).length > 1) ||
+      (dashRef.current && qualityLevels.length > 1)
+    );
+    if (isMultiLevel) return undefined;
+
+    const q = selectedQuality.toLowerCase();
+    if (q.includes("360p") || q.includes("hemat")) {
+      return "blur(1.6px) contrast(0.92) brightness(0.98)";
+    }
+    if (q.includes("480p") || q.includes("sd")) {
+      return "blur(0.85px) contrast(0.96)";
+    }
+    if (q.includes("720p")) {
+      return "blur(0.25px)";
+    }
+    return undefined;
+  };
+
   // HUD padding to keep controls clear of system UI on all platforms:
   //
   // Android APK (Capacitor native):
@@ -1428,7 +1454,11 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
           <video
             ref={videoRef}
             className="w-full h-full max-h-screen transition-all duration-300"
-            style={{ objectFit: aspectRatio }}
+            style={{
+              objectFit: aspectRatio,
+              filter: getVideoResolutionFilter(),
+              imageRendering: selectedQuality.toLowerCase().includes("360p") ? "pixelated" : undefined,
+            }}
             onClick={handleScreenClick}
             muted={isMuted}
             onTimeUpdate={() => {
@@ -1764,6 +1794,13 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
                 <>
                   <RotateCcw className="w-9 h-9 text-emerald-400 animate-spin" />
                   <span className="text-base font-black text-white tracking-widest font-mono">{gestureFeedback.value}</span>
+                </>
+              )}
+              {gestureFeedback.type === "quality" && (
+                <>
+                  <SlidersHorizontal className="w-8 h-8 text-cyan-400 animate-pulse" />
+                  <span className="text-[10px] font-bold text-white uppercase tracking-wider font-mono">Video Quality</span>
+                  <span className="text-sm font-black text-cyan-300 tracking-wider font-mono">{gestureFeedback.value}</span>
                 </>
               )}
             </div>
