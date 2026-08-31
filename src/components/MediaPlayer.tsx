@@ -1279,13 +1279,14 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
     return `${m < 10 ? "0" : ""}${m}:${s < 10 ? "0" : ""}${s}`;
   };
 
-  const getSubtitleStyleClasses = () => {    let sizeClass = "text-base md:text-xl";
-    if (subtitleSize === "small") sizeClass = "text-xs md:text-sm";
-    if (subtitleSize === "large") sizeClass = "text-lg md:text-2xl";
-    if (subtitleSize === "xlarge") sizeClass = "text-xl md:text-3xl";
+  const getSubtitleStyleClasses = () => {
+    let sizeClass = "text-sm sm:text-base md:text-xl";
+    if (subtitleSize === "small") sizeClass = "text-xs sm:text-sm md:text-base";
+    if (subtitleSize === "large") sizeClass = "text-base sm:text-lg md:text-2xl";
+    if (subtitleSize === "xlarge") sizeClass = "text-lg sm:text-xl md:text-3xl";
 
     let bgStyle = "drop-shadow-[0_2px_4px_rgba(0,0,0,1)] text-white";
-    if (subtitleStyle === "box") bgStyle = "bg-black/85 px-3 py-1.5 rounded-md text-white border border-white/10";
+    if (subtitleStyle === "box") bgStyle = "bg-black/85 px-3 py-1 rounded-md text-white border border-white/10 backdrop-blur-sm";
     if (subtitleStyle === "yellow") bgStyle = "drop-shadow-[0_2px_4px_rgba(0,0,0,1)] text-yellow-300 font-extrabold";
 
     return `${sizeClass} ${bgStyle}`;
@@ -1616,9 +1617,18 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
         {/* Styled Caption Subtitle Overlay */}
         {currentCaption && (
           <div
-            className={`absolute left-1/2 -translate-x-1/2 text-center max-w-3xl font-bold select-none pointer-events-none transition-all duration-300 bottom-[30%] ${getSubtitleStyleClasses()}`}
+            className={`absolute left-1/2 -translate-x-1/2 text-center max-w-[90%] md:max-w-4xl font-bold select-none pointer-events-none transition-all duration-300 z-20 ${
+              showControls && !isScreenLocked
+                ? "bottom-24 sm:bottom-28 md:bottom-32"
+                : "bottom-5 sm:bottom-7 md:bottom-8"
+            } ${getSubtitleStyleClasses()}`}
+            style={{
+              paddingBottom: "env(safe-area-inset-bottom, 0px)",
+            }}
           >
-            {currentCaption}
+            <span className="inline-block px-2 py-0.5 leading-snug tracking-wide">
+              {currentCaption}
+            </span>
           </div>
         )}
 
