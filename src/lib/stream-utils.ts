@@ -33,6 +33,7 @@ export const DEFAULT_PROXY_DOMAINS = [
   "beetv.my.id",
   "workers.dev",
   "rctiplus.id",
+  "rctiplus.com",
   "dens.tv",
   "cloudfront.net",
   "visionplus.id",
@@ -45,8 +46,17 @@ export const DEFAULT_PROXY_DOMAINS = [
   "tvstreamcast.com",
   "hgmtv.com",
   "akamaihd.net",
+  "akamaized.net",
   "aiv-cdn.net",
-  "bintangstreaming.my.id"
+  "bintangstreaming.my.id",
+  "202.150.172.59",
+  "antik.sk",
+  "getaj.net",
+  "france24.com",
+  "wurl.com",
+  "wurl.tv",
+  "amagi.tv",
+  "beritasatumedia.com"
 ];
 
 const STORAGE_KEY = "mystreamflix_cors_proxy_domains";
@@ -127,6 +137,13 @@ export function getProxiedStreamUrl(url: string): string {
   const gdriveId = extractGoogleDriveFileId(url);
   if (gdriveId) {
     const proxyPath = `/api/gdrive/stream?id=${gdriveId}`;
+    return origin ? `${origin}${proxyPath}` : proxyPath;
+  }
+
+  // Plain http:// streams (e.g. IP broadcast relays) must be proxied over HTTPS
+  // on web deployments to avoid browser Mixed Content blocking.
+  if (url.startsWith("http://")) {
+    const proxyPath = `/api/livetv/proxy?url=${encodeURIComponent(url)}`;
     return origin ? `${origin}${proxyPath}` : proxyPath;
   }
 

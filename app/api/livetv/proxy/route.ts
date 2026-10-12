@@ -68,6 +68,10 @@ export async function GET(request: NextRequest) {
       headers["Referer"] = "https://www.detik.com/";
     } else if (parsedUrl.hostname.includes("indihometv.com")) {
       headers["Referer"] = "https://www.indihometv.com/";
+    } else if (parsedUrl.hostname.includes("france24.com")) {
+      headers["Referer"] = "https://www.france24.com/";
+    } else if (parsedUrl.hostname.includes("getaj.net") || parsedUrl.hostname.includes("aljazeera")) {
+      headers["Referer"] = "https://www.aljazeera.com/";
     } else {
       headers["Referer"] = `${parsedUrl.protocol}//${parsedUrl.hostname}/`;
     }

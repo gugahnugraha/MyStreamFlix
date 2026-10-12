@@ -621,6 +621,20 @@ export function sanitizeStreamUrl(url?: string): string {
     cleanUrl = cleanUrl.replace(/live\.cnbcindonesia\.com\/livecnbc\/smil:cnbctv(\.smil)?/gi, "video.detik.com/livecnbc/smil:cnbctv");
   }
 
+  // Auto-migrate dead legacy stream endpoints
+  if (cleanUrl.includes("indihometv.com") && cleanUrl.toLowerCase().includes("sctv")) {
+    return "http://202.150.172.59/SCTV/tracks-v1a1/mono.m3u8";
+  }
+  if (cleanUrl.includes("indihometv.com") && cleanUrl.toLowerCase().includes("inews")) {
+    return "http://202.150.172.59/iNews/index.m3u8";
+  }
+  if (cleanUrl.includes("static.france24.com")) {
+    return "https://live.france24.com/hls/live/2037218-b/F24_EN_HI_HLS/master_5000.m3u8";
+  }
+  if (cleanUrl.includes("ntv1.akamaized.net")) {
+    return "https://live-hls-apps-aje-fa.getaj.net/AJE/index.m3u8";
+  }
+
   return cleanUrl;
 }
 
