@@ -187,16 +187,39 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
     if (video && video.buffered && video.buffered.length > 0) {
       try {
         const ct = video.currentTime;
+        let maxBuffered = ct;
         for (let i = 0; i < video.buffered.length; i++) {
-          if (video.buffered.start(i) <= ct && ct <= video.buffered.end(i)) {
-            setBufferedEnd(video.buffered.end(i));
-            return;
+          const start = video.buffered.start(i);
+          const end = video.buffered.end(i);
+          // Cari buffer yang mencakup posisi saat ini atau sedikit di depan
+          if (start <= ct + 1.5 && end >= ct) {
+            maxBuffered = Math.max(maxBuffered, end);
           }
         }
-        setBufferedEnd(video.buffered.end(video.buffered.length - 1));
+        // Jika tidak ada range yang match ct, ambil range terakhir yang melampaui ct
+        if (maxBuffered === ct) {
+          for (let i = 0; i < video.buffered.length; i++) {
+            const end = video.buffered.end(i);
+            if (end > maxBuffered) {
+              maxBuffered = end;
+            }
+          }
+        }
+        setBufferedEnd(maxBuffered);
       } catch {}
+    } else if (isSimulating && duration > 0) {
+      // Saat simulasi, berikan buffer putih yang mendahului titik menit berjalan sekitar 15-20%
+      setBufferedEnd(Math.min(duration, currentTime + Math.max(20, duration * 0.15)));
     }
   };
+
+  // Monitor dan refresh buffer secara berkala agar garis putih yang mendahului point dot selalu update real-time
+  useEffect(() => {
+    const bufferInterval = setInterval(() => {
+      updateBufferProgress();
+    }, 400);
+    return () => clearInterval(bufferInterval);
+  }, [duration, currentTime, isSimulating]);
 
   const handleSeekbarMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -714,6 +737,12 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
           const hint = shortQualityHint(lv.height || 0, lv.bitrate || 0);
           setSelectedQuality(`Auto${hint ? ` • ${hint}` : ""}`);
         }
+      });
+      hls.on(Hls.Events.FRAG_BUFFERED, () => {
+        updateBufferProgress();
+      });
+      hls.on(Hls.Events.BUFFER_APPENDED, () => {
+        updateBufferProgress();
       });
       hls.on(Hls.Events.ERROR, (_event, data) => {
         if (!data.fatal) return;
@@ -2119,11 +2148,11 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
                     </div>
                   )}
 
-                  {/* Track Bar (Total Video Duration - Abu-abu transparan untuk progress di depannya) */}
-                  <div className="w-full h-1.5 group-hover:h-2.5 bg-white/20 group-hover:bg-white/25 rounded-full overflow-hidden relative transition-all duration-150">
-                    {/* Buffered Preload Bar (Putih semi-transparan untuk progress di depannya) */}
+                  {/* Track Bar (Total Video Duration - Abu-abu untuk progress di depannya) */}
+                  <div className="w-full h-1.5 group-hover:h-2.5 bg-zinc-700/60 group-hover:bg-zinc-700/80 rounded-full overflow-hidden relative transition-all duration-150">
+                    {/* Buffered Preload Bar (PUTIH TERANG NYATA - Menit yang sudah didownload namun belum dicapai oleh point dot) */}
                     <div
-                      className="absolute top-0 bottom-0 left-0 bg-white/40 rounded-full transition-all duration-200 pointer-events-none"
+                      className="absolute top-0 bottom-0 left-0 bg-white/85 group-hover:bg-white/95 rounded-full transition-all duration-150 pointer-events-none shadow-[0_0_8px_rgba(255,255,255,0.7)]"
                       style={{ width: `${duration > 0 ? Math.min(100, Math.max(0, (bufferedEnd / duration) * 100)) : 0}%` }}
                     />
 

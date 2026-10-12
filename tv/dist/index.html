@@ -410,9 +410,9 @@
       <!-- TV Player Timeline Seekbar (Progress Biru Tema & Ahead Abu-abu/Putih) -->
       <div id="tv-player-seekbar-wrap" style="display: flex; align-items: center; gap: 1.2vw; margin-bottom: 2vh; width: 100%;">
         <span id="tv-time-current" style="font-family: monospace; font-size: 0.95rem; font-weight: 700; color: #E5E7EB; min-width: 50px;">00:00</span>
-        <div id="tv-seekbar-track" style="flex: 1; height: 8px; background: rgba(255,255,255,0.2); border-radius: 9999px; position: relative; overflow: visible;">
-          <!-- Buffered Preload Bar (Putih Semi-Transparan untuk progress di depannya) -->
-          <div id="tv-seekbar-buffered" style="position: absolute; left: 0; top: 0; bottom: 0; width: 0%; background: rgba(255,255,255,0.4); border-radius: 9999px; transition: width 0.2s;"></div>
+        <div id="tv-seekbar-track" style="flex: 1; height: 8px; background: rgba(75,85,99,0.7); border-radius: 9999px; position: relative; overflow: visible;">
+          <!-- Buffered Preload Bar (PUTIH TERANG NYATA - Menit yang sudah didownload mendahului point dot) -->
+          <div id="tv-seekbar-buffered" style="position: absolute; left: 0; top: 0; bottom: 0; width: 0%; background: rgba(255,255,255,0.9); border-radius: 9999px; box-shadow: 0 0 6px rgba(255,255,255,0.8); transition: width 0.2s;"></div>
           <!-- Played Track Bar (Progress yang sudah dilewati - Biru Tema) -->
           <div id="tv-seekbar-played" style="position: absolute; left: 0; top: 0; bottom: 0; width: 0%; background: linear-gradient(90deg, #0284C7, #38BDF8); border-radius: 9999px; box-shadow: 0 0 10px rgba(56,189,248,0.8);"></div>
           <!-- Scrubber Pin / Poin (Thumb) Bulat Putih dengan Bingkai Biru Tema -->
@@ -926,8 +926,22 @@
 
       if (tvVideo.buffered && tvVideo.buffered.length > 0 && bufEl) {
         try {
-          const bufEnd = tvVideo.buffered.end(tvVideo.buffered.length - 1);
-          const bufPct = Math.min(100, Math.max(0, (bufEnd / dur) * 100));
+          const ct = cur;
+          let maxBuf = ct;
+          for (let i = 0; i < tvVideo.buffered.length; i++) {
+            const start = tvVideo.buffered.start(i);
+            const end = tvVideo.buffered.end(i);
+            if (start <= ct + 1.5 && end >= ct) {
+              maxBuf = Math.max(maxBuf, end);
+            }
+          }
+          if (maxBuf === ct) {
+            for (let i = 0; i < tvVideo.buffered.length; i++) {
+              const end = tvVideo.buffered.end(i);
+              if (end > maxBuf) maxBuf = end;
+            }
+          }
+          const bufPct = Math.min(100, Math.max(0, (maxBuf / dur) * 100));
           bufEl.style.width = bufPct + "%";
         } catch {}
       }
