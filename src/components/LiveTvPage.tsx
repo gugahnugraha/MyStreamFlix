@@ -7,7 +7,7 @@ import React, { useState, useEffect, useRef, useMemo } from "react";
 import {
   Tv, Play, Pause, Volume2, VolumeX, Maximize, Minimize,
   Search, Globe, Check, RefreshCw, AlertCircle,
-  SlidersHorizontal
+  SlidersHorizontal, X
 } from "lucide-react";
 import Hls from "hls.js";
 import * as dashjs from "dashjs";
@@ -65,6 +65,10 @@ export default function LiveTvPage({
   const [reloadSeq, setReloadSeq] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showControls, setShowControls] = useState(true);
+  const [showFullscreenPlaylist, setShowFullscreenPlaylist] = useState<boolean>(true);
+  const [fullscreenCategory, setFullscreenCategory] = useState<string>("All");
+  const fullscreenScrollRef = useRef<HTMLDivElement>(null);
+  const lastTouchTimeRef = useRef<number>(0);
 
   // Landscape detection (for safe-area insets)
   const [isLandscape, setIsLandscape] = useState(
@@ -94,7 +98,7 @@ export default function LiveTvPage({
     };
   }, []);
 
-  // Auto-hide HUD — 4.5s, mirrors MediaPlayer behaviour
+  // Auto-hide HUD & Playlist — 4.5s timer
   const scheduleControlsHide = () => {
     if (controlsTimerRef.current) clearTimeout(controlsTimerRef.current);
     controlsTimerRef.current = window.setTimeout(() => {
@@ -107,12 +111,40 @@ export default function LiveTvPage({
     scheduleControlsHide();
   };
 
-  // Attach touch/click listeners to player shell for controls visibility
+  const toggleControls = (e?: MouseEvent | TouchEvent) => {
+    if (e && e.target) {
+      const target = e.target as HTMLElement;
+      // Jangan sembunyikan jika yang disentuh/diklik adalah tombol kontrol, slider, popover, atau elemen di dock
+      if (target.closest("button, input, a, select, .player-menu-popover, .player-interactive")) {
+        scheduleControlsHide();
+        return;
+      }
+    }
+
+    setShowControls(prev => {
+      const next = !prev;
+      if (next) {
+        scheduleControlsHide();
+      } else {
+        if (controlsTimerRef.current) clearTimeout(controlsTimerRef.current);
+      }
+      return next;
+    });
+  };
+
+  // Attach touch/click listeners to player shell for auto show/hide controls & fullscreen playlist
   useEffect(() => {
     const el = playerShellRef.current;
     if (!el) return;
-    const handleTouch = () => revealControls();
-    const handleClick = () => revealControls();
+    const handleTouch = (e: TouchEvent) => {
+      lastTouchTimeRef.current = Date.now();
+      toggleControls(e);
+    };
+    const handleClick = (e: MouseEvent) => {
+      // Cegah click synthetic setelah touchstart pada mobile touchscreen
+      if (Date.now() - lastTouchTimeRef.current < 450) return;
+      toggleControls(e);
+    };
     el.addEventListener("touchstart", handleTouch, { passive: true });
     el.addEventListener("click", handleClick);
     scheduleControlsHide();
@@ -122,6 +154,16 @@ export default function LiveTvPage({
       if (controlsTimerRef.current) clearTimeout(controlsTimerRef.current);
     };
   }, [isPlaying, showQualityMenu]);
+
+  // Auto scroll ke channel aktif di fullscreen playlist dock
+  useEffect(() => {
+    if (isFullscreen && showControls && showFullscreenPlaylist && fullscreenScrollRef.current) {
+      const activeEl = fullscreenScrollRef.current.querySelector<HTMLElement>('[data-active-channel="true"]');
+      if (activeEl) {
+        activeEl.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+      }
+    }
+  }, [isFullscreen, activeChannel?.id, showControls, showFullscreenPlaylist]);
 
   // Close quality menu on outside click
   useEffect(() => {
@@ -553,6 +595,30 @@ export default function LiveTvPage({
     return true;
   });
 
+  const dockChannels = useMemo(() => {
+    if (fullscreenCategory === "All") return liveChannels;
+    return liveChannels.filter(ch => {
+      if (fullscreenCategory === "Local ID") {
+        return (ch.country === "Indonesia" || ch.id.startsWith("tv-") || ch.genres.some(g => ["Local ID", "Indonesia", "Nasional"].includes(g)));
+      } else if (fullscreenCategory === "News") {
+        return ch.genres.some(g => ["News", "Business", "Finance", "Berita", "Informasi"].includes(g));
+      } else if (fullscreenCategory === "Entertainment") {
+        return ch.genres.some(g => ["Entertainment", "Comedy", "Music", "Hiburan", "Variety"].includes(g));
+      } else if (fullscreenCategory === "Sports") {
+        return ch.genres.some(g => ["Sports", "Olahraga", "Soccer"].includes(g));
+      } else if (fullscreenCategory === "Kids") {
+        return ch.genres.some(g => ["Kids", "Animation", "Anak", "Family"].includes(g));
+      } else if (fullscreenCategory === "Science") {
+        return ch.genres.some(g => ["Science", "Education", "Documentary", "Sains"].includes(g));
+      } else if (fullscreenCategory === "Business") {
+        return ch.genres.some(g => ["Business", "Finance", "Bisnis"].includes(g));
+      } else if (fullscreenCategory === "Culture") {
+        return ch.genres.some(g => ["Culture", "Budaya", "Religious", "Agama", "Documentary"].includes(g));
+      }
+      return true;
+    });
+  }, [liveChannels, fullscreenCategory]);
+
   return (
     <div className="min-h-screen bg-zinc-950 text-white pb-24 sm:pb-20 pt-2 sm:pt-3 px-3 sm:px-6 lg:px-8 max-w-7xl mx-auto space-y-3 sm:space-y-5">
 
@@ -629,7 +695,9 @@ export default function LiveTvPage({
 
             {/* NOW STREAMING badge — minimalis, style MediaPlayer */}
             <div
-              className="absolute left-3 z-20 pointer-events-none"
+              className={`absolute left-3 z-20 pointer-events-none transition-opacity duration-300 ${
+                showControls ? "opacity-100" : "opacity-0"
+              }`}
               style={{
                 top: isFullscreen
                   ? "calc(env(safe-area-inset-top, 0px) + 20px)"
@@ -706,7 +774,7 @@ export default function LiveTvPage({
 
             {/* HUD Control Bar — always visible on mobile, auto-hides on desktop */}
             <div
-              className={`absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent flex items-center justify-between gap-2 px-3 sm:px-4 pt-8 transition-opacity duration-300 z-20 ${
+              className={`absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent flex items-center justify-between gap-2 px-3 sm:px-4 pt-8 transition-opacity duration-300 z-20 player-interactive ${
                 showControls ? "opacity-100" : "opacity-0 pointer-events-none"
               }`}
               style={hudStyle}
@@ -833,6 +901,25 @@ export default function LiveTvPage({
                   </div>
                 )}
 
+                {isFullscreen && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowFullscreenPlaylist(prev => !prev);
+                      scheduleControlsHide();
+                    }}
+                    className={`h-11 px-3.5 rounded-full backdrop-blur-md flex items-center gap-2 text-xs font-bold transition-all cursor-pointer ${
+                      showFullscreenPlaylist
+                        ? "bg-blue-600 text-white shadow-[0_0_15px_rgba(37,99,235,0.5)] border border-blue-400/40"
+                        : "bg-white/10 hover:bg-white/20 text-zinc-300 hover:text-white border border-white/10"
+                    }`}
+                    title={showFullscreenPlaylist ? "Sembunyikan Playlist" : "Tampilkan Playlist"}
+                  >
+                    <Tv className="w-4 h-4 text-white" />
+                    <span className="hidden sm:inline">Playlist</span>
+                  </button>
+                )}
+
                 <button
                   onClick={(e) => { e.stopPropagation(); toggleFullscreen(); }}
                   className="w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-md text-white flex items-center justify-center transition-all cursor-pointer"
@@ -841,6 +928,134 @@ export default function LiveTvPage({
                 </button>
               </div>
             </div>
+
+            {/* Fullscreen Interactive Channel Playlist Floating Dock Overlay */}
+            {isFullscreen && (
+              <div
+                className={`absolute inset-x-0 z-25 flex flex-col items-center px-3 sm:px-6 transition-all duration-300 pointer-events-none ${
+                  showControls && showFullscreenPlaylist
+                    ? "opacity-100 translate-y-0"
+                    : "opacity-0 translate-y-6 pointer-events-none"
+                }`}
+                style={{
+                  paddingLeft: "calc(env(safe-area-inset-left, 0px) + 12px)",
+                  paddingRight: "calc(env(safe-area-inset-right, 0px) + 12px)",
+                  bottom: isNativeApp
+                    ? (isLandscape ? "calc(env(safe-area-inset-bottom, 0px) + 84px)" : "calc(env(safe-area-inset-bottom, 0px) + 88px)")
+                    : "calc(env(safe-area-inset-bottom, 0px) + 84px)",
+                }}
+              >
+                <div className="w-full max-w-5xl rounded-2xl bg-zinc-950/85 backdrop-blur-2xl border border-white/15 p-2 sm:p-2.5 shadow-[0_20px_50px_rgba(0,0,0,0.9)] pointer-events-auto player-interactive flex flex-col gap-2">
+                  {/* Dock Header */}
+                  <div className="flex items-center justify-between gap-2 px-1">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-red-600/30 border border-red-500/40 text-red-400 text-[10px] font-black uppercase tracking-wider shrink-0">
+                        <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-ping inline-block" />
+                        <span>LIVE PLAYLIST</span>
+                      </div>
+                      <span className="text-xs font-semibold text-white truncate hidden md:inline">
+                        {activeChannel?.title}
+                      </span>
+                      <span className="text-[10px] text-zinc-400 font-mono hidden sm:inline">
+                        ({dockChannels.length} channel)
+                      </span>
+                    </div>
+
+                    {/* Categories Pills */}
+                    <div className="flex items-center gap-1 overflow-x-auto scrollbar-none py-0.5 max-w-[60%] sm:max-w-[70%]">
+                      {categories.map(cat => {
+                        const isCatActive = fullscreenCategory.toLowerCase() === cat.toLowerCase();
+                        return (
+                          <button
+                            key={cat}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setFullscreenCategory(cat);
+                              scheduleControlsHide();
+                            }}
+                            className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wide transition-all shrink-0 cursor-pointer ${
+                              isCatActive
+                                ? "bg-blue-600 text-white shadow-[0_0_12px_rgba(37,99,235,0.6)]"
+                                : "bg-white/10 text-zinc-300 hover:bg-white/20 hover:text-white"
+                            }`}
+                          >
+                            {t?.[cat] || cat}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {/* Close / Hide Dock Button */}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowFullscreenPlaylist(false);
+                      }}
+                      className="w-6 h-6 rounded-full bg-white/10 hover:bg-white/20 text-zinc-400 hover:text-white flex items-center justify-center transition-all cursor-pointer shrink-0"
+                      title="Sembunyikan Playlist"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+
+                  {/* Horizontal Channel Scroll Rail */}
+                  <div
+                    ref={fullscreenScrollRef}
+                    className="flex items-center gap-2 overflow-x-auto scrollbar-none py-1 px-0.5 scroll-smooth"
+                  >
+                    {dockChannels.map(channel => {
+                      const isActive = activeChannel?.id === channel.id;
+                      return (
+                        <button
+                          key={channel.id}
+                          data-active-channel={isActive ? "true" : "false"}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleSelectChannel(channel);
+                            scheduleControlsHide();
+                          }}
+                          className={`shrink-0 w-36 sm:w-44 p-2 rounded-xl border text-left transition-all duration-200 flex items-center gap-2.5 cursor-pointer group ${
+                            isActive
+                              ? "bg-blue-950/80 border-blue-500 shadow-[0_0_20px_rgba(37,99,235,0.4)] ring-1 ring-blue-500 scale-[1.02]"
+                              : "bg-zinc-900/85 hover:bg-zinc-800/90 border-white/10 hover:border-white/25 hover:scale-[1.01]"
+                          }`}
+                        >
+                          {/* Logo / Thumbnail */}
+                          <div className="w-9 h-9 rounded-lg bg-zinc-950/90 border border-white/10 p-1 shrink-0 flex items-center justify-center overflow-hidden relative">
+                            <img
+                              src={channel.posterUrl}
+                              alt={channel.title}
+                              className="w-full h-full object-contain"
+                              loading="lazy"
+                            />
+                            {isActive && (
+                              <span className="absolute bottom-0 right-0 w-2 h-2 rounded-full bg-blue-500 ring-2 ring-zinc-950" />
+                            )}
+                          </div>
+
+                          {/* Title & Info */}
+                          <div className="flex-1 min-w-0">
+                            <p className={`text-xs font-bold truncate leading-tight ${isActive ? "text-blue-300" : "text-white group-hover:text-blue-200"}`}>
+                              {channel.title}
+                            </p>
+                            <div className="flex items-center gap-1.5 mt-0.5">
+                              <span className="text-[9px] text-zinc-400 truncate">
+                                {channel.category || channel.genres?.[0] || "Live"}
+                              </span>
+                              {isActive && (
+                                <span className="text-[8px] font-black uppercase text-blue-400 bg-blue-500/20 px-1 rounded">
+                                  ON AIR
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
           {/* Channel detail card intentionally removed — info visible in channel list */}
         </div>
