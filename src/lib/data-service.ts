@@ -429,7 +429,7 @@ function mapPrismaMovie(movie: any): Movie {
     description: movie.description,
     posterUrl: normalizeCdnUrl(movie.posterUrl),
     backdropUrl: normalizeCdnUrl(movie.backdropUrl),
-    videoUrl: normalizeCdnUrl(movie.videoUrl),
+    videoUrl: movie.videoUrl || "",
     duration: movie.duration,
     releaseYear: movie.releaseYear,
     rating: movie.rating,
@@ -452,7 +452,7 @@ function mapPrismaMovie(movie: any): Movie {
     contentType: (movie.contentType as any) || undefined,
     seasons: seasonsRaw.map((s) => ({
       ...s,
-      episodes: (s.episodes || []).map((e) => ({ ...e, videoUrl: normalizeCdnUrl(e.videoUrl) }))
+      episodes: (s.episodes || []).map((e) => ({ ...e, videoUrl: e.videoUrl || "" }))
     }))
   };
 }

@@ -522,7 +522,7 @@ export default function AdminCMS({
     setChannelFormMode('edit');
     setChannelEditId(ch.id);
     setChannelName(ch.title);
-    setChannelStreamUrl(normalizeCdnUrl(ch.videoUrl));
+    setChannelStreamUrl(ch.videoUrl || '');
     setChannelLogoUrl(normalizeCdnUrl(ch.posterUrl));
     setChannelDescription(ch.description);
     setChannelCountry(ch.country || 'Indonesia');
@@ -825,9 +825,9 @@ export default function AdminCMS({
     setActiveSubTab("catalog"); // Switch to catalog tab so the form is visible
     setTitle(movie.title);
     setDescription(movie.description);
-    setPosterUrl(normalizeCdnUrl(movie.posterUrl));
-    setBackdropUrl(normalizeCdnUrl(movie.backdropUrl));
-    setVideoUrl(normalizeCdnUrl(movie.videoUrl));
+    setPosterUrl(movie.posterUrl || "");
+    setBackdropUrl(movie.backdropUrl || "");
+    setVideoUrl(movie.videoUrl || "");
     setDuration(movie.duration);
     setReleaseYear(movie.releaseYear);
     setRating(movie.rating);
@@ -846,7 +846,7 @@ export default function AdminCMS({
     setSeasons(
       (movie.seasons || []).map((s) => ({
         ...s,
-        episodes: (s.episodes || []).map((e) => ({ ...e, videoUrl: normalizeCdnUrl(e.videoUrl) }))
+        episodes: (s.episodes || []).map((e) => ({ ...e, videoUrl: e.videoUrl || "" }))
       }))
     );
     setTmdbQuery(movie.title);
@@ -854,7 +854,7 @@ export default function AdminCMS({
     setSelectedTmdbMediaType(movie.tmdbMediaType);
     setTmdbResults([]);
     setTmdbError("");
-    setSubtitles((movie.subtitles || []).map((sub) => ({ ...sub, fileUrl: normalizeCdnUrl(sub.fileUrl) })));
+    setSubtitles((movie.subtitles || []).map((sub) => ({ ...sub, fileUrl: sub.fileUrl || "" })));
     setShowForm(true);
   };
 
@@ -2215,8 +2215,8 @@ export default function AdminCMS({
                         required
                         placeholder="e.g. https://cdn.mystreamflix.biz.id/movies/film.mp4 or Google Drive Link"
                         value={videoUrl}
-                        onChange={(e) => setVideoUrl(normalizeGoogleDriveUrl(e.target.value))}
-                        onBlur={(e) => setVideoUrl(normalizeGoogleDriveUrl(e.target.value))}
+                        onChange={(e) => setVideoUrl(e.target.value)}
+                        onBlur={(e) => setVideoUrl(e.target.value.trim())}
                         className="w-full bg-zinc-900 border border-zinc-850 p-2.5 rounded text-xs focus:outline-hidden focus:border-red-500/50"
                         id="form-input-video"
                       />
@@ -2618,8 +2618,8 @@ export default function AdminCMS({
                                   type="url"
                                   required
                                   value={sub.fileUrl}
-                                  onChange={(e) => handleUpdateSubtitle(sub.id, "fileUrl", normalizeGoogleDriveUrl(e.target.value))}
-                                  onBlur={(e) => handleUpdateSubtitle(sub.id, "fileUrl", normalizeGoogleDriveUrl(e.target.value))}
+                                  onChange={(e) => handleUpdateSubtitle(sub.id, "fileUrl", e.target.value)}
+                                  onBlur={(e) => handleUpdateSubtitle(sub.id, "fileUrl", e.target.value.trim())}
                                   placeholder="https://cdn.mystreamflix.biz.id/subtitles/indonesia.vtt or Google Drive Link"
                                   className="w-full bg-zinc-950 border border-zinc-900 p-2 rounded text-xs text-zinc-300 focus:outline-hidden focus:border-red-500/30 font-mono"
                                 />
