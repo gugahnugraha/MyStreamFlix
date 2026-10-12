@@ -34,12 +34,23 @@ export async function GET(request: NextRequest) {
       "Accept-Language": "en-US,en;q=0.9,id;q=0.8",
     };
 
+    let fetchUrl = targetUrl;
+
+    // Rewrite discontinued Transmedia streaming hostnames to live detik.com endpoints
     if (parsedUrl.hostname.includes("cnnindonesia.com")) {
+      fetchUrl = targetUrl.replace(
+        /live\.cnnindonesia\.com\/livecnn\/smil:cnntv(\.smil)?/gi,
+        "video.detik.com/livecnn/smil:cnntv"
+      );
+      parsedUrl = new URL(fetchUrl);
       headers["Referer"] = "https://www.cnnindonesia.com/";
-      headers["Origin"] = "https://www.cnnindonesia.com";
     } else if (parsedUrl.hostname.includes("cnbcindonesia.com")) {
+      fetchUrl = targetUrl.replace(
+        /live\.cnbcindonesia\.com\/livecnbc\/smil:cnbctv(\.smil)?/gi,
+        "video.detik.com/livecnbc/smil:cnbctv"
+      );
+      parsedUrl = new URL(fetchUrl);
       headers["Referer"] = "https://www.cnbcindonesia.com/";
-      headers["Origin"] = "https://www.cnbcindonesia.com";
     } else if (parsedUrl.hostname.includes("rctiplus.id") || parsedUrl.hostname.includes("rctiplus.com")) {
       headers["Referer"] = "https://www.rctiplus.com/";
     } else if (parsedUrl.hostname.includes("visionplus.id")) {
@@ -67,7 +78,7 @@ export async function GET(request: NextRequest) {
       if (val) headers[h] = val;
     });
 
-    const res = await fetch(targetUrl, {
+    const res = await fetch(fetchUrl, {
       method: "GET",
       headers,
       cache: "no-store",
@@ -78,14 +89,14 @@ export async function GET(request: NextRequest) {
     }
 
     const contentType = res.headers.get("content-type") || "";
-    const isHlsManifest = targetUrl.includes(".m3u8") || contentType.includes("mpegurl") || contentType.includes("m3u8");
-    const isDashManifest = targetUrl.includes(".mpd") || contentType.includes("dash+xml");
+    const isHlsManifest = fetchUrl.includes(".m3u8") || contentType.includes("mpegurl") || contentType.includes("m3u8");
+    const isDashManifest = fetchUrl.includes(".mpd") || contentType.includes("dash+xml");
 
     const baseProxyUrl = `${request.nextUrl.origin}/api/livetv/proxy?url=`;
 
     if (isHlsManifest) {
       const text = await res.text();
-      const parentDir = targetUrl.substring(0, targetUrl.lastIndexOf("/") + 1);
+      const parentDir = fetchUrl.substring(0, fetchUrl.lastIndexOf("/") + 1);
 
       const rewrittenLines = text.split("\n").map(line => {
         const trimmed = line.trim();
@@ -121,7 +132,7 @@ export async function GET(request: NextRequest) {
 
     if (isDashManifest) {
       let text = await res.text();
-      const parentDir = targetUrl.substring(0, targetUrl.lastIndexOf("/") + 1);
+      const parentDir = fetchUrl.substring(0, fetchUrl.lastIndexOf("/") + 1);
 
       // Inject BaseURL if not present so relative segments resolve against remote origin
       if (!text.includes("<BaseURL>")) {
@@ -162,6 +173,9 @@ export async function GET(request: NextRequest) {
 
   } catch (error: any) {
     console.error("LiveTV proxy error:", error);
-    return NextResponse.json({ error: error.message || "Proxy error" }, { status: 500 });
+    return NextResponse.json({
+      error: error?.message || "Proxy error",
+      cause: error?.cause ? String(error.cause) : undefined
+    }, { status: 500 });
   }
 }

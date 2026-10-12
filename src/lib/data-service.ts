@@ -613,6 +613,14 @@ export function sanitizeStreamUrl(url?: string): string {
     cleanUrl = cleanUrl.replace(/\/chunklist_w[^\/]+\.m3u8$/i, "/playlist.m3u8");
   }
 
+  // Auto-migrate discontinued Transmedia domains to active live streaming endpoints
+  if (cleanUrl.includes("live.cnnindonesia.com")) {
+    cleanUrl = cleanUrl.replace(/live\.cnnindonesia\.com\/livecnn\/smil:cnntv(\.smil)?/gi, "video.detik.com/livecnn/smil:cnntv");
+  }
+  if (cleanUrl.includes("live.cnbcindonesia.com")) {
+    cleanUrl = cleanUrl.replace(/live\.cnbcindonesia\.com\/livecnbc\/smil:cnbctv(\.smil)?/gi, "video.detik.com/livecnbc/smil:cnbctv");
+  }
+
   return cleanUrl;
 }
 

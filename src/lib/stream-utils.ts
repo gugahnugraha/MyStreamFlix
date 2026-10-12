@@ -112,14 +112,14 @@ export function getProxiedStreamUrl(url: string): string {
 
   const origin = getOrigin();
 
-  if (url.startsWith("/api/livetv/proxy") || url.startsWith("/api/gdrive/stream")) {
-    return origin ? `${origin}${url}` : url;
+  if (url.includes("/api/livetv/proxy") || url.includes("/api/gdrive/stream")) {
+    return url.startsWith("http") ? url : (origin ? `${origin}${url}` : url);
   }
   if (url.startsWith("blob:") || url.startsWith("data:")) return url;
 
   // Cloudflare R2 (both custom domain & pub-*.r2.dev) must be played directly by the browser's native video engine.
   // Never route multi-gigabyte video files through the serverless proxy!
-  if (url.includes(".r2.dev") || url.includes("mystreamflix.biz.id")) {
+  if (url.includes(".r2.dev") || url.includes("cdn.mystreamflix.biz.id")) {
     return url;
   }
 
