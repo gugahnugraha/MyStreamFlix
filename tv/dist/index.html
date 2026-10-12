@@ -407,6 +407,18 @@
           </button>
         </div>
       </div>
+      <!-- TV Player Timeline Seekbar (Bekas Lewatan & Buffer) -->
+      <div id="tv-player-seekbar-wrap" style="display: flex; align-items: center; gap: 1.2vw; margin-bottom: 2vh; width: 100%;">
+        <span id="tv-time-current" style="font-family: monospace; font-size: 0.95rem; font-weight: 700; color: #E5E7EB; min-width: 50px;">00:00</span>
+        <div id="tv-seekbar-track" style="flex: 1; height: 8px; background: rgba(255,255,255,0.2); border-radius: 9999px; position: relative; overflow: hidden;">
+          <!-- Buffered Preload Bar -->
+          <div id="tv-seekbar-buffered" style="position: absolute; left: 0; top: 0; bottom: 0; width: 0%; background: rgba(255,255,255,0.35); border-radius: 9999px; transition: width 0.2s;"></div>
+          <!-- Played Track Bar (Bekas lewatan pemutaran video) -->
+          <div id="tv-seekbar-played" style="position: absolute; left: 0; top: 0; bottom: 0; width: 0%; background: linear-gradient(90deg, #DC2626, #EF4444); border-radius: 9999px; box-shadow: 0 0 10px rgba(220,38,38,0.8);"></div>
+        </div>
+        <span id="tv-time-duration" style="font-family: monospace; font-size: 0.95rem; font-weight: 700; color: #9CA3AF; min-width: 50px;">00:00</span>
+      </div>
+
       <div class="tv-player-controls">
         <button class="tv-btn tv-focusable" id="hud-play-btn" onclick="togglePlayerPlay()">
           <span id="tv-play-icon">⏸ Jeda</span>
@@ -800,6 +812,13 @@
       video.currentTime = Math.max(0, video.currentTime + seconds);
       if (window.TVNav) window.TVNav.showToast(`${seconds > 0 ? '+' : ''}${seconds}s`);
       showHud();
+      if (video.duration && !isNaN(video.duration)) {
+        const pct = Math.min(100, Math.max(0, (video.currentTime / video.duration) * 100));
+        const playedEl = document.getElementById("tv-seekbar-played");
+        if (playedEl) playedEl.style.width = pct + "%";
+        const curEl = document.getElementById("tv-time-current");
+        if (curEl) curEl.innerText = formatTvSeconds(video.currentTime);
+      }
     }
 
     function destroyCurrentEngines() {
@@ -861,6 +880,52 @@
         clockEl.innerText = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
       }
     }, 1000);
+
+    function formatTvSeconds(sec) {
+      if (isNaN(sec) || sec <= 0) return "00:00";
+      const h = Math.floor(sec / 3600);
+      const m = Math.floor((sec % 3600) / 60);
+      const s = Math.floor(sec % 60);
+      if (h > 0) {
+        return `${h}:${m < 10 ? '0' : ''}${m}:${s < 10 ? '0' : ''}${s}`;
+      }
+      return `${m < 10 ? '0' : ''}${m}:${s < 10 ? '0' : ''}${s}`;
+    }
+
+    // Video Seekbar Realtime Timeline Updater
+    const tvVideo = document.getElementById("tv-video-element");
+    tvVideo.addEventListener("timeupdate", () => {
+      const cur = tvVideo.currentTime || 0;
+      const dur = tvVideo.duration;
+      if (!dur || isNaN(dur) || !isFinite(dur)) {
+        // Live stream mode
+        const curEl = document.getElementById("tv-time-current");
+        const durEl = document.getElementById("tv-time-duration");
+        const playedEl = document.getElementById("tv-seekbar-played");
+        const bufEl = document.getElementById("tv-seekbar-buffered");
+        if (curEl) curEl.innerText = "LIVE";
+        if (durEl) durEl.innerText = "REAL-TIME";
+        if (playedEl) playedEl.style.width = "100%";
+        if (bufEl) bufEl.style.width = "100%";
+        return;
+      }
+      const pct = Math.min(100, Math.max(0, (cur / dur) * 100));
+      const playedEl = document.getElementById("tv-seekbar-played");
+      const curEl = document.getElementById("tv-time-current");
+      const durEl = document.getElementById("tv-time-duration");
+      const bufEl = document.getElementById("tv-seekbar-buffered");
+      if (playedEl) playedEl.style.width = pct + "%";
+      if (curEl) curEl.innerText = formatTvSeconds(cur);
+      if (durEl) durEl.innerText = formatTvSeconds(dur);
+
+      if (tvVideo.buffered && tvVideo.buffered.length > 0 && bufEl) {
+        try {
+          const bufEnd = tvVideo.buffered.end(tvVideo.buffered.length - 1);
+          const bufPct = Math.min(100, Math.max(0, (bufEnd / dur) * 100));
+          bufEl.style.width = bufPct + "%";
+        } catch {}
+      }
+    });
 
     // Initial Render
     document.addEventListener("DOMContentLoaded", () => {

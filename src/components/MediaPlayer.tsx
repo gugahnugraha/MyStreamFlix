@@ -169,6 +169,41 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
   const [autoPlayCountdown, setAutoPlayCountdown] = useState<number | null>(null);
   const [isNextEpisodeDismissed, setIsNextEpisodeDismissed] = useState(false);
 
+  // Seekbar Rich Visual States (Bekas lewatan, buffer, dan hover tooltip)
+  const [bufferedEnd, setBufferedEnd] = useState<number>(0);
+  const [hoverSeekTime, setHoverSeekTime] = useState<number | null>(null);
+  const [hoverSeekPos, setHoverSeekPos] = useState<number>(0);
+
+  const updateBufferProgress = () => {
+    const video = videoRef.current;
+    if (video && video.buffered && video.buffered.length > 0) {
+      try {
+        const ct = video.currentTime;
+        for (let i = 0; i < video.buffered.length; i++) {
+          if (video.buffered.start(i) <= ct && ct <= video.buffered.end(i)) {
+            setBufferedEnd(video.buffered.end(i));
+            return;
+          }
+        }
+        setBufferedEnd(video.buffered.end(video.buffered.length - 1));
+      } catch {}
+    }
+  };
+
+  const handleSeekbarMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    if (rect.width <= 0) return;
+    const x = Math.max(0, Math.min(rect.width, e.clientX - rect.left));
+    const posPercent = (x / rect.width) * 100;
+    const timeAtPos = duration > 0 ? (x / rect.width) * duration : 0;
+    setHoverSeekPos(posPercent);
+    setHoverSeekTime(timeAtPos);
+  };
+
+  const handleSeekbarMouseLeave = () => {
+    setHoverSeekTime(null);
+  };
+
   const activeSubtitleObj = (movie.subtitles || []).find((s) => s.language === activeSubtitle);
 
   // Helper to find next episode
@@ -1511,8 +1546,10 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
             onTimeUpdate={() => {
               if (videoRef.current) {
                 setCurrentTime(videoRef.current.currentTime);
+                updateBufferProgress();
               }
             }}
+            onProgress={updateBufferProgress}
             onWaiting={() => setIsBuffering(true)}
             onSeeking={() => setIsBuffering(true)}
             onCanPlay={() => {
@@ -2053,21 +2090,72 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
               </div>
             ) : (
               <div className="flex items-center gap-3 w-full">
-                <span className="text-xs font-mono text-zinc-400 shrink-0">
+                {/* Waktu Pemutaran Berjalan */}
+                <span className="text-xs font-mono font-medium text-zinc-300 shrink-0 min-w-[44px] text-right select-none drop-shadow">
                   {formatTime(currentTime)}
                 </span>
 
-                <input
-                  type="range"
-                  min={0}
-                  max={duration || 100}
-                  value={currentTime}
-                  onChange={handleSeek}
-                  className="w-full accent-red-600 bg-zinc-800 h-1 hover:h-1.5 rounded-lg appearance-none cursor-pointer transition-all"
-                  id="media-progress-slider"
-                />
+                {/* Seekbar Container Interaktif dengan bekas lewatan (played bar) & buffer bar */}
+                <div
+                  className="relative flex-1 flex items-center h-6 group cursor-pointer select-none"
+                  onMouseMove={handleSeekbarMouseMove}
+                  onMouseLeave={handleSeekbarMouseLeave}
+                >
+                  {/* Floating Time Preview Tooltip saat mouse hover */}
+                  {hoverSeekTime !== null && (
+                    <div
+                      className="absolute -top-7 -translate-x-1/2 px-2 py-0.5 rounded bg-zinc-900/95 border border-white/20 text-[11px] font-mono font-bold text-white shadow-xl pointer-events-none z-30 transition-all backdrop-blur-md"
+                      style={{ left: `${hoverSeekPos}%` }}
+                    >
+                      {formatTime(hoverSeekTime)}
+                    </div>
+                  )}
 
-                <span className="text-xs font-mono text-zinc-400 shrink-0">
+                  {/* Track Bar (Total Video Duration) */}
+                  <div className="w-full h-1.5 group-hover:h-2.5 bg-white/20 group-hover:bg-white/25 rounded-full overflow-hidden relative transition-all duration-150">
+                    {/* Buffered Preload Bar (Semi-transparent) */}
+                    <div
+                      className="absolute top-0 bottom-0 left-0 bg-white/40 rounded-full transition-all duration-200 pointer-events-none"
+                      style={{ width: `${duration > 0 ? Math.min(100, Math.max(0, (bufferedEnd / duration) * 100)) : 0}%` }}
+                    />
+
+                    {/* Played Track Bar (Bekas lewatan seekbar) */}
+                    <div
+                      className="absolute top-0 bottom-0 left-0 bg-gradient-to-r from-red-600 to-red-500 rounded-full pointer-events-none shadow-[0_0_10px_rgba(239,68,68,0.8)]"
+                      style={{ width: `${duration > 0 ? Math.min(100, Math.max(0, (currentTime / duration) * 100)) : 0}%` }}
+                    />
+                  </div>
+
+                  {/* Scrubber Pin / Knob (Thumb) yang membesar saat hover */}
+                  <div
+                    className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-3.5 h-3.5 group-hover:w-4 group-hover:h-4 bg-white border-2 border-red-600 rounded-full shadow-[0_2px_8px_rgba(0,0,0,0.8)] scale-75 group-hover:scale-110 transition-transform duration-150 pointer-events-none z-10"
+                    style={{ left: `${duration > 0 ? Math.min(100, Math.max(0, (currentTime / duration) * 100)) : 0}%` }}
+                  />
+
+                  {/* Hover position indicator line */}
+                  {hoverSeekTime !== null && (
+                    <div
+                      className="absolute top-1/2 -translate-y-1/2 w-0.5 h-3 bg-white/70 pointer-events-none rounded-full z-10"
+                      style={{ left: `${hoverSeekPos}%` }}
+                    />
+                  )}
+
+                  {/* Transparent Native Range Slider for Touch & Accessible Scrubbing */}
+                  <input
+                    type="range"
+                    min={0}
+                    max={duration || 100}
+                    step={0.1}
+                    value={currentTime}
+                    onChange={handleSeek}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20 m-0 p-0"
+                    id="media-progress-slider"
+                    title={formatTime(currentTime)}
+                  />
+                </div>
+
+                {/* Total Durasi Video */}
+                <span className="text-xs font-mono font-medium text-zinc-400 shrink-0 min-w-[44px] select-none drop-shadow">
                   {formatTime(duration)}
                 </span>
               </div>
