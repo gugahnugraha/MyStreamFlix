@@ -46,10 +46,7 @@ export const DEFAULT_PROXY_DOMAINS = [
   "hgmtv.com",
   "akamaihd.net",
   "aiv-cdn.net",
-  "bintangstreaming.my.id",
-  // Cloudflare R2 public dev URLs — routed via proxy to bypass CORS restrictions
-  "r2.dev",
-  "pub.r2.dev"
+  "bintangstreaming.my.id"
 ];
 
 const STORAGE_KEY = "mystreamflix_cors_proxy_domains";
@@ -61,9 +58,9 @@ export function getCorsProxyDomains(): string[] {
     if (stored) {
       const parsed = JSON.parse(stored);
       if (Array.isArray(parsed) && parsed.length > 0) {
-        // Always merge with DEFAULT_PROXY_DOMAINS so new defaults (e.g. r2.dev)
-        // are available even when localStorage contains an older list.
-        const merged = Array.from(new Set([...DEFAULT_PROXY_DOMAINS, ...parsed]));
+        // Exclude r2.dev and mystreamflix.biz.id so local cache does not proxy Cloudflare R2 videos
+        const cleaned = parsed.filter(d => typeof d === "string" && !d.includes("r2.dev") && !d.includes("mystreamflix.biz.id"));
+        const merged = Array.from(new Set([...DEFAULT_PROXY_DOMAINS, ...cleaned]));
         return merged;
       }
     }
@@ -119,6 +116,12 @@ export function getProxiedStreamUrl(url: string): string {
     return origin ? `${origin}${url}` : url;
   }
   if (url.startsWith("blob:") || url.startsWith("data:")) return url;
+
+  // Cloudflare R2 (both custom domain & pub-*.r2.dev) must be played directly by the browser's native video engine.
+  // Never route multi-gigabyte video files through the serverless proxy!
+  if (url.includes(".r2.dev") || url.includes("mystreamflix.biz.id")) {
+    return url;
+  }
 
   // Handle Google Drive streaming via internal Service Account streaming proxy
   const gdriveId = extractGoogleDriveFileId(url);
