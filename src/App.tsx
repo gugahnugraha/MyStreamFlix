@@ -701,6 +701,7 @@ export default function App() {
           initialProgress={getProgressOfMovie(activeStream.id)?.progress || 0}
           onClose={handleCloseStream}
           t={t}
+          brandColor={settings.primaryColor}
         />
       )}
 

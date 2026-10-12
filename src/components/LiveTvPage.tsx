@@ -727,19 +727,25 @@ export default function LiveTvPage({
                   className="hidden sm:flex relative items-center h-6 w-20 md:w-24 group cursor-pointer select-none"
                   onClick={(e) => e.stopPropagation()}
                 >
-                  {/* Background Track */}
-                  <div className="w-full h-1.5 group-hover:h-2 bg-zinc-800/90 group-hover:bg-zinc-800 rounded-full overflow-hidden relative transition-all duration-150">
-                    {/* Fill Volume Track (Bekas lewatan level volume) - Berwarna abu-abu */}
+                  {/* Background Track (Abu-abu transparan untuk progress di depannya) */}
+                  <div className="w-full h-1.5 group-hover:h-2 bg-white/20 group-hover:bg-white/25 rounded-full overflow-hidden relative transition-all duration-150">
+                    {/* Fill Volume Track (Progress volume terisi - Biru tema) */}
                     <div
-                      className="absolute top-0 bottom-0 left-0 bg-zinc-200 rounded-full pointer-events-none shadow-[0_0_6px_rgba(255,255,255,0.3)]"
-                      style={{ width: `${(isMuted ? 0 : volume) * 100}%` }}
+                      className="absolute top-0 bottom-0 left-0 bg-gradient-to-r from-sky-600 to-cyan-400 rounded-full pointer-events-none shadow-[0_0_8px_rgba(56,189,248,0.7)]"
+                      style={{
+                        width: `${(isMuted ? 0 : volume) * 100}%`,
+                        background: brandColor && brandColor !== "#34C759" ? brandColor : "linear-gradient(90deg, #0284C7, #38BDF8)"
+                      }}
                     />
                   </div>
 
-                  {/* Volume Thumb Knob */}
+                  {/* Volume Thumb Knob Bulat Putih dengan Bingkai Biru Tema */}
                   <div
-                    className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-3 h-3 group-hover:w-3.5 group-hover:h-3.5 bg-white border-2 border-zinc-400 rounded-full shadow-md scale-75 group-hover:scale-110 transition-transform duration-150 pointer-events-none z-10"
-                    style={{ left: `${(isMuted ? 0 : volume) * 100}%` }}
+                    className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-3 h-3 group-hover:w-3.5 group-hover:h-3.5 bg-white border-2 border-sky-400 rounded-full shadow-md scale-75 group-hover:scale-110 transition-transform duration-150 pointer-events-none z-10"
+                    style={{
+                      left: `${(isMuted ? 0 : volume) * 100}%`,
+                      borderColor: brandColor && brandColor !== "#34C759" ? brandColor : "#38BDF8"
+                    }}
                   />
 
                   {/* Transparent Native Slider */}
