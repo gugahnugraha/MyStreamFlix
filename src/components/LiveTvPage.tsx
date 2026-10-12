@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import {
   Tv, Play, Pause, Volume2, VolumeX, Maximize, Minimize,
   Search, Globe, Check, RefreshCw, AlertCircle,
@@ -46,8 +46,14 @@ export default function LiveTvPage({
   const bufferTimeoutRef = useRef<number | null>(null);
   const controlsTimerRef = useRef<number | null>(null);
 
-  // Alternative fallback stream URLs
-  const [candidateUrls, setCandidateUrls] = useState<string[]>([]);
+  // Alternative fallback stream URLs (Dihitung langsung secara sinkron agar tidak ada delay/stale channel)
+  const candidateUrls = useMemo(() => {
+    if (!activeChannel) return [];
+    const alts = getAlternativeStreamUrls(activeChannel);
+    const primary = activeChannel.videoUrl;
+    return [primary, ...alts].filter(Boolean);
+  }, [activeChannel?.id, activeChannel?.videoUrl]);
+
   const [altIndex, setAltIndex] = useState<number>(0);
 
   const [isPlaying, setIsPlaying] = useState<boolean>(true);
@@ -151,15 +157,14 @@ export default function LiveTvPage({
     };
   }, []);
 
-  // Sync candidate fallback URLs when channel changes
-  useEffect(() => {
-    if (!activeChannel) return;
-    const alts = getAlternativeStreamUrls(activeChannel);
-    const primary = activeChannel.videoUrl;
-    const all = [primary, ...alts].filter(Boolean);
-    setCandidateUrls(all);
+  // Channel switch handler: immediately halts current stream and resets alternative server index
+  const handleSelectChannel = (channel: Movie) => {
+    if (activeChannel?.id === channel.id) return;
+    stopStream();
     setAltIndex(0);
-  }, [activeChannel?.id]);
+    setActiveChannel(channel);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   const clearStreamTimers = () => {
     if (startupTimeoutRef.current) { clearTimeout(startupTimeoutRef.current); startupTimeoutRef.current = null; }
@@ -366,7 +371,7 @@ export default function LiveTvPage({
         dashRef.current = null;
       }
     };
-  }, [activeChannel, altIndex, reloadSeq]);
+  }, [activeChannel?.id, activeChannel?.videoUrl, altIndex, reloadSeq]);
 
   const togglePlay = () => {
     const video = videoRef.current;
@@ -899,10 +904,7 @@ export default function LiveTvPage({
                 return (
                   <button
                     key={channel.id}
-                    onClick={() => {
-                      setActiveChannel(channel);
-                      window.scrollTo({ top: 0, behavior: "smooth" });
-                    }}
+                    onClick={() => handleSelectChannel(channel)}
                     className={`w-full text-left px-2.5 py-2 rounded-lg border transition-all duration-150 flex items-center gap-2.5 cursor-pointer ${
                       isActive
                         ? "bg-red-950/40 border-red-500/50 shadow-sm"
