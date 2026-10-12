@@ -1736,21 +1736,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
 
                 {/* Action Buttons */}
                 <div className="flex flex-wrap items-center justify-center gap-2.5 w-full mt-5 pt-1">
-                  {movie.contentType === "livetv" && candidateStreamUrls.length > 1 && (
-                    <button
-                      onClick={() => {
-                        stopStream();
-                        setMediaAltIndex((idx) => (idx + 1) % candidateStreamUrls.length);
-                        setHasError(false);
-                        setIsSimulating(false);
-                        setIsBuffering(true);
-                      }}
-                      className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-cyan-600/25 transition-all cursor-pointer active:scale-95"
-                    >
-                      <Globe className="w-3.5 h-3.5 animate-pulse" />
-                      <span>Coba Server Cadangan ({((mediaAltIndex + 1) % candidateStreamUrls.length) + 1}/{candidateStreamUrls.length})</span>
-                    </button>
-                  )}
+
                   <button
                     onClick={() => {
                       stopStream();
