@@ -1,0 +1,20 @@
+{
+  "name": "mystreamflix-tv",
+  "version": "1.0.0",
+  "description": "MyStreamFlix for Android TV / Google TV with Leanback Launcher & D-Pad Remote Control Support",
+  "private": true,
+  "scripts": {
+    "dev": "npx serve dist -p 3000",
+    "cap:sync": "npx cap sync android",
+    "cap:open": "npx cap open android",
+    "cap:copy": "npx cap copy android",
+    "build:apk": "powershell -ExecutionPolicy Bypass -File ./build-apk.ps1"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.5.0",
+    "@capacitor/core": "^8.5.0"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^8.5.0"
+  }
+}
