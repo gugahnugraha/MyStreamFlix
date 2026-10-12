@@ -269,7 +269,9 @@ export const CHANNEL_ALTERNATIVE_URLS: Record<string, string[]> = {
     "https://op-flashcon-digdayahd-1.dens.tv/h/h40/01.m3u8"
   ],
   "kompas": [
-    "https://op-flashcon-digdayahd-1.dens.tv/s/s104/index.m3u8"
+    "https://op-flashcon-digdayahd-1.dens.tv/h/h234/index.m3u8",
+    "https://op-group1-densxvisionhd-1.dens.tv/h/h234/index.m3u8",
+    "https://op-flashcon-digdayahd-1.dens.tv/h/h234/01.m3u8"
   ],
   "mdtv": [
     "https://op-flashcon-digdayahd-1.dens.tv/h/h223/02.m3u8"

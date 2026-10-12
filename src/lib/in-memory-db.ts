@@ -805,7 +805,7 @@ const defaultLiveTvChannels: Movie[] = [
     description: "Televisi Berita Independen & Terpercaya. Menyajikan Kompas Pagi, Kompas Siang, Kompas Petang, Kompas Malam, Rosi, dan program investigasi mendalam.",
     posterUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/6/66/Kompas_TV_2018.svg/960px-Kompas_TV_2018.svg.png",
     backdropUrl: "https://images.unsplash.com/photo-1495020689067-958852a7765e?w=1280&q=80",
-    videoUrl: "https://op-flashcon-digdayahd-1.dens.tv/s/s104/index.m3u8",
+    videoUrl: "https://op-flashcon-digdayahd-1.dens.tv/h/h234/index.m3u8",
     duration: 0,
     releaseYear: 2026,
     rating: 9.5,

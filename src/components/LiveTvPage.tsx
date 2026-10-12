@@ -891,8 +891,8 @@ export default function LiveTvPage({
 
             {/* HUD Control Bar — always visible on mobile, auto-hides on desktop */}
             <div
-              className={`absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent flex items-center justify-between gap-2 px-3 sm:px-4 pt-8 transition-opacity duration-300 z-20 player-interactive ${
-                showControls ? "opacity-100" : "opacity-0 pointer-events-none"
+              className={`absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/95 via-black/40 to-transparent flex items-center justify-between gap-2 px-3 sm:px-4 pt-8 transition-opacity duration-300 z-40 player-interactive ${
+                showControls ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
               }`}
               style={hudStyle}
             >
@@ -1031,21 +1031,24 @@ export default function LiveTvPage({
               </div>
             </div>
 
-            {/* Fullscreen Interactive Vertical Channel Playlist (Transparent Right Drawer) */}
+            {/* Fullscreen Interactive Vertical Channel Playlist (Transparent Floating Drawer) */}
             {isFullscreen && (
               <div
-                className={`absolute top-0 right-0 bottom-0 w-72 sm:w-80 md:w-96 z-30 flex flex-col bg-black/65 backdrop-blur-2xl border-l border-white/10 shadow-[-15px_0_40px_rgba(0,0,0,0.85)] transition-all duration-300 ease-out player-interactive ${
+                className={`absolute w-72 sm:w-80 md:w-96 z-30 flex flex-col bg-black/80 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-[-10px_10px_35px_rgba(0,0,0,0.85)] transition-all duration-300 ease-out player-interactive overflow-hidden ${
                   showControls
                     ? "translate-x-0 opacity-100 pointer-events-auto"
                     : "translate-x-full opacity-0 pointer-events-none"
                 }`}
                 style={{
-                  paddingTop: "calc(env(safe-area-inset-top, 0px) + 16px)",
-                  paddingBottom: isNativeApp
-                    ? (isLandscape ? "calc(env(safe-area-inset-bottom, 0px) + 84px)" : "calc(env(safe-area-inset-bottom, 0px) + 90px)")
-                    : "calc(env(safe-area-inset-bottom, 0px) + 84px)",
-                  paddingRight: "calc(env(safe-area-inset-right, 0px) + 14px)",
-                  paddingLeft: "14px"
+                  top: "calc(env(safe-area-inset-top, 0px) + 16px)",
+                  bottom: isNativeApp
+                    ? (isLandscape ? "calc(env(safe-area-inset-bottom, 0px) + 84px)" : "calc(env(safe-area-inset-bottom, 0px) + 94px)")
+                    : "calc(env(safe-area-inset-bottom, 0px) + 86px)",
+                  right: "calc(env(safe-area-inset-right, 0px) + 16px)",
+                  paddingTop: "14px",
+                  paddingBottom: "14px",
+                  paddingLeft: "14px",
+                  paddingRight: "14px"
                 }}
                 onClick={(e) => e.stopPropagation()}
               >
