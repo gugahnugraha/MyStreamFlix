@@ -46,7 +46,10 @@ export const DEFAULT_PROXY_DOMAINS = [
   "hgmtv.com",
   "akamaihd.net",
   "aiv-cdn.net",
-  "bintangstreaming.my.id"
+  "bintangstreaming.my.id",
+  // Cloudflare R2 public dev URLs — routed via proxy to bypass CORS restrictions
+  "r2.dev",
+  "pub.r2.dev"
 ];
 
 const STORAGE_KEY = "mystreamflix_cors_proxy_domains";
@@ -57,7 +60,12 @@ export function getCorsProxyDomains(): string[] {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
       const parsed = JSON.parse(stored);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        // Always merge with DEFAULT_PROXY_DOMAINS so new defaults (e.g. r2.dev)
+        // are available even when localStorage contains an older list.
+        const merged = Array.from(new Set([...DEFAULT_PROXY_DOMAINS, ...parsed]));
+        return merged;
+      }
     }
   } catch {}
   return DEFAULT_PROXY_DOMAINS;
