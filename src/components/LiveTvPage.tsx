@@ -7,7 +7,7 @@ import React, { useState, useEffect, useRef, useMemo } from "react";
 import {
   Tv, Play, Pause, Volume2, VolumeX, Maximize, Minimize,
   Search, Globe, Check, RefreshCw, AlertCircle,
-  SlidersHorizontal, X
+  SlidersHorizontal, X, SkipBack, SkipForward
 } from "lucide-react";
 import Hls from "hls.js";
 import * as dashjs from "dashjs";
@@ -67,6 +67,7 @@ export default function LiveTvPage({
   const [showControls, setShowControls] = useState(true);
   const [showFullscreenPlaylist, setShowFullscreenPlaylist] = useState<boolean>(true);
   const [fullscreenCategory, setFullscreenCategory] = useState<string>("All");
+  const [fullscreenRegion, setFullscreenRegion] = useState<string>("All");
   const fullscreenScrollRef = useRef<HTMLDivElement>(null);
   const lastTouchTimeRef = useRef<number>(0);
 
@@ -206,6 +207,41 @@ export default function LiveTvPage({
     setAltIndex(0);
     setActiveChannel(channel);
     window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  // Prev & Next channel navigation
+  const handlePrevChannel = () => {
+    const list = filteredChannels.length > 0 ? filteredChannels : liveChannels;
+    if (list.length === 0) return;
+    const currentIndex = list.findIndex(c => c.id === activeChannel?.id);
+    const prevIndex = currentIndex <= 0 ? list.length - 1 : currentIndex - 1;
+    handleSelectChannel(list[prevIndex]);
+    scheduleControlsHide();
+  };
+
+  const handleNextChannel = () => {
+    const list = filteredChannels.length > 0 ? filteredChannels : liveChannels;
+    if (list.length === 0) return;
+    const currentIndex = list.findIndex(c => c.id === activeChannel?.id);
+    const nextIndex = currentIndex === -1 || currentIndex >= list.length - 1 ? 0 : currentIndex + 1;
+    handleSelectChannel(list[nextIndex]);
+    scheduleControlsHide();
+  };
+
+  const getCountryFlag = (country?: string) => {
+    switch (country) {
+      case "Indonesia": return "🇮🇩";
+      case "China": return "🇨🇳";
+      case "Qatar": return "🇶🇦";
+      case "France": return "🇫🇷";
+      case "Germany": return "🇩🇪";
+      case "Austria": return "🇦🇹";
+      case "United States": return "🇺🇸";
+      case "United Kingdom": return "🇬🇧";
+      case "Japan": return "🇯🇵";
+      case "South Korea": return "🇰🇷";
+      default: return "🌐";
+    }
   };
 
   const clearStreamTimers = () => {
@@ -556,8 +592,8 @@ export default function LiveTvPage({
         paddingBottom: "8px",
       };
 
-  const categories = ["All", "News", "Entertainment", "Sports", "Kids", "Science", "Business", "Culture", "Local ID"];
-  const regions = ["All", "Indonesia", "Asia", "Europe", "Americas", "Middle East"];
+  const categories = ["All", "News", "Documentary", "Sports", "Entertainment", "Kids", "Science", "Business", "Culture", "Local ID"];
+  const regions = ["All", "Indonesia", "China", "Asia", "Europe", "Americas", "Middle East"];
 
   const filteredChannels = liveChannels.filter(ch => {
     const q = searchQuery.toLowerCase();
@@ -568,6 +604,8 @@ export default function LiveTvPage({
         if (!(ch.country === "Indonesia" || ch.id.startsWith("tv-") || ch.genres.some(g => ["Local ID", "Indonesia", "Nasional"].includes(g)))) return false;
       } else if (selectedCategory === "News") {
         if (!ch.genres.some(g => ["News", "Business", "Finance", "Berita", "Informasi"].includes(g))) return false;
+      } else if (selectedCategory === "Documentary") {
+        if (!ch.genres.some(g => ["Documentary", "Dokumenter"].includes(g))) return false;
       } else if (selectedCategory === "Entertainment") {
         if (!ch.genres.some(g => ["Entertainment", "Comedy", "Music", "Hiburan", "Variety"].includes(g))) return false;
       } else if (selectedCategory === "Sports") {
@@ -575,19 +613,20 @@ export default function LiveTvPage({
       } else if (selectedCategory === "Kids") {
         if (!ch.genres.some(g => ["Kids", "Animation", "Anak", "Family"].includes(g))) return false;
       } else if (selectedCategory === "Science") {
-        if (!ch.genres.some(g => ["Science", "Education", "Documentary", "Sains"].includes(g))) return false;
+        if (!ch.genres.some(g => ["Science", "Education", "Sains"].includes(g))) return false;
       } else if (selectedCategory === "Business") {
         if (!ch.genres.some(g => ["Business", "Finance", "Bisnis"].includes(g))) return false;
       } else if (selectedCategory === "Culture") {
-        if (!ch.genres.some(g => ["Culture", "Budaya", "Religious", "Agama", "Documentary"].includes(g))) return false;
+        if (!ch.genres.some(g => ["Culture", "Budaya", "Religious", "Agama"].includes(g))) return false;
       }
     }
 
     if (selectedRegion !== "All") {
       const country = ch.country || "";
       if (selectedRegion === "Indonesia" && country !== "Indonesia" && !ch.id.startsWith("tv-")) return false;
+      if (selectedRegion === "China" && country !== "China") return false;
       if (selectedRegion === "Asia" && !["Japan", "South Korea", "China", "Singapore", "Turkey", "Qatar", "Pakistan", "Indonesia"].includes(country)) return false;
-      if (selectedRegion === "Europe" && !["Germany", "France", "United Kingdom", "Russia"].includes(country)) return false;
+      if (selectedRegion === "Europe" && !["Germany", "France", "United Kingdom", "Russia", "Austria"].includes(country)) return false;
       if (selectedRegion === "Americas" && !["United States", "Canada", "Brazil"].includes(country)) return false;
       if (selectedRegion === "Middle East" && !["Qatar", "Turkey", "Saudi Arabia", "UAE"].includes(country)) return false;
     }
@@ -596,28 +635,42 @@ export default function LiveTvPage({
   });
 
   const dockChannels = useMemo(() => {
-    if (fullscreenCategory === "All") return liveChannels;
     return liveChannels.filter(ch => {
-      if (fullscreenCategory === "Local ID") {
-        return (ch.country === "Indonesia" || ch.id.startsWith("tv-") || ch.genres.some(g => ["Local ID", "Indonesia", "Nasional"].includes(g)));
-      } else if (fullscreenCategory === "News") {
-        return ch.genres.some(g => ["News", "Business", "Finance", "Berita", "Informasi"].includes(g));
-      } else if (fullscreenCategory === "Entertainment") {
-        return ch.genres.some(g => ["Entertainment", "Comedy", "Music", "Hiburan", "Variety"].includes(g));
-      } else if (fullscreenCategory === "Sports") {
-        return ch.genres.some(g => ["Sports", "Olahraga", "Soccer"].includes(g));
-      } else if (fullscreenCategory === "Kids") {
-        return ch.genres.some(g => ["Kids", "Animation", "Anak", "Family"].includes(g));
-      } else if (fullscreenCategory === "Science") {
-        return ch.genres.some(g => ["Science", "Education", "Documentary", "Sains"].includes(g));
-      } else if (fullscreenCategory === "Business") {
-        return ch.genres.some(g => ["Business", "Finance", "Bisnis"].includes(g));
-      } else if (fullscreenCategory === "Culture") {
-        return ch.genres.some(g => ["Culture", "Budaya", "Religious", "Agama", "Documentary"].includes(g));
+      if (fullscreenCategory !== "All") {
+        if (fullscreenCategory === "Local ID") {
+          if (!(ch.country === "Indonesia" || ch.id.startsWith("tv-") || ch.genres.some(g => ["Local ID", "Indonesia", "Nasional"].includes(g)))) return false;
+        } else if (fullscreenCategory === "News") {
+          if (!ch.genres.some(g => ["News", "Business", "Finance", "Berita", "Informasi"].includes(g))) return false;
+        } else if (fullscreenCategory === "Documentary") {
+          if (!ch.genres.some(g => ["Documentary", "Dokumenter"].includes(g))) return false;
+        } else if (fullscreenCategory === "Entertainment") {
+          if (!ch.genres.some(g => ["Entertainment", "Comedy", "Music", "Hiburan", "Variety"].includes(g))) return false;
+        } else if (fullscreenCategory === "Sports") {
+          if (!ch.genres.some(g => ["Sports", "Olahraga", "Soccer"].includes(g))) return false;
+        } else if (fullscreenCategory === "Kids") {
+          if (!ch.genres.some(g => ["Kids", "Animation", "Anak", "Family"].includes(g))) return false;
+        } else if (fullscreenCategory === "Science") {
+          if (!ch.genres.some(g => ["Science", "Education", "Sains"].includes(g))) return false;
+        } else if (fullscreenCategory === "Business") {
+          if (!ch.genres.some(g => ["Business", "Finance", "Bisnis"].includes(g))) return false;
+        } else if (fullscreenCategory === "Culture") {
+          if (!ch.genres.some(g => ["Culture", "Budaya", "Religious", "Agama"].includes(g))) return false;
+        }
       }
+
+      if (fullscreenRegion !== "All") {
+        const country = ch.country || "";
+        if (fullscreenRegion === "Indonesia" && country !== "Indonesia" && !ch.id.startsWith("tv-")) return false;
+        if (fullscreenRegion === "China" && country !== "China") return false;
+        if (fullscreenRegion === "Asia" && !["Japan", "South Korea", "China", "Singapore", "Turkey", "Qatar", "Pakistan", "Indonesia"].includes(country)) return false;
+        if (fullscreenRegion === "Europe" && !["Germany", "France", "United Kingdom", "Russia", "Austria"].includes(country)) return false;
+        if (fullscreenRegion === "Americas" && !["United States", "Canada", "Brazil"].includes(country)) return false;
+        if (fullscreenRegion === "Middle East" && !["Qatar", "Turkey", "Saudi Arabia", "UAE"].includes(country)) return false;
+      }
+
       return true;
     });
-  }, [liveChannels, fullscreenCategory]);
+  }, [liveChannels, fullscreenCategory, fullscreenRegion]);
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white pb-24 sm:pb-20 pt-2 sm:pt-3 px-3 sm:px-6 lg:px-8 max-w-7xl mx-auto space-y-3 sm:space-y-5">
@@ -779,13 +832,31 @@ export default function LiveTvPage({
               }`}
               style={hudStyle}
             >
-              {/* Left: Play/Pause + Volume */}
-              <div className="flex items-center gap-2">
+              {/* Left: Prev + Play/Pause + Next + Volume */}
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                {/* Prev Channel Button */}
+                <button
+                  onClick={(e) => { e.stopPropagation(); handlePrevChannel(); }}
+                  className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 active:scale-95 backdrop-blur-md text-white flex items-center justify-center transition-all cursor-pointer"
+                  title="Channel Sebelumnya"
+                >
+                  <SkipBack className="w-4 h-4" />
+                </button>
+
                 <button
                   onClick={(e) => { e.stopPropagation(); togglePlay(); }}
                   className="w-11 h-11 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-md text-white flex items-center justify-center transition-all cursor-pointer"
                 >
                   {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 ml-0.5" />}
+                </button>
+
+                {/* Next Channel Button */}
+                <button
+                  onClick={(e) => { e.stopPropagation(); handleNextChannel(); }}
+                  className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 active:scale-95 backdrop-blur-md text-white flex items-center justify-center transition-all cursor-pointer"
+                  title="Channel Berikutnya"
+                >
+                  <SkipForward className="w-4 h-4" />
                 </button>
 
                 <button
@@ -961,28 +1032,56 @@ export default function LiveTvPage({
                       </span>
                     </div>
 
-                    {/* Categories Pills */}
-                    <div className="flex items-center gap-1 overflow-x-auto scrollbar-none py-0.5 max-w-[60%] sm:max-w-[70%]">
-                      {categories.map(cat => {
-                        const isCatActive = fullscreenCategory.toLowerCase() === cat.toLowerCase();
-                        return (
-                          <button
-                            key={cat}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setFullscreenCategory(cat);
-                              scheduleControlsHide();
-                            }}
-                            className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wide transition-all shrink-0 cursor-pointer ${
-                              isCatActive
-                                ? "bg-blue-600 text-white shadow-[0_0_12px_rgba(37,99,235,0.6)]"
-                                : "bg-white/10 text-zinc-300 hover:bg-white/20 hover:text-white"
-                            }`}
-                          >
-                            {t?.[cat] || cat}
-                          </button>
-                        );
-                      })}
+                    {/* Dock Filters: Categories & Regions */}
+                    <div className="flex flex-col gap-1 max-w-[65%] sm:max-w-[72%]">
+                      {/* Categories Pills */}
+                      <div className="flex items-center gap-1 overflow-x-auto scrollbar-none py-0.5">
+                        {categories.map(cat => {
+                          const isCatActive = fullscreenCategory.toLowerCase() === cat.toLowerCase();
+                          return (
+                            <button
+                              key={cat}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setFullscreenCategory(cat);
+                                scheduleControlsHide();
+                              }}
+                              className={`px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-bold tracking-wide transition-all shrink-0 cursor-pointer ${
+                                isCatActive
+                                  ? "bg-blue-600 text-white shadow-[0_0_12px_rgba(37,99,235,0.6)]"
+                                  : "bg-white/10 text-zinc-300 hover:bg-white/20 hover:text-white"
+                              }`}
+                            >
+                              {t?.[cat] || cat}
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      {/* Region/Country Pills */}
+                      <div className="flex items-center gap-1 overflow-x-auto scrollbar-none py-0.5">
+                        {regions.map(reg => {
+                          const isRegActive = fullscreenRegion.toLowerCase() === reg.toLowerCase();
+                          return (
+                            <button
+                              key={reg}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setFullscreenRegion(reg);
+                                scheduleControlsHide();
+                              }}
+                              className={`px-2 py-0.5 rounded-full text-[9px] font-semibold tracking-wide transition-all shrink-0 cursor-pointer flex items-center gap-1 ${
+                                isRegActive
+                                  ? "bg-cyan-600 text-white shadow-[0_0_10px_rgba(8,145,178,0.5)]"
+                                  : "bg-white/5 text-zinc-400 hover:bg-white/15 hover:text-zinc-200"
+                              }`}
+                            >
+                              <span>{getCountryFlag(reg !== "All" && reg !== "Europe" && reg !== "Asia" && reg !== "Americas" && reg !== "Middle East" ? reg : undefined)}</span>
+                              <span>{t?.[reg] || reg}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
 
                     {/* Close / Hide Dock Button */}
@@ -1014,7 +1113,7 @@ export default function LiveTvPage({
                             handleSelectChannel(channel);
                             scheduleControlsHide();
                           }}
-                          className={`shrink-0 w-36 sm:w-44 p-2 rounded-xl border text-left transition-all duration-200 flex items-center gap-2.5 cursor-pointer group ${
+                          className={`shrink-0 w-40 sm:w-48 p-2 rounded-xl border text-left transition-all duration-200 flex items-center gap-2.5 cursor-pointer group ${
                             isActive
                               ? "bg-blue-950/80 border-blue-500 shadow-[0_0_20px_rgba(37,99,235,0.4)] ring-1 ring-blue-500 scale-[1.02]"
                               : "bg-zinc-900/85 hover:bg-zinc-800/90 border-white/10 hover:border-white/25 hover:scale-[1.01]"
@@ -1038,12 +1137,17 @@ export default function LiveTvPage({
                             <p className={`text-xs font-bold truncate leading-tight ${isActive ? "text-blue-300" : "text-white group-hover:text-blue-200"}`}>
                               {channel.title}
                             </p>
-                            <div className="flex items-center gap-1.5 mt-0.5">
+                            <div className="flex items-center gap-1 mt-0.5">
+                              <span className="text-[9px] text-zinc-300 font-medium shrink-0 flex items-center gap-0.5">
+                                <span>{getCountryFlag(channel.country)}</span>
+                                <span className="truncate max-w-[50px]">{channel.country || "Live"}</span>
+                              </span>
+                              <span className="text-[8px] text-zinc-500">•</span>
                               <span className="text-[9px] text-zinc-400 truncate">
-                                {channel.category || channel.genres?.[0] || "Live"}
+                                {channel.genres?.[0] || channel.category || "TV"}
                               </span>
                               {isActive && (
-                                <span className="text-[8px] font-black uppercase text-blue-400 bg-blue-500/20 px-1 rounded">
+                                <span className="text-[8px] font-black uppercase text-blue-400 bg-blue-500/20 px-1 rounded ml-auto shrink-0">
                                   ON AIR
                                 </span>
                               )}
@@ -1131,14 +1235,21 @@ export default function LiveTvPage({
                       <img src={channel.posterUrl} alt={channel.title} className="w-full h-full object-contain" />
                     </div>
 
-                    {/* Name + genre */}
+                    {/* Name + country & genre */}
                     <div className="flex-1 min-w-0">
                       <p className={`text-xs font-bold truncate ${isActive ? "text-red-400" : "text-white"}`}>
                         {channel.title}
                       </p>
-                      <p className="text-[10px] text-zinc-500 truncate">
-                        {channel.genres.slice(0, 2).join(", ") || "TV"}
-                      </p>
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        <span className="text-[10px] text-zinc-300 font-medium shrink-0 flex items-center gap-0.5">
+                          <span>{getCountryFlag(channel.country)}</span>
+                          <span>{channel.country || "Global"}</span>
+                        </span>
+                        <span className="text-[9px] text-zinc-600">•</span>
+                        <span className="text-[10px] text-zinc-500 truncate">
+                          {channel.genres.slice(0, 2).join(", ") || "TV"}
+                        </span>
+                      </div>
                     </div>
 
                     {/* Playing indicator */}
