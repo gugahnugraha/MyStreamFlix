@@ -2165,16 +2165,6 @@ export default function AdminCMS({
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <label className="text-[10px] font-bold uppercase text-zinc-500">{t.cmsVideoSourceUrl}</label>
                         <div className="flex items-center gap-3">
-                          {videoUrl.includes(".r2.dev") && (
-                            <button
-                              type="button"
-                              onClick={() => setVideoUrl(normalizeCdnUrl(videoUrl))}
-                              className="text-[10px] text-amber-400 font-bold hover:underline cursor-pointer flex items-center gap-1"
-                              title="Convert to custom domain cdn.mystreamflix.biz.id"
-                            >
-                              ⚡ Convert to cdn.mystreamflix.biz.id
-                            </button>
-                          )}
                           {/* Storage provider toggle for video */}
                           <div className="flex items-center rounded overflow-hidden border border-zinc-700 text-[9px] font-bold">
                             <button
