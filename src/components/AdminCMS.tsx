@@ -52,9 +52,12 @@ const normalizeCdnUrl = (url: string | undefined | null, fallbackUrl: string = D
     return `${cdnBase}/${trimmed}`;
   }
 
-  if (trimmed.includes(".r2.dev/")) {
-    return trimmed.replace(/^https?:\/\/[^\/]+\.r2\.dev/, cdnBase);
-  }
+  // NOTE: Do NOT auto-convert .r2.dev URLs to cdn.mystreamflix.biz.id.
+  // R2 dev URLs may belong to a different Cloudflare account (Account B),
+  // and blindly converting them to Account A's CDN would result in 404.
+  // The CORS proxy whitelist already handles .r2.dev playback correctly.
+  // Use the ⚡ Convert button in the catalog editor for manual conversion (Account A only).
+
   return trimmed;
 };
 
