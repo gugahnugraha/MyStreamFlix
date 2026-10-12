@@ -2267,21 +2267,6 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
 
               {/* Right Section: Video Quality, Speed, Subtitles & Customizer */}
               <div className="flex items-center gap-1.5 sm:gap-2.5 relative">
-                {/* Live TV Server Alternative Switcher */}
-                {movie.contentType === "livetv" && candidateStreamUrls.length > 1 && (
-                  <button
-                    onClick={() => {
-                      setMediaAltIndex((idx) => (idx + 1) % candidateStreamUrls.length);
-                    }}
-                    className="flex items-center gap-1.5 text-cyan-300 hover:text-white text-xs font-semibold px-2.5 py-2 sm:py-1 bg-cyan-950/60 hover:bg-cyan-900/80 border border-cyan-800/60 rounded-lg transition-colors cursor-pointer min-h-11 shadow-sm"
-                    title="Ganti Server Cadangan"
-                  >
-                    <Globe className="w-3.5 h-3.5 text-cyan-400" />
-                    <span className="whitespace-nowrap font-mono text-[11px] sm:text-xs">
-                      Server {mediaAltIndex + 1}/{candidateStreamUrls.length}
-                    </span>
-                  </button>
-                )}
                 {/* Video Quality Selector */}
                 <div className="relative">
                   <button
