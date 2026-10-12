@@ -7,7 +7,7 @@ import React, { useState, useEffect, useRef, useMemo } from "react";
 import {
   Tv, Play, Pause, Volume2, VolumeX, Maximize, Minimize,
   Search, Globe, Check, RefreshCw, AlertCircle,
-  SlidersHorizontal, X, SkipBack, SkipForward
+  SlidersHorizontal, X, SkipBack, SkipForward, RotateCcw, Radio
 } from "lucide-react";
 import Hls from "hls.js";
 import * as dashjs from "dashjs";
@@ -81,12 +81,16 @@ export default function LiveTvPage({
   const [selectedQuality, setSelectedQuality] = useState<string>("Auto");
   const [showQualityMenu, setShowQualityMenu] = useState<boolean>(false);
 
-  // Sync active channel when list changes
+  // Sync active channel when list changes (misalnya channel dihapus di Admin CMS)
   useEffect(() => {
-    if (liveChannels.length > 0 && !liveChannels.find(c => c.id === activeChannel?.id)) {
-      setActiveChannel(liveChannels[0]);
+    if (liveChannels.length > 0) {
+      const stillExists = liveChannels.find(c => c.id === activeChannel?.id);
+      if (!stillExists) {
+        setActiveChannel(liveChannels[0]);
+        setAltIndex(0);
+      }
     }
-  }, [channels]);
+  }, [channels, liveChannels, activeChannel?.id]);
 
   // Landscape listener
   useEffect(() => {
@@ -592,82 +596,123 @@ export default function LiveTvPage({
         paddingBottom: "8px",
       };
 
-  const categories = ["All", "News", "Documentary", "Sports", "Entertainment", "Kids", "Science", "Business", "Culture", "Local ID"];
-  const regions = ["All", "Indonesia", "China", "Asia", "Europe", "Americas", "Middle East"];
+  // Helper pencocokan kategori saluran
+  const checkChannelCategory = (ch: Movie, cat: string) => {
+    if (cat === "All") return true;
+    const genres = (ch.genres || []).map(g => (g || "").toLowerCase());
+    const title = (ch.title || "").toLowerCase();
+    const country = (ch.country || "").toLowerCase();
 
-  const filteredChannels = liveChannels.filter(ch => {
-    const q = searchQuery.toLowerCase();
-    if (q && !ch.title.toLowerCase().includes(q) && !ch.description.toLowerCase().includes(q) && !(ch.country || "").toLowerCase().includes(q)) return false;
+    if (cat === "Local ID") {
+      return country === "indonesia" || 
+        ch.id.startsWith("tv-") || 
+        ch.language === "id" ||
+        genres.some(g => ["local id", "indonesia", "nasional"].includes(g));
+    }
+    if (cat === "News") {
+      return genres.some(g => ["news", "business", "finance", "berita", "informasi", "current affairs"].includes(g)) ||
+        title.includes("news") || title.includes("kabar") || title.includes("kompas") || title.includes("metro") || 
+        title.includes("tvone") || title.includes("inews") || title.includes("cnn") || title.includes("cnbc");
+    }
+    if (cat === "Entertainment") {
+      return genres.some(g => ["entertainment", "comedy", "music", "hiburan", "variety", "drama", "action", "film"].includes(g)) ||
+        title.includes("mdtv") || title.includes("rcti") || title.includes("sctv") || title.includes("indosiar") || 
+        title.includes("trans") || title.includes("mnctv") || title.includes("gtv") || title.includes("net");
+    }
+    if (cat === "Sports") {
+      return genres.some(g => ["sports", "olahraga", "soccer", "football"].includes(g)) ||
+        title.includes("sport") || title.includes("bein") || title.includes("red bull") || title.includes("deportes");
+    }
+    if (cat === "Documentary") {
+      return genres.some(g => ["documentary", "dokumenter", "science", "culture", "budaya"].includes(g)) ||
+        title.includes("doc") || title.includes("dw") || title.includes("al jazeera") || title.includes("france 24");
+    }
+    if (cat === "Kids") {
+      return genres.some(g => ["kids", "animation", "anak", "family"].includes(g));
+    }
+    if (cat === "International") {
+      return country !== "indonesia" && !ch.id.startsWith("tv-");
+    }
+    return genres.some(g => g === cat.toLowerCase());
+  };
 
-    if (selectedCategory !== "All") {
-      if (selectedCategory === "Local ID") {
-        if (!(ch.country === "Indonesia" || ch.id.startsWith("tv-") || ch.genres.some(g => ["Local ID", "Indonesia", "Nasional"].includes(g)))) return false;
-      } else if (selectedCategory === "News") {
-        if (!ch.genres.some(g => ["News", "Business", "Finance", "Berita", "Informasi"].includes(g))) return false;
-      } else if (selectedCategory === "Documentary") {
-        if (!ch.genres.some(g => ["Documentary", "Dokumenter"].includes(g))) return false;
-      } else if (selectedCategory === "Entertainment") {
-        if (!ch.genres.some(g => ["Entertainment", "Comedy", "Music", "Hiburan", "Variety"].includes(g))) return false;
-      } else if (selectedCategory === "Sports") {
-        if (!ch.genres.some(g => ["Sports", "Olahraga", "Soccer"].includes(g))) return false;
-      } else if (selectedCategory === "Kids") {
-        if (!ch.genres.some(g => ["Kids", "Animation", "Anak", "Family"].includes(g))) return false;
-      } else if (selectedCategory === "Science") {
-        if (!ch.genres.some(g => ["Science", "Education", "Sains"].includes(g))) return false;
-      } else if (selectedCategory === "Business") {
-        if (!ch.genres.some(g => ["Business", "Finance", "Bisnis"].includes(g))) return false;
-      } else if (selectedCategory === "Culture") {
-        if (!ch.genres.some(g => ["Culture", "Budaya", "Religious", "Agama"].includes(g))) return false;
+  const checkChannelRegion = (ch: Movie, region: string) => {
+    if (region === "All") return true;
+    const country = (ch.country || "").toLowerCase();
+    if (region === "Indonesia") return country === "indonesia" || ch.id.startsWith("tv-");
+    if (region === "China") return country === "china";
+    if (region === "Asia") return ["japan", "south korea", "china", "singapore", "turkey", "qatar", "pakistan", "indonesia"].includes(country);
+    if (region === "Europe") return ["germany", "france", "united kingdom", "russia", "austria"].includes(country);
+    if (region === "Americas") return ["united states", "canada", "brazil"].includes(country);
+    if (region === "Middle East") return ["qatar", "turkey", "saudi arabia", "uae"].includes(country);
+    return country === region.toLowerCase();
+  };
+
+  const candidateCategories = useMemo(() => [
+    { id: "All", label: t?.all || "Semua" },
+    { id: "Local ID", label: "Nasional ID" },
+    { id: "News", label: "Berita" },
+    { id: "Entertainment", label: "Hiburan" },
+    { id: "Sports", label: "Olahraga" },
+    { id: "Documentary", label: "Dokumenter" },
+    { id: "International", label: "Mancanegara" }
+  ], [t]);
+
+  const categoryCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    candidateCategories.forEach(cat => {
+      counts[cat.id] = liveChannels.filter(ch => checkChannelCategory(ch, cat.id)).length;
+    });
+    return counts;
+  }, [candidateCategories, liveChannels]);
+
+  const availableCategories = useMemo(() => {
+    return candidateCategories.filter(cat => cat.id === "All" || (categoryCounts[cat.id] || 0) > 0);
+  }, [candidateCategories, categoryCounts]);
+
+  const candidateRegions = useMemo(() => [
+    { id: "All", label: "Semua Wilayah" },
+    { id: "Indonesia", label: "🇮🇩 Indonesia" },
+    { id: "China", label: "🇨🇳 China" },
+    { id: "Asia", label: "🌏 Asia" },
+    { id: "Europe", label: "🇪🇺 Eropa" },
+    { id: "Americas", label: "🌎 Amerika" },
+    { id: "Middle East", label: "🕌 Timur Tengah" }
+  ], []);
+
+  const regionCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    candidateRegions.forEach(reg => {
+      counts[reg.id] = liveChannels.filter(ch => checkChannelRegion(ch, reg.id)).length;
+    });
+    return counts;
+  }, [candidateRegions, liveChannels]);
+
+  const availableRegions = useMemo(() => {
+    return candidateRegions.filter(reg => reg.id === "All" || (regionCounts[reg.id] || 0) > 0);
+  }, [candidateRegions, regionCounts]);
+
+  const filteredChannels = useMemo(() => {
+    return liveChannels.filter(ch => {
+      const q = searchQuery.toLowerCase().trim();
+      if (q) {
+        const matchesQuery = 
+          ch.title.toLowerCase().includes(q) ||
+          (ch.description || "").toLowerCase().includes(q) ||
+          (ch.country || "").toLowerCase().includes(q) ||
+          (ch.genres || []).some(g => g.toLowerCase().includes(q));
+        if (!matchesQuery) return false;
       }
-    }
-
-    if (selectedRegion !== "All") {
-      const country = ch.country || "";
-      if (selectedRegion === "Indonesia" && country !== "Indonesia" && !ch.id.startsWith("tv-")) return false;
-      if (selectedRegion === "China" && country !== "China") return false;
-      if (selectedRegion === "Asia" && !["Japan", "South Korea", "China", "Singapore", "Turkey", "Qatar", "Pakistan", "Indonesia"].includes(country)) return false;
-      if (selectedRegion === "Europe" && !["Germany", "France", "United Kingdom", "Russia", "Austria"].includes(country)) return false;
-      if (selectedRegion === "Americas" && !["United States", "Canada", "Brazil"].includes(country)) return false;
-      if (selectedRegion === "Middle East" && !["Qatar", "Turkey", "Saudi Arabia", "UAE"].includes(country)) return false;
-    }
-
-    return true;
-  });
+      if (!checkChannelCategory(ch, selectedCategory)) return false;
+      if (!checkChannelRegion(ch, selectedRegion)) return false;
+      return true;
+    });
+  }, [liveChannels, searchQuery, selectedCategory, selectedRegion]);
 
   const dockChannels = useMemo(() => {
     return liveChannels.filter(ch => {
-      if (fullscreenCategory !== "All") {
-        if (fullscreenCategory === "Local ID") {
-          if (!(ch.country === "Indonesia" || ch.id.startsWith("tv-") || ch.genres.some(g => ["Local ID", "Indonesia", "Nasional"].includes(g)))) return false;
-        } else if (fullscreenCategory === "News") {
-          if (!ch.genres.some(g => ["News", "Business", "Finance", "Berita", "Informasi"].includes(g))) return false;
-        } else if (fullscreenCategory === "Documentary") {
-          if (!ch.genres.some(g => ["Documentary", "Dokumenter"].includes(g))) return false;
-        } else if (fullscreenCategory === "Entertainment") {
-          if (!ch.genres.some(g => ["Entertainment", "Comedy", "Music", "Hiburan", "Variety"].includes(g))) return false;
-        } else if (fullscreenCategory === "Sports") {
-          if (!ch.genres.some(g => ["Sports", "Olahraga", "Soccer"].includes(g))) return false;
-        } else if (fullscreenCategory === "Kids") {
-          if (!ch.genres.some(g => ["Kids", "Animation", "Anak", "Family"].includes(g))) return false;
-        } else if (fullscreenCategory === "Science") {
-          if (!ch.genres.some(g => ["Science", "Education", "Sains"].includes(g))) return false;
-        } else if (fullscreenCategory === "Business") {
-          if (!ch.genres.some(g => ["Business", "Finance", "Bisnis"].includes(g))) return false;
-        } else if (fullscreenCategory === "Culture") {
-          if (!ch.genres.some(g => ["Culture", "Budaya", "Religious", "Agama"].includes(g))) return false;
-        }
-      }
-
-      if (fullscreenRegion !== "All") {
-        const country = ch.country || "";
-        if (fullscreenRegion === "Indonesia" && country !== "Indonesia" && !ch.id.startsWith("tv-")) return false;
-        if (fullscreenRegion === "China" && country !== "China") return false;
-        if (fullscreenRegion === "Asia" && !["Japan", "South Korea", "China", "Singapore", "Turkey", "Qatar", "Pakistan", "Indonesia"].includes(country)) return false;
-        if (fullscreenRegion === "Europe" && !["Germany", "France", "United Kingdom", "Russia", "Austria"].includes(country)) return false;
-        if (fullscreenRegion === "Americas" && !["United States", "Canada", "Brazil"].includes(country)) return false;
-        if (fullscreenRegion === "Middle East" && !["Qatar", "Turkey", "Saudi Arabia", "UAE"].includes(country)) return false;
-      }
-
+      if (!checkChannelCategory(ch, fullscreenCategory)) return false;
+      if (!checkChannelRegion(ch, fullscreenRegion)) return false;
       return true;
     });
   }, [liveChannels, fullscreenCategory, fullscreenRegion]);
@@ -696,15 +741,24 @@ export default function LiveTvPage({
         </div>
 
         {/* Search */}
-        <div className="relative w-full sm:w-60 shrink-0">
+        <div className="relative w-full sm:w-64 shrink-0">
           <Search className="w-3.5 h-3.5 text-zinc-500 absolute left-3 top-1/2 -translate-y-1/2" />
           <input
             type="text"
-            placeholder={t?.searchTvPlaceholder || "Search channels..."}
+            placeholder={t?.searchTvPlaceholder || "Cari nama saluran, genre, negara..."}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-zinc-900/90 border border-white/10 rounded-xl pl-8 pr-4 py-2 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-red-500 transition-all"
+            className="w-full bg-zinc-900/90 border border-white/10 rounded-xl pl-8 pr-8 py-2 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-red-500 transition-all"
           />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery("")}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white p-0.5 rounded cursor-pointer transition-colors"
+              title="Hapus pencarian"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
         </div>
       </div>
 
@@ -1135,58 +1189,114 @@ export default function LiveTvPage({
           {/* Channel detail card intentionally removed — info visible in channel list */}
         </div>
 
-        {/* Channel List */}
-        <div className="bg-zinc-900/50 border border-white/10 rounded-2xl p-3 sm:p-4 space-y-3 backdrop-blur-md">
+        {/* Channel List Right Sidebar */}
+        <div className="bg-zinc-900/60 border border-white/10 rounded-2xl p-3 sm:p-4 space-y-3 backdrop-blur-md shadow-2xl">
 
-          <div className="flex items-center justify-between pb-2 border-b border-white/10">
+          <div className="flex items-center justify-between pb-2.5 border-b border-white/10">
             <div className="flex items-center gap-2">
-              <Tv className="w-3.5 h-3.5 text-red-500" />
+              <Tv className="w-4 h-4 text-red-500" />
               <span className="text-xs font-black text-white uppercase tracking-wider">
-                {t?.channelList || "Channels"} <span className="text-zinc-500 font-normal">({filteredChannels.length})</span>
+                {t?.channelList || "Daftar Saluran"} 
+                <span className="ml-1.5 text-zinc-400 font-mono text-[11px] font-normal">
+                  ({filteredChannels.length} / {liveChannels.length})
+                </span>
               </span>
+            </div>
+
+            {(selectedCategory !== "All" || selectedRegion !== "All" || searchQuery) && (
+              <button
+                onClick={() => {
+                  setSelectedCategory("All");
+                  setSelectedRegion("All");
+                  setSearchQuery("");
+                }}
+                className="flex items-center gap-1 text-[10px] font-bold text-zinc-400 hover:text-white px-2 py-1 rounded-lg bg-zinc-800 hover:bg-zinc-700 transition-all cursor-pointer border border-white/5"
+                title="Reset filter saluran"
+              >
+                <RotateCcw className="w-3 h-3" />
+                <span>Reset</span>
+              </button>
+            )}
+          </div>
+
+          {/* Category filter pills with count badge */}
+          <div className="space-y-1">
+            <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Kategori Saluran:</p>
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+              {availableCategories.map(cat => {
+                const count = categoryCounts[cat.id] || 0;
+                const isSelected = selectedCategory === cat.id;
+                return (
+                  <button
+                    key={cat.id}
+                    onClick={() => setSelectedCategory(cat.id)}
+                    className={`px-2.5 py-1.5 rounded-lg text-xs font-bold shrink-0 transition-all cursor-pointer flex items-center gap-1.5 ${
+                      isSelected
+                        ? "bg-red-600 text-white shadow-md shadow-red-600/30 font-extrabold scale-[1.02]"
+                        : "bg-zinc-800/80 text-zinc-400 hover:text-white hover:bg-zinc-700/80 border border-white/5"
+                    }`}
+                  >
+                    <span>{cat.label}</span>
+                    <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
+                      isSelected ? "bg-black/30 text-white" : "bg-zinc-900 text-zinc-400"
+                    }`}>
+                      {count}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
           </div>
 
-          {/* Category filter */}
-          <div className="flex items-center gap-1 overflow-x-auto pb-1 scrollbar-none">
-            {categories.map(cat => (
-              <button
-                key={cat}
-                onClick={() => setSelectedCategory(cat)}
-                className={`px-2.5 py-1 rounded-md text-[10px] font-bold shrink-0 transition-all cursor-pointer ${
-                  selectedCategory === cat
-                    ? "bg-red-600 text-white"
-                    : "bg-zinc-800/80 text-zinc-400 hover:text-white hover:bg-zinc-700"
-                }`}
-              >
-                {t?.[cat] || cat}
-              </button>
-            ))}
-          </div>
-
-          {/* Region filter */}
-          <div className="flex items-center gap-1 overflow-x-auto pb-1 scrollbar-none">
-            <Globe className="w-3 h-3 text-zinc-600 shrink-0" />
-            {regions.map(region => (
-              <button
-                key={region}
-                onClick={() => setSelectedRegion(region)}
-                className={`px-2 py-0.5 rounded text-[10px] font-bold shrink-0 transition-all cursor-pointer border ${
-                  selectedRegion === region
-                    ? "bg-blue-600/80 text-white border-blue-500/60"
-                    : "bg-transparent text-zinc-500 border-zinc-800 hover:text-zinc-300"
-                }`}
-              >
-                {t?.[region] || region}
-              </button>
-            ))}
-          </div>
+          {/* Region / Country filter */}
+          {availableRegions.length > 2 && (
+            <div className="space-y-1 pt-1 border-t border-white/5">
+              <div className="flex items-center gap-1 text-[10px] font-bold text-zinc-400 uppercase tracking-wider">
+                <Globe className="w-3 h-3 text-zinc-500 shrink-0" />
+                <span>Negara / Wilayah:</span>
+              </div>
+              <div className="flex items-center gap-1 overflow-x-auto pb-1 scrollbar-none">
+                {availableRegions.map(region => {
+                  const count = regionCounts[region.id] || 0;
+                  const isSelected = selectedRegion === region.id;
+                  return (
+                    <button
+                      key={region.id}
+                      onClick={() => setSelectedRegion(region.id)}
+                      className={`px-2.5 py-1 rounded-md text-[10px] font-bold shrink-0 transition-all cursor-pointer border flex items-center gap-1 ${
+                        isSelected
+                          ? "bg-blue-600/90 text-white border-blue-500/80 shadow-sm"
+                          : "bg-zinc-900/60 text-zinc-400 border-zinc-800 hover:text-zinc-200 hover:bg-zinc-800"
+                      }`}
+                    >
+                      <span>{region.label}</span>
+                      <span className="text-[9px] font-mono text-zinc-500">({count})</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {/* Scrollable channel list */}
-          <div className="space-y-1 max-h-[50vh] sm:max-h-[55vh] lg:max-h-[calc(100vh-18rem)] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-zinc-800">
+          <div className="space-y-1.5 max-h-[50vh] sm:max-h-[55vh] lg:max-h-[calc(100vh-21rem)] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-zinc-800">
             {filteredChannels.length === 0 ? (
-              <div className="py-10 text-center text-zinc-500 text-xs border border-dashed border-zinc-800 rounded-xl">
-                {t?.noMatchingTv || "No channels found"}
+              <div className="py-12 px-4 text-center border border-dashed border-zinc-800 rounded-xl space-y-3">
+                <Tv className="w-8 h-8 text-zinc-600 mx-auto" />
+                <p className="text-xs text-zinc-400 font-medium">
+                  {t?.noMatchingTv || "Tidak ada saluran yang cocok dengan filter atau kata kunci saat ini."}
+                </p>
+                <button
+                  onClick={() => {
+                    setSelectedCategory("All");
+                    setSelectedRegion("All");
+                    setSearchQuery("");
+                  }}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-600/90 hover:bg-red-600 text-white rounded-lg text-xs font-bold shadow-md cursor-pointer transition-all"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  <span>Reset Semua Filter</span>
+                </button>
               </div>
             ) : (
               filteredChannels.map(channel => {
@@ -1195,46 +1305,63 @@ export default function LiveTvPage({
                   <button
                     key={channel.id}
                     onClick={() => handleSelectChannel(channel)}
-                    className={`w-full text-left px-2.5 py-2 rounded-lg border transition-all duration-150 flex items-center gap-2.5 cursor-pointer ${
+                    className={`w-full text-left px-3 py-2.5 rounded-xl border transition-all duration-150 flex items-center gap-3 cursor-pointer group ${
                       isActive
-                        ? "bg-red-950/40 border-red-500/50 shadow-sm"
-                        : "bg-zinc-900/80 hover:bg-zinc-800 border-white/5 hover:border-white/15"
+                        ? "bg-red-950/40 border-red-500/60 shadow-lg shadow-red-950/30 ring-1 ring-red-500/30"
+                        : "bg-zinc-900/80 hover:bg-zinc-800/90 border-white/5 hover:border-white/15"
                     }`}
                   >
-                    {/* Logo */}
-                    <div className="w-8 h-8 rounded-md bg-zinc-950 border border-white/10 p-0.5 shrink-0 flex items-center justify-center overflow-hidden">
-                      <img src={channel.posterUrl} alt={channel.title} className="w-full h-full object-contain" />
+                    {/* Logo with clean fallback */}
+                    <div className="w-9 h-9 rounded-lg bg-zinc-950 border border-white/10 p-1 shrink-0 flex items-center justify-center overflow-hidden">
+                      <img 
+                        src={channel.posterUrl} 
+                        alt={channel.title} 
+                        className="w-full h-full object-contain"
+                        onError={(e) => {
+                          (e.target as HTMLElement).style.display = 'none';
+                        }}
+                      />
                     </div>
 
                     {/* Name + country & genre */}
                     <div className="flex-1 min-w-0">
-                      <p className={`text-xs font-bold truncate ${isActive ? "text-red-400" : "text-white"}`}>
+                      <p className={`text-xs font-bold truncate transition-colors ${
+                        isActive ? "text-red-400 font-extrabold" : "text-white group-hover:text-red-300"
+                      }`}>
                         {channel.title}
                       </p>
-                      <div className="flex items-center gap-1.5 mt-0.5">
-                        <span className="text-[10px] text-zinc-300 font-medium shrink-0 flex items-center gap-0.5">
+                      <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                        <span className="text-[10px] text-zinc-300 font-medium shrink-0 flex items-center gap-1">
                           <span>{getCountryFlag(channel.country)}</span>
-                          <span>{channel.country || "Global"}</span>
+                          <span>{channel.country || "Indonesia"}</span>
                         </span>
                         <span className="text-[9px] text-zinc-600">•</span>
-                        <span className="text-[10px] text-zinc-500 truncate">
-                          {channel.genres.slice(0, 2).join(", ") || "TV"}
+                        <span className="text-[10px] text-zinc-400 truncate">
+                          {channel.genres?.slice(0, 2).join(", ") || "Live TV"}
                         </span>
+                        {channel.quality && (
+                          <>
+                            <span className="text-[9px] text-zinc-600">•</span>
+                            <span className="text-[9px] font-mono text-zinc-500 bg-zinc-800 px-1 py-0.2 rounded">
+                              {channel.quality}
+                            </span>
+                          </>
+                        )}
                       </div>
                     </div>
 
                     {/* Playing indicator */}
                     {isActive ? (
-                      <span className="shrink-0 flex items-center gap-1 bg-red-600 text-white text-[9px] font-black px-1.5 py-0.5 rounded uppercase">
+                      <span className="shrink-0 flex items-center gap-1 bg-red-600 text-white text-[9px] font-black px-2 py-0.5 rounded-full uppercase shadow-md shadow-red-600/30">
                         <span className="relative flex h-1.5 w-1.5">
                           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75" />
                           <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-white" />
                         </span>
-                        ON
+                        LIVE
                       </span>
                     ) : (
-                      <div className="w-6 h-6 rounded-full bg-white/5 hover:bg-red-600 text-zinc-500 hover:text-white flex items-center justify-center shrink-0 transition-all">
-                        <Play className="w-3 h-3 ml-0.5" />
+                      <div className="w-7 h-7 rounded-full bg-white/5 group-hover:bg-red-600 text-zinc-400 group-hover:text-white flex items-center justify-center shrink-0 transition-all shadow-sm">
+                        <Play className="w-3.5 h-3.5 ml-0.5 fill-current" />
                       </div>
                     )}
                   </button>

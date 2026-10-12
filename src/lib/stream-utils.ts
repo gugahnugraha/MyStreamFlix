@@ -28,13 +28,11 @@ export const DEFAULT_PROXY_DOMAINS = [
   "cnnindonesia.com",
   "cnbcindonesia.com",
   "detik.com",
-  "medcom.id",
   "tvri.go.id",
   "beetv.my.id",
   "workers.dev",
   "rctiplus.id",
   "rctiplus.com",
-  "dens.tv",
   "cloudfront.net",
   "visionplus.id",
   "indihometv.com",
@@ -265,6 +263,20 @@ export const CHANNEL_ALTERNATIVE_URLS: Record<string, string[]> = {
   ],
   "metro": [
     "https://edge.medcom.id/live-edge/smil:metro.smil/playlist.m3u8"
+  ],
+  "tvone": [
+    "https://op-group1-densxvisionhd-1.dens.tv/h/h40/01.m3u8",
+    "https://op-flashcon-digdayahd-1.dens.tv/h/h40/01.m3u8"
+  ],
+  "kompas": [
+    "https://op-flashcon-digdayahd-1.dens.tv/s/s104/index.m3u8"
+  ],
+  "mdtv": [
+    "https://op-flashcon-digdayahd-1.dens.tv/h/h223/02.m3u8"
+  ],
+  "cgtn": [
+    "https://english-livebkali.cgtn.com/live/encgtn_1.m3u8",
+    "https://english-livebkali.cgtn.com/live/doccgtn_2.m3u8"
   ],
   "magna": [
     "https://edge.medcom.id/live-edge/smil:magna.smil/playlist.m3u8",

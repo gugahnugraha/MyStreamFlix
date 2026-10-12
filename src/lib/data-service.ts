@@ -535,63 +535,60 @@ export async function getMovies(filters?: {
       });
       const dbMovies = movies.map(mapPrismaMovie);
 
-      // Pastikan saluran Live TV default selalu disertakan jika belum ada di DB PostgreSQL
+      // Inisialisasi seeding awal HANYA jika database Prisma belum pernah memiliki saluran Live TV sama sekali
       if (!contentType || contentType === "all" || contentType === "livetv") {
-        const defaultTvChannels = store.movies.filter(m => m.contentType === "livetv");
-        const missingTvChannels: Movie[] = [];
-
-        for (const tv of defaultTvChannels) {
-          const exists = dbMovies.some(
-            m => m.id === tv.id || (m.title.toLowerCase() === tv.title.toLowerCase() && m.contentType === "livetv")
-          );
-          if (!exists) {
-            const matchesSearch = !search || tv.title.toLowerCase().includes(search.toLowerCase()) || tv.description.toLowerCase().includes(search.toLowerCase());
-            const matchesGenre = !genre || genre === "All" || tv.genres?.some(g => g.toLowerCase() === genre.toLowerCase());
-            if (matchesSearch && matchesGenre) {
-              missingTvChannels.push(tv);
-            }
-            // Auto-sync ke Prisma database secara asinkron agar tersimpan permanen
-            (prisma as any).movie.upsert({
-              where: { id: tv.id },
-              create: {
-                id: tv.id,
-                title: tv.title,
-                description: tv.description,
-                posterUrl: tv.posterUrl,
-                backdropUrl: tv.backdropUrl,
-                videoUrl: tv.videoUrl,
-                duration: tv.duration,
-                releaseYear: tv.releaseYear,
-                rating: tv.rating,
-                ageRating: tv.ageRating,
-                quality: tv.quality || "HD",
-                genres: tv.genres || [],
-                cast: tv.cast || [],
-                directors: tv.directors || [],
-                subtitles: (tv.subtitles || []) as any,
-                country: tv.country || "Indonesia",
-                language: tv.language || "id",
-                views: tv.views || 0,
-                likes: tv.likes || 0,
-                isFeatured: !!tv.isFeatured,
-                isBanner: !!tv.isBanner,
-                tier: tv.tier || "free",
-                contentType: tv.contentType || "livetv",
-                seasons: (tv.seasons || []) as any,
-                createdAt: tv.createdAt || new Date().toISOString()
-              },
-              update: {
-                videoUrl: tv.videoUrl,
-                title: tv.title,
-                posterUrl: tv.posterUrl,
-                backdropUrl: tv.backdropUrl
+        const hasLiveTvInResult = dbMovies.some(m => m.contentType === "livetv" || m.id.startsWith("tv-"));
+        if (!hasLiveTvInResult) {
+          try {
+            const totalTvCount = await prisma.movie.count({
+              where: {
+                OR: [
+                  { contentType: "livetv" },
+                  { id: { startsWith: "tv-" } }
+                ]
               }
-            }).catch((e: any) => console.warn(`Auto-sync TV channel ${tv.id} failed:`, e?.message));
-          }
-        }
+            });
 
-        if (missingTvChannels.length > 0) {
-          dbMovies.push(...missingTvChannels);
+            // Hanya seed jika benar-benar 0 saluran di DB (first-time deployment)
+            if (totalTvCount === 0) {
+              const defaultTvChannels = store.movies.filter(m => m.contentType === "livetv");
+              for (const tv of defaultTvChannels) {
+                await (prisma as any).movie.create({
+                  data: {
+                    id: tv.id,
+                    title: tv.title,
+                    description: tv.description,
+                    posterUrl: tv.posterUrl,
+                    backdropUrl: tv.backdropUrl,
+                    videoUrl: tv.videoUrl,
+                    duration: tv.duration,
+                    releaseYear: tv.releaseYear,
+                    rating: tv.rating,
+                    ageRating: tv.ageRating,
+                    quality: tv.quality || "HD",
+                    genres: tv.genres || [],
+                    cast: tv.cast || [],
+                    directors: tv.directors || [],
+                    subtitles: (tv.subtitles || []) as any,
+                    country: tv.country || "Indonesia",
+                    language: tv.language || "id",
+                    views: tv.views || 0,
+                    likes: tv.likes || 0,
+                    isFeatured: !!tv.isFeatured,
+                    isBanner: !!tv.isBanner,
+                    tier: tv.tier || "free",
+                    contentType: tv.contentType || "livetv",
+                    seasons: (tv.seasons || []) as any,
+                    createdAt: tv.createdAt || new Date().toISOString()
+                  }
+                }).catch(() => {});
+              }
+              const reFetched = await prisma.movie.findMany({ where: whereClause, orderBy });
+              return reFetched.map(mapPrismaMovie);
+            }
+          } catch (e: any) {
+            console.warn("Initial live TV check error:", e?.message);
+          }
         }
       }
 
