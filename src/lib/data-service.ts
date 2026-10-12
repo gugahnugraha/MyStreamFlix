@@ -551,7 +551,7 @@ export async function getMovies(filters?: {
               missingTvChannels.push(tv);
             }
             // Auto-sync ke Prisma database secara asinkron agar tersimpan permanen
-            prisma.movie.upsert({
+            (prisma as any).movie.upsert({
               where: { id: tv.id },
               create: {
                 id: tv.id,
@@ -564,21 +564,21 @@ export async function getMovies(filters?: {
                 releaseYear: tv.releaseYear,
                 rating: tv.rating,
                 ageRating: tv.ageRating,
-                quality: tv.quality,
-                genres: tv.genres,
-                cast: tv.cast,
-                directors: tv.directors,
-                subtitles: JSON.stringify(tv.subtitles || []),
-                country: tv.country,
-                language: tv.language,
-                views: tv.views,
-                likes: tv.likes,
-                isFeatured: tv.isFeatured,
-                isBanner: tv.isBanner,
+                quality: tv.quality || "HD",
+                genres: tv.genres || [],
+                cast: tv.cast || [],
+                directors: tv.directors || [],
+                subtitles: (tv.subtitles || []) as any,
+                country: tv.country || "Indonesia",
+                language: tv.language || "id",
+                views: tv.views || 0,
+                likes: tv.likes || 0,
+                isFeatured: !!tv.isFeatured,
+                isBanner: !!tv.isBanner,
                 tier: tv.tier || "free",
                 contentType: tv.contentType || "livetv",
-                seasons: JSON.stringify(tv.seasons || []),
-                createdAt: tv.createdAt
+                seasons: (tv.seasons || []) as any,
+                createdAt: tv.createdAt || new Date().toISOString()
               },
               update: {
                 videoUrl: tv.videoUrl,
@@ -586,7 +586,7 @@ export async function getMovies(filters?: {
                 posterUrl: tv.posterUrl,
                 backdropUrl: tv.backdropUrl
               }
-            }).catch(e => console.warn(`Auto-sync TV channel ${tv.id} failed:`, e?.message));
+            }).catch((e: any) => console.warn(`Auto-sync TV channel ${tv.id} failed:`, e?.message));
           }
         }
 
