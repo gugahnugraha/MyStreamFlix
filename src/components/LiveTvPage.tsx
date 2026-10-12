@@ -65,6 +65,7 @@ export default function LiveTvPage({
   const [reloadSeq, setReloadSeq] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showControls, setShowControls] = useState(true);
+  const [showFullscreenPlaylist, setShowFullscreenPlaylist] = useState<boolean>(true);
   const [fullscreenCategory, setFullscreenCategory] = useState<string>("All");
   const [fullscreenRegion, setFullscreenRegion] = useState<string>("All");
   const fullscreenScrollRef = useRef<HTMLDivElement>(null);
@@ -112,6 +113,7 @@ export default function LiveTvPage({
 
   const revealControls = (delayMs = 4500) => {
     setShowControls(true);
+    setShowFullscreenPlaylist(true);
     scheduleControlsHide(delayMs);
   };
 
@@ -125,11 +127,24 @@ export default function LiveTvPage({
       }
     }
 
+    if (isFullscreen && showControls && !showFullscreenPlaylist) {
+      // Jika di fullscreen kontrol sedang aktif tapi playlist sedang tertutup oleh kontrol lain,
+      // tap di area kosong player akan membuka kembali playlist bar!
+      setShowFullscreenPlaylist(true);
+      setShowQualityMenu(false);
+      scheduleControlsHide(4500);
+      return;
+    }
+
     setShowControls(prev => {
       const next = !prev;
       if (next) {
+        setShowFullscreenPlaylist(true);
+        setShowQualityMenu(false);
         scheduleControlsHide(4500);
       } else {
+        setShowFullscreenPlaylist(false);
+        setShowQualityMenu(false);
         if (controlsTimerRef.current) clearTimeout(controlsTimerRef.current);
       }
       return next;
@@ -240,6 +255,7 @@ export default function LiveTvPage({
 
   // Prev & Next channel navigation
   const handlePrevChannel = () => {
+    setShowFullscreenPlaylist(false);
     const list = filteredChannels.length > 0 ? filteredChannels : liveChannels;
     if (list.length === 0) return;
     const currentIndex = list.findIndex(c => c.id === activeChannel?.id);
@@ -249,6 +265,7 @@ export default function LiveTvPage({
   };
 
   const handleNextChannel = () => {
+    setShowFullscreenPlaylist(false);
     const list = filteredChannels.length > 0 ? filteredChannels : liveChannels;
     if (list.length === 0) return;
     const currentIndex = list.findIndex(c => c.id === activeChannel?.id);
@@ -481,6 +498,7 @@ export default function LiveTvPage({
   }, [activeChannel?.id, activeChannel?.videoUrl, altIndex, reloadSeq]);
 
   const togglePlay = () => {
+    setShowFullscreenPlaylist(false);
     const video = videoRef.current;
     if (!video) return;
     if (isPlaying) {
@@ -494,6 +512,7 @@ export default function LiveTvPage({
   };
 
   const toggleMute = () => {
+    setShowFullscreenPlaylist(false);
     const video = videoRef.current;
     if (!video) return;
     const next = !isMuted;
@@ -503,6 +522,7 @@ export default function LiveTvPage({
   };
 
   const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setShowFullscreenPlaylist(false);
     const val = parseFloat(e.target.value);
     setVolume(val);
     if (videoRef.current) {
@@ -513,6 +533,7 @@ export default function LiveTvPage({
   };
 
   const toggleFullscreen = async () => {
+    setShowFullscreenPlaylist(false);
     const targetFs = !isFullscreen;
     setIsFullscreen(targetFs);
 
@@ -895,6 +916,7 @@ export default function LiveTvPage({
                 showControls ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
               }`}
               style={hudStyle}
+              onPointerDown={() => setShowFullscreenPlaylist(false)}
             >
               {/* Left: Prev + Play/Pause + Next + Volume */}
               <div className="flex items-center gap-1.5 sm:gap-2">
@@ -975,7 +997,11 @@ export default function LiveTvPage({
                 {qualityLevels.length > 0 && (
                   <div className="relative">
                     <button
-                      onClick={(e) => { e.stopPropagation(); setShowQualityMenu(v => !v); }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowFullscreenPlaylist(false);
+                        setShowQualityMenu(v => !v);
+                      }}
                       className="player-menu-btn px-3 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs font-semibold backdrop-blur-md flex items-center gap-1.5 transition-all cursor-pointer min-h-11"
                       title={t?.videoQuality || "Quality"}
                     >
@@ -1023,7 +1049,11 @@ export default function LiveTvPage({
                 )}
 
                 <button
-                  onClick={(e) => { e.stopPropagation(); toggleFullscreen(); }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowFullscreenPlaylist(false);
+                    toggleFullscreen();
+                  }}
                   className="w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-md text-white flex items-center justify-center transition-all cursor-pointer"
                 >
                   {isFullscreen ? <Minimize className="w-5 h-5 text-red-400" /> : <Maximize className="w-5 h-5" />}
@@ -1031,24 +1061,21 @@ export default function LiveTvPage({
               </div>
             </div>
 
-            {/* Fullscreen Interactive Vertical Channel Playlist (Transparent Floating Drawer) */}
+            {/* Fullscreen Interactive Vertical Channel Playlist (Transparent Right Drawer) */}
             {isFullscreen && (
               <div
-                className={`absolute w-72 sm:w-80 md:w-96 z-30 flex flex-col bg-black/80 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-[-10px_10px_35px_rgba(0,0,0,0.85)] transition-all duration-300 ease-out player-interactive overflow-hidden ${
-                  showControls
+                className={`absolute top-0 right-0 bottom-0 w-72 sm:w-80 md:w-96 z-50 flex flex-col bg-black/75 backdrop-blur-2xl border-l border-white/10 shadow-[-15px_0_40px_rgba(0,0,0,0.85)] transition-all duration-300 ease-out player-interactive ${
+                  showControls && showFullscreenPlaylist && !showQualityMenu
                     ? "translate-x-0 opacity-100 pointer-events-auto"
                     : "translate-x-full opacity-0 pointer-events-none"
                 }`}
                 style={{
-                  top: "calc(env(safe-area-inset-top, 0px) + 16px)",
-                  bottom: isNativeApp
-                    ? (isLandscape ? "calc(env(safe-area-inset-bottom, 0px) + 84px)" : "calc(env(safe-area-inset-bottom, 0px) + 94px)")
-                    : "calc(env(safe-area-inset-bottom, 0px) + 86px)",
-                  right: "calc(env(safe-area-inset-right, 0px) + 16px)",
-                  paddingTop: "14px",
-                  paddingBottom: "14px",
-                  paddingLeft: "14px",
-                  paddingRight: "14px"
+                  paddingTop: "calc(env(safe-area-inset-top, 0px) + 16px)",
+                  paddingBottom: isNativeApp
+                    ? (isLandscape ? "calc(env(safe-area-inset-bottom, 0px) + 20px)" : "calc(env(safe-area-inset-bottom, 0px) + 24px)")
+                    : "calc(env(safe-area-inset-bottom, 0px) + 20px)",
+                  paddingRight: "calc(env(safe-area-inset-right, 0px) + 14px)",
+                  paddingLeft: "14px"
                 }}
                 onClick={(e) => e.stopPropagation()}
               >
@@ -1067,9 +1094,21 @@ export default function LiveTvPage({
                     </span>
                   </div>
 
-                  <span className="text-[10px] font-mono text-zinc-500 bg-white/5 px-2 py-0.5 rounded-full">
-                    Auto Show / Hide
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-mono text-zinc-500 bg-white/5 px-2 py-0.5 rounded-full hidden sm:inline-block">
+                      Auto Show / Hide
+                    </span>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowFullscreenPlaylist(false);
+                      }}
+                      className="w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 active:scale-95 text-zinc-300 hover:text-white flex items-center justify-center transition-all cursor-pointer"
+                      title="Tutup Playlist"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 </div>
 
                 {/* Categories Filter Pills */}
