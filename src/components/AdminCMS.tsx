@@ -13,7 +13,7 @@ import {
   BarChart3, Film, Settings, Plus, Edit, Trash2, Save, 
   Tv, Eye, Play, ShieldAlert, CheckCircle, TrendingUp, Users, RefreshCw, X, Search, Database,
   CreditCard, UserCheck, Subtitles, Upload, Radio, Pencil, Wifi, WifiOff, Activity, Loader2, AlertCircle,
-  FolderSearch
+  FolderSearch, Sparkles
 } from "lucide-react";
 import { Movie, DashboardStats, CMSSettings, Subtitle, User, Season, Episode } from "../types";
 import IPTVScanner from "./IPTVScanner";
@@ -487,6 +487,7 @@ export default function AdminCMS({
   const [episodesPerSeason, setEpisodesPerSeason] = useState(5);
   const [seasons, setSeasons] = useState<Season[]>([]);
   const [subtitles, setSubtitles] = useState<Subtitle[]>([]);
+  const [autoSubLoading, setAutoSubLoading] = useState(false);
 
   // ====== Dedicated Live TV Channel Form States ======
   const [showChannelForm, setShowChannelForm] = useState(false);
@@ -600,6 +601,66 @@ export default function AdminCMS({
 
   const handleUpdateSubtitle = (subId: string, field: keyof Subtitle, value: string) => {
     setSubtitles(subtitles.map(s => s.id === subId ? { ...s, [field]: value } : s));
+  };
+
+  const handleAutoAddSubtitles = async () => {
+    if (!title.trim()) {
+      showAlert("Harap isi judul tayangan terlebih dahulu untuk mencari subtitle otomatis.");
+      return;
+    }
+    setAutoSubLoading(true);
+    try {
+      const res = await fetch("/api/subtitles/auto-search", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: title.trim(),
+          year: releaseYear,
+          tmdbId: selectedTmdbId,
+          contentType: contentType,
+          languages: "id,en,es,ar,fr,ko,ja"
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Gagal mencari subtitle otomatis.");
+      }
+
+      if (!data.subtitles || data.subtitles.length === 0) {
+        showAlert(t.cmsAutoSubtitleNotFound || "Tidak ada subtitle ditemukan untuk tayangan ini.");
+        return;
+      }
+
+      // Merge with existing subtitles avoiding duplicate language codes
+      const existingLangCodes = new Set(subtitles.map(s => s.language.toLowerCase()));
+      const newTracks: Subtitle[] = [];
+      let addedCount = 0;
+
+      for (const found of data.subtitles) {
+        if (!existingLangCodes.has(found.language.toLowerCase())) {
+          existingLangCodes.add(found.language.toLowerCase());
+          newTracks.push({
+            id: found.id || `sub-${Date.now()}-${Math.random().toString(36).substr(2, 7)}`,
+            language: found.language,
+            label: found.label,
+            fileUrl: found.fileUrl
+          });
+          addedCount++;
+        }
+      }
+
+      if (addedCount > 0) {
+        setSubtitles([...subtitles, ...newTracks]);
+        setSuccessMsg(`Berhasil menambahkan ${addedCount} subtitle (${newTracks.map(n => n.label).join(", ")})! ✨`);
+        setTimeout(() => setSuccessMsg(""), 4500);
+      } else {
+        showAlert("Subtitle untuk bahasa yang ditemukan sudah ada di daftar.");
+      }
+    } catch (err: any) {
+      showAlert(err.message || "Gagal mencari subtitle otomatis.");
+    } finally {
+      setAutoSubLoading(false);
+    }
   };
 
   // Helpers to manage seasons and episodes
@@ -2510,14 +2571,36 @@ export default function AdminCMS({
                           {t.cmsSubtitlesDesc || "Add subtitle files (.vtt format) for localized text overlays."}
                         </p>
                       </div>
-                      <button
-                        type="button"
-                        onClick={handleAddSubtitle}
-                        className="px-2.5 py-1.5 bg-red-600/10 hover:bg-red-600/20 text-red-500 hover:text-red-400 border border-red-500/20 rounded text-[10px] font-bold flex items-center gap-1 transition-all cursor-pointer"
-                      >
-                        <Plus className="w-3.5 h-3.5" />
-                        {t.cmsAddSubtitle || "Add Subtitle Track"}
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={handleAutoAddSubtitles}
+                          disabled={autoSubLoading || !title.trim()}
+                          className="px-3 py-1.5 bg-cyan-600/15 hover:bg-cyan-600/25 text-cyan-400 hover:text-cyan-300 border border-cyan-500/30 rounded text-[10px] font-bold flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+                          title="Cari dan tambahkan subtitle otomatis via API (OpenSubtitles)"
+                          id="auto-add-subtitles-btn"
+                        >
+                          {autoSubLoading ? (
+                            <>
+                              <Loader2 className="w-3.5 h-3.5 animate-spin text-cyan-400" />
+                              <span>{t.cmsAutoSubtitleSearching || "Mencari Subtitle..."}</span>
+                            </>
+                          ) : (
+                            <>
+                              <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
+                              <span>{t.cmsAutoAddSubtitleBtn || "Auto-Cari Subtitle (API)"}</span>
+                            </>
+                          )}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleAddSubtitle}
+                          className="px-2.5 py-1.5 bg-red-600/10 hover:bg-red-600/20 text-red-500 hover:text-red-400 border border-red-500/20 rounded text-[10px] font-bold flex items-center gap-1 transition-all cursor-pointer"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                          {t.cmsAddSubtitle || "Add Subtitle Track"}
+                        </button>
+                      </div>
                     </div>
 
                     {subtitles.length === 0 ? (
