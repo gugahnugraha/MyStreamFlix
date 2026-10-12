@@ -63,6 +63,7 @@ export interface Movie {
   contentType?: "movie" | "series" | "livetv";
   seasons?: Season[];
   trailerUrl?: string;
+  backupUrls?: string[]; // Alternative fallback stream URLs if primary videoUrl is unreachable
 }
 
 export interface UserProfile {

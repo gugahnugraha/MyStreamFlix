@@ -184,3 +184,106 @@ export function normalizeGoogleDriveUrl(url: string): string {
   }
   return trimmed;
 }
+
+export const CHANNEL_ALTERNATIVE_URLS: Record<string, string[]> = {
+  // Indonesian TV Stations
+  "sctv": [
+    "http://202.150.172.59/SCTV/tracks-v1a1/mono.m3u8",
+    "http://202.150.172.59/Indosiar/index.m3u8"
+  ],
+  "indosiar": [
+    "http://202.150.172.59/Indosiar/index.m3u8",
+    "http://202.150.172.59/SCTV/tracks-v1a1/mono.m3u8"
+  ],
+  "rcti": [
+    "http://202.150.172.59/RCTIHD/index.m3u8",
+    "http://202.150.172.59/MNCTV/tracks-v1a1/mono.m3u8"
+  ],
+  "mnc": [
+    "http://202.150.172.59/MNCTV/tracks-v1a1/mono.m3u8",
+    "http://202.150.172.59/RCTIHD/index.m3u8"
+  ],
+  "inews": [
+    "http://202.150.172.59/iNews/index.m3u8",
+    "http://202.150.172.59/RCTIHD/index.m3u8"
+  ],
+  "tvri": [
+    "https://ott-balancer.tvri.go.id/live/eds/Nasional/hls/Nasional.m3u8",
+    "http://202.150.172.59/TVRISport/index.m3u8",
+    "https://ott-balancer.tvri.go.id/live/eds/TVRIWorld/hls/TVRIWorld.m3u8"
+  ],
+  "cnn": [
+    "https://video.detik.com/livecnn/smil:cnntv/playlist.m3u8"
+  ],
+  "cnbc": [
+    "https://video.detik.com/livecnbc/smil:cnbctv/playlist.m3u8"
+  ],
+  "metro": [
+    "https://edge.medcom.id/live-edge/smil:metro.smil/playlist.m3u8"
+  ],
+  "nusantara": [
+    "https://nusantaratv.siar.us/nusantaratv/live/playlist.m3u8"
+  ],
+  "trans": [
+    "https://video.detik.com/livecnn/smil:cnntv/playlist.m3u8",
+    "https://video.detik.com/livecnbc/smil:cnbctv/playlist.m3u8"
+  ],
+  // International Channels
+  "aljazeera": [
+    "https://live-hls-apps-aje-fa.getaj.net/AJE/index.m3u8"
+  ],
+  "al jazeera": [
+    "https://live-hls-apps-aje-fa.getaj.net/AJE/index.m3u8"
+  ],
+  "france24": [
+    "https://live.france24.com/hls/live/2037218-b/F24_EN_HI_HLS/master_5000.m3u8"
+  ],
+  "france 24": [
+    "https://live.france24.com/hls/live/2037218-b/F24_EN_HI_HLS/master_5000.m3u8"
+  ],
+  "dw": [
+    "https://dwamdstream102.akamaized.net/hls/live/2015525/dwstream102/index.m3u8"
+  ],
+  "euronews": [
+    "https://dash4.antik.sk/live/test_euronews/playlist.m3u8"
+  ],
+  "redbull": [
+    "https://3ea22335.wurl.com/master/f36d25e7e52f1ba8d7e56eb859c636563214f541/UmFrdXRlblRWLWdiX1JlZEJ1bGxUVl9ITFM/playlist.m3u8"
+  ],
+  "red bull": [
+    "https://3ea22335.wurl.com/master/f36d25e7e52f1ba8d7e56eb859c636563214f541/UmFrdXRlblRWLWdiX1JlZEJ1bGxUVl9ITFM/playlist.m3u8"
+  ],
+  "action": [
+    "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8"
+  ]
+};
+
+export function getAlternativeStreamUrls(channelOrMovie?: { id?: string; title?: string; videoUrl?: string; backupUrls?: string[] }): string[] {
+  if (!channelOrMovie) return [];
+  const results: string[] = [];
+  const primary = (channelOrMovie.videoUrl || "").trim();
+
+  // 1. Explicit backupUrls on the channel object
+  if (Array.isArray(channelOrMovie.backupUrls)) {
+    for (const u of channelOrMovie.backupUrls) {
+      const trimmed = (u || "").trim();
+      if (trimmed && trimmed !== primary && !results.includes(trimmed)) {
+        results.push(trimmed);
+      }
+    }
+  }
+
+  // 2. Keyword matching from title, id, or videoUrl
+  const text = `${channelOrMovie.id || ""} ${channelOrMovie.title || ""} ${channelOrMovie.videoUrl || ""}`.toLowerCase();
+  for (const [key, alts] of Object.entries(CHANNEL_ALTERNATIVE_URLS)) {
+    if (text.includes(key)) {
+      for (const alt of alts) {
+        if (alt !== primary && !results.includes(alt)) {
+          results.push(alt);
+        }
+      }
+    }
+  }
+
+  return results;
+}

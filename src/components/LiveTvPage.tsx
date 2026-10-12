@@ -10,9 +10,10 @@ import {
   SlidersHorizontal
 } from "lucide-react";
 import Hls from "hls.js";
+import * as dashjs from "dashjs";
 import { ScreenOrientation } from "@capacitor/screen-orientation";
 import { Movie } from "../types";
-import { getProxiedStreamUrl, describeQualityLabel, shortQualityHint } from "../lib/stream-utils";
+import { getProxiedStreamUrl, describeQualityLabel, shortQualityHint, getAlternativeStreamUrls } from "../lib/stream-utils";
 import { isNativeCapacitor, enterImmersiveMode, exitImmersiveMode, addImmersiveStateListener } from "../lib/native-fullscreen";
 
 interface LiveTvPageProps {
@@ -40,9 +41,14 @@ export default function LiveTvPage({
   const videoRef = useRef<HTMLVideoElement>(null);
   const playerShellRef = useRef<HTMLDivElement>(null);
   const hlsRef = useRef<Hls | null>(null);
+  const dashRef = useRef<any>(null);
   const startupTimeoutRef = useRef<number | null>(null);
   const bufferTimeoutRef = useRef<number | null>(null);
   const controlsTimerRef = useRef<number | null>(null);
+
+  // Alternative fallback stream URLs
+  const [candidateUrls, setCandidateUrls] = useState<string[]>([]);
+  const [altIndex, setAltIndex] = useState<number>(0);
 
   const [isPlaying, setIsPlaying] = useState<boolean>(true);
   const [isMuted, setIsMuted] = useState<boolean>(false);
@@ -145,6 +151,16 @@ export default function LiveTvPage({
     };
   }, []);
 
+  // Sync candidate fallback URLs when channel changes
+  useEffect(() => {
+    if (!activeChannel) return;
+    const alts = getAlternativeStreamUrls(activeChannel);
+    const primary = activeChannel.videoUrl;
+    const all = [primary, ...alts].filter(Boolean);
+    setCandidateUrls(all);
+    setAltIndex(0);
+  }, [activeChannel?.id]);
+
   const clearStreamTimers = () => {
     if (startupTimeoutRef.current) { clearTimeout(startupTimeoutRef.current); startupTimeoutRef.current = null; }
     if (bufferTimeoutRef.current) { clearTimeout(bufferTimeoutRef.current); bufferTimeoutRef.current = null; }
@@ -153,6 +169,10 @@ export default function LiveTvPage({
   const stopStream = () => {
     clearStreamTimers();
     if (hlsRef.current) { hlsRef.current.destroy(); hlsRef.current = null; }
+    if (dashRef.current) {
+      try { dashRef.current.reset(); } catch {}
+      dashRef.current = null;
+    }
     const video = videoRef.current;
     if (video) {
       try { video.pause(); } catch {}
@@ -169,14 +189,23 @@ export default function LiveTvPage({
     stopStream();
   };
 
+  const tryNextAlternative = () => {
+    if (altIndex + 1 < candidateUrls.length) {
+      console.warn(`[LiveTV] Stream failed on server ${altIndex + 1}. Auto-switching to server ${altIndex + 2}/${candidateUrls.length}`);
+      setAltIndex(prev => prev + 1);
+    } else {
+      engageError();
+    }
+  };
+
   const scheduleStartupTimeout = () => {
     clearStreamTimers();
-    startupTimeoutRef.current = window.setTimeout(() => engageError(), 12000) as unknown as number;
+    startupTimeoutRef.current = window.setTimeout(() => tryNextAlternative(), 14000) as unknown as number;
   };
 
   const scheduleBufferTimeout = () => {
     if (bufferTimeoutRef.current) return;
-    bufferTimeoutRef.current = window.setTimeout(() => engageError(), 20000) as unknown as number;
+    bufferTimeoutRef.current = window.setTimeout(() => tryNextAlternative(), 22000) as unknown as number;
   };
 
   // Stream loading
@@ -192,7 +221,8 @@ export default function LiveTvPage({
     setSelectedQuality("Auto");
     setShowQualityMenu(false);
 
-    const streamUrl = getProxiedStreamUrl(activeChannel.videoUrl);
+    const activeRawUrl = candidateUrls[altIndex] || activeChannel.videoUrl;
+    const streamUrl = getProxiedStreamUrl(activeRawUrl);
     scheduleStartupTimeout();
 
     const attemptPlay = () => {
@@ -210,7 +240,66 @@ export default function LiveTvPage({
         });
     };
 
-    if (Hls.isSupported() && streamUrl.includes(".m3u8")) {
+    // 1. MPEG-DASH (.mpd) stream playback via dash.js
+    if (streamUrl.includes(".mpd")) {
+      video.removeAttribute("src");
+      try {
+        const dashPlayer = dashjs.MediaPlayer().create();
+        dashRef.current = dashPlayer;
+        dashPlayer.initialize(video, streamUrl, true);
+        dashPlayer.updateSettings({
+          streaming: {
+            cmcd: { enabled: false },
+            text: { defaultEnabled: false },
+            buffer: { fastSwitchEnabled: true },
+            delay: { liveDelay: 3 },
+          },
+        });
+
+        dashPlayer.on(dashjs.MediaPlayer.events.STREAM_INITIALIZED, () => {
+          setIsBuffering(false);
+          clearStreamTimers();
+          try {
+            const playerAny = dashPlayer as any;
+            const bitrates = (typeof playerAny.getBitrateInfoListFor === "function" ? playerAny.getBitrateInfoListFor("video") : playerAny.getBitratesForWithInfo?.("video")) || [];
+            if (bitrates.length > 0) {
+              const lvls = bitrates.map((b: any, idx: number) => {
+                const height = b.height || 0;
+                const bitrate = b.bitrate || 0;
+                const label = describeQualityLabel(height, bitrate) || (height ? `${height}p` : `Level ${idx + 1}`);
+                return { index: idx, height, bitrate, label };
+              });
+              setQualityLevels(lvls);
+            }
+          } catch (err) {
+            console.warn("Could not extract DASH bitrate list:", err);
+          }
+          attemptPlay();
+        });
+
+        dashPlayer.on(dashjs.MediaPlayer.events.QUALITY_CHANGE_RENDERED, (e: any) => {
+          if (e.mediaType === "video") {
+            const playerAny = dashPlayer as any;
+            const bitrates = (typeof playerAny.getBitrateInfoListFor === "function" ? playerAny.getBitrateInfoListFor("video") : playerAny.getBitratesForWithInfo?.("video")) || [];
+            const b = bitrates[e.newQuality];
+            if (b && (!selectedQuality || selectedQuality.startsWith("Auto"))) {
+              const hint = shortQualityHint(b.height || 0, b.bitrate || 0);
+              setSelectedQuality(`Auto${hint ? ` • ${hint}` : ""}`);
+            }
+          }
+        });
+
+        dashPlayer.on(dashjs.MediaPlayer.events.ERROR, (e: any) => {
+          console.warn("LiveTV DASH playback error:", e);
+          tryNextAlternative();
+        });
+      } catch (e) {
+        console.error("Failed to initialize dashjs in LiveTV:", e);
+        tryNextAlternative();
+      }
+    } else if (Hls.isSupported() && streamUrl.includes(".m3u8")) {
+      // 2. HLS (.m3u8) stream playback via hls.js
+      video.removeAttribute("src");
       const hls = new Hls({
         enableWorker: true,
         lowLatencyMode: true,
@@ -224,6 +313,8 @@ export default function LiveTvPage({
       hlsRef.current = hls;
 
       hls.on(Hls.Events.MANIFEST_PARSED, (_e, data) => {
+        setIsBuffering(false);
+        clearStreamTimers();
         const levels = (data.levels || []).map((lv, idx) => ({
           index: idx,
           height: lv.height || 0,
@@ -244,15 +335,24 @@ export default function LiveTvPage({
 
       hls.on(Hls.Events.ERROR, (_e, data) => {
         if (!data.fatal) return;
-        if (data.type === Hls.ErrorTypes.NETWORK_ERROR) { hls?.startLoad(); return; }
-        if (data.type === Hls.ErrorTypes.MEDIA_ERROR) { hls?.recoverMediaError(); return; }
-        setStreamError(true);
+        if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+          console.warn("HLS network error, trying alternative server...");
+          tryNextAlternative();
+          return;
+        }
+        if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
+          hls?.recoverMediaError();
+          return;
+        }
+        tryNextAlternative();
       });
     } else if (video.canPlayType("application/vnd.apple.mpegurl") || video.canPlayType("application/x-mpegURL")) {
+      // 3. Native Apple HLS (Safari / iOS)
       video.src = streamUrl;
       video.load();
       attemptPlay();
     } else {
+      // 4. Fallback direct playback
       video.src = streamUrl;
       video.load();
       attemptPlay();
@@ -261,8 +361,12 @@ export default function LiveTvPage({
     return () => {
       clearStreamTimers();
       if (hlsRef.current) { hlsRef.current.destroy(); hlsRef.current = null; }
+      if (dashRef.current) {
+        try { dashRef.current.reset(); } catch {}
+        dashRef.current = null;
+      }
     };
-  }, [activeChannel, reloadSeq]);
+  }, [activeChannel, altIndex, reloadSeq]);
 
   const togglePlay = () => {
     const video = videoRef.current;
@@ -344,16 +448,42 @@ export default function LiveTvPage({
 
   const handleQualitySelect = (mode: "auto" | number) => {
     const hls = hlsRef.current;
-    if (!hls) { setShowQualityMenu(false); return; }
+    const dash = dashRef.current;
+    if (!hls && !dash) { setShowQualityMenu(false); return; }
+
     if (mode === "auto") {
-      hls.currentLevel = -1;
-      const lv = hls.levels[hls.autoLevelCapping];
-      const hint = lv ? shortQualityHint(lv.height || 0, lv.bitrate || 0) : "";
-      setSelectedQuality(`Auto${hint ? ` • ${hint}` : ""}`);
-    } else {
-      hls.currentLevel = mode;
-      const lv = hls.levels[mode];
-      setSelectedQuality(lv ? (describeQualityLabel(lv.height || 0, lv.bitrate || 0) || `Level ${mode + 1}`) : "Auto");
+      if (hls) {
+        hls.currentLevel = -1;
+        hls.loadLevel = -1;
+        hls.nextLevel = -1;
+        const lv = hls.levels[hls.autoLevelCapping];
+        const hint = lv ? shortQualityHint(lv.height || 0, lv.bitrate || 0) : "";
+        setSelectedQuality(`Auto${hint ? ` • ${hint}` : ""}`);
+      } else if (dash) {
+        try {
+          dash.updateSettings({ streaming: { abr: { autoSwitchBitrate: { video: true } } } });
+        } catch {}
+        setSelectedQuality("Auto");
+      }
+    } else if (typeof mode === "number") {
+      if (hls) {
+        hls.currentLevel = mode;
+        hls.loadLevel = mode;
+        hls.nextLevel = mode;
+        const lv = hls.levels[mode];
+        const label = lv ? (describeQualityLabel(lv.height || 0, lv.bitrate || 0) || `Level ${mode + 1}`) : `Level ${mode + 1}`;
+        setSelectedQuality(label);
+      } else if (dash) {
+        try {
+          dash.updateSettings({ streaming: { abr: { autoSwitchBitrate: { video: false } } } });
+          dash.setQualityFor("video", mode);
+          const dashAny = dash as any;
+          const bitrates = (typeof dashAny.getBitrateInfoListFor === "function" ? dashAny.getBitrateInfoListFor("video") : dashAny.getBitratesForWithInfo?.("video")) || [];
+          const b = bitrates[mode];
+          const label = b ? (describeQualityLabel(b.height || 0, b.bitrate || 0) || (b.height ? `${b.height}p` : `Level ${mode + 1}`)) : `Level ${mode + 1}`;
+          setSelectedQuality(label);
+        } catch {}
+      }
     }
     setShowQualityMenu(false);
   };
@@ -539,16 +669,33 @@ export default function LiveTvPage({
                 <div>
                   <h4 className="text-sm font-bold text-white">{t?.signalLost || "Signal Lost"}</h4>
                   <p className="text-xs text-zinc-400 mt-1 max-w-xs">
-                    {t?.signalLostDesc || "Channel offline or stream unavailable."}
+                    {candidateUrls.length > 1
+                      ? `Server ${altIndex + 1} tidak merespons. Klik tombol di bawah untuk mencoba server alternatif.`
+                      : (t?.signalLostDesc || "Channel offline or stream unavailable.")}
                   </p>
                 </div>
-                <button
-                  onClick={() => { setStreamError(false); setIsBuffering(true); setReloadSeq(s => s + 1); }}
-                  className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-bold transition-all cursor-pointer"
-                >
-                  <RefreshCw className="w-3.5 h-3.5" />
-                  {t?.reconnectBtn || "Retry"}
-                </button>
+                <div className="flex items-center gap-2 flex-wrap justify-center">
+                  <button
+                    onClick={() => { setStreamError(false); setIsBuffering(true); setReloadSeq(s => s + 1); }}
+                    className="flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-white rounded-lg text-xs font-bold transition-all cursor-pointer"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5" />
+                    {t?.reconnectBtn || "Retry"}
+                  </button>
+                  {candidateUrls.length > 1 && (
+                    <button
+                      onClick={() => {
+                        setStreamError(false);
+                        setIsBuffering(true);
+                        setAltIndex(idx => (idx + 1) % candidateUrls.length);
+                      }}
+                      className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-bold transition-all cursor-pointer shadow-[0_0_15px_rgba(220,38,38,0.4)]"
+                    >
+                      <Globe className="w-3.5 h-3.5" />
+                      Ganti Server ({((altIndex + 1) % candidateUrls.length) + 1}/{candidateUrls.length})
+                    </button>
+                  )}
+                </div>
               </div>
             )}
 
@@ -585,8 +732,22 @@ export default function LiveTvPage({
                 />
               </div>
 
-              {/* Right: Quality + Fullscreen */}
+              {/* Right: Server Alternatif + Quality + Fullscreen */}
               <div className="relative flex items-center gap-2">
+                {candidateUrls.length > 1 && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setAltIndex(idx => (idx + 1) % candidateUrls.length);
+                    }}
+                    className="px-2.5 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 backdrop-blur-md text-[11px] font-bold text-zinc-300 hover:text-white flex items-center gap-1.5 transition-all cursor-pointer"
+                    title="Ganti Server Cadangan"
+                  >
+                    <Globe className="w-3.5 h-3.5 text-red-400" />
+                    <span>Server {altIndex + 1}/{candidateUrls.length}</span>
+                  </button>
+                )}
+
                 {qualityLevels.length > 0 && (
                   <div className="relative">
                     <button

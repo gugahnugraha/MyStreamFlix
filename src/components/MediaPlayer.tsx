@@ -27,13 +27,14 @@ import {
   ChevronUp,
   Layers,
   Zap,
-  Gauge
+  Gauge,
+  Globe
 } from "lucide-react";
 import Hls from "hls.js";
 import * as dashjs from "dashjs";
 import { ScreenOrientation } from "@capacitor/screen-orientation";
 import { Movie, Subtitle } from "../types";
-import { getProxiedStreamUrl, describeQualityLabel, shortQualityHint } from "../lib/stream-utils";
+import { getProxiedStreamUrl, describeQualityLabel, shortQualityHint, getAlternativeStreamUrls } from "../lib/stream-utils";
 import { isNativeCapacitor, enterImmersiveMode, exitImmersiveMode, addImmersiveStateListener } from "../lib/native-fullscreen";
 import { playWithNativeExoPlayer } from "../lib/capacitor-exoplayer";
 
@@ -223,8 +224,18 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
 
   const nextEpisodeInfo = getNextEpisodeInfo();
   const prevEpisodeInfo = getPrevEpisodeInfo();
-  const rawStreamUrl = activeEpisode ? activeEpisode.videoUrl : movie.videoUrl;
+
+  // Alternative fallback stream URLs for Live TV
+  const [mediaAltIndex, setMediaAltIndex] = useState<number>(0);
+  const alts = movie.contentType === "livetv" ? getAlternativeStreamUrls(movie) : [];
+  const candidateStreamUrls = [activeEpisode ? activeEpisode.videoUrl : movie.videoUrl, ...alts].filter(Boolean);
+  const rawStreamUrl = candidateStreamUrls[mediaAltIndex] || (activeEpisode ? activeEpisode.videoUrl : movie.videoUrl);
   const currentStreamUrl = getProxiedStreamUrl(rawStreamUrl);
+
+  // Reset alternative index when movie or episode changes
+  useEffect(() => {
+    setMediaAltIndex(0);
+  }, [movie.id, activeEpisode?.id]);
 
   // Play next episode
   const handlePlayNextEpisode = () => {
@@ -458,6 +469,11 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
   };
 
   const engageStreamTimeout = () => {
+    if (movie.contentType === "livetv" && mediaAltIndex + 1 < candidateStreamUrls.length) {
+      console.warn(`[MediaPlayer] Stream timed out, switching to alternative server ${mediaAltIndex + 2}/${candidateStreamUrls.length}`);
+      setMediaAltIndex((idx) => idx + 1);
+      return;
+    }
     setIsBuffering(false);
     setHasError(true);
     setIsSimulating(true);
@@ -569,6 +585,11 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
 
         dashPlayer.on(dashjs.MediaPlayer.events.ERROR, (e: any) => {
           console.warn("DASH playback error:", e);
+          if (movie.contentType === "livetv" && mediaAltIndex + 1 < candidateStreamUrls.length) {
+            console.warn(`[MediaPlayer] DASH playback error, switching to alternative server ${mediaAltIndex + 2}/${candidateStreamUrls.length}`);
+            setMediaAltIndex((idx) => idx + 1);
+            return;
+          }
           const errStr = JSON.stringify(e || "").toLowerCase();
           if (errStr.includes("drm") || errStr.includes("license") || errStr.includes("key_session") || errStr.includes("cenc")) {
             setIsDrmError(true);
@@ -581,6 +602,10 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
         });
       } catch (e) {
         console.error("Failed to initialize dashjs player:", e);
+        if (movie.contentType === "livetv" && mediaAltIndex + 1 < candidateStreamUrls.length) {
+          setMediaAltIndex((idx) => idx + 1);
+          return;
+        }
         setHasError(true);
         setIsSimulating(true);
       }
@@ -632,11 +657,21 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
       hls.on(Hls.Events.ERROR, (_event, data) => {
         if (!data.fatal) return;
         if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+          if (movie.contentType === "livetv" && mediaAltIndex + 1 < candidateStreamUrls.length) {
+            console.warn(`[MediaPlayer] HLS network error, switching to alternative server ${mediaAltIndex + 2}/${candidateStreamUrls.length}`);
+            setMediaAltIndex((idx) => idx + 1);
+            return;
+          }
           hls?.startLoad();
           return;
         }
         if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
           hls?.recoverMediaError();
+          return;
+        }
+        if (movie.contentType === "livetv" && mediaAltIndex + 1 < candidateStreamUrls.length) {
+          console.warn(`[MediaPlayer] HLS fatal error, switching to alternative server ${mediaAltIndex + 2}/${candidateStreamUrls.length}`);
+          setMediaAltIndex((idx) => idx + 1);
           return;
         }
         setHasError(true);
@@ -691,7 +726,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
         hlsRef.current = null;
       }
     };
-  }, [currentStreamUrl, movie.contentType]);
+  }, [currentStreamUrl, movie.contentType, mediaAltIndex]);
 
   useEffect(() => {
     if (movie.contentType !== "livetv") return;
@@ -1498,6 +1533,11 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
               }
             }}
             onError={() => {
+              if (movie.contentType === "livetv" && mediaAltIndex + 1 < candidateStreamUrls.length) {
+                console.warn(`[MediaPlayer] Video element error, trying alternative server ${mediaAltIndex + 2}/${candidateStreamUrls.length}`);
+                setMediaAltIndex((idx) => idx + 1);
+                return;
+              }
               const video = videoRef.current;
               const src = video?.currentSrc || currentStreamUrl || "";
               // For non-HLS direct files (mp4, mkv, webm, etc.): check if the video
@@ -1598,7 +1638,22 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
                 )}
 
                 {/* Action Buttons */}
-                <div className="flex items-center justify-center gap-2.5 w-full mt-5 pt-1">
+                <div className="flex flex-wrap items-center justify-center gap-2.5 w-full mt-5 pt-1">
+                  {movie.contentType === "livetv" && candidateStreamUrls.length > 1 && (
+                    <button
+                      onClick={() => {
+                        stopStream();
+                        setMediaAltIndex((idx) => (idx + 1) % candidateStreamUrls.length);
+                        setHasError(false);
+                        setIsSimulating(false);
+                        setIsBuffering(true);
+                      }}
+                      className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-cyan-600/25 transition-all cursor-pointer active:scale-95"
+                    >
+                      <Globe className="w-3.5 h-3.5 animate-pulse" />
+                      <span>Coba Server Cadangan ({((mediaAltIndex + 1) % candidateStreamUrls.length) + 1}/{candidateStreamUrls.length})</span>
+                    </button>
+                  )}
                   <button
                     onClick={() => {
                       stopStream();
@@ -2029,6 +2084,21 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
 
               {/* Right Section: Video Quality, Speed, Subtitles & Customizer */}
               <div className="flex items-center gap-1.5 sm:gap-2.5 relative">
+                {/* Live TV Server Alternative Switcher */}
+                {movie.contentType === "livetv" && candidateStreamUrls.length > 1 && (
+                  <button
+                    onClick={() => {
+                      setMediaAltIndex((idx) => (idx + 1) % candidateStreamUrls.length);
+                    }}
+                    className="flex items-center gap-1.5 text-cyan-300 hover:text-white text-xs font-semibold px-2.5 py-2 sm:py-1 bg-cyan-950/60 hover:bg-cyan-900/80 border border-cyan-800/60 rounded-lg transition-colors cursor-pointer min-h-11 shadow-sm"
+                    title="Ganti Server Cadangan"
+                  >
+                    <Globe className="w-3.5 h-3.5 text-cyan-400" />
+                    <span className="whitespace-nowrap font-mono text-[11px] sm:text-xs">
+                      Server {mediaAltIndex + 1}/{candidateStreamUrls.length}
+                    </span>
+                  </button>
+                )}
                 {/* Video Quality Selector */}
                 <div className="relative">
                   <button

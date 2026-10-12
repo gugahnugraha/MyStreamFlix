@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getAlternativeStreamUrls } from "@/src/lib/stream-utils";
 
 export async function OPTIONS() {
   return new NextResponse(null, {
@@ -82,11 +83,51 @@ export async function GET(request: NextRequest) {
       if (val) headers[h] = val;
     });
 
-    const res = await fetch(fetchUrl, {
-      method: "GET",
-      headers,
-      cache: "no-store",
-    });
+    let res: Response;
+    try {
+      res = await fetch(fetchUrl, {
+        method: "GET",
+        headers,
+        cache: "no-store",
+      });
+
+      // If primary fetch returned 404/403/500, attempt known alternative stream URLs
+      if (!res.ok && res.status !== 206) {
+        const alts = getAlternativeStreamUrls({ videoUrl: targetUrl });
+        for (const alt of alts) {
+          if (alt !== fetchUrl) {
+            try {
+              const altRes = await fetch(alt, { method: "GET", headers, cache: "no-store" });
+              if (altRes.ok || altRes.status === 206) {
+                res = altRes;
+                fetchUrl = alt;
+                break;
+              }
+            } catch {}
+          }
+        }
+      }
+    } catch (fetchErr: any) {
+      // Primary fetch failed due to socket/network failure — try alternatives
+      const alts = getAlternativeStreamUrls({ videoUrl: targetUrl });
+      let recovered = false;
+      for (const alt of alts) {
+        if (alt !== fetchUrl) {
+          try {
+            const altRes = await fetch(alt, { method: "GET", headers, cache: "no-store" });
+            if (altRes.ok || altRes.status === 206) {
+              res = altRes;
+              fetchUrl = alt;
+              recovered = true;
+              break;
+            }
+          } catch {}
+        }
+      }
+      if (!recovered) {
+        throw fetchErr;
+      }
+    }
 
     if (!res.ok && res.status !== 206) {
       return new NextResponse(`Proxy failed to fetch target: ${res.statusText}`, { status: res.status });
