@@ -197,20 +197,65 @@ export const CHANNEL_ALTERNATIVE_URLS: Record<string, string[]> = {
   ],
   "rcti": [
     "http://202.150.172.59/RCTIHD/index.m3u8",
-    "http://202.150.172.59/MNCTV/tracks-v1a1/mono.m3u8"
+    "http://202.150.172.59/MNCTV/tracks-v1a1/mono.m3u8",
+    "http://202.150.172.59/GTVHD/index.m3u8"
   ],
   "mnc": [
     "http://202.150.172.59/MNCTV/tracks-v1a1/mono.m3u8",
+    "http://202.150.172.59/RCTIHD/index.m3u8"
+  ],
+  "gtv": [
+    "http://202.150.172.59/GTVHD/index.m3u8",
     "http://202.150.172.59/RCTIHD/index.m3u8"
   ],
   "inews": [
     "http://202.150.172.59/iNews/index.m3u8",
     "http://202.150.172.59/RCTIHD/index.m3u8"
   ],
+  "net": [
+    "http://202.150.172.59/NetTV/index.m3u8",
+    "http://202.150.172.59/RCTIHD/index.m3u8"
+  ],
   "tvri": [
     "https://ott-balancer.tvri.go.id/live/eds/Nasional/hls/Nasional.m3u8",
     "http://202.150.172.59/TVRISport/index.m3u8",
     "https://ott-balancer.tvri.go.id/live/eds/TVRIWorld/hls/TVRIWorld.m3u8"
+  ],
+  "sport": [
+    "http://202.150.172.59/TVRISport/index.m3u8",
+    "https://ott-balancer.tvri.go.id/live/eds/Nasional/hls/Nasional.m3u8"
+  ],
+  "world": [
+    "https://ott-balancer.tvri.go.id/live/eds/TVRIWorld/hls/TVRIWorld.m3u8",
+    "https://ott-balancer.tvri.go.id/live/eds/Nasional/hls/Nasional.m3u8"
+  ],
+  "dki": [
+    "https://ott-balancer.tvri.go.id/live/eds/DKI/hls/DKI.m3u8",
+    "https://ott-balancer.tvri.go.id/live/eds/Nasional/hls/Nasional.m3u8"
+  ],
+  "jakarta": [
+    "https://ott-balancer.tvri.go.id/live/eds/DKI/hls/DKI.m3u8",
+    "https://ott-balancer.tvri.go.id/live/eds/Nasional/hls/Nasional.m3u8"
+  ],
+  "jabar": [
+    "https://ott-balancer.tvri.go.id/live/eds/Jabar/hls/Jabar.m3u8",
+    "https://ott-balancer.tvri.go.id/live/eds/Nasional/hls/Nasional.m3u8"
+  ],
+  "jateng": [
+    "https://ott-balancer.tvri.go.id/live/eds/Jateng/hls/Jateng.m3u8",
+    "https://ott-balancer.tvri.go.id/live/eds/Nasional/hls/Nasional.m3u8"
+  ],
+  "jatim": [
+    "https://ott-balancer.tvri.go.id/live/eds/Jatim/hls/Jatim.m3u8",
+    "https://ott-balancer.tvri.go.id/live/eds/Nasional/hls/Nasional.m3u8"
+  ],
+  "jogja": [
+    "https://ott-balancer.tvri.go.id/live/eds/Jogjakarta/hls/Jogjakarta.m3u8",
+    "https://ott-balancer.tvri.go.id/live/eds/Nasional/hls/Nasional.m3u8"
+  ],
+  "bali": [
+    "https://ott-balancer.tvri.go.id/live/eds/Bali/hls/Bali.m3u8",
+    "https://ott-balancer.tvri.go.id/live/eds/Nasional/hls/Nasional.m3u8"
   ],
   "cnn": [
     "https://video.detik.com/livecnn/smil:cnntv/playlist.m3u8"
@@ -219,6 +264,10 @@ export const CHANNEL_ALTERNATIVE_URLS: Record<string, string[]> = {
     "https://video.detik.com/livecnbc/smil:cnbctv/playlist.m3u8"
   ],
   "metro": [
+    "https://edge.medcom.id/live-edge/smil:metro.smil/playlist.m3u8"
+  ],
+  "magna": [
+    "https://edge.medcom.id/live-edge/smil:magna.smil/playlist.m3u8",
     "https://edge.medcom.id/live-edge/smil:metro.smil/playlist.m3u8"
   ],
   "nusantara": [

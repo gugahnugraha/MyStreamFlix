@@ -3,7 +3,8 @@ node_modules/
 
 # Build output
 build/
-dist/
+/dist/
+!tv/dist/
 .next/
 out/
 mobile/android/
