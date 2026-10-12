@@ -182,6 +182,26 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
   const [hoverSeekTime, setHoverSeekTime] = useState<number | null>(null);
   const [hoverSeekPos, setHoverSeekPos] = useState<number>(0);
 
+  // UI control states
+  const [showControls, setShowControls] = useState(true);
+  const [showSpeedMenu, setShowSpeedMenu] = useState(false);
+  const [showSubtitleMenu, setShowSubtitleMenu] = useState(false);
+
+  // Custom mock caption display text
+  const [currentCaption, setCurrentCaption] = useState("");
+
+  // Custom Error and Simulation Fallback states
+  const [hasError, setHasError] = useState(false);
+  const [isSimulating, setIsSimulating] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isDrmError, setIsDrmError] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  // Landscape detection for safe-area inset side padding (Android APK)
+  const [isLandscape, setIsLandscape] = useState(
+    () => typeof window !== "undefined" && window.innerWidth > window.innerHeight
+  );
+
   const updateBufferProgress = () => {
     const video = videoRef.current;
     if (video && video.buffered && video.buffered.length > 0) {
@@ -481,25 +501,6 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
     }
   }, [activeEpisode, movie.duration]);
 
-  // UI control states
-  const [showControls, setShowControls] = useState(true);
-  const [showSpeedMenu, setShowSpeedMenu] = useState(false);
-  const [showSubtitleMenu, setShowSubtitleMenu] = useState(false);
-
-  // Custom mock caption display text
-  const [currentCaption, setCurrentCaption] = useState("");
-
-  // Custom Error and Simulation Fallback states
-  const [hasError, setHasError] = useState(false);
-  const [isSimulating, setIsSimulating] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [isDrmError, setIsDrmError] = useState(false);
-  const [isFullscreen, setIsFullscreen] = useState(false);
-
-  // Landscape detection for safe-area inset side padding (Android APK)
-  const [isLandscape, setIsLandscape] = useState(
-    () => typeof window !== "undefined" && window.innerWidth > window.innerHeight
-  );
 
   const clearStreamTimers = () => {
     if (startupTimeoutRef.current) {
@@ -622,7 +623,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
               liveDelay: 3,
             },
           },
-        });
+        } as any);
 
         dashPlayer.on(dashjs.MediaPlayer.events.STREAM_INITIALIZED, () => {
           setIsBuffering(false);
