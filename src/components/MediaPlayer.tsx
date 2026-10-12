@@ -532,6 +532,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
         const dashPlayer = dashjs.MediaPlayer().create();
         dashRef.current = dashPlayer;
         dashPlayer.initialize(video, proxiedUrl, true);
+        const isLive = movie.contentType === "livetv";
         dashPlayer.updateSettings({
           streaming: {
             cmcd: {
@@ -543,6 +544,13 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
             },
             buffer: {
               fastSwitchEnabled: true,
+              stableBufferTime: isLive ? 4 : 45,
+              bufferTimeAtTopQuality: isLive ? 6 : 90,
+              initialBufferTime: 3,
+            },
+            abr: {
+              autoSwitchBitrate: { video: true },
+              bandwidthSafetyFactor: 0.85,
             },
             delay: {
               liveDelay: 3,
@@ -611,13 +619,23 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
       }
     } else if (Hls.isSupported() && (currentStreamUrl.includes(".m3u8") || proxiedUrl.includes(".m3u8"))) {
       video.removeAttribute("src");
+      const isLive = movie.contentType === "livetv";
       const hls = new Hls({
         enableWorker: true,
-        lowLatencyMode: movie.contentType === "livetv",
-        backBufferLength: movie.contentType === "livetv" ? 30 : 90,
-        manifestLoadingTimeOut: movie.contentType === "livetv" ? 15000 : undefined,
-        levelLoadingTimeOut: movie.contentType === "livetv" ? 15000 : undefined,
-        fragLoadingTimeOut: movie.contentType === "livetv" ? 15000 : undefined,
+        lowLatencyMode: isLive,
+        maxBufferLength: isLive ? 30 : 120,
+        maxMaxBufferLength: isLive ? 60 : 600,
+        maxBufferSize: isLive ? 30 * 1000 * 1000 : 100 * 1000 * 1000,
+        backBufferLength: isLive ? 30 : 120,
+        startLevel: -1,
+        abrEwmaDefaultEstimate: 2500000,
+        abrBandWidthFactor: 0.85,
+        abrBandWidthUpFactor: 0.70,
+        manifestLoadingTimeOut: isLive ? 15000 : 25000,
+        levelLoadingTimeOut: isLive ? 15000 : 25000,
+        fragLoadingTimeOut: isLive ? 15000 : 30000,
+        fragLoadingMaxRetry: 6,
+        fragLoadingRetryDelay: 1000,
       });
       hls.loadSource(proxiedUrl);
       hls.attachMedia(video);
@@ -1481,6 +1499,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
         {!isSimulating ? (
           <video
             ref={videoRef}
+            preload="auto"
             className="w-full h-full max-h-screen transition-all duration-300"
             style={{
               objectFit: aspectRatio,
@@ -1497,6 +1516,10 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
             onWaiting={() => setIsBuffering(true)}
             onSeeking={() => setIsBuffering(true)}
             onCanPlay={() => {
+              setIsBuffering(false);
+              clearStreamTimers();
+            }}
+            onCanPlayThrough={() => {
               setIsBuffering(false);
               clearStreamTimers();
             }}
