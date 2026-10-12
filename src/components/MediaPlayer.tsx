@@ -137,7 +137,15 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
   // Tracks whether mute was forced by autoplay policy (not by user), so we can show unmute banner
   const [mutedByAutoplay, setMutedByAutoplay] = useState(false);
   const [playbackRate, setPlaybackRate] = useState(1);
-  const [activeSubtitle, setActiveSubtitle] = useState<string>("off");
+  const [activeSubtitle, setActiveSubtitle] = useState<string>(() => {
+    // Prioritaskan subtitle Bahasa Indonesia ('id'), lalu English ('en') jika tersedia
+    const subs = movie.subtitles || [];
+    const idSub = subs.find((s) => s.language === "id" && s.fileUrl);
+    if (idSub) return "id";
+    const enSub = subs.find((s) => s.language === "en" && s.fileUrl);
+    if (enSub) return "en";
+    return "off";
+  });
   const [parsedSubtitlesMap, setParsedSubtitlesMap] = useState<Record<string, Cue[]>>({});
 
   // Player Experience Enhancements
@@ -2180,16 +2188,39 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
                       <Volume2 className="w-5 h-5" />
                     )}
                   </button>
-                  <input
-                    type="range"
-                    min={0}
-                    max={1}
-                    step={0.05}
-                    value={isMuted ? 0 : volume}
-                    onChange={handleVolumeChange}
-                    className="hidden md:block w-20 md:w-24 accent-red-600 bg-zinc-800 h-1 rounded-lg appearance-none cursor-pointer"
-                    id="hud-volume-slider"
-                  />
+                  {/* Rich Visual Volume Bar (Bekas lewatan & thumb) */}
+                  <div
+                    className="hidden md:flex relative items-center h-6 w-20 md:w-24 group cursor-pointer select-none"
+                    id="hud-volume-control"
+                  >
+                    {/* Background Track */}
+                    <div className="w-full h-1.5 group-hover:h-2 bg-white/20 group-hover:bg-white/25 rounded-full overflow-hidden relative transition-all duration-150">
+                      {/* Played / Fill Volume Track (Bekas lewatan level volume) */}
+                      <div
+                        className="absolute top-0 bottom-0 left-0 bg-gradient-to-r from-red-600 to-red-500 rounded-full pointer-events-none shadow-[0_0_8px_rgba(239,68,68,0.7)]"
+                        style={{ width: `${(isMuted ? 0 : volume) * 100}%` }}
+                      />
+                    </div>
+
+                    {/* Volume Thumb Knob */}
+                    <div
+                      className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-3 h-3 group-hover:w-3.5 group-hover:h-3.5 bg-white border-2 border-red-600 rounded-full shadow-md scale-75 group-hover:scale-110 transition-transform duration-150 pointer-events-none z-10"
+                      style={{ left: `${(isMuted ? 0 : volume) * 100}%` }}
+                    />
+
+                    {/* Transparent Native Slider for Accessible Dragging & Clicking */}
+                    <input
+                      type="range"
+                      min={0}
+                      max={1}
+                      step={0.02}
+                      value={isMuted ? 0 : volume}
+                      onChange={handleVolumeChange}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20 m-0 p-0"
+                      id="hud-volume-slider"
+                      title={`Volume: ${Math.round((isMuted ? 0 : volume) * 100)}%`}
+                    />
+                  </div>
                 </div>
               </div>
 

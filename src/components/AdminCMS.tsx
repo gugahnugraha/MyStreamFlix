@@ -650,8 +650,22 @@ export default function AdminCMS({
       }
 
       if (addedCount > 0) {
-        setSubtitles([...subtitles, ...newTracks]);
-        setSuccessMsg(`Berhasil menambahkan ${addedCount} subtitle (${newTracks.map(n => n.label).join(", ")})! ✨`);
+        const merged = [...subtitles, ...newTracks];
+        // Sort strictly prioritizing Bahasa Indonesia (#1) and English (#2)
+        merged.sort((a, b) => {
+          const getPriority = (lang: string) => {
+            const l = (lang || "").toLowerCase();
+            if (l === "id" || l === "ind") return 1;
+            if (l === "en" || l === "eng") return 2;
+            return 3;
+          };
+          const pA = getPriority(a.language);
+          const pB = getPriority(b.language);
+          if (pA !== pB) return pA - pB;
+          return a.label.localeCompare(b.label);
+        });
+        setSubtitles(merged);
+        setSuccessMsg(`Berhasil menambahkan ${addedCount} subtitle (Prioritas: Indonesia & English)! ✨`);
         setTimeout(() => setSuccessMsg(""), 4500);
       } else {
         showAlert("Subtitle untuk bahasa yang ditemukan sudah ada di daftar.");

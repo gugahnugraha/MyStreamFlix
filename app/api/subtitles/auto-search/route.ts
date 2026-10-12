@@ -226,12 +226,17 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Sort Indonesian and English to top
+    // Strictly prioritize Bahasa Indonesia (#1) and English (#2) at the top of results
     subtitlesFound.sort((a, b) => {
-      if (a.language === "id") return -1;
-      if (b.language === "id") return 1;
-      if (a.language === "en") return -1;
-      if (b.language === "en") return 1;
+      const getPriority = (lang: string) => {
+        const l = (lang || "").toLowerCase();
+        if (l === "id" || l === "ind") return 1;
+        if (l === "en" || l === "eng") return 2;
+        return 3;
+      };
+      const pA = getPriority(a.language);
+      const pB = getPriority(b.language);
+      if (pA !== pB) return pA - pB;
       return a.label.localeCompare(b.label);
     });
 
