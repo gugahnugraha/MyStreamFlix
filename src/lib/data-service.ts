@@ -457,6 +457,42 @@ function mapPrismaMovie(movie: any): Movie {
   };
 }
 
+function filterInMemoryMovies(movies: Movie[], filters?: {
+  genre?: string | null;
+  search?: string | null;
+  sortBy?: string | null;
+  contentType?: string | null;
+}): Movie[] {
+  let filtered = [...movies];
+  const { genre, search, sortBy, contentType } = filters || {};
+  
+  if (contentType && contentType !== "all") {
+    filtered = filtered.filter(m => m.contentType === contentType);
+  }
+  
+  if (genre && genre !== "All") {
+    filtered = filtered.filter(m => m.genres?.some(g => g.toLowerCase() === genre.toLowerCase()));
+  }
+  
+  if (search) {
+    const q = search.toLowerCase();
+    filtered = filtered.filter(m => 
+      m.title?.toLowerCase().includes(q) || 
+      m.description?.toLowerCase().includes(q)
+    );
+  }
+  
+  if (sortBy === "rating") {
+    filtered.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+  } else if (sortBy === "year") {
+    filtered.sort((a, b) => (b.releaseYear || 0) - (a.releaseYear || 0));
+  } else if (sortBy === "views") {
+    filtered.sort((a, b) => (b.views || 0) - (a.views || 0));
+  }
+  
+  return filtered;
+}
+
 export async function getMovies(filters?: {
   genre?: string | null;
   search?: string | null;
@@ -497,12 +533,79 @@ export async function getMovies(filters?: {
         where: whereClause,
         orderBy
       });
-      return movies.map(mapPrismaMovie);
+      const dbMovies = movies.map(mapPrismaMovie);
+
+      // Pastikan saluran Live TV default selalu disertakan jika belum ada di DB PostgreSQL
+      if (!contentType || contentType === "all" || contentType === "livetv") {
+        const defaultTvChannels = store.movies.filter(m => m.contentType === "livetv");
+        const missingTvChannels: Movie[] = [];
+
+        for (const tv of defaultTvChannels) {
+          const exists = dbMovies.some(
+            m => m.id === tv.id || (m.title.toLowerCase() === tv.title.toLowerCase() && m.contentType === "livetv")
+          );
+          if (!exists) {
+            const matchesSearch = !search || tv.title.toLowerCase().includes(search.toLowerCase()) || tv.description.toLowerCase().includes(search.toLowerCase());
+            const matchesGenre = !genre || genre === "All" || tv.genres?.some(g => g.toLowerCase() === genre.toLowerCase());
+            if (matchesSearch && matchesGenre) {
+              missingTvChannels.push(tv);
+            }
+            // Auto-sync ke Prisma database secara asinkron agar tersimpan permanen
+            prisma.movie.upsert({
+              where: { id: tv.id },
+              create: {
+                id: tv.id,
+                title: tv.title,
+                description: tv.description,
+                posterUrl: tv.posterUrl,
+                backdropUrl: tv.backdropUrl,
+                videoUrl: tv.videoUrl,
+                duration: tv.duration,
+                releaseYear: tv.releaseYear,
+                rating: tv.rating,
+                ageRating: tv.ageRating,
+                quality: tv.quality,
+                genres: tv.genres,
+                cast: tv.cast,
+                directors: tv.directors,
+                subtitles: JSON.stringify(tv.subtitles || []),
+                country: tv.country,
+                language: tv.language,
+                views: tv.views,
+                likes: tv.likes,
+                isFeatured: tv.isFeatured,
+                isBanner: tv.isBanner,
+                tier: tv.tier || "free",
+                contentType: tv.contentType || "livetv",
+                seasons: JSON.stringify(tv.seasons || []),
+                createdAt: tv.createdAt
+              },
+              update: {
+                videoUrl: tv.videoUrl,
+                title: tv.title,
+                posterUrl: tv.posterUrl,
+                backdropUrl: tv.backdropUrl
+              }
+            }).catch(e => console.warn(`Auto-sync TV channel ${tv.id} failed:`, e?.message));
+          }
+        }
+
+        if (missingTvChannels.length > 0) {
+          dbMovies.push(...missingTvChannels);
+        }
+      }
+
+      // Jika database kosong sama sekali, fallback ke in-memory
+      if (dbMovies.length === 0) {
+        return filterInMemoryMovies(store.movies, filters);
+      }
+
+      return dbMovies;
     } catch (error) {
-      console.warn("Failed to fetch movies from Prisma.", error);
+      console.warn("Failed to fetch movies from Prisma. Fallback to in-memory.", error);
     }
   }
-  return [];
+  return filterInMemoryMovies(store.movies, filters);
 }
 
 export async function getMovieById(id: string, incrementViews = false): Promise<(Movie & { reviews: Review[] }) | null> {

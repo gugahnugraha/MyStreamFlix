@@ -407,14 +407,16 @@
           </button>
         </div>
       </div>
-      <!-- TV Player Timeline Seekbar (Bekas Lewatan & Buffer) -->
+      <!-- TV Player Timeline Seekbar (Bekas Lewatan Abu-abu & Buffer) -->
       <div id="tv-player-seekbar-wrap" style="display: flex; align-items: center; gap: 1.2vw; margin-bottom: 2vh; width: 100%;">
         <span id="tv-time-current" style="font-family: monospace; font-size: 0.95rem; font-weight: 700; color: #E5E7EB; min-width: 50px;">00:00</span>
-        <div id="tv-seekbar-track" style="flex: 1; height: 8px; background: rgba(255,255,255,0.2); border-radius: 9999px; position: relative; overflow: hidden;">
+        <div id="tv-seekbar-track" style="flex: 1; height: 8px; background: rgba(55,65,81,0.9); border-radius: 9999px; position: relative; overflow: visible;">
           <!-- Buffered Preload Bar -->
-          <div id="tv-seekbar-buffered" style="position: absolute; left: 0; top: 0; bottom: 0; width: 0%; background: rgba(255,255,255,0.35); border-radius: 9999px; transition: width 0.2s;"></div>
-          <!-- Played Track Bar (Bekas lewatan pemutaran video) -->
-          <div id="tv-seekbar-played" style="position: absolute; left: 0; top: 0; bottom: 0; width: 0%; background: linear-gradient(90deg, #DC2626, #EF4444); border-radius: 9999px; box-shadow: 0 0 10px rgba(220,38,38,0.8);"></div>
+          <div id="tv-seekbar-buffered" style="position: absolute; left: 0; top: 0; bottom: 0; width: 0%; background: rgba(255,255,255,0.3); border-radius: 9999px; transition: width 0.2s;"></div>
+          <!-- Played Track Bar (Bekas lewatan pemutaran video - Warna Abu-abu) -->
+          <div id="tv-seekbar-played" style="position: absolute; left: 0; top: 0; bottom: 0; width: 0%; background: #E5E7EB; border-radius: 9999px; box-shadow: 0 0 8px rgba(229,231,235,0.5);"></div>
+          <!-- Scrubber Pin / Poin (Thumb) Bulat Putih di Ujung Bekas Lewatan -->
+          <div id="tv-seekbar-thumb" style="position: absolute; top: 50%; transform: translate(-50%, -50%); left: 0%; width: 14px; height: 14px; background: #FFFFFF; border: 2px solid #9CA3AF; border-radius: 9999px; box-shadow: 0 2px 6px rgba(0,0,0,0.8); pointer-events: none;"></div>
         </div>
         <span id="tv-time-duration" style="font-family: monospace; font-size: 0.95rem; font-weight: 700; color: #9CA3AF; min-width: 50px;">00:00</span>
       </div>
@@ -815,7 +817,9 @@
       if (video.duration && !isNaN(video.duration)) {
         const pct = Math.min(100, Math.max(0, (video.currentTime / video.duration) * 100));
         const playedEl = document.getElementById("tv-seekbar-played");
+        const thumbEl = document.getElementById("tv-seekbar-thumb");
         if (playedEl) playedEl.style.width = pct + "%";
+        if (thumbEl) thumbEl.style.left = pct + "%";
         const curEl = document.getElementById("tv-time-current");
         if (curEl) curEl.innerText = formatTvSeconds(video.currentTime);
       }
@@ -897,24 +901,26 @@
     tvVideo.addEventListener("timeupdate", () => {
       const cur = tvVideo.currentTime || 0;
       const dur = tvVideo.duration;
+      const playedEl = document.getElementById("tv-seekbar-played");
+      const thumbEl = document.getElementById("tv-seekbar-thumb");
+      const curEl = document.getElementById("tv-time-current");
+      const durEl = document.getElementById("tv-time-duration");
+      const bufEl = document.getElementById("tv-seekbar-buffered");
+
       if (!dur || isNaN(dur) || !isFinite(dur)) {
         // Live stream mode
-        const curEl = document.getElementById("tv-time-current");
-        const durEl = document.getElementById("tv-time-duration");
-        const playedEl = document.getElementById("tv-seekbar-played");
-        const bufEl = document.getElementById("tv-seekbar-buffered");
         if (curEl) curEl.innerText = "LIVE";
         if (durEl) durEl.innerText = "REAL-TIME";
         if (playedEl) playedEl.style.width = "100%";
         if (bufEl) bufEl.style.width = "100%";
+        if (thumbEl) thumbEl.style.display = "none";
         return;
       }
+
+      if (thumbEl) thumbEl.style.display = "block";
       const pct = Math.min(100, Math.max(0, (cur / dur) * 100));
-      const playedEl = document.getElementById("tv-seekbar-played");
-      const curEl = document.getElementById("tv-time-current");
-      const durEl = document.getElementById("tv-time-duration");
-      const bufEl = document.getElementById("tv-seekbar-buffered");
       if (playedEl) playedEl.style.width = pct + "%";
+      if (thumbEl) thumbEl.style.left = pct + "%";
       if (curEl) curEl.innerText = formatTvSeconds(cur);
       if (durEl) durEl.innerText = formatTvSeconds(dur);
 

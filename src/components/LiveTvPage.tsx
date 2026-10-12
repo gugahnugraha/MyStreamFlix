@@ -728,17 +728,17 @@ export default function LiveTvPage({
                   onClick={(e) => e.stopPropagation()}
                 >
                   {/* Background Track */}
-                  <div className="w-full h-1.5 group-hover:h-2 bg-white/20 group-hover:bg-white/25 rounded-full overflow-hidden relative transition-all duration-150">
-                    {/* Fill Volume Track (Bekas lewatan level volume) */}
+                  <div className="w-full h-1.5 group-hover:h-2 bg-zinc-800/90 group-hover:bg-zinc-800 rounded-full overflow-hidden relative transition-all duration-150">
+                    {/* Fill Volume Track (Bekas lewatan level volume) - Berwarna abu-abu */}
                     <div
-                      className="absolute top-0 bottom-0 left-0 bg-gradient-to-r from-red-600 to-red-500 rounded-full pointer-events-none shadow-[0_0_8px_rgba(239,68,68,0.7)]"
+                      className="absolute top-0 bottom-0 left-0 bg-zinc-200 rounded-full pointer-events-none shadow-[0_0_6px_rgba(255,255,255,0.3)]"
                       style={{ width: `${(isMuted ? 0 : volume) * 100}%` }}
                     />
                   </div>
 
                   {/* Volume Thumb Knob */}
                   <div
-                    className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-3 h-3 group-hover:w-3.5 group-hover:h-3.5 bg-white border-2 border-red-600 rounded-full shadow-md scale-75 group-hover:scale-110 transition-transform duration-150 pointer-events-none z-10"
+                    className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-3 h-3 group-hover:w-3.5 group-hover:h-3.5 bg-white border-2 border-zinc-400 rounded-full shadow-md scale-75 group-hover:scale-110 transition-transform duration-150 pointer-events-none z-10"
                     style={{ left: `${(isMuted ? 0 : volume) * 100}%` }}
                   />
 
