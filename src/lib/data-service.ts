@@ -411,11 +411,6 @@ export function normalizeCdnUrl(url: string | undefined): string {
     return `${cdnBase}/${trimmed}`;
   }
 
-  // Old Cloudflare r2.dev domain e.g. "https://pub-xxx.r2.dev/movies/Fall.2022.mp4"
-  if (trimmed.includes(".r2.dev/")) {
-    return trimmed.replace(/^https?:\/\/[^\/]+\.r2\.dev/, cdnBase);
-  }
-
   return trimmed;
 }
 
