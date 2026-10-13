@@ -316,9 +316,7 @@ export const CHANNEL_ALTERNATIVE_URLS: Record<string, string[]> = {
     "https://live.cnbcindonesia.com/transtv/smil:transtv.smil/playlist.m3u8"
   ],
   "trans7": [
-    "https://op-flashcon-digdayahd-1.dens.tv/h/h07/01.m3u8",
-    "https://live.cnbcindonesia.com/trans7/smil:trans7.smil/playlist.m3u8",
-    "https://op-group1-densxvisionhd-1.dens.tv/h/h07/01.m3u8"
+    "https://live.cnbcindonesia.com/trans7/smil:trans7.smil/playlist.m3u8"
   ],
   "cgtn": [
     "https://english-livebkali.cgtn.com/live/encgtn_1.m3u8",

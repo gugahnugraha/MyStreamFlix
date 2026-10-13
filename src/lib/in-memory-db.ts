@@ -1039,7 +1039,7 @@ const defaultLiveTvChannels: Movie[] = [
     description: "Siaran langsung Trans 7 - Ragam tontonan cerdas dan menghibur mulai dari Lapor Pak!, On The Spot, Jejak Petualang, dan MotoGP.",
     posterUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/9/96/Logo_Trans7.png/960px-Logo_Trans7.png",
     backdropUrl: "https://images.unsplash.com/photo-1518173946687-a4c8a383392e?w=1200&auto=format&fit=crop&q=80",
-    videoUrl: "https://op-flashcon-digdayahd-1.dens.tv/h/h07/01.m3u8",
+    videoUrl: "https://live.cnbcindonesia.com/trans7/smil:trans7.smil/playlist.m3u8",
     duration: 0,
     releaseYear: 2026,
     rating: 9.6,
