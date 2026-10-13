@@ -1,9 +1,11 @@
-"use client";
+import type { Metadata } from "next";
+import ClientApp from "@/src/ClientApp";
 
-import dynamic from "next/dynamic";
+export const metadata: Metadata = {
+  title: "Watch Movies, Series & Live TV Online",
+  description: "Stream movies, TV series, and live TV channels with responsive playback, profiles, watchlists, and admin CMS controls.",
+};
 
-const App = dynamic(() => import("@/src/App"), { ssr: false });
-
-export default function Home() {
-  return <App />;
+export default function HomePage() {
+  return <ClientApp initialTab="home" initialContentType="all" />;
 }

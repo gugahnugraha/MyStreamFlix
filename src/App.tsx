@@ -3,10 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { 
   Film, Heart, AlertTriangle, Play, Sparkles, Filter, 
-  ArrowUpDown, ListVideo, HelpCircle, Flame, Compass, Tv, Clapperboard
+  ArrowUpDown, ListVideo, HelpCircle, Flame, Compass, Tv, Clapperboard, ShieldAlert
 } from "lucide-react";
 import Header from "./components/Header";
 import MobileBottomNav from "./components/MobileBottomNav";
@@ -23,8 +23,14 @@ import Footer from "./components/Footer";
 import LiveTvPage from "./components/LiveTvPage";
 import { Movie, User, WatchHistoryItem, CMSSettings } from "./types";
 import { getTranslation, LanguageCode } from "./translations";
+import { parseRoute, getRouteUrl, ContentType } from "./lib/routes";
 
-export default function App() {
+export interface AppProps {
+  initialTab?: string;
+  initialContentType?: ContentType;
+}
+
+export default function App({ initialTab, initialContentType }: AppProps = {}) {
   // Language Localization State
   // This state holds the currently selected language for the UI (e.g., "en", "id", "es").
   const [currentLanguage, setCurrentLanguage] = useState<LanguageCode>("en");
@@ -59,8 +65,21 @@ export default function App() {
   });
 
   // UI Control Router State
-  // activeTab acts as a simple client-side router for the SPA interface.
-  const [activeTab, setActiveTab] = useState<string>("home"); // home, favorites, admin
+  // Initial state is computed from browser pathname if available, falling back to props
+  const [activeTab, setActiveTab] = useState<string>(() => {
+    if (typeof window !== "undefined") {
+      return parseRoute(window.location.pathname).tab;
+    }
+    return initialTab || "home";
+  });
+
+  const [selectedContentType, setSelectedContentType] = useState<ContentType>(() => {
+    if (typeof window !== "undefined") {
+      return parseRoute(window.location.pathname).contentType;
+    }
+    return initialContentType || "all";
+  });
+
   const [showAuth, setShowAuth] = useState(false);
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
   const [activeStream, setActiveStream] = useState<Movie | null>(null);
@@ -74,7 +93,6 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState("");
   const [showMobileSearch, setShowMobileSearch] = useState(false);
   const [selectedGenre, setSelectedGenre] = useState("All");
-  const [selectedContentType, setSelectedContentType] = useState<"all" | "movie" | "series" | "livetv">("all");
   const [sortBy, setSortBy] = useState("recent");
   
   // User Personalization Lists
@@ -84,6 +102,69 @@ export default function App() {
   // App Loading / States
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  const isPopStateRef = useRef(false);
+  const isInitialMountRef = useRef(true);
+
+  // Sync browser URL whenever activeTab or selectedContentType changes
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const currentUrl = getRouteUrl(activeTab, selectedContentType);
+
+    if (isInitialMountRef.current) {
+      isInitialMountRef.current = false;
+      // Replace state on initial mount to ensure valid history entry
+      if (window.location.pathname !== currentUrl) {
+        window.history.replaceState({ tab: activeTab, contentType: selectedContentType }, "", currentUrl);
+      }
+      return;
+    }
+
+    if (isPopStateRef.current) {
+      isPopStateRef.current = false;
+      return;
+    }
+
+    if (window.location.pathname !== currentUrl) {
+      window.history.pushState({ tab: activeTab, contentType: selectedContentType }, "", currentUrl);
+    }
+  }, [activeTab, selectedContentType]);
+
+  // Handle browser Back / Forward buttons
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const handlePopState = () => {
+      const { tab, contentType } = parseRoute(window.location.pathname);
+      isPopStateRef.current = true;
+      setActiveTab(tab);
+      setSelectedContentType(contentType);
+      setSearchQuery("");
+    };
+
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
+
+  // Dynamic document title matching active view
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    const siteTitle = settings.siteName || "MyStreamFlix";
+    if (activeTab === "admin") {
+      document.title = `Admin Dashboard | ${siteTitle}`;
+    } else if (activeTab === "favorites") {
+      document.title = `${t.myWatchlistTitle || "My List"} | ${siteTitle}`;
+    } else if (selectedContentType === "movie") {
+      document.title = `${t.movies || "Movies"} | ${siteTitle}`;
+    } else if (selectedContentType === "series") {
+      document.title = `${t.tvSeries || "TV Series"} | ${siteTitle}`;
+    } else if (selectedContentType === "livetv") {
+      document.title = `${t.liveTv || "Live TV"} | ${siteTitle}`;
+    } else {
+      document.title = `${siteTitle} - Movies, Series, and Live TV`;
+    }
+  }, [activeTab, selectedContentType, settings.siteName, t]);
 
   // Auto-scroll to top on navigation tab or content type filter switch
   useEffect(() => {
@@ -408,20 +489,52 @@ export default function App() {
               </button>
             </div>
           </div>
-        ) : activeTab === "admin" && currentUser?.role === "admin" ? (
-          /* CMS ADMINISTRATOR PANEL */
-          <AdminCMS 
-            movies={allMovies.length > 0 ? allMovies : movies} 
-            onRefreshMovies={() => {
-              fetchAllMovies();
-              fetchCatalogMovies();
-            }} 
-            globalSettings={settings}
-            onUpdateGlobalSettings={setSettings}
-            currentUser={currentUser}
-            t={t}
-            onSelectMovie={setSelectedMovie}
-          />
+        ) : activeTab === "admin" ? (
+          currentUser?.role === "admin" ? (
+            /* CMS ADMINISTRATOR PANEL */
+            <AdminCMS 
+              movies={allMovies.length > 0 ? allMovies : movies} 
+              onRefreshMovies={() => {
+                fetchAllMovies();
+                fetchCatalogMovies();
+              }} 
+              globalSettings={settings}
+              onUpdateGlobalSettings={setSettings}
+              currentUser={currentUser}
+              t={t}
+              onSelectMovie={setSelectedMovie}
+            />
+          ) : (
+            /* Admin Auth Gate Screen for Non-admin or Guests visiting /admin */
+            <div className="max-w-md mx-auto text-center py-24 px-6 space-y-4" id="admin-gate-viewport">
+              <div className="w-16 h-16 rounded-2xl mx-auto flex items-center justify-center bg-white/[0.04] border border-white/10 shadow-xl">
+                <ShieldAlert className="w-8 h-8" style={{ color: settings.primaryColor }} />
+              </div>
+              <h2 className="text-2xl font-black text-white uppercase tracking-wider">{t.adminDashboard || "Admin Portal"}</h2>
+              <p className="text-zinc-400 text-xs leading-relaxed">
+                {currentUser 
+                  ? "Your account does not have administrator privileges to view this console."
+                  : "Please sign in with an administrator account to access the dashboard."}
+              </p>
+              <div className="pt-3 flex flex-col sm:flex-row items-center justify-center gap-3">
+                {!currentUser && (
+                  <button 
+                    onClick={() => setShowAuth(true)}
+                    className="text-black font-extrabold text-xs px-5 py-2.5 rounded-lg shadow-lg cursor-pointer hover:opacity-90 transition-all"
+                    style={{ backgroundColor: settings.primaryColor }}
+                  >
+                    {t.signInAsAdmin || "Sign In as Admin"}
+                  </button>
+                )}
+                <button 
+                  onClick={() => setActiveTab("home")}
+                  className="text-zinc-300 text-xs px-4 py-2.5 rounded-lg border border-white/10 hover:bg-white/5 transition-all cursor-pointer"
+                >
+                  {t.exploreSpotlight || "Back to Movies"}
+                </button>
+              </div>
+            </div>
+          )
         ) : activeTab === "favorites" ? (
           /* MY FAVORITE WATCHLIST FEED */
           <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6" id="favorites-feed-viewport">

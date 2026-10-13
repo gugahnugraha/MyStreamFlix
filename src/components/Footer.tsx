@@ -5,7 +5,7 @@ import { CMSSettings } from "../types";
 interface FooterProps {
   settings: CMSSettings;
   setActiveTab: (tab: string) => void;
-  onSelectContentType: (type: "all" | "movie" | "series") => void;
+  onSelectContentType: (type: "all" | "movie" | "series" | "livetv") => void;
   onOpenSubscription: () => void;
   onOpenAuth: () => void;
   t: any;
@@ -21,7 +21,7 @@ export default function Footer({
 }: FooterProps) {
   const brandColor = "#00ADB5";
 
-  const handleNav = (tab: string, type?: "all" | "movie" | "series") => {
+  const handleNav = (tab: string, type?: "all" | "movie" | "series" | "livetv") => {
     setActiveTab(tab);
     if (type) {
       onSelectContentType(type);
@@ -116,6 +116,14 @@ export default function Footer({
                 className="text-zinc-400 hover:text-white transition-colors cursor-pointer"
               >
                 {t.tvSeries || "TV Series Collection"}
+              </button>
+            </li>
+            <li>
+              <button
+                onClick={() => handleNav("home", "livetv")}
+                className="text-zinc-400 hover:text-white transition-colors cursor-pointer"
+              >
+                {t.liveTv || "Live TV"}
               </button>
             </li>
             <li>
