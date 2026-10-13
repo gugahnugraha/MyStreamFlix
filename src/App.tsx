@@ -6,7 +6,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import { 
   Film, Heart, AlertTriangle, Play, Sparkles, Filter, 
-  ArrowUpDown, ListVideo, HelpCircle, Flame, Compass, Tv, Clapperboard, ShieldAlert
+  ArrowUpDown, ListVideo, HelpCircle, Flame, Compass, Tv, Clapperboard, ShieldAlert,
+  Users, UserRound
 } from "lucide-react";
 import Header from "./components/Header";
 import MobileBottomNav from "./components/MobileBottomNav";
@@ -101,9 +102,38 @@ export default function App({ initialTab, initialContentType, initialCastId }: A
   const [movies, setMovies] = useState<Movie[]>([]);
   const [allMovies, setAllMovies] = useState<Movie[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
+  const [tmdbCastResults, setTmdbCastResults] = useState<any[]>([]);
   const [showMobileSearch, setShowMobileSearch] = useState(false);
   const [selectedGenre, setSelectedGenre] = useState("All");
   const [sortBy, setSortBy] = useState("recent");
+
+  // Query TMDB directly for cast results whenever searchQuery updates
+  useEffect(() => {
+    const q = searchQuery.trim();
+    if (!q) {
+      setTmdbCastResults([]);
+      return;
+    }
+    const controller = new AbortController();
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/search/suggestions?q=${encodeURIComponent(q)}`, { signal: controller.signal });
+        if (res.ok) {
+          const data = await res.json();
+          const castItems = data.filter((item: any) => item.type === "cast");
+          setTmdbCastResults(castItems);
+        }
+      } catch (err: any) {
+        if (err.name !== "AbortError") {
+          setTmdbCastResults([]);
+        }
+      }
+    }, 220);
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [searchQuery]);
   
   // User Personalization Lists
   const [favorites, setFavorites] = useState<Movie[]>([]);
@@ -496,6 +526,7 @@ export default function App({ initialTab, initialContentType, initialCastId }: A
         movies={displayedMovies}
         showMobileSearch={showMobileSearch}
         setShowMobileSearch={setShowMobileSearch}
+        onSelectCast={handleSelectCast}
       />
 
       {/* Main Container Viewport switch */}
@@ -516,6 +547,103 @@ export default function App({ initialTab, initialContentType, initialCastId }: A
               >
                 {t.signInAsAdmin}
               </button>
+            </div>
+          </div>
+        ) : searchQuery.trim() ? (
+          /* GLOBAL SEARCH RESULTS (ACCESSIBLE FROM ALL PAGES) */
+          <div className="px-4 md:px-8 max-w-7xl mx-auto space-y-8 pb-16 pt-6 animate-fade-in-quick" id="global-search-viewport">
+            <div className="flex items-center justify-between border-b border-white/5 pb-4">
+              <div>
+                <h2 className="text-xl font-extrabold tracking-tight">{(t.searchResultsFor || "Search Results for")} "{searchQuery}"</h2>
+                <p className="text-xs text-zinc-500 mt-0.5">Pencarian film, serial di katalog lokal, dan pemeran di TMDB</p>
+              </div>
+              <button
+                onClick={() => setSearchQuery("")}
+                className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-white/[0.06] hover:bg-white/[0.12] text-zinc-300 hover:text-white transition-all cursor-pointer"
+              >
+                {(t as any).clear || "Tutup Pencarian"}
+              </button>
+            </div>
+
+            {/* TMDB Cast Search Results (Queried from TMDB API) */}
+            {tmdbCastResults.length > 0 && (
+              <div className="space-y-3 pb-2" id="tmdb-cast-search-results">
+                <div className="flex items-center gap-2">
+                  <Users className="w-4 h-4 text-[#00ADB5]" />
+                  <h3 className="text-xs font-extrabold uppercase tracking-wider text-zinc-300 flex items-center gap-1.5">
+                    Pemeran / Cast
+                    <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                      TMDB
+                    </span>
+                  </h3>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3.5">
+                  {tmdbCastResults.map((person) => (
+                    <button
+                      key={person.id}
+                      type="button"
+                      onClick={() => {
+                        setSearchQuery("");
+                        handleSelectCast(person.castId || person.tmdbId || person.query || person.title);
+                      }}
+                      className="group flex items-center gap-3 p-2.5 rounded-xl bg-white/[0.03] hover:bg-white/[0.08] border border-white/[0.06] hover:border-[#00ADB5]/40 transition-all text-left cursor-pointer"
+                    >
+                      {person.posterUrl ? (
+                        <img
+                          src={person.posterUrl}
+                          alt={person.title}
+                          className="w-11 h-11 rounded-full object-cover object-top border border-white/10 shrink-0 group-hover:scale-105 transition-transform"
+                        />
+                      ) : (
+                        <div className="w-11 h-11 rounded-full bg-zinc-800 border border-white/10 flex items-center justify-center shrink-0">
+                          <UserRound className="w-5 h-5 text-zinc-400" />
+                        </div>
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <span className="block text-xs font-bold text-white truncate group-hover:text-[#00ADB5] transition-colors">
+                          {person.title}
+                        </span>
+                        <span className="block text-[10px] text-zinc-500 truncate">
+                          {person.subtitle || "Cast • TMDB"}
+                        </span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Local Catalog Movies Results */}
+            <div className="space-y-4">
+              {tmdbCastResults.length > 0 && displayedMovies.length > 0 && (
+                <div className="flex items-center justify-between border-b border-white/[0.04] pb-2">
+                  <h3 className="text-xs font-extrabold uppercase tracking-wider text-zinc-400">
+                    Katalog Film & Serial Terkait ({displayedMovies.length})
+                  </h3>
+                </div>
+              )}
+              {displayedMovies.length === 0 && tmdbCastResults.length === 0 ? (
+                <div className="py-16 text-center text-zinc-500 text-xs border border-dashed border-zinc-900 rounded-xl bg-zinc-950/20">
+                  {t.noMatchingContentDesc}
+                </div>
+              ) : displayedMovies.length === 0 && tmdbCastResults.length > 0 ? (
+                <div className="py-8 text-center text-zinc-500 text-xs border border-dashed border-zinc-900/60 rounded-xl bg-zinc-950/10">
+                  Tidak ada film lokal dengan judul "{searchQuery}". Klik salah satu profil pemeran di atas untuk melihat filmografinya.
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                  {displayedMovies.map((movie) => (
+                    <MovieCard
+                      key={movie.id}
+                      movie={movie}
+                      progress={getProgressOfMovie(movie.id)}
+                      onSelect={setSelectedMovie}
+                      onPlay={handleLaunchStream}
+                      t={t}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         ) : activeTab === "admin" ? (
@@ -625,33 +753,7 @@ export default function App({ initialTab, initialContentType, initialCastId }: A
         ) : (
           /* HOME SPOTLIGHT OR MOVIE BROWSE SYSTEM */
           <div id="home-feed-viewport" className="space-y-8">
-            {/* If searching, show search results grid instead of category rows */}
-            {searchQuery ? (
-              <div className="px-4 md:px-8 max-w-7xl mx-auto space-y-6 pb-16 pt-6">
-                <div className="flex items-center justify-between border-b border-white/5 pb-4">
-                  <h2 className="text-xl font-extrabold tracking-tight">{(t.searchResultsFor || "Search Results for")} "{searchQuery}"</h2>
-                  <span className="text-xs text-zinc-500 font-mono">{displayedMovies.length} {(t.found || "found")}</span>
-                </div>
-                {displayedMovies.length === 0 ? (
-                  <div className="py-16 text-center text-zinc-500 text-xs border border-dashed border-zinc-900 rounded-xl bg-zinc-950/20">
-                    {t.noMatchingContentDesc}
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                    {displayedMovies.map((movie) => (
-                      <MovieCard
-                        key={movie.id}
-                        movie={movie}
-                        progress={getProgressOfMovie(movie.id)}
-                        onSelect={setSelectedMovie}
-                        onPlay={handleLaunchStream}
-                        t={t}
-                      />
-                    ))}
-                  </div>
-                )}
-              </div>
-            ) : selectedContentType === "all" ? (
+            {selectedContentType === "all" ? (
               /* HOME VIEW: CATEGORIES & Snapping horizontal scroll sliders */
               <div className="px-4 md:px-8 max-w-7xl mx-auto space-y-12 pb-16 pt-6 animate-fade-in-quick">
                 

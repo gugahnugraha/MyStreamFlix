@@ -12,6 +12,8 @@ type SearchSuggestion = {
   posterUrl?: string;
   query: string;
   source: "local" | "tmdb";
+  castId?: string | number;
+  tmdbId?: number;
 };
 
 interface HeaderProps {
@@ -33,6 +35,7 @@ interface HeaderProps {
   movies: Movie[];
   showMobileSearch?: boolean;
   setShowMobileSearch?: (show: boolean) => void;
+  onSelectCast?: (castId: string | number) => void;
 }
 
 export default function Header({
@@ -54,6 +57,7 @@ export default function Header({
   movies,
   showMobileSearch: externalShowMobileSearch,
   setShowMobileSearch: externalSetShowMobileSearch,
+  onSelectCast,
 }: HeaderProps) {
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const profileMenuRef = useRef<HTMLDivElement>(null);
@@ -97,10 +101,11 @@ export default function Header({
     const q = searchQuery.trim().toLowerCase();
     if (!q) return [];
 
+    // Instant local title suggestions from catalog (Cast is queried from TMDB via /api/search/suggestions)
     const titleMatches = movies
       .filter(m => m.contentType !== "livetv" && !m.id.startsWith("tv-"))
-      .filter(m => m.title.toLowerCase().includes(q) || m.cast.some(c => c.toLowerCase().includes(q)))
-      .slice(0, 5)
+      .filter(m => m.title.toLowerCase().includes(q))
+      .slice(0, 6)
       .map(m => ({
         id: `local-${m.id}`,
         type: (m.contentType === "series" ? "series" : "movie") as "series" | "movie",
@@ -111,18 +116,7 @@ export default function Header({
         source: "local" as const
       }));
 
-    const castMatches = Array.from(new Set(
-      movies.flatMap(m => m.cast).filter(c => c.toLowerCase().includes(q))
-    )).slice(0, 3).map(name => ({
-      id: `cast-${name}`,
-      type: "cast" as const,
-      title: name,
-      subtitle: "Cast",
-      query: name,
-      source: "local" as const
-    }));
-
-    return [...titleMatches, ...castMatches].slice(0, 8);
+    return titleMatches;
   }, [movies, searchQuery]);
 
   useEffect(() => {
@@ -164,6 +158,22 @@ export default function Header({
     if (type === "series") return <Tv className="w-4 h-4" style={{ color: brandColor }} />;
     if (type === "cast") return <UserRound className="w-4 h-4" style={{ color: brandColor }} />;
     return <Clapperboard className="w-4 h-4" style={{ color: brandColor }} />;
+  };
+
+  const handleSelectSuggestion = (item: SearchSuggestion) => {
+    setShowSearchSuggestions(false);
+    setShowMobileSearch(false);
+    if (item.type === "cast") {
+      setSearchQuery("");
+      if (onSelectCast) {
+        onSelectCast(item.castId || item.query || item.title);
+      } else {
+        setActiveTab("cast");
+      }
+    } else {
+      setSearchQuery(item.query || item.title);
+      setActiveTab("home");
+    }
   };
 
   return (
@@ -280,73 +290,85 @@ export default function Header({
 
       {/* Search Bar & User Actions */}
       <div className="flex items-center gap-3 sm:gap-4" id="header-actions">
-        {/* Search Input */}
-        {activeTab === "home" && (
-          <>
-            <div className="relative hidden sm:block">
-              <Search className="absolute left-3 top-2.5 w-4 h-4 text-zinc-500 transition-colors duration-300" style={showSearchSuggestions ? { color: brandColor } : {}} />
-              <input
-                type="text"
-                placeholder={t.searchPlaceholder}
-                value={searchQuery}
-                onChange={(e) => {
-                  setSearchQuery(e.target.value);
-                  setShowSearchSuggestions(true);
-                }}
-                onFocus={() => setShowSearchSuggestions(true)}
-                onBlur={() => window.setTimeout(() => setShowSearchSuggestions(false), 120)}
-                className="w-32 sm:w-36 focus:w-56 focus:sm:w-64 focus:lg:w-80 hover:w-44 focus:hover:w-56 focus:sm:hover:w-64 focus:lg:hover:w-80 bg-white/[0.03] text-xs text-white pl-9 pr-4 py-2 rounded-full border border-white/10 focus:outline-hidden focus:ring-2 transition-all duration-300 ease-in-out placeholder:text-zinc-500"
-                style={showSearchSuggestions ? { borderColor: `${brandColor}80`, boxShadow: `0 0 0 2px ${brandColor}20` } : {}}
-                id="header-search-input"
-              />
-              {showSearchSuggestions && searchQuery.trim() && (
-                <div className="absolute right-0 top-full mt-2 w-72 rounded-lg border border-white/10 bg-zinc-950/98 shadow-2xl shadow-black/60 overflow-hidden z-50">
-                  {suggestionsLoading && searchSuggestions.length === 0 ? (
-                    <div className="px-3 py-3 text-[11px] text-zinc-500">{t.loadingSuggestions || "Loading suggestions..."}</div>
-                  ) : searchSuggestions.length > 0 ? (
-                    <div className="max-h-96 overflow-y-auto py-1">
-                      {searchSuggestions.map((item) => (
-                        <button
-                          key={item.id}
-                          type="button"
-                          onMouseDown={(event) => {
-                            event.preventDefault();
-                            setSearchQuery(item.query || item.title);
-                            setShowSearchSuggestions(false);
-                          }}
-                          className="w-full px-2.5 py-2 text-left flex items-center gap-2.5 hover:bg-zinc-900 transition-colors"
-                        >
-                          {item.posterUrl ? (
-                            <img src={item.posterUrl} alt="" className="w-8 h-11 object-cover rounded bg-zinc-900 border border-zinc-800" />
-                          ) : (
-                            <span className="w-8 h-11 rounded bg-zinc-900 border border-zinc-800 flex items-center justify-center shrink-0">
-                              {getSuggestionIcon(item.type)}
+        {/* Search Input - Always Available on All Pages */}
+        <div className="relative hidden sm:block">
+          <Search className="absolute left-3 top-2.5 w-4 h-4 text-zinc-500 transition-colors duration-300" style={showSearchSuggestions ? { color: brandColor } : {}} />
+          <input
+            type="text"
+            placeholder={t.searchPlaceholder}
+            value={searchQuery}
+            onChange={(e) => {
+              setSearchQuery(e.target.value);
+              setShowSearchSuggestions(true);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                setShowSearchSuggestions(false);
+                if (searchQuery.trim()) {
+                  setActiveTab("home");
+                }
+              }
+            }}
+            onFocus={() => setShowSearchSuggestions(true)}
+            onBlur={() => window.setTimeout(() => setShowSearchSuggestions(false), 150)}
+            className="w-32 sm:w-36 focus:w-56 focus:sm:w-64 focus:lg:w-80 hover:w-44 focus:hover:w-56 focus:sm:hover:w-64 focus:lg:hover:w-80 bg-white/[0.03] text-xs text-white pl-9 pr-4 py-2 rounded-full border border-white/10 focus:outline-hidden focus:ring-2 transition-all duration-300 ease-in-out placeholder:text-zinc-500"
+            style={showSearchSuggestions ? { borderColor: `${brandColor}80`, boxShadow: `0 0 0 2px ${brandColor}20` } : {}}
+            id="header-search-input"
+          />
+          {showSearchSuggestions && searchQuery.trim() && (
+            <div className="absolute right-0 top-full mt-2 w-72 rounded-lg border border-white/10 bg-zinc-950/98 shadow-2xl shadow-black/60 overflow-hidden z-50">
+              {suggestionsLoading && searchSuggestions.length === 0 ? (
+                <div className="px-3 py-3 text-[11px] text-zinc-500">{t.loadingSuggestions || "Loading suggestions..."}</div>
+              ) : searchSuggestions.length > 0 ? (
+                <div className="max-h-96 overflow-y-auto py-1">
+                  {searchSuggestions.map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onMouseDown={(event) => {
+                        event.preventDefault();
+                        handleSelectSuggestion(item);
+                      }}
+                      className="w-full px-2.5 py-2 text-left flex items-center gap-2.5 hover:bg-zinc-900 transition-colors"
+                    >
+                      {item.posterUrl ? (
+                        <img src={item.posterUrl} alt="" className={`w-8 h-11 object-cover bg-zinc-900 border border-zinc-800 ${item.type === "cast" ? "rounded-full aspect-square h-8 object-top" : "rounded"}`} />
+                      ) : (
+                        <span className={`w-8 h-11 bg-zinc-900 border border-zinc-800 flex items-center justify-center shrink-0 ${item.type === "cast" ? "rounded-full h-8" : "rounded"}`}>
+                          {getSuggestionIcon(item.type)}
+                        </span>
+                      )}
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-xs font-bold text-zinc-100 truncate flex items-center gap-1.5">
+                          {item.title}
+                          {item.source === "tmdb" && item.type === "cast" && (
+                            <span className="text-[9px] font-black uppercase px-1 py-0.2 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20 shrink-0">
+                              TMDB
                             </span>
                           )}
-                          <span className="min-w-0 flex-1">
-                            <span className="block text-xs font-bold text-zinc-100 truncate">{item.title}</span>
-                            <span className="block text-[10px] text-zinc-550 truncate">{item.subtitle}</span>
-                          </span>
-                        </button>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="px-3 py-3 text-[11px] text-zinc-500">{t.noResultsFound || "No matching titles or cast found."}</div>
-                  )}
+                        </span>
+                        <span className="block text-[10px] text-zinc-550 truncate">{item.subtitle}</span>
+                      </span>
+                    </button>
+                  ))}
                 </div>
+              ) : (
+                <div className="px-3 py-3 text-[11px] text-zinc-500">{t.noResultsFound || "No matching titles or cast found."}</div>
               )}
             </div>
-            {/* Mobile Search Toggle Button - Clean White Icon */}
-            <button
-              onClick={() => setShowMobileSearch(true)}
-              className="sm:hidden w-9.5 h-9.5 rounded-full bg-white/[0.08] border border-white/15 flex items-center justify-center text-white hover:bg-white/15 cursor-pointer transition-all duration-200 active:scale-90 shadow-md"
-              title={t.searchPlaceholder}
-              id="header-search-mobile-toggle"
-            >
-              <Search className="w-5 h-5 text-white" />
-            </button>
-          </>
-        )}
+          )}
+        </div>
+
+        {/* Mobile Search Toggle Button - Available on All Pages */}
+        <button
+          onClick={() => setShowMobileSearch(true)}
+          className="sm:hidden w-9.5 h-9.5 rounded-full bg-white/[0.08] border border-white/15 flex items-center justify-center text-white hover:bg-white/15 cursor-pointer transition-all duration-200 active:scale-90 shadow-md"
+          title={t.searchPlaceholder}
+          id="header-search-mobile-toggle"
+        >
+          <Search className="w-5 h-5 text-white" />
+        </button>
 
 
 
@@ -569,6 +591,15 @@ export default function Header({
               placeholder={t.searchPlaceholder}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  setShowMobileSearch(false);
+                  if (searchQuery.trim()) {
+                    setActiveTab("home");
+                  }
+                }
+              }}
               className="w-full bg-zinc-900 text-xs text-white pl-9 pr-4 py-2 rounded-full border border-zinc-800 focus:outline-hidden focus:border-[#00ADB5] focus:ring-1 focus:ring-[#00ADB5]/50 placeholder:text-zinc-500 transition-all"
               autoFocus
               id="mobile-search-input"
@@ -583,21 +614,25 @@ export default function Header({
                       <button
                         key={item.id}
                         type="button"
-                        onClick={() => {
-                          setSearchQuery(item.query || item.title);
-                          setShowMobileSearch(false);
-                        }}
+                        onClick={() => handleSelectSuggestion(item)}
                         className="w-full px-3 py-2.5 text-left flex items-center gap-2.5 hover:bg-zinc-900 border-b border-zinc-900 last:border-b-0 transition-colors"
                       >
                         {item.posterUrl ? (
-                          <img src={item.posterUrl} alt="" className="w-8 h-11 object-cover rounded bg-zinc-900 border border-zinc-800" />
+                          <img src={item.posterUrl} alt="" className={`w-8 h-11 object-cover bg-zinc-900 border border-zinc-800 ${item.type === "cast" ? "rounded-full aspect-square h-8 object-top" : "rounded"}`} />
                         ) : (
-                          <span className="w-8 h-11 rounded bg-zinc-900 border border-zinc-800 flex items-center justify-center shrink-0">
+                          <span className={`w-8 h-11 bg-zinc-900 border border-zinc-800 flex items-center justify-center shrink-0 ${item.type === "cast" ? "rounded-full h-8" : "rounded"}`}>
                             {getSuggestionIcon(item.type)}
                           </span>
                         )}
                         <span className="min-w-0 flex-1">
-                          <span className="block text-xs font-bold text-zinc-100 truncate">{item.title}</span>
+                          <span className="block text-xs font-bold text-zinc-100 truncate flex items-center gap-1.5">
+                            {item.title}
+                            {item.source === "tmdb" && item.type === "cast" && (
+                              <span className="text-[9px] font-black uppercase px-1 py-0.2 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20 shrink-0">
+                                TMDB
+                              </span>
+                            )}
+                          </span>
                           <span className="block text-[10px] text-zinc-500 truncate">{item.subtitle}</span>
                         </span>
                       </button>

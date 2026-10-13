@@ -257,6 +257,55 @@ export async function searchTmdbId(
   }
 }
 
+export async function searchTmdbPerson(query: string) {
+  const apiKey = getTmdbApiKey();
+  if (!apiKey || !query.trim()) return [];
+
+  const params = new URLSearchParams({
+    api_key: apiKey,
+    query: query.trim(),
+    include_adult: "false",
+    language: "en-US",
+    page: "1"
+  });
+
+  try {
+    const response = await fetch(`https://api.themoviedb.org/3/search/person?${params.toString()}`, {
+      next: { revalidate: 3600 }
+    });
+    if (!response.ok) {
+      console.warn(`TMDB person search failed with status ${response.status}`);
+      return [];
+    }
+
+    const data = await response.json();
+    return (data.results || [])
+      .slice(0, 6)
+      .map((item: any) => {
+        const knownFor = (item.known_for || [])
+          .map((entry: any) => entry.title || entry.name)
+          .filter(Boolean)
+          .slice(0, 2)
+          .join(", ");
+
+        return {
+          id: `tmdb-cast-${item.id}`,
+          castId: String(item.id),
+          tmdbId: item.id,
+          source: "tmdb" as const,
+          type: "cast" as const,
+          title: item.name,
+          subtitle: knownFor ? `Cast • ${knownFor}` : "Cast",
+          posterUrl: tmdbImage(item.profile_path, "w185"),
+          query: item.name
+        };
+      });
+  } catch (error) {
+    console.warn("TMDB person search error:", error);
+    return [];
+  }
+}
+
 export async function fetchTmdbPersonDetails(
   personId: string | number
 ): Promise<TmdbPersonDetail | null> {
@@ -264,7 +313,17 @@ export async function fetchTmdbPersonDetails(
   if (!apiKey || !personId) return null;
 
   try {
-    const url = `https://api.themoviedb.org/3/person/${personId}?api_key=${apiKey}&append_to_response=combined_credits,external_ids&language=en-US`;
+    let resolvedId = String(personId).trim();
+    if (!/^\d+$/.test(resolvedId)) {
+      const candidates = await searchTmdbPerson(resolvedId);
+      if (candidates.length > 0 && candidates[0].tmdbId) {
+        resolvedId = String(candidates[0].tmdbId);
+      } else {
+        return null;
+      }
+    }
+
+    const url = `https://api.themoviedb.org/3/person/${resolvedId}?api_key=${apiKey}&append_to_response=combined_credits,external_ids&language=en-US`;
     const res = await fetch(url, { next: { revalidate: 86400 } });
     if (!res.ok) {
       console.warn(`TMDB person lookup failed with status ${res.status}`);

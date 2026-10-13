@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getMovies } from "@/src/lib/data-service";
+import { searchTmdbPerson } from "@/src/lib/tmdb";
 
 export async function GET(request: NextRequest) {
   try {
@@ -12,13 +13,13 @@ export async function GET(request: NextRequest) {
     const q = query.toLowerCase();
     const localMovies = await getMovies();
 
-    // Local Title matches
+    // Local Title matches (playable movies and series in our catalog)
     const localTitleMatches = localMovies
+      .filter(m => m.contentType !== "livetv" && !m.id.startsWith("tv-"))
       .filter(m =>
         m.title.toLowerCase().includes(q) ||
         m.description.toLowerCase().includes(q) ||
-        m.genres.some(g => g.toLowerCase().includes(q)) ||
-        m.directors.some(d => d.toLowerCase().includes(q))
+        m.genres.some(g => g.toLowerCase().includes(g))
       )
       .slice(0, 5)
       .map(m => ({
@@ -33,30 +34,17 @@ export async function GET(request: NextRequest) {
         query: m.title
       }));
 
-    // Local Cast matches
-    const castNames = new Map<string, string[]>();
-    localMovies.forEach((movie) => {
-      movie.cast
-        .filter(name => name.toLowerCase().includes(q))
-        .forEach((name) => {
-          const titles = castNames.get(name) || [];
-          castNames.set(name, [...titles, movie.title].slice(0, 2));
-        });
-    });
-
-    const localCastMatches = Array.from(castNames.entries()).slice(0, 4).map(([name, titles]) => ({
-      id: `local-cast-${name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`,
-      source: "local",
-      type: "cast",
-      title: name,
-      subtitle: `Cast • ${titles.join(", ")}`,
-      posterUrl: "",
-      query: name
-    }));
+    // TMDB Cast matches — Queried directly from TMDB API as requested, NOT from local DB
+    let tmdbCastMatches: any[] = [];
+    try {
+      tmdbCastMatches = await searchTmdbPerson(query);
+    } catch (tmdbErr) {
+      console.warn("Failed fetching cast from TMDB in suggestions:", tmdbErr);
+    }
 
     // Combine matches uniquely
     const unique = new Map<string, any>();
-    [...localTitleMatches, ...localCastMatches].forEach((item) => {
+    [...localTitleMatches, ...tmdbCastMatches].forEach((item) => {
       const key = `${item.type}-${item.title}`.toLowerCase();
       if (!unique.has(key)) {
         unique.set(key, item);
