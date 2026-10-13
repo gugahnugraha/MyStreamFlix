@@ -947,9 +947,76 @@
       }
     });
 
+    async function syncRemoteCatalog() {
+      try {
+        const res = await fetch("https://mystreamflix.biz.id/api/movies");
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data) && data.length > 0) {
+            const live = data.filter(m => m.contentType === "livetv");
+            const movies = data.filter(m => m.contentType !== "livetv");
+
+            if (movies.length > 0) {
+              TV_CATALOG.trending = movies.map(m => ({
+                id: m.id,
+                title: m.title,
+                year: m.releaseYear || 2026,
+                rating: m.rating || 8.0,
+                quality: m.quality || "4K",
+                posterUrl: m.posterUrl,
+                videoUrl: m.videoUrl,
+                backupUrls: m.backupUrls || []
+              }));
+              const featured = movies.find(m => m.isFeatured || m.isBanner) || movies[0];
+              if (featured) {
+                TV_CATALOG.hero = {
+                  id: featured.id,
+                  title: featured.title,
+                  desc: featured.description,
+                  backdropUrl: featured.backdropUrl,
+                  posterUrl: featured.posterUrl,
+                  videoUrl: featured.videoUrl,
+                  backupUrls: featured.backupUrls || [],
+                  quality: featured.quality || "4K"
+                };
+                const heroBanner = document.getElementById("tv-hero-banner");
+                const heroTitle = document.getElementById("tv-hero-title");
+                const heroDesc = document.getElementById("tv-hero-desc");
+                if (heroBanner && featured.backdropUrl) {
+                  heroBanner.style.backgroundImage = `url('${featured.backdropUrl}')`;
+                }
+                if (heroTitle) heroTitle.innerText = featured.title;
+                if (heroDesc) heroDesc.innerText = featured.description;
+              }
+            }
+
+            if (live.length > 0) {
+              TV_CATALOG.liveChannels = live.map(ch => ({
+                id: ch.id,
+                title: ch.title,
+                desc: ch.description || "Live TV Broadcast",
+                badge: "LIVE",
+                posterUrl: ch.posterUrl,
+                videoUrl: ch.videoUrl,
+                backupUrls: ch.backupUrls || []
+              }));
+            }
+
+            renderRails();
+            if (window.TVNav) {
+              setTimeout(() => window.TVNav.refresh(), 300);
+            }
+          }
+        }
+      } catch (err) {
+        console.warn("Using offline TV catalog fallback:", err);
+      }
+    }
+
     // Initial Render
     document.addEventListener("DOMContentLoaded", () => {
       renderRails();
+      syncRemoteCatalog();
     });
   </script>
 </body>

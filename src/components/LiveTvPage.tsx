@@ -228,6 +228,8 @@ export default function LiveTvPage({
     };
   }, [showQualityMenu]);
 
+
+
   // Sync fullscreen state
   useEffect(() => {
     const onFs = () => setIsFullscreen(!!document.fullscreenElement);
@@ -782,6 +784,77 @@ export default function LiveTvPage({
     });
   }, [liveChannels, fullscreenCategory, fullscreenRegion]);
 
+  // Remote Control (Android TV / Smart TV D-Pad) navigation
+  useEffect(() => {
+    const handleTvRemote = (e: KeyboardEvent) => {
+      // Ignore if user is typing in search input
+      if (
+        e.target instanceof HTMLInputElement ||
+        e.target instanceof HTMLTextAreaElement ||
+        e.target instanceof HTMLSelectElement
+      ) {
+        return;
+      }
+
+      revealControls(4500);
+
+      const channelList = filteredChannels.length > 0 ? filteredChannels : channels;
+      const currentIndex = channelList.findIndex((ch) => ch.id === activeChannel?.id);
+
+      switch (e.key) {
+        case "ArrowUp":
+        case "ChannelDown":
+          e.preventDefault();
+          if (channelList.length > 0) {
+            const prevIdx = currentIndex <= 0 ? channelList.length - 1 : currentIndex - 1;
+            setActiveChannel(channelList[prevIdx]);
+          }
+          break;
+        case "ArrowDown":
+        case "ChannelUp":
+          e.preventDefault();
+          if (channelList.length > 0) {
+            const nextIdx = currentIndex === -1 || currentIndex >= channelList.length - 1 ? 0 : currentIndex + 1;
+            setActiveChannel(channelList[nextIdx]);
+          }
+          break;
+        case " ":
+        case "k":
+        case "K":
+        case "MediaPlayPause":
+          e.preventDefault();
+          togglePlay();
+          break;
+        case "m":
+        case "M":
+        case "AudioVolumeMute":
+          e.preventDefault();
+          toggleMute();
+          break;
+        case "f":
+        case "F":
+          e.preventDefault();
+          toggleFullscreen();
+          break;
+        case "Escape":
+        case "Back":
+        case "BrowserBack":
+        case "GoBack":
+          if (showQualityMenu) {
+            e.preventDefault();
+            setShowQualityMenu(false);
+          } else if (isFullscreen) {
+            e.preventDefault();
+            toggleFullscreen();
+          }
+          break;
+      }
+    };
+
+    window.addEventListener("keydown", handleTvRemote);
+    return () => window.removeEventListener("keydown", handleTvRemote);
+  }, [filteredChannels, channels, activeChannel, isPlaying, isFullscreen, showQualityMenu]);
+
   return (
     <div className="min-h-screen bg-zinc-950 text-white pb-24 sm:pb-20 pt-2 sm:pt-3 px-3 sm:px-6 lg:px-8 max-w-7xl mx-auto space-y-3 sm:space-y-5">
 
@@ -844,6 +917,8 @@ export default function LiveTvPage({
               ref={videoRef}
               className="w-full h-full object-contain bg-black"
               playsInline
+              webkit-playsinline="true"
+              crossOrigin="anonymous"
               onWaiting={() => { setIsBuffering(true); scheduleBufferTimeout(); }}
               onPlaying={() => { setIsBuffering(false); setStreamError(false); clearStreamTimers(); }}
               onCanPlay={() => { setIsBuffering(false); clearStreamTimers(); }}

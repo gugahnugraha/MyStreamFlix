@@ -762,7 +762,7 @@ export const translations = {
     closePreview: "Tutup Pratinjau",
     playing: "MEMUTAR",
     paused: "JEDA",
-    buffering: "MEMUAT",
+    buffering: "BUFFERING",
     selectEpisode: "Pilih Episode",
 
     // Subscription Modal
@@ -819,7 +819,7 @@ export const translations = {
     avgLatency: "Rata-rata Latensi",
     addChannelBtn: "Tambah Channel",
     language: "Bahasa",
-    bufferingStream: "Memuat alur siaran...",
+    bufferingStream: "Loading stream...",
     skipIntro: "Lewati Intro",
     nextEpisodeIn: "EPISODE SELANJUTNYA DALAM",
     newReleases: "Rilis Baru",

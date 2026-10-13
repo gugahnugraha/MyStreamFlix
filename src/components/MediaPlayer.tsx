@@ -794,7 +794,10 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
         setHasError(true);
         setIsSimulating(true);
       });
-    } else if (video.canPlayType("application/vnd.apple.mpegurl") || video.canPlayType("application/x-mpegURL")) {
+    } else if (
+      (currentStreamUrl.includes(".m3u8") || proxiedUrl.includes(".m3u8") || currentStreamUrl.includes("m3u") || movie.contentType === "livetv") &&
+      (video.canPlayType("application/vnd.apple.mpegurl") || video.canPlayType("application/x-mpegURL"))
+    ) {
       video.src = proxiedUrl;
       video.volume = volume;
       video.muted = false;
@@ -1309,19 +1312,23 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
     }
   };
 
-  const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const vol = Number(e.target.value);
-    setVolume(vol);
-    const shouldMute = vol === 0;
+  const applyVolume = (val: number) => {
+    const clamped = Math.max(0, Math.min(1, val));
+    setVolume(clamped);
+    const shouldMute = clamped === 0;
     setIsMuted(shouldMute);
     setMutedByAutoplay(false);
     if (!isSimulating) {
       const video = videoRef.current;
       if (video) {
-        video.volume = vol;
-        video.muted = shouldMute; // Always sync muted with volume slider
+        video.volume = clamped;
+        video.muted = shouldMute;
       }
     }
+  };
+
+  const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    applyVolume(Number(e.target.value));
   };
 
   const handleMuteToggle = () => {
@@ -1489,8 +1496,14 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
           // Screen Orientation lock not supported (iOS Safari, etc.) — ignore
         }
       } catch (err) {
-        // requestFullscreen rejected — revert state
-        setIsFullscreen(false);
+        // Fallback for iOS Safari which throws on element.requestFullscreen
+        if (video && typeof (video as any).webkitEnterFullscreen === "function") {
+          try {
+            (video as any).webkitEnterFullscreen();
+          } catch {}
+        } else {
+          setIsFullscreen(false);
+        }
       }
     } else {
       try {
@@ -1584,16 +1597,33 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
         return;
       }
 
+      // Wake up TV HUD on remote navigation
+      setShowControls(true);
+
       switch (e.key) {
         case " ":
         case "k":
         case "K":
+        case "MediaPlayPause":
+        case "MediaPlay":
+        case "MediaPause":
           e.preventDefault();
           handlePlayPause();
+          break;
+        case "Enter":
+        case "Select":
+          if (!showControls) {
+            e.preventDefault();
+            setShowControls(true);
+          } else if (e.target === document.body || e.target === containerRef.current) {
+            e.preventDefault();
+            handlePlayPause();
+          }
           break;
         case "ArrowLeft":
         case "j":
         case "J":
+        case "MediaRewind":
           e.preventDefault();
           handleSkip(-10);
           showGestureToast({ type: "seek-backward", value: "-10s" });
@@ -1601,19 +1631,45 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
         case "ArrowRight":
         case "l":
         case "L":
+        case "MediaFastForward":
           e.preventDefault();
           handleSkip(10);
           showGestureToast({ type: "seek-forward", value: "+10s" });
+          break;
+        case "ArrowUp":
+          e.preventDefault();
+          {
+            const newVol = Math.min(1, Math.round((volume + 0.05) * 100) / 100);
+            applyVolume(newVol);
+            showGestureToast({ type: "volume", value: `${Math.round(newVol * 100)}%` });
+          }
+          break;
+        case "ArrowDown":
+          e.preventDefault();
+          {
+            const newVol = Math.max(0, Math.round((volume - 0.05) * 100) / 100);
+            applyVolume(newVol);
+            showGestureToast({ type: "volume", value: `${Math.round(newVol * 100)}%` });
+          }
+          break;
+        case "AudioVolumeUp":
+          e.preventDefault();
+          applyVolume(Math.min(1, volume + 0.05));
+          break;
+        case "AudioVolumeDown":
+          e.preventDefault();
+          applyVolume(Math.max(0, volume - 0.05));
+          break;
+        case "AudioVolumeMute":
+        case "m":
+        case "M":
+          e.preventDefault();
+          handleMuteToggle();
           break;
         case "f":
         case "F":
           e.preventDefault();
           toggleFullscreen();
-          break;
-        case "m":
-        case "M":
-          e.preventDefault();
-          handleMuteToggle();
           break;
         case "[":
           e.preventDefault();
@@ -1624,10 +1680,16 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
           changeSubtitleDelay(0.5);
           break;
         case "Escape":
-          if (showSubtitleCustomizer) setShowSubtitleCustomizer(false);
-          if (showSubtitleMenu) setShowSubtitleMenu(false);
-          if (showSpeedMenu) setShowSpeedMenu(false);
-          if (showQualityMenu) setShowQualityMenu(false);
+        case "Back":
+        case "BrowserBack":
+        case "GoBack":
+          e.preventDefault();
+          if (showSubtitleCustomizer) { setShowSubtitleCustomizer(false); return; }
+          if (showSubtitleMenu) { setShowSubtitleMenu(false); return; }
+          if (showSpeedMenu) { setShowSpeedMenu(false); return; }
+          if (showQualityMenu) { setShowQualityMenu(false); return; }
+          if (isFullscreen) { toggleFullscreen(); return; }
+          onClose();
           break;
       }
     };
@@ -1777,6 +1839,9 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
           <video
             ref={videoRef}
             preload="auto"
+            playsInline
+            webkit-playsinline="true"
+            crossOrigin="anonymous"
             className="w-full h-full max-h-screen transition-all duration-300"
             style={{
               objectFit: aspectRatio,
