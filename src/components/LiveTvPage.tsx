@@ -642,6 +642,25 @@ export default function LiveTvPage({
         paddingBottom: "8px",
       };
 
+  // Helper pencocokan kualitas dinamis berdasarkan toggle kualitas atau resolusi aktif stream
+  const displayLiveQuality = useMemo(() => {
+    if (selectedQuality && selectedQuality !== "Auto") {
+      return selectedQuality;
+    }
+    const hls = hlsRef.current;
+    if (hls && hls.currentLevel >= 0 && hls.levels && hls.levels[hls.currentLevel]) {
+      const lv = hls.levels[hls.currentLevel];
+      const hint = shortQualityHint(lv.height || 0, lv.bitrate || 0);
+      if (hint) return `Auto • ${hint}`;
+    }
+    const video = videoRef.current;
+    if (video && video.videoHeight > 0) {
+      const hint = shortQualityHint(video.videoHeight);
+      if (hint) return `Auto • ${hint}`;
+    }
+    return activeChannel?.quality || "HD";
+  }, [selectedQuality, activeChannel?.quality, isPlaying]);
+
   // Helper pencocokan kategori saluran
   const checkChannelCategory = (ch: Movie, cat: string) => {
     if (cat === "All") return true;
@@ -846,23 +865,31 @@ export default function LiveTvPage({
               }}
             />
 
-            {/* NOW STREAMING badge — minimalis, style MediaPlayer */}
+            {/* NOW STREAMING badge — dynamic quality, safe margin from edges */}
             <div
-              className={`absolute left-3 z-20 pointer-events-none transition-opacity duration-300 ${
+              className={`absolute z-20 pointer-events-none transition-opacity duration-300 ${
                 showControls ? "opacity-100" : "opacity-0"
               }`}
               style={{
                 top: isFullscreen
-                  ? "calc(env(safe-area-inset-top, 0px) + 20px)"
-                  : "8px",
+                  ? "max(calc(env(safe-area-inset-top, 0px) + 20px), 24px)"
+                  : "18px",
+                left: isFullscreen
+                  ? "max(calc(env(safe-area-inset-left, 0px) + 20px), 24px)"
+                  : "18px",
               }}
             >
-              <p className="text-[9px] sm:text-[10px] font-bold text-red-500 font-mono tracking-wider uppercase leading-none drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)]">
-                {t?.nowStreaming || "NOW STREAMING"} • {activeChannel?.quality || "Full HD"}
-              </p>
-              <h2 className="text-white text-xs sm:text-sm font-extrabold truncate max-w-[200px] sm:max-w-xs mt-0.5 drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)]">
-                {activeChannel?.title || "Live TV"}
-              </h2>
+              <div className="bg-black/50 backdrop-blur-md px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-xl border border-white/10 shadow-lg inline-block">
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse shrink-0" />
+                  <p className="text-[10px] sm:text-[11px] font-bold text-red-400 font-mono tracking-wider uppercase leading-none drop-shadow-sm">
+                    {t?.nowStreaming || "NOW STREAMING"} • {displayLiveQuality}
+                  </p>
+                </div>
+                <h2 className="text-white text-xs sm:text-sm font-extrabold truncate max-w-[220px] sm:max-w-xs mt-1 drop-shadow-sm">
+                  {activeChannel?.title || "Live TV"}
+                </h2>
+              </div>
             </div>
 
             {/* Tap-to-play overlay (autoplay blocked) */}

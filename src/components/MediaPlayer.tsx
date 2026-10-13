@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from "react";
+import React, { useRef, useState, useEffect, useMemo } from "react";
 import {
   Play,
   Pause,
@@ -1672,48 +1672,65 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
   //   Bottom — non-fullscreen: env(safe-area-inset-bottom) + 16px (above nav bar)
   //            fullscreen/landscape: bare env() — nav bar hidden by immersive mode
   //   Left/Right (fullscreen/landscape only) — env() for notch/camera cutout
+  // Dynamic badge quality matching user selection or active stream resolution
+  const displayBadgeQuality = useMemo(() => {
+    if (selectedQuality && selectedQuality !== "Auto") {
+      return selectedQuality;
+    }
+    const hls = hlsRef.current;
+    if (hls && hls.currentLevel >= 0 && hls.levels && hls.levels[hls.currentLevel]) {
+      const lv = hls.levels[hls.currentLevel];
+      const hint = shortQualityHint(lv.height || 0, lv.bitrate || 0);
+      if (hint) return `Auto • ${hint}`;
+    }
+    const video = videoRef.current;
+    if (video && video.videoHeight > 0) {
+      const hint = shortQualityHint(video.videoHeight);
+      if (hint) return `Auto • ${hint}`;
+    }
+    return movie.quality || "HD";
+  }, [selectedQuality, movie.quality, isPlaying]);
+
+  // HUD padding to keep controls clear of system UI on all platforms:
+  //
+  // Android APK (Capacitor native):
+  //   Provides generous edge padding with safe-area support.
   //
   // Mobile web browser (Chrome Android, Safari iOS, etc.):
-  //   env(safe-area-inset-*) may be zero in non-fullscreen browser chrome mode.
-  //   Use explicit fallbacks: 12px top (status bar), 72px bottom (address bar +
-  //   virtual nav bar), 0px sides. In fullscreen (HTML5 Fullscreen API active)
-  //   system chrome is hidden so use env() only.
+  //   Provides explicit minimum fallbacks so badges and controls never stick to the screen bezels/notches.
   const hudStyle: React.CSSProperties = isNativeCapacitor()
     ? {
         paddingTop:
           isFullscreen || isLandscape
-            ? "env(safe-area-inset-top, 0px)"
-            : "calc(env(safe-area-inset-top, 0px) + 4px)",
+            ? "max(calc(env(safe-area-inset-top, 0px) + 20px), 24px)"
+            : "max(calc(env(safe-area-inset-top, 0px) + 16px), 20px)",
         paddingBottom:
           isFullscreen || isLandscape
-            ? "env(safe-area-inset-bottom, 0px)"
-            : "calc(env(safe-area-inset-bottom, 0px) + 16px)",
+            ? "max(calc(env(safe-area-inset-bottom, 0px) + 16px), 20px)"
+            : "max(calc(env(safe-area-inset-bottom, 0px) + 24px), 28px)",
         paddingLeft:
           isFullscreen || isLandscape
-            ? "env(safe-area-inset-left, 0px)"
-            : undefined,
+            ? "max(calc(env(safe-area-inset-left, 0px) + 20px), 24px)"
+            : "max(calc(env(safe-area-inset-left, 0px) + 16px), 20px)",
         paddingRight:
           isFullscreen || isLandscape
-            ? "env(safe-area-inset-right, 0px)"
-            : undefined,
+            ? "max(calc(env(safe-area-inset-right, 0px) + 20px), 24px)"
+            : "max(calc(env(safe-area-inset-right, 0px) + 16px), 20px)",
       }
     : {
-        // Mobile web: provide explicit fallbacks for browser chrome.
-        // Top: 12px covers status bar area in embedded/PWA mode.
-        // Bottom: 72px clears the mobile browser address bar + virtual nav bar.
-        //   When fullscreen (HTML5 API), browser chrome is gone — use only env().
+        // Mobile web: provide explicit safe margins
         paddingTop: isFullscreen
-          ? "env(safe-area-inset-top, 0px)"
-          : "max(env(safe-area-inset-top, 0px), 12px)",
+          ? "max(calc(env(safe-area-inset-top, 0px) + 20px), 24px)"
+          : "max(calc(env(safe-area-inset-top, 0px) + 16px), 20px)",
         paddingBottom: isFullscreen
-          ? "env(safe-area-inset-bottom, 0px)"
-          : "max(env(safe-area-inset-bottom, 0px), 72px)",
+          ? "max(calc(env(safe-area-inset-bottom, 0px) + 16px), 20px)"
+          : "max(calc(env(safe-area-inset-bottom, 0px) + 72px), 76px)",
         paddingLeft: isFullscreen
-          ? "env(safe-area-inset-left, 0px)"
-          : undefined,
+          ? "max(calc(env(safe-area-inset-left, 0px) + 20px), 24px)"
+          : "max(calc(env(safe-area-inset-left, 0px) + 16px), 20px)",
         paddingRight: isFullscreen
-          ? "env(safe-area-inset-right, 0px)"
-          : undefined,
+          ? "max(calc(env(safe-area-inset-right, 0px) + 20px), 24px)"
+          : "max(calc(env(safe-area-inset-right, 0px) + 16px), 20px)",
       };
 
   return (
@@ -1721,8 +1738,11 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
         {(!showControls || isScreenLocked || isBuffering) && (
           <button
             onClick={handleClosePlayer}
-            className="absolute right-4 z-[60] w-11 h-11 rounded-full bg-zinc-900/80 hover:bg-red-600 text-white flex items-center justify-center border border-zinc-800 transition-colors shadow-lg cursor-pointer"
-            style={{ top: "calc(env(safe-area-inset-top, 0px) + 0.75rem)" }}
+            className="absolute z-[60] w-11 h-11 rounded-full bg-zinc-900/80 hover:bg-red-600 text-white flex items-center justify-center border border-zinc-800 transition-colors shadow-lg cursor-pointer"
+            style={{
+              top: "max(calc(env(safe-area-inset-top, 0px) + 1.25rem), 20px)",
+              right: "max(calc(env(safe-area-inset-right, 0px) + 1.25rem), 20px)",
+            }}
             title={t.exitPlayer || "Exit Player"}
           >
             <X className="w-5 h-5" />
@@ -2130,7 +2150,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
 
         {/* HUD CONTROLLER OVERLAY SCREEN */}
         <div
-          className={`absolute inset-0 bg-linear-to-t from-black/90 via-black/20 to-black/80 flex flex-col justify-between p-3 sm:p-4 md:p-8 transition-opacity duration-300 ${
+          className={`absolute inset-0 bg-linear-to-t from-black/90 via-black/20 to-black/80 flex flex-col justify-between p-5 sm:p-6 md:p-8 lg:p-10 transition-opacity duration-300 ${
             showControls && !isScreenLocked ? "opacity-100" : "opacity-0 pointer-events-none"
           }`}
           id="media-player-hud"
@@ -2145,12 +2165,15 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
           }}
         >
           {/* Top Header Row */}
-          <div className="relative z-20 flex items-center justify-between w-full">
-            <div>
-              <p className="text-[10px] md:text-xs font-bold text-red-500 font-mono tracking-wider">
-                {t.nowStreaming || "NOW STREAMING"} • {selectedQuality !== "Auto" ? selectedQuality : movie.quality}
-              </p>
-              <h1 className="text-white text-base md:text-xl font-extrabold truncate max-w-md mt-0.5">
+          <div className="relative z-20 flex items-start justify-between w-full gap-3 sm:gap-4">
+            <div className="bg-black/50 backdrop-blur-md px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-xl border border-white/10 shadow-lg">
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse shrink-0" />
+                <p className="text-[10px] sm:text-[11px] md:text-xs font-bold text-red-400 font-mono tracking-wider uppercase leading-none">
+                  {t.nowStreaming || "NOW STREAMING"} • {displayBadgeQuality}
+                </p>
+              </div>
+              <h1 className="text-white text-xs sm:text-base md:text-xl font-extrabold truncate max-w-[200px] sm:max-w-md lg:max-w-xl mt-1 drop-shadow-sm">
                 {movie.title} {activeEpisode ? ` • S${activeSeason?.seasonNumber}E${activeEpisode.episodeNumber}: ${activeEpisode.title}` : ""}
               </h1>
             </div>
