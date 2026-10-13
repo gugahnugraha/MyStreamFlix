@@ -100,7 +100,7 @@ export default function MovieCarousel({
       {/* Banner Content Container */}
       <div 
         key={`content-${activeMovie.id}`}
-        className="absolute inset-x-0 bottom-0 px-4 sm:px-6 md:px-12 pb-5 sm:pb-8 md:pb-12 flex flex-col items-start max-w-3xl animate-slide-up-text z-10"
+        className="absolute inset-x-0 bottom-0 pl-6 sm:pl-16 md:pl-20 lg:pl-24 pr-6 sm:pr-12 md:pr-16 pb-5 sm:pb-8 md:pb-12 flex flex-col items-start max-w-4xl animate-slide-up-text z-10"
       >
         {/* Spotlight Badge Row */}
         <div className="flex items-center gap-1.5 sm:gap-2 mb-2 sm:mb-3">
@@ -134,12 +134,12 @@ export default function MovieCarousel({
         </div>
 
         {/* Dynamic Title */}
-        <h1 className="text-xl sm:text-3xl md:text-5xl font-black text-white tracking-tight leading-tight line-clamp-1 sm:line-clamp-2 drop-shadow-lg max-w-4xl">
+        <h1 className="text-xl sm:text-3xl md:text-5xl font-black text-white tracking-tight leading-tight line-clamp-1 sm:line-clamp-2 drop-shadow-xl max-w-3xl">
           {activeMovie.title}
         </h1>
 
         {/* Movie Description */}
-        <p className="text-zinc-300 text-xs md:text-sm mt-1.5 sm:mt-3 line-clamp-2 md:line-clamp-3 leading-relaxed drop-shadow-md max-w-2xl font-medium hidden sm:block">
+        <p className="text-zinc-300 text-xs md:text-sm mt-1.5 sm:mt-3 line-clamp-2 md:line-clamp-3 leading-relaxed drop-shadow-md max-w-xl lg:max-w-2xl font-medium hidden sm:block">
           {activeMovie.description}
         </p>
 
@@ -194,16 +194,18 @@ export default function MovieCarousel({
         <>
           <button
             onClick={handlePrev}
-            className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/40 hover:bg-black/70 text-white flex items-center justify-center border border-white/10 opacity-0 md:opacity-100 hover:scale-110 transition-all cursor-pointer backdrop-blur-xs z-15"
+            className="absolute left-3 sm:left-4 md:left-5 top-1/2 -translate-y-1/2 w-10 h-10 md:w-11 md:h-11 rounded-full bg-black/50 hover:bg-black/80 text-white flex items-center justify-center border border-white/15 opacity-0 md:opacity-100 hover:scale-110 transition-all cursor-pointer backdrop-blur-md z-20 shadow-xl"
             id="carousel-prev"
+            aria-label="Previous slide"
           >
             <ChevronLeft className="w-5 h-5" />
           </button>
 
           <button
             onClick={handleNext}
-            className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/40 hover:bg-black/70 text-white flex items-center justify-center border border-white/10 opacity-0 md:opacity-100 hover:scale-110 transition-all cursor-pointer backdrop-blur-xs z-15"
+            className="absolute right-3 sm:right-4 md:right-5 top-1/2 -translate-y-1/2 w-10 h-10 md:w-11 md:h-11 rounded-full bg-black/50 hover:bg-black/80 text-white flex items-center justify-center border border-white/15 opacity-0 md:opacity-100 hover:scale-110 transition-all cursor-pointer backdrop-blur-md z-20 shadow-xl"
             id="carousel-next"
+            aria-label="Next slide"
           >
             <ChevronRight className="w-5 h-5" />
           </button>
