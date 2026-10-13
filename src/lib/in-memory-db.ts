@@ -8,6 +8,7 @@ interface InMemoryStore {
   cmsSettings: CMSSettings;
   movieReviews: Record<string, Review[]>;
   passwords: Record<string, string>; // userId -> passwordHash
+  persons: Record<string, any>; // personId -> person detail with translations
 }
 
 const sampleSubtitles: Subtitle[] = [
@@ -1314,7 +1315,8 @@ export const store = globalForInMemory.inMemoryStore || (() => {
     },
     cmsSettings: { ...defaultSettings },
     movieReviews: { ...defaultReviews },
-    passwords: { ...defaultPasswords }
+    passwords: { ...defaultPasswords },
+    persons: {}
   };
 
   if (process.env.NODE_ENV !== "production") {

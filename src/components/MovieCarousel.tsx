@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect } from "react";
 import { Play, Info, ChevronLeft, ChevronRight, Star, Heart } from "lucide-react";
-import { Movie } from "../types";
+import { Movie, getLocalizedDescription } from "../types";
 
 interface MovieCarouselProps {
   bannerMovies: Movie[];
@@ -14,6 +14,7 @@ interface MovieCarouselProps {
   onSelect: (movie: Movie) => void;
   onPlay: (movie: Movie) => void;
   t?: any;
+  currentLanguage?: "en" | "id" | "es";
 }
 
 export default function MovieCarousel({
@@ -23,6 +24,7 @@ export default function MovieCarousel({
   onSelect,
   onPlay,
   t,
+  currentLanguage = "en",
 }: MovieCarouselProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
 
@@ -140,7 +142,7 @@ export default function MovieCarousel({
 
         {/* Movie Description */}
         <p className="text-zinc-300 text-xs md:text-sm mt-1.5 sm:mt-3 line-clamp-2 md:line-clamp-3 leading-relaxed drop-shadow-md max-w-xl lg:max-w-2xl font-medium hidden sm:block">
-          {activeMovie.description}
+          {getLocalizedDescription(activeMovie, currentLanguage)}
         </p>
 
         {/* Metadata Badges */}

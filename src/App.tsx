@@ -749,6 +749,7 @@ export default function App({ initialTab, initialContentType, initialCastId }: A
             onPlayMovie={(movie) => handleLaunchStream(movie)}
             allMovies={allMovies.length > 0 ? allMovies : movies}
             t={t}
+            currentLanguage={currentLanguage}
           />
         ) : (
           /* HOME SPOTLIGHT OR MOVIE BROWSE SYSTEM */
@@ -767,6 +768,7 @@ export default function App({ initialTab, initialContentType, initialCastId }: A
                       onSelect={setSelectedMovie}
                       onPlay={handleLaunchStream}
                       t={t}
+                      currentLanguage={currentLanguage}
                     />
                   </div>
                 )}
@@ -953,6 +955,7 @@ export default function App({ initialTab, initialContentType, initialCastId }: A
           onPlay={handleLaunchStream}
           onSelectCast={handleSelectCast}
           t={t}
+          currentLanguage={currentLanguage}
         />
       )}
 
@@ -964,6 +967,7 @@ export default function App({ initialTab, initialContentType, initialCastId }: A
           onClose={handleCloseStream}
           t={t}
           brandColor={settings.primaryColor}
+          currentLanguage={currentLanguage}
         />
       )}
 

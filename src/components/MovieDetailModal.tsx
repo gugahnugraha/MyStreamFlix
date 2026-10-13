@@ -28,7 +28,7 @@ import {
   Tv,
   Subtitles as SubtitlesIcon
 } from "lucide-react";
-import { Movie, Review, User } from "../types";
+import { Movie, Review, User, getLocalizedDescription } from "../types";
 
 interface MovieDetailModalProps {
   movieId: string;
@@ -39,6 +39,7 @@ interface MovieDetailModalProps {
   onPlay: (movie: Movie) => void;
   onSelectCast?: (castId: number | string) => void;
   t?: any;
+  currentLanguage?: "en" | "id" | "es";
 }
 
 export default function MovieDetailModal({
@@ -50,6 +51,7 @@ export default function MovieDetailModal({
   onPlay,
   onSelectCast,
   t,
+  currentLanguage = "en",
 }: MovieDetailModalProps) {
   const [activeId, setActiveId] = useState(movieId);
   const [movie, setMovie] = useState<Movie | null>(null);
@@ -366,7 +368,7 @@ export default function MovieDetailModal({
 
                 {/* Short Synopsis Preview */}
                 <p className="max-w-3xl text-xs md:text-sm text-zinc-300/90 leading-relaxed line-clamp-2 md:line-clamp-3 font-normal pt-1">
-                  {movie.description}
+                  {getLocalizedDescription(movie, currentLanguage)}
                 </p>
 
                 {/* Primary Action Buttons */}
@@ -483,7 +485,7 @@ export default function MovieDetailModal({
                     {t.synopsis || "Storyline & Synopsis"}
                   </h3>
                   <p className="text-zinc-200 text-xs sm:text-sm leading-relaxed font-normal">
-                    {movie.description}
+                    {getLocalizedDescription(movie, currentLanguage)}
                   </p>
                 </div>
 

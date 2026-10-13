@@ -34,6 +34,30 @@ export interface Season {
   episodes: Episode[];
 }
 
+export interface ContentTranslation {
+  description?: string;
+  tagline?: string;
+  episodes?: Record<string, { description?: string }>;
+}
+
+export interface PersonTranslation {
+  biography?: string;
+}
+
+export interface MovieTranslations {
+  en?: ContentTranslation;
+  id?: ContentTranslation;
+  es?: ContentTranslation;
+  [key: string]: any;
+}
+
+export interface PersonTranslations {
+  en?: PersonTranslation;
+  id?: PersonTranslation;
+  es?: PersonTranslation;
+  [key: string]: any;
+}
+
 export interface Movie {
   id: string;
   title: string;
@@ -65,6 +89,7 @@ export interface Movie {
   seasons?: Season[];
   trailerUrl?: string;
   backupUrls?: string[]; // Alternative fallback stream URLs if primary videoUrl is unreachable
+  translations?: MovieTranslations;
 }
 
 export interface TmdbCastMember {
@@ -105,6 +130,43 @@ export interface TmdbPersonDetail {
     twitterId?: string;
     facebookId?: string;
   };
+  translations?: PersonTranslations;
+}
+
+export function getLocalizedDescription(
+  movie?: { description?: string; translations?: MovieTranslations } | null,
+  lang?: string
+): string {
+  if (!movie) return "";
+  const target = (lang || "en").toLowerCase();
+  if (target === "id" && movie.translations?.id?.description?.trim()) {
+    return movie.translations.id.description.trim();
+  }
+  if (target === "es" && movie.translations?.es?.description?.trim()) {
+    return movie.translations.es.description.trim();
+  }
+  if (movie.translations?.en?.description?.trim()) {
+    return movie.translations.en.description.trim();
+  }
+  return movie.description || "";
+}
+
+export function getLocalizedBiography(
+  person?: { biography?: string; translations?: PersonTranslations } | null,
+  lang?: string
+): string {
+  if (!person) return "";
+  const target = (lang || "en").toLowerCase();
+  if (target === "id" && person.translations?.id?.biography?.trim()) {
+    return person.translations.id.biography.trim();
+  }
+  if (target === "es" && person.translations?.es?.biography?.trim()) {
+    return person.translations.es.biography.trim();
+  }
+  if (person.translations?.en?.biography?.trim()) {
+    return person.translations.en.biography.trim();
+  }
+  return person.biography || "";
 }
 
 export interface UserProfile {

@@ -20,7 +20,7 @@ import {
   ChevronDown,
   ChevronUp
 } from "lucide-react";
-import { Movie, TmdbPersonDetail, TmdbCreditItem } from "../types";
+import { Movie, TmdbPersonDetail, TmdbCreditItem, getLocalizedBiography } from "../types";
 
 interface CastDetailViewProps {
   castId: string;
@@ -29,6 +29,7 @@ interface CastDetailViewProps {
   onPlayMovie?: (movie: Movie) => void;
   allMovies: Movie[];
   t: any;
+  currentLanguage?: "en" | "id" | "es";
 }
 
 export default function CastDetailView({
@@ -38,6 +39,7 @@ export default function CastDetailView({
   onPlayMovie,
   allMovies,
   t,
+  currentLanguage = "en",
 }: CastDetailViewProps) {
   const [person, setPerson] = useState<TmdbPersonDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -266,40 +268,43 @@ export default function CastDetailView({
               </div>
 
               {/* Biography */}
-              {person.biography ? (
-                <div className="pt-2">
-                  <h3 className="text-xs font-bold text-zinc-400 uppercase tracking-wider mb-1.5">
-                    {t.biography || "Biography"}
-                  </h3>
-                  <div className="text-xs sm:text-sm text-zinc-300 leading-relaxed">
-                    <p className={bioExpanded ? "" : "line-clamp-4"}>
-                      {person.biography}
-                    </p>
-                    {person.biography.length > 320 && (
-                      <button
-                        onClick={() => setBioExpanded(!bioExpanded)}
-                        className="mt-2 text-xs font-bold text-red-400 hover:text-red-300 flex items-center gap-1 cursor-pointer transition-colors"
-                      >
-                        {bioExpanded ? (
-                          <>
-                            {t.showLess || "Show Less"}
-                            <ChevronUp className="w-3.5 h-3.5" />
-                          </>
-                        ) : (
-                          <>
-                            {t.readMore || "Read Full Biography"}
-                            <ChevronDown className="w-3.5 h-3.5" />
-                          </>
-                        )}
-                      </button>
-                    )}
+              {(() => {
+                const activeBiography = getLocalizedBiography(person, currentLanguage);
+                return activeBiography ? (
+                  <div className="pt-2">
+                    <h3 className="text-xs font-bold text-zinc-400 uppercase tracking-wider mb-1.5">
+                      {t.biography || "Biography"}
+                    </h3>
+                    <div className="text-xs sm:text-sm text-zinc-300 leading-relaxed">
+                      <p className={bioExpanded ? "" : "line-clamp-4"}>
+                        {activeBiography}
+                      </p>
+                      {activeBiography.length > 320 && (
+                        <button
+                          onClick={() => setBioExpanded(!bioExpanded)}
+                          className="mt-2 text-xs font-bold text-red-400 hover:text-red-300 flex items-center gap-1 cursor-pointer transition-colors"
+                        >
+                          {bioExpanded ? (
+                            <>
+                              {t.showLess || "Show Less"}
+                              <ChevronUp className="w-3.5 h-3.5" />
+                            </>
+                          ) : (
+                            <>
+                              {t.readMore || "Read Full Biography"}
+                              <ChevronDown className="w-3.5 h-3.5" />
+                            </>
+                          )}
+                        </button>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ) : (
-                <p className="text-xs text-zinc-500 italic pt-2">
-                  {t.noBioAvailable || "No detailed biography provided for this cast member on TMDB."}
-                </p>
-              )}
+                ) : (
+                  <p className="text-xs text-zinc-500 italic pt-2">
+                    {t.noBioAvailable || "No detailed biography provided for this cast member on TMDB."}
+                  </p>
+                );
+              })()}
             </div>
           </div>
         </div>

@@ -1,4 +1,5 @@
 import { TmdbCastMember, TmdbPersonDetail, TmdbCreditItem } from "@/src/types";
+import { getPerson, upsertPerson } from "./data-service";
 
 export const getTmdbApiKey = () => {
   const key = (process.env.TMDB_API_KEY || process.env.NEXT_PUBLIC_TMDB_API_KEY)?.trim();
@@ -101,7 +102,7 @@ export async function fetchTmdbMetadata(mediaType: "movie" | "tv", tmdbId: strin
   const apiKey = getTmdbApiKey();
   if (!apiKey) throw new Error("TMDB_API_KEY is not configured.");
 
-  const append = mediaType === "movie" ? "credits,release_dates" : "credits,content_ratings";
+  const append = mediaType === "movie" ? "credits,release_dates,translations" : "credits,content_ratings,translations";
   const params = new URLSearchParams({
     api_key: apiKey,
     append_to_response: append,
@@ -114,6 +115,22 @@ export async function fetchTmdbMetadata(mediaType: "movie" | "tv", tmdbId: strin
   }
 
   const data = await response.json();
+  const rawTranslations = data.translations?.translations || [];
+  const idTrans = rawTranslations.find((t: any) => t.iso_639_1 === "id");
+  const esTrans = rawTranslations.find((t: any) => t.iso_639_1 === "es");
+  const enTrans = rawTranslations.find((t: any) => t.iso_639_1 === "en");
+
+  const translations = {
+    en: {
+      description: data.overview || enTrans?.data?.overview || ""
+    },
+    id: {
+      description: idTrans?.data?.overview || data.overview || ""
+    },
+    es: {
+      description: esTrans?.data?.overview || data.overview || ""
+    }
+  };
   const isMovie = mediaType === "movie";
   const title = isMovie ? data.title : data.name;
   const dateValue = isMovie ? data.release_date : data.first_air_date;
@@ -134,6 +151,7 @@ export async function fetchTmdbMetadata(mediaType: "movie" | "tv", tmdbId: strin
     contentType: isMovie ? "movie" : "series",
     title,
     description: data.overview || "",
+    translations,
     posterUrl: tmdbImage(data.poster_path, "w500"),
     backdropUrl: tmdbImage(data.backdrop_path, "w1280"),
     duration: isMovie ? (data.runtime || 120) : (data.episode_run_time?.[0] || 45),
@@ -323,14 +341,37 @@ export async function fetchTmdbPersonDetails(
       }
     }
 
-    const url = `https://api.themoviedb.org/3/person/${resolvedId}?api_key=${apiKey}&append_to_response=combined_credits,external_ids&language=en-US`;
+    const cachedPerson = await getPerson(resolvedId);
+    if (cachedPerson && cachedPerson.translations && Object.keys(cachedPerson.translations).length > 0 && cachedPerson.credits?.length) {
+      return cachedPerson;
+    }
+
+    const url = `https://api.themoviedb.org/3/person/${resolvedId}?api_key=${apiKey}&append_to_response=combined_credits,external_ids,translations&language=en-US`;
     const res = await fetch(url, { next: { revalidate: 86400 } });
     if (!res.ok) {
+      if (cachedPerson) return cachedPerson;
       console.warn(`TMDB person lookup failed with status ${res.status}`);
       return null;
     }
 
     const data = await res.json();
+    const rawTranslations = data.translations?.translations || [];
+    const idTrans = rawTranslations.find((t: any) => t.iso_639_1 === "id");
+    const esTrans = rawTranslations.find((t: any) => t.iso_639_1 === "es");
+    const enTrans = rawTranslations.find((t: any) => t.iso_639_1 === "en");
+
+    const translations = {
+      en: {
+        biography: data.biography || enTrans?.data?.biography || ""
+      },
+      id: {
+        biography: idTrans?.data?.biography || data.biography || ""
+      },
+      es: {
+        biography: esTrans?.data?.biography || data.biography || ""
+      }
+    };
+
     const castCredits: TmdbCreditItem[] = (data.combined_credits?.cast || [])
       .filter((c: any) => c.title || c.name)
       .sort((a: any, b: any) => (b.vote_count || 0) - (a.vote_count || 0))
@@ -354,7 +395,7 @@ export async function fetchTmdbPersonDetails(
         };
       });
 
-    return {
+    const personDetail: TmdbPersonDetail = {
       id: data.id,
       name: data.name,
       biography: data.biography || "",
@@ -370,8 +411,18 @@ export async function fetchTmdbPersonDetails(
         instagramId: data.external_ids?.instagram_id,
         twitterId: data.external_ids?.twitter_id,
         facebookId: data.external_ids?.facebook_id
-      }
+      },
+      translations
     };
+
+    // Save/cache person with multilingual translations to database
+    try {
+      await upsertPerson(personDetail);
+    } catch (saveErr) {
+      console.warn("Could not cache person to database:", saveErr);
+    }
+
+    return personDetail;
   } catch (err) {
     console.warn("Failed to fetch TMDB person details:", err);
     return null;

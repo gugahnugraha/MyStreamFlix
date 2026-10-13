@@ -423,6 +423,17 @@ function mapPrismaMovie(movie: any): Movie {
     ? (movie.seasons as any as Season[]) 
     : JSON.parse(typeof movie.seasons === "string" ? movie.seasons : "[]");
 
+  let translationsObj = undefined;
+  if (movie.translations) {
+    try {
+      translationsObj = typeof movie.translations === "string" 
+        ? JSON.parse(movie.translations) 
+        : movie.translations;
+    } catch {
+      translationsObj = undefined;
+    }
+  }
+
   return {
     id: movie.id,
     title: movie.title,
@@ -453,7 +464,8 @@ function mapPrismaMovie(movie: any): Movie {
     seasons: seasonsRaw.map((s) => ({
       ...s,
       episodes: (s.episodes || []).map((e) => ({ ...e, videoUrl: e.videoUrl || "" }))
-    }))
+    })),
+    translations: translationsObj
   };
 }
 
@@ -767,6 +779,7 @@ export async function createMovie(movieData: Partial<Movie>): Promise<Movie> {
     tier: movieData.tier || "free",
     contentType: movieData.contentType || "movie",
     seasons: movieData.seasons || [],
+    translations: movieData.translations || {},
     createdAt: new Date().toISOString()
   };
 
@@ -801,6 +814,7 @@ export async function createMovie(movieData: Partial<Movie>): Promise<Movie> {
           tier: moviePayload.tier,
           contentType: moviePayload.contentType,
           seasons: JSON.stringify(moviePayload.seasons),
+          translations: (moviePayload.translations || {}) as any,
           createdAt: moviePayload.createdAt
         }
       });
@@ -845,6 +859,7 @@ export async function updateMovie(id: string, updateData: Partial<Movie>): Promi
       if (updateData.seasons !== undefined) updatePayload.seasons = JSON.stringify(updateData.seasons);
       if (updateData.tmdbId !== undefined) updatePayload.tmdbId = updateData.tmdbId !== null && (updateData.tmdbId as any) !== "" ? Number(updateData.tmdbId) : null;
       if (updateData.tmdbMediaType !== undefined) updatePayload.tmdbMediaType = updateData.tmdbMediaType || null;
+      if (updateData.translations !== undefined) updatePayload.translations = updateData.translations as any;
       
       const updated = await prisma.movie.update({
         where: { id },
@@ -1363,4 +1378,68 @@ export async function getDashboardStats() {
     subscriptionSplit
   };
 }
+
+// ==========================================
+// PERSON / CAST CACHE & TRANSLATION REPOSITORY
+// ==========================================
+
+export async function getPerson(id: string | number): Promise<any | null> {
+  const resolvedId = String(id).trim();
+  const prisma = getPrismaClient();
+  if (prisma) {
+    try {
+      const person = await (prisma as any).person.findUnique({
+        where: { id: resolvedId }
+      });
+      if (person) {
+        return {
+          ...person,
+          translations: typeof person.translations === "string"
+            ? JSON.parse(person.translations)
+            : person.translations
+        };
+      }
+    } catch (e) {
+      console.warn("Prisma getPerson fallback to memory:", e);
+    }
+  }
+  return store.persons[resolvedId] || null;
+}
+
+export async function upsertPerson(personData: any): Promise<any> {
+  const id = String(personData.id).trim();
+  const prisma = getPrismaClient();
+  const dataToSave = {
+    name: personData.name || "",
+    biography: personData.biography || "",
+    translations: (personData.translations || {}) as any,
+    birthday: personData.birthday || null,
+    deathday: personData.deathday || null,
+    placeOfBirth: personData.placeOfBirth || null,
+    profilePath: personData.profilePath || null,
+    knownForDepartment: personData.knownForDepartment || null
+  };
+
+  if (prisma) {
+    try {
+      const saved = await (prisma as any).person.upsert({
+        where: { id },
+        update: dataToSave,
+        create: { id, ...dataToSave }
+      });
+      return {
+        ...saved,
+        translations: typeof saved.translations === "string"
+          ? JSON.parse(saved.translations)
+          : saved.translations
+      };
+    } catch (e) {
+      console.warn("Prisma upsertPerson fallback to memory:", e);
+    }
+  }
+
+  store.persons[id] = { ...dataToSave, id };
+  return store.persons[id];
+}
+
 export { helperHashPassword as hashPassword };

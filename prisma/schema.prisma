@@ -50,7 +50,21 @@ model Movie {
   tier          String   @default("free")
   contentType   String   @default("movie")
   seasons       Json     @default("[]") // Stores array of Season: { id, seasonNumber, title, episodes: [...] }
+  translations  Json     @default("{}") // Multilingual synopses & descriptions: { en: { description: "..." }, id: { description: "..." }, es: { description: "..." } }
   createdAt     String
+}
+
+model Person {
+  id                 String   @id // TMDB person ID or custom ID
+  name               String
+  biography          String   @default("")
+  translations       Json     @default("{}") // Multilingual biographies: { en: { biography: "..." }, id: { biography: "..." }, es: { biography: "..." } }
+  birthday           String?
+  deathday           String?
+  placeOfBirth       String?
+  profilePath        String?
+  knownForDepartment String?
+  updatedAt          DateTime @default(now()) @updatedAt
 }
 
 model CMSSettings {

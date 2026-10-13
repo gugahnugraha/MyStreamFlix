@@ -15,7 +15,7 @@ import {
   CreditCard, UserCheck, Subtitles, Upload, Radio, Pencil, Wifi, WifiOff, Activity, Loader2, AlertCircle,
   FolderSearch, Sparkles
 } from "lucide-react";
-import { Movie, DashboardStats, CMSSettings, Subtitle, User, Season, Episode } from "../types";
+import { Movie, DashboardStats, CMSSettings, Subtitle, User, Season, Episode, MovieTranslations } from "../types";
 import IPTVScanner from "./IPTVScanner";
 import GDriveScanner from "./GDriveScanner";
 import MediaPlayer from "./MediaPlayer";
@@ -93,6 +93,7 @@ type TmdbMetadata = {
   seasonsCount: number;
   episodesPerSeason: number;
   seasons: Season[];
+  translations?: MovieTranslations;
 };
 
 export default function AdminCMS({ 
@@ -465,6 +466,9 @@ export default function AdminCMS({
   // Form Inputs
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [descriptionId, setDescriptionId] = useState("");
+  const [descriptionEs, setDescriptionEs] = useState("");
+  const [synopsisLangTab, setSynopsisLangTab] = useState<"en" | "id" | "es">("en");
   const [posterUrl, setPosterUrl] = useState("");
   const [backdropUrl, setBackdropUrl] = useState("");
   const [videoUrl, setVideoUrl] = useState("");
@@ -866,6 +870,9 @@ export default function AdminCMS({
     setEditingMovieId(null);
     setTitle("");
     setDescription("");
+    setDescriptionId("");
+    setDescriptionEs("");
+    setSynopsisLangTab("en");
     setPosterUrl("");
     setBackdropUrl("");
     setVideoUrl("https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4");
@@ -899,7 +906,10 @@ export default function AdminCMS({
     setEditingMovieId(movie.id);
     setActiveSubTab("catalog"); // Switch to catalog tab so the form is visible
     setTitle(movie.title);
-    setDescription(movie.description);
+    setDescription(movie.translations?.en?.description || movie.description);
+    setDescriptionId(movie.translations?.id?.description || "");
+    setDescriptionEs(movie.translations?.es?.description || "");
+    setSynopsisLangTab("en");
     setPosterUrl(movie.posterUrl || "");
     setBackdropUrl(movie.backdropUrl || "");
     setVideoUrl(movie.videoUrl || "");
@@ -952,7 +962,13 @@ export default function AdminCMS({
       setContentType(data.contentType);
       setTitle(data.title || title);
       setTmdbQuery(data.title || result.title);
-      setDescription(data.description || "");
+      if (data.translations) {
+        setDescription(data.translations.en?.description || data.description || "");
+        setDescriptionId(data.translations.id?.description || "");
+        setDescriptionEs(data.translations.es?.description || "");
+      } else {
+        setDescription(data.description || "");
+      }
       setPosterUrl(data.posterUrl || posterUrl);
       setBackdropUrl(data.backdropUrl || backdropUrl);
       setDuration(data.duration || duration);
@@ -1010,6 +1026,11 @@ export default function AdminCMS({
       tmdbMediaType: selectedTmdbMediaType,
       title,
       description,
+      translations: {
+        en: { description: description.trim() },
+        id: { description: (descriptionId || description).trim() },
+        es: { description: (descriptionEs || description).trim() }
+      },
       posterUrl: posterUrl || "https://images.unsplash.com/photo-1594909122845-11baa439b7bf?w=500&auto=format&fit=crop&q=80",
       backdropUrl: backdropUrl || "https://images.unsplash.com/photo-1574375927938-d5a98e8edd86?w=1200&auto=format&fit=crop&q=80",
       videoUrl,
@@ -2223,16 +2244,67 @@ export default function AdminCMS({
                     )}
                   </div>
 
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold uppercase text-zinc-500">{t.cmsSynopsis}</label>
-                    <textarea
-                      placeholder="Detailed narrative summary..."
-                      value={description}
-                      onChange={(e) => setDescription(e.target.value)}
-                      rows={3}
-                      className="w-full bg-zinc-900 border border-zinc-850 p-2.5 rounded text-xs focus:outline-hidden focus:border-red-500/50"
-                      id="form-input-desc"
-                    />
+                  <div className="space-y-2">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <label className="text-[10px] font-bold uppercase text-zinc-500 flex items-center gap-2">
+                        {t.cmsSynopsis || "Synopsis & Storyline"}
+                        <span className="text-[9px] px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-400 font-normal">Multilingual (3 Bahasa)</span>
+                      </label>
+                      <div className="flex items-center gap-1 text-[10px]">
+                        <button
+                          type="button"
+                          onClick={() => setSynopsisLangTab("en")}
+                          className={`px-2 py-0.5 rounded font-bold transition-colors cursor-pointer ${synopsisLangTab === "en" ? "bg-red-500/20 text-red-400 border border-red-500/30" : "text-zinc-500 hover:text-zinc-300"}`}
+                        >
+                          🇺🇸 English
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setSynopsisLangTab("id")}
+                          className={`px-2 py-0.5 rounded font-bold transition-colors cursor-pointer ${synopsisLangTab === "id" ? "bg-red-500/20 text-red-400 border border-red-500/30" : "text-zinc-500 hover:text-zinc-300"}`}
+                        >
+                          🇮🇩 Indonesia
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setSynopsisLangTab("es")}
+                          className={`px-2 py-0.5 rounded font-bold transition-colors cursor-pointer ${synopsisLangTab === "es" ? "bg-red-500/20 text-red-400 border border-red-500/30" : "text-zinc-500 hover:text-zinc-300"}`}
+                        >
+                          🇪🇸 Español
+                        </button>
+                      </div>
+                    </div>
+
+                    {synopsisLangTab === "en" && (
+                      <textarea
+                        placeholder="Detailed narrative summary in English..."
+                        value={description}
+                        onChange={(e) => setDescription(e.target.value)}
+                        rows={3}
+                        className="w-full bg-zinc-900 border border-zinc-850 p-2.5 rounded text-xs focus:outline-hidden focus:border-red-500/50"
+                        id="form-input-desc-en"
+                      />
+                    )}
+                    {synopsisLangTab === "id" && (
+                      <textarea
+                        placeholder="Sinopsis narasi lengkap dalam Bahasa Indonesia..."
+                        value={descriptionId}
+                        onChange={(e) => setDescriptionId(e.target.value)}
+                        rows={3}
+                        className="w-full bg-zinc-900 border border-zinc-850 p-2.5 rounded text-xs focus:outline-hidden focus:border-red-500/50"
+                        id="form-input-desc-id"
+                      />
+                    )}
+                    {synopsisLangTab === "es" && (
+                      <textarea
+                        placeholder="Sinopsis narrativa detallada en Español..."
+                        value={descriptionEs}
+                        onChange={(e) => setDescriptionEs(e.target.value)}
+                        rows={3}
+                        className="w-full bg-zinc-900 border border-zinc-850 p-2.5 rounded text-xs focus:outline-hidden focus:border-red-500/50"
+                        id="form-input-desc-es"
+                      />
+                    )}
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

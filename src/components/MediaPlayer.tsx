@@ -33,7 +33,7 @@ import {
 import Hls from "hls.js";
 import * as dashjs from "dashjs";
 import { ScreenOrientation } from "@capacitor/screen-orientation";
-import { Movie, Subtitle } from "../types";
+import { Movie, Subtitle, getLocalizedDescription } from "../types";
 import { getProxiedStreamUrl, describeQualityLabel, shortQualityHint, getAlternativeStreamUrls } from "../lib/stream-utils";
 import { isNativeCapacitor, enterImmersiveMode, exitImmersiveMode, addImmersiveStateListener } from "../lib/native-fullscreen";
 import { playWithNativeExoPlayer } from "../lib/capacitor-exoplayer";
@@ -44,6 +44,7 @@ interface MediaPlayerProps {
   onClose: () => void;
   t?: any;
   brandColor?: string;
+  currentLanguage?: "en" | "id" | "es";
 }
 
 interface Cue {
@@ -99,7 +100,7 @@ function parseSubtitles(text: string): Cue[] {
   return cues;
 }
 
-export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {}, brandColor = "#00ADB5" }: MediaPlayerProps) {
+export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {}, brandColor = "#00ADB5", currentLanguage = "en" }: MediaPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const startupTimeoutRef = useRef<number | null>(null);
@@ -1993,7 +1994,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
                     {movie.title} {activeEpisode ? ` - S${activeSeason?.seasonNumber}E${activeEpisode.episodeNumber}` : ""}
                   </h2>
                   <p className="text-xs text-zinc-400 max-w-sm leading-relaxed mt-1">
-                    {movie.description}
+                    {getLocalizedDescription(movie, currentLanguage)}
                   </p>
                 </div>
               </div>
