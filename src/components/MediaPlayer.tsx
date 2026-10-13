@@ -966,22 +966,56 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
 
   // Listen to fullscreen changes & handle screen orientation
   useEffect(() => {
-    const handleFullscreenChange = () => {
-      const isFs = !!document.fullscreenElement;
+    const handleFullscreenChange = async () => {
+      const isFs = !!(
+        document.fullscreenElement ||
+        (document as any).webkitFullscreenElement ||
+        (document as any).mozFullScreenElement ||
+        (document as any).msFullscreenElement
+      );
       setIsFullscreen(isFs);
-      if (!isFs) {
-        ScreenOrientation.unlock().catch(() => {
-          try {
-            const orientation = (screen as any).orientation || (window.screen as any).orientation;
-            if (orientation && typeof orientation.unlock === "function") {
-              orientation.unlock();
-            }
-          } catch (e) {}
-        });
+
+      if (isFs) {
+        // Dokumen aktif di mode fullscreen: kunci orientasi ke landscape di browser HP
+        try {
+          const orientation = (screen as any).orientation || (window.screen as any).orientation;
+          if (orientation && typeof orientation.lock === "function") {
+            await orientation.lock("landscape");
+          } else if ((screen as any).lockOrientation) {
+            (screen as any).lockOrientation("landscape");
+          } else if ((screen as any).mozLockOrientation) {
+            (screen as any).mozLockOrientation("landscape");
+          } else if ((screen as any).msLockOrientation) {
+            (screen as any).msLockOrientation("landscape");
+          }
+        } catch (e) {}
+      } else {
+        // Keluar fullscreen: buka kunci orientasi agar kembali ke orientasi potret/normal
+        ScreenOrientation.unlock().catch(() => {});
+        try {
+          const orientation = (screen as any).orientation || (window.screen as any).orientation;
+          if (orientation && typeof orientation.unlock === "function") {
+            orientation.unlock();
+          } else if ((screen as any).unlockOrientation) {
+            (screen as any).unlockOrientation();
+          }
+        } catch (e) {}
       }
     };
 
     document.addEventListener("fullscreenchange", handleFullscreenChange);
+    document.addEventListener("webkitfullscreenchange", handleFullscreenChange);
+    document.addEventListener("mozfullscreenchange", handleFullscreenChange);
+    document.addEventListener("MSFullscreenChange", handleFullscreenChange);
+
+    // iOS Safari video element fullscreen events
+    const video = videoRef.current;
+    const handleWebkitBegin = () => handleFullscreenChange();
+    const handleWebkitEnd = () => handleFullscreenChange();
+    if (video) {
+      video.addEventListener("webkitbeginfullscreen", handleWebkitBegin);
+      video.addEventListener("webkitendfullscreen", handleWebkitEnd);
+    }
 
     // Native Capacitor immersive fullscreen events (Android APK)
     let removeNativeListener = () => {};
@@ -989,15 +1023,10 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
       addImmersiveStateListener((data) => {
         const isFs = !!data.isFullscreen;
         setIsFullscreen(isFs);
-        if (!isFs) {
-          ScreenOrientation.unlock().catch(() => {
-            try {
-              const orientation = (screen as any).orientation || (window.screen as any).orientation;
-              if (orientation && typeof orientation.unlock === "function") {
-                orientation.unlock();
-              }
-            } catch (e) {}
-          });
+        if (isFs) {
+          ScreenOrientation.lock({ orientation: "landscape" }).catch(() => {});
+        } else {
+          ScreenOrientation.unlock().catch(() => {});
         }
       }).then((unsub) => {
         removeNativeListener = unsub;
@@ -1006,15 +1035,23 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
 
     return () => {
       document.removeEventListener("fullscreenchange", handleFullscreenChange);
+      document.removeEventListener("webkitfullscreenchange", handleFullscreenChange);
+      document.removeEventListener("mozfullscreenchange", handleFullscreenChange);
+      document.removeEventListener("MSFullscreenChange", handleFullscreenChange);
+      if (video) {
+        video.removeEventListener("webkitbeginfullscreen", handleWebkitBegin);
+        video.removeEventListener("webkitendfullscreen", handleWebkitEnd);
+      }
       removeNativeListener();
-      ScreenOrientation.unlock().catch(() => {
-        try {
-          const orientation = (screen as any).orientation || (window.screen as any).orientation;
-          if (orientation && typeof orientation.unlock === "function") {
-            orientation.unlock();
-          }
-        } catch (e) {}
-      });
+      ScreenOrientation.unlock().catch(() => {});
+      try {
+        const orientation = (screen as any).orientation || (window.screen as any).orientation;
+        if (orientation && typeof orientation.unlock === "function") {
+          orientation.unlock();
+        } else if ((screen as any).unlockOrientation) {
+          (screen as any).unlockOrientation();
+        }
+      } catch (e) {}
     };
   }, []);
 
@@ -1404,43 +1441,79 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
       try {
         if (targetFs) {
           await ScreenOrientation.lock({ orientation: "landscape" });
+          await enterImmersiveMode();
         } else {
+          await exitImmersiveMode();
           await ScreenOrientation.unlock();
         }
       } catch (err) {
         // Ignore — orientation lock is best-effort on APK
       }
-
-      // 2. Native immersive fullscreen (Capacitor APK) - hides Android system bars
-      if (targetFs) {
-        await enterImmersiveMode();
-      } else {
-        await exitImmersiveMode();
-      }
       return;
     }
 
-    // 3. Browser Screen Orientation API fallback (web browsers)
-    try {
-      const orientation = (screen as any).orientation || (window.screen as any).orientation;
-      if (targetFs && orientation && typeof orientation.lock === "function") {
-        orientation.lock("landscape").catch(() => {});
-      } else if (!targetFs && orientation && typeof orientation.unlock === "function") {
-        orientation.unlock();
-      }
-    } catch (e) {}
-
-    // 4. HTML5 Fullscreen API (for Web Browsers)
+    // 2. Browser: requestFullscreen FIRST, then lock orientation inside the
+    // fullscreen context — required by the Screen Orientation API spec.
     const container = containerRef.current;
+    const video = videoRef.current;
     if (!container) return;
+
     if (targetFs) {
-      if (container.requestFullscreen) {
-        container.requestFullscreen().catch(() => {});
+      try {
+        if (container.requestFullscreen) {
+          await container.requestFullscreen();
+        } else if ((container as any).webkitRequestFullscreen) {
+          await (container as any).webkitRequestFullscreen();
+        } else if ((container as any).mozRequestFullScreen) {
+          await (container as any).mozRequestFullScreen();
+        } else if ((container as any).msRequestFullscreen) {
+          await (container as any).msRequestFullscreen();
+        } else if (video && (video as any).webkitEnterFullscreen) {
+          (video as any).webkitEnterFullscreen();
+        }
+
+        // Sekarang kita sudah resmi di mode fullscreen — kunci orientasi ke landscape
+        try {
+          const orientation = (screen as any).orientation || (window.screen as any).orientation;
+          if (orientation && typeof orientation.lock === "function") {
+            await orientation.lock("landscape");
+          } else if ((screen as any).lockOrientation) {
+            (screen as any).lockOrientation("landscape");
+          } else if ((screen as any).mozLockOrientation) {
+            (screen as any).mozLockOrientation("landscape");
+          } else if ((screen as any).msLockOrientation) {
+            (screen as any).msLockOrientation("landscape");
+          }
+        } catch (e) {
+          // Screen Orientation lock not supported (iOS Safari, etc.) — ignore
+        }
+      } catch (err) {
+        // requestFullscreen rejected — revert state
+        setIsFullscreen(false);
       }
     } else {
-      if (document.fullscreenElement && document.exitFullscreen) {
-        document.exitFullscreen().catch(() => {});
-      }
+      try {
+        if (document.fullscreenElement || (document as any).webkitFullscreenElement) {
+          if (document.exitFullscreen) {
+            await document.exitFullscreen();
+          } else if ((document as any).webkitExitFullscreen) {
+            await (document as any).webkitExitFullscreen();
+          } else if ((document as any).mozCancelFullScreen) {
+            await (document as any).mozCancelFullScreen();
+          } else if ((document as any).msExitFullscreen) {
+            await (document as any).msExitFullscreen();
+          }
+        }
+      } catch (e) {}
+
+      try {
+        const orientation = (screen as any).orientation || (window.screen as any).orientation;
+        if (orientation && typeof orientation.unlock === "function") {
+          orientation.unlock();
+        } else if ((screen as any).unlockOrientation) {
+          (screen as any).unlockOrientation();
+        }
+      } catch (e) {}
     }
   };
 
@@ -1453,17 +1526,25 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
     }
     try {
       await ScreenOrientation.unlock();
-    } catch (e) {
-      try {
-        const orientation = (screen as any).orientation || (window.screen as any).orientation;
-        if (orientation && typeof orientation.unlock === "function") {
-          orientation.unlock();
+    } catch (e) {}
+    try {
+      const orientation = (screen as any).orientation || (window.screen as any).orientation;
+      if (orientation && typeof orientation.unlock === "function") {
+        orientation.unlock();
+      } else if ((screen as any).unlockOrientation) {
+        (screen as any).unlockOrientation();
+      }
+    } catch (err) {}
+
+    try {
+      if (document.fullscreenElement || (document as any).webkitFullscreenElement) {
+        if (document.exitFullscreen) {
+          await document.exitFullscreen();
+        } else if ((document as any).webkitExitFullscreen) {
+          await (document as any).webkitExitFullscreen();
         }
-      } catch (err) {}
-    }
-    if (document.fullscreenElement) {
-      document.exitFullscreen().catch(() => {});
-    }
+      }
+    } catch (e) {}
     onClose();
   };
 
