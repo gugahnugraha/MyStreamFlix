@@ -1,5 +1,7 @@
-const getTmdbApiKey = () => {
-  const key = process.env.TMDB_API_KEY?.trim();
+import { TmdbCastMember, TmdbPersonDetail, TmdbCreditItem } from "@/src/types";
+
+export const getTmdbApiKey = () => {
+  const key = (process.env.TMDB_API_KEY || process.env.NEXT_PUBLIC_TMDB_API_KEY)?.trim();
   if (!key || key === "MY_TMDB_API_KEY") return "";
   return key;
 };
@@ -167,3 +169,153 @@ export async function fetchTmdbMetadata(mediaType: "movie" | "tv", tmdbId: strin
       : []
   };
 }
+
+export async function fetchTmdbMovieCredits(
+  mediaType: "movie" | "tv",
+  tmdbId: string | number
+): Promise<TmdbCastMember[]> {
+  const apiKey = getTmdbApiKey();
+  if (!apiKey || !tmdbId) return [];
+
+  try {
+    const url = `https://api.themoviedb.org/3/${mediaType}/${tmdbId}/credits?api_key=${apiKey}&language=en-US`;
+    const response = await fetch(url, { next: { revalidate: 3600 } });
+    if (!response.ok) {
+      console.warn(`TMDB credits fetch failed: ${response.status}`);
+      return [];
+    }
+
+    const data = await response.json();
+    return (data.cast || [])
+      .slice(0, 24)
+      .map((item: any) => ({
+        id: item.id,
+        name: item.name,
+        character: item.character || "",
+        profilePath: item.profile_path ? tmdbImage(item.profile_path, "w185") : "",
+        order: item.order ?? 0,
+        knownForDepartment: item.known_for_department || "Acting"
+      }));
+  } catch (err) {
+    console.warn("Failed to fetch TMDB credits:", err);
+    return [];
+  }
+}
+
+export async function searchTmdbId(
+  title: string,
+  mediaType: "movie" | "tv" = "movie",
+  year?: number
+): Promise<number | null> {
+  const apiKey = getTmdbApiKey();
+  if (!apiKey || !title) return null;
+
+  try {
+    const searchUrl = new URL(`https://api.themoviedb.org/3/search/${mediaType}`);
+    searchUrl.searchParams.set("api_key", apiKey);
+    searchUrl.searchParams.set("query", title);
+    searchUrl.searchParams.set("language", "en-US");
+    searchUrl.searchParams.set("include_adult", "false");
+    if (year) {
+      if (mediaType === "movie") {
+        searchUrl.searchParams.set("year", String(year));
+      } else {
+        searchUrl.searchParams.set("first_air_date_year", String(year));
+      }
+    }
+
+    let res = await fetch(searchUrl.toString(), { next: { revalidate: 86400 } });
+    if (!res.ok && year) {
+      searchUrl.searchParams.delete("year");
+      searchUrl.searchParams.delete("first_air_date_year");
+      res = await fetch(searchUrl.toString(), { next: { revalidate: 86400 } });
+    }
+
+    if (res.ok) {
+      const data = await res.json();
+      if (data.results && data.results.length > 0) {
+        return data.results[0].id;
+      }
+    }
+
+    const multiUrl = `https://api.themoviedb.org/3/search/multi?api_key=${apiKey}&query=${encodeURIComponent(
+      title
+    )}&language=en-US`;
+    const multiRes = await fetch(multiUrl, { next: { revalidate: 86400 } });
+    if (multiRes.ok) {
+      const multiData = await multiRes.json();
+      const match = (multiData.results || []).find(
+        (item: any) => item.media_type === "movie" || item.media_type === "tv"
+      );
+      if (match) return match.id;
+    }
+
+    return null;
+  } catch (err) {
+    console.warn("Failed to search TMDB ID by title:", err);
+    return null;
+  }
+}
+
+export async function fetchTmdbPersonDetails(
+  personId: string | number
+): Promise<TmdbPersonDetail | null> {
+  const apiKey = getTmdbApiKey();
+  if (!apiKey || !personId) return null;
+
+  try {
+    const url = `https://api.themoviedb.org/3/person/${personId}?api_key=${apiKey}&append_to_response=combined_credits,external_ids&language=en-US`;
+    const res = await fetch(url, { next: { revalidate: 86400 } });
+    if (!res.ok) {
+      console.warn(`TMDB person lookup failed with status ${res.status}`);
+      return null;
+    }
+
+    const data = await res.json();
+    const castCredits: TmdbCreditItem[] = (data.combined_credits?.cast || [])
+      .filter((c: any) => c.title || c.name)
+      .sort((a: any, b: any) => (b.vote_count || 0) - (a.vote_count || 0))
+      .slice(0, 36)
+      .map((c: any) => {
+        const isMovie = c.media_type === "movie";
+        const title = isMovie ? c.title : c.name;
+        const dateVal = isMovie ? c.release_date : c.first_air_date;
+        const releaseYear = dateVal ? new Date(dateVal).getFullYear() : "";
+
+        return {
+          id: c.id,
+          title,
+          character: c.character || "",
+          posterUrl: tmdbImage(c.poster_path, "w342"),
+          backdropUrl: tmdbImage(c.backdrop_path, "w780"),
+          releaseYear,
+          rating: c.vote_average ? Number(c.vote_average.toFixed(1)) : undefined,
+          mediaType: (c.media_type === "tv" ? "tv" : "movie") as "movie" | "tv",
+          overview: c.overview || ""
+        };
+      });
+
+    return {
+      id: data.id,
+      name: data.name,
+      biography: data.biography || "",
+      birthday: data.birthday || "",
+      deathday: data.deathday || null,
+      placeOfBirth: data.place_of_birth || "",
+      profilePath: tmdbImage(data.profile_path, "h632") || tmdbImage(data.profile_path, "w500"),
+      knownForDepartment: data.known_for_department || "Acting",
+      popularity: data.popularity,
+      credits: castCredits,
+      externalIds: {
+        imdbId: data.external_ids?.imdb_id,
+        instagramId: data.external_ids?.instagram_id,
+        twitterId: data.external_ids?.twitter_id,
+        facebookId: data.external_ids?.facebook_id
+      }
+    };
+  } catch (err) {
+    console.warn("Failed to fetch TMDB person details:", err);
+    return null;
+  }
+}
+

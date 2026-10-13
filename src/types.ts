@@ -59,11 +59,52 @@ export interface Movie {
   createdAt: string;
   tmdbId?: number;
   tmdbMediaType?: "movie" | "tv";
+  tmdbCast?: TmdbCastMember[];
   tier?: "free" | "vip" | "premium"; // content classification like Hotstar/Prime
   contentType?: "movie" | "series" | "livetv";
   seasons?: Season[];
   trailerUrl?: string;
   backupUrls?: string[]; // Alternative fallback stream URLs if primary videoUrl is unreachable
+}
+
+export interface TmdbCastMember {
+  id: number;
+  name: string;
+  character?: string;
+  profilePath?: string;
+  order?: number;
+  knownForDepartment?: string;
+}
+
+export interface TmdbCreditItem {
+  id: number;
+  title: string;
+  character?: string;
+  posterUrl?: string;
+  backdropUrl?: string;
+  releaseYear?: number | string;
+  rating?: number;
+  mediaType: "movie" | "tv";
+  overview?: string;
+}
+
+export interface TmdbPersonDetail {
+  id: number;
+  name: string;
+  biography: string;
+  birthday?: string;
+  deathday?: string | null;
+  placeOfBirth?: string;
+  profilePath?: string;
+  knownForDepartment?: string;
+  popularity?: number;
+  credits: TmdbCreditItem[];
+  externalIds?: {
+    imdbId?: string;
+    instagramId?: string;
+    twitterId?: string;
+    facebookId?: string;
+  };
 }
 
 export interface UserProfile {

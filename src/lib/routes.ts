@@ -8,6 +8,7 @@ export type ContentType = "all" | "movie" | "series" | "livetv";
 export interface RouteState {
   tab: string;
   contentType: ContentType;
+  castId?: string;
 }
 
 /**
@@ -18,6 +19,12 @@ export function parseRoute(pathname?: string): RouteState {
 
   // Normalize path (lowercase, strip trailing slashes)
   const clean = pathname.toLowerCase().split("?")[0].replace(/\/+$/, "") || "/";
+
+  // Cast / Person detail routes: /cast/12345 or /person/12345
+  const castMatch = clean.match(/^\/(?:cast|person)\/([a-zA-Z0-9_-]+)/);
+  if (castMatch) {
+    return { tab: "cast", contentType: "all", castId: castMatch[1] };
+  }
 
   // Admin routes
   if (clean === "/admin" || clean.startsWith("/admin/") || clean === "/dashboard") {
@@ -49,9 +56,10 @@ export function parseRoute(pathname?: string): RouteState {
 }
 
 /**
- * Returns canonical URL for a given tab and contentType.
+ * Returns canonical URL for a given tab, contentType, and optional castId.
  */
-export function getRouteUrl(tab: string, contentType: ContentType = "all"): string {
+export function getRouteUrl(tab: string, contentType: ContentType = "all", castId?: string): string {
+  if (tab === "cast" && castId) return `/cast/${castId}`;
   if (tab === "admin") return "/admin";
   if (tab === "favorites") return "/favorites";
 

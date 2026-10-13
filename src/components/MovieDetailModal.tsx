@@ -14,6 +14,7 @@ interface MovieDetailModalProps {
   onToggleFavorite: (id: string) => void;
   onClose: () => void;
   onPlay: (movie: Movie) => void;
+  onSelectCast?: (castId: number | string) => void;
   t?: any;
 }
 
@@ -24,6 +25,7 @@ export default function MovieDetailModal({
   onToggleFavorite,
   onClose,
   onPlay,
+  onSelectCast,
   t,
 }: MovieDetailModalProps) {
   const [activeId, setActiveId] = useState(movieId);
@@ -354,6 +356,71 @@ export default function MovieDetailModal({
                   <h3 className="text-zinc-400 text-xs font-bold tracking-wider uppercase mb-2">{t.synopsis || "Synopsis"}</h3>
                   <p className="text-zinc-200 text-sm leading-relaxed">{movie.description}</p>
                 </div>
+
+                {/* Top Cast Section linking to Cast Detail page */}
+                {((movie.tmdbCast && movie.tmdbCast.length > 0) || (movie.cast && movie.cast.length > 0)) && (
+                  <div className="cinema-panel rounded-lg p-4 space-y-3" id="modal-cast-section">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-zinc-400 text-xs font-bold tracking-wider uppercase flex items-center gap-1.5">
+                        <Users className="w-3.5 h-3.5 text-red-500" />
+                        {t.starringCast || "Starring Cast"}
+                      </h3>
+                      <span className="text-[10px] text-zinc-500 hidden sm:inline">
+                        {t.clickCastToView || "Click actor to view profile & filmography"}
+                      </span>
+                    </div>
+
+                    <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent">
+                      {(movie.tmdbCast && movie.tmdbCast.length > 0) ? (
+                        movie.tmdbCast.slice(0, 16).map((actor) => (
+                          <div
+                            key={actor.id}
+                            onClick={() => onSelectCast?.(actor.id)}
+                            className="group shrink-0 w-24 flex flex-col items-center text-center p-2 rounded-xl bg-white/[0.025] hover:bg-white/[0.08] border border-white/5 hover:border-red-500/50 transition-all cursor-pointer active:scale-95 shadow-sm"
+                            title={`View details for ${actor.name}`}
+                          >
+                            <div className="relative w-14 h-14 rounded-full overflow-hidden mb-2 border-2 border-white/10 group-hover:border-red-500 group-hover:scale-105 transition-all shadow-md bg-zinc-900">
+                              {actor.profilePath ? (
+                                <img
+                                  src={actor.profilePath}
+                                  alt={actor.name}
+                                  className="w-full h-full object-cover"
+                                  referrerPolicy="no-referrer"
+                                  loading="lazy"
+                                />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center text-zinc-500 text-xs font-bold bg-zinc-800">
+                                  {actor.name.slice(0, 2).toUpperCase()}
+                                </div>
+                              )}
+                            </div>
+                            <span className="text-xs font-bold text-zinc-200 group-hover:text-white line-clamp-1">
+                              {actor.name}
+                            </span>
+                            {actor.character && (
+                              <span className="text-[10px] text-zinc-400 italic line-clamp-1 mt-0.5">
+                                {actor.character}
+                              </span>
+                            )}
+                          </div>
+                        ))
+                      ) : (
+                        movie.cast.map((actor, idx) => (
+                          <div
+                            key={idx}
+                            onClick={() => onSelectCast?.(actor)}
+                            className="group shrink-0 flex items-center gap-2 px-3 py-2 rounded-lg bg-white/[0.03] hover:bg-white/[0.08] border border-white/10 hover:border-red-500/40 transition-all cursor-pointer active:scale-95"
+                          >
+                            <div className="w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center text-zinc-400 text-xs font-bold">
+                              {actor.slice(0, 2).toUpperCase()}
+                            </div>
+                            <span className="text-xs font-bold text-zinc-200 group-hover:text-white">{actor}</span>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                )}
  
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   {[
@@ -596,15 +663,34 @@ export default function MovieDetailModal({
                 <p className="text-xs text-zinc-500 font-semibold flex items-center gap-1.5 mb-1.5">
                   <Film className="w-3.5 h-3.5" /> {t.starringCast || "Starring Cast"}
                 </p>
-                <div className="flex flex-wrap gap-1 pl-5">
-                  {movie.cast.map((actor, idx) => (
-                    <span 
-                      key={idx} 
-                      className="text-xs text-zinc-200 bg-zinc-900 border border-zinc-850 px-1.5 py-0.5 rounded"
-                    >
-                      {actor}
-                    </span>
-                  ))}
+                <div className="flex flex-wrap gap-1.5 pl-4">
+                  {(movie.tmdbCast && movie.tmdbCast.length > 0) ? (
+                    movie.tmdbCast.slice(0, 10).map((actor) => (
+                      <button 
+                        key={actor.id} 
+                        onClick={() => onSelectCast?.(actor.id)}
+                        className="text-[11px] text-zinc-200 bg-zinc-900 hover:bg-white/10 hover:border-red-500/50 border border-zinc-800 px-2 py-0.5 rounded-full flex items-center gap-1.5 cursor-pointer transition-all active:scale-95 group"
+                        title={`View profile for ${actor.name}`}
+                      >
+                        {actor.profilePath ? (
+                          <img src={actor.profilePath} alt={actor.name} className="w-3.5 h-3.5 rounded-full object-cover" />
+                        ) : (
+                          <Users className="w-3 h-3 text-zinc-500" />
+                        )}
+                        <span className="group-hover:text-white transition-colors">{actor.name}</span>
+                      </button>
+                    ))
+                  ) : (
+                    movie.cast.map((actor, idx) => (
+                      <button 
+                        key={idx} 
+                        onClick={() => onSelectCast?.(actor)}
+                        className="text-xs text-zinc-200 bg-zinc-900 hover:bg-white/10 border border-zinc-850 px-2 py-0.5 rounded cursor-pointer transition-all"
+                      >
+                        {actor}
+                      </button>
+                    ))
+                  )}
                 </div>
               </div>
 

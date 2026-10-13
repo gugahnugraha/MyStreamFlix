@@ -21,6 +21,7 @@ import SubscriptionModal from "./components/SubscriptionModal";
 import ProfileModal from "./components/ProfileModal";
 import Footer from "./components/Footer";
 import LiveTvPage from "./components/LiveTvPage";
+import CastDetailView from "./components/CastDetailView";
 import { Movie, User, WatchHistoryItem, CMSSettings } from "./types";
 import { getTranslation, LanguageCode } from "./translations";
 import { parseRoute, getRouteUrl, ContentType } from "./lib/routes";
@@ -28,9 +29,10 @@ import { parseRoute, getRouteUrl, ContentType } from "./lib/routes";
 export interface AppProps {
   initialTab?: string;
   initialContentType?: ContentType;
+  initialCastId?: string;
 }
 
-export default function App({ initialTab, initialContentType }: AppProps = {}) {
+export default function App({ initialTab, initialContentType, initialCastId }: AppProps = {}) {
   // Language Localization State
   // This state holds the currently selected language for the UI (e.g., "en", "id", "es").
   const [currentLanguage, setCurrentLanguage] = useState<LanguageCode>("en");
@@ -80,6 +82,14 @@ export default function App({ initialTab, initialContentType }: AppProps = {}) {
     return initialContentType || "all";
   });
 
+  const [selectedCastId, setSelectedCastId] = useState<string | null>(() => {
+    if (initialCastId) return initialCastId;
+    if (typeof window !== "undefined") {
+      return parseRoute(window.location.pathname).castId || null;
+    }
+    return null;
+  });
+
   const [showAuth, setShowAuth] = useState(false);
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
   const [activeStream, setActiveStream] = useState<Movie | null>(null);
@@ -106,17 +116,17 @@ export default function App({ initialTab, initialContentType }: AppProps = {}) {
   const isPopStateRef = useRef(false);
   const isInitialMountRef = useRef(true);
 
-  // Sync browser URL whenever activeTab or selectedContentType changes
+  // Sync browser URL whenever activeTab, selectedContentType, or selectedCastId changes
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    const currentUrl = getRouteUrl(activeTab, selectedContentType);
+    const currentUrl = getRouteUrl(activeTab, selectedContentType, selectedCastId || undefined);
 
     if (isInitialMountRef.current) {
       isInitialMountRef.current = false;
       // Replace state on initial mount to ensure valid history entry
       if (window.location.pathname !== currentUrl) {
-        window.history.replaceState({ tab: activeTab, contentType: selectedContentType }, "", currentUrl);
+        window.history.replaceState({ tab: activeTab, contentType: selectedContentType, castId: selectedCastId }, "", currentUrl);
       }
       return;
     }
@@ -127,19 +137,20 @@ export default function App({ initialTab, initialContentType }: AppProps = {}) {
     }
 
     if (window.location.pathname !== currentUrl) {
-      window.history.pushState({ tab: activeTab, contentType: selectedContentType }, "", currentUrl);
+      window.history.pushState({ tab: activeTab, contentType: selectedContentType, castId: selectedCastId }, "", currentUrl);
     }
-  }, [activeTab, selectedContentType]);
+  }, [activeTab, selectedContentType, selectedCastId]);
 
   // Handle browser Back / Forward buttons
   useEffect(() => {
     if (typeof window === "undefined") return;
 
     const handlePopState = () => {
-      const { tab, contentType } = parseRoute(window.location.pathname);
+      const { tab, contentType, castId } = parseRoute(window.location.pathname);
       isPopStateRef.current = true;
       setActiveTab(tab);
       setSelectedContentType(contentType);
+      setSelectedCastId(castId || null);
       setSearchQuery("");
     };
 
@@ -151,7 +162,9 @@ export default function App({ initialTab, initialContentType }: AppProps = {}) {
   useEffect(() => {
     if (typeof document === "undefined") return;
     const siteTitle = settings.siteName || "MyStreamFlix";
-    if (activeTab === "admin") {
+    if (activeTab === "cast") {
+      document.title = `Cast Profile | ${siteTitle}`;
+    } else if (activeTab === "admin") {
       document.title = `Admin Dashboard | ${siteTitle}`;
     } else if (activeTab === "favorites") {
       document.title = `${t.myWatchlistTitle || "My List"} | ${siteTitle}`;
@@ -164,7 +177,7 @@ export default function App({ initialTab, initialContentType }: AppProps = {}) {
     } else {
       document.title = `${siteTitle} - Movies, Series, and Live TV`;
     }
-  }, [activeTab, selectedContentType, settings.siteName, t]);
+  }, [activeTab, selectedContentType, selectedCastId, settings.siteName, t]);
 
   // Auto-scroll to top on navigation tab or content type filter switch
   useEffect(() => {
@@ -441,6 +454,22 @@ export default function App({ initialTab, initialContentType }: AppProps = {}) {
     root.style.setProperty('--theme-primary-10', 'rgba(0, 173, 181, 0.1)');
   }, []);
 
+  const handleNavigateTab = (tab: string) => {
+    setSelectedCastId(null);
+    setActiveTab(tab);
+  };
+
+  const handleSelectContentType = (type: ContentType) => {
+    setSelectedCastId(null);
+    setSelectedContentType(type);
+  };
+
+  const handleSelectCast = (castId: number | string) => {
+    setSelectedMovie(null);
+    setSelectedCastId(String(castId));
+    setActiveTab("cast");
+  };
+
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col font-sans selection:bg-blue-600 selection:text-white relative overflow-x-hidden pt-[calc(65px+env(safe-area-inset-top,0px))]" id="app-root">
 
@@ -449,9 +478,9 @@ export default function App({ initialTab, initialContentType }: AppProps = {}) {
         currentUser={currentUser}
         settings={settings}
         activeTab={activeTab}
-        setActiveTab={setActiveTab}
+        setActiveTab={handleNavigateTab}
         selectedContentType={selectedContentType}
-        onSelectContentType={setSelectedContentType}
+        onSelectContentType={handleSelectContentType}
         onOpenAuth={() => setShowAuth(true)}
         onLogout={handleLogout}
         searchQuery={searchQuery}
@@ -576,6 +605,23 @@ export default function App({ initialTab, initialContentType }: AppProps = {}) {
               </div>
             )}
           </div>
+        ) : activeTab === "cast" && selectedCastId ? (
+          /* TMDB CAST PROFILE & FILMOGRAPHY VIEW */
+          <CastDetailView
+            castId={selectedCastId}
+            onBack={() => {
+              if (typeof window !== "undefined" && window.history.length > 1) {
+                window.history.back();
+              } else {
+                setSelectedCastId(null);
+                setActiveTab("home");
+              }
+            }}
+            onSelectMovie={(movie) => setSelectedMovie(movie)}
+            onPlayMovie={(movie) => handleLaunchStream(movie)}
+            allMovies={allMovies.length > 0 ? allMovies : movies}
+            t={t}
+          />
         ) : (
           /* HOME SPOTLIGHT OR MOVIE BROWSE SYSTEM */
           <div id="home-feed-viewport" className="space-y-8">

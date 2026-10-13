@@ -6,6 +6,7 @@ import type { ContentType } from "./lib/routes";
 interface ClientAppProps {
   initialTab?: string;
   initialContentType?: ContentType;
+  initialCastId?: string;
 }
 
 const DynamicApp = dynamic(() => import("./App"), {
@@ -18,6 +19,6 @@ const DynamicApp = dynamic(() => import("./App"), {
   ),
 });
 
-export default function ClientApp({ initialTab, initialContentType }: ClientAppProps) {
-  return <DynamicApp initialTab={initialTab} initialContentType={initialContentType} />;
+export default function ClientApp({ initialTab, initialContentType, initialCastId }: ClientAppProps) {
+  return <DynamicApp initialTab={initialTab} initialContentType={initialContentType} initialCastId={initialCastId} />;
 }
