@@ -849,6 +849,7 @@ export default function App({ initialTab, initialContentType, initialCastId }: A
           onToggleFavorite={handleToggleFavorite}
           onClose={() => setSelectedMovie(null)}
           onPlay={handleLaunchStream}
+          onSelectCast={handleSelectCast}
           t={t}
         />
       )}
@@ -901,8 +902,8 @@ export default function App({ initialTab, initialContentType, initialCastId }: A
       {/* Footer component */}
       <Footer
         settings={settings}
-        setActiveTab={setActiveTab}
-        onSelectContentType={setSelectedContentType}
+        setActiveTab={handleNavigateTab}
+        onSelectContentType={handleSelectContentType}
         onOpenSubscription={() => setShowSubscription(true)}
         onOpenAuth={() => setShowAuth(true)}
         t={t}
@@ -912,9 +913,9 @@ export default function App({ initialTab, initialContentType, initialCastId }: A
       {!activeStream && (
         <MobileBottomNav
           activeTab={activeTab}
-          setActiveTab={setActiveTab}
+          setActiveTab={handleNavigateTab}
           selectedContentType={selectedContentType}
-          onSelectContentType={setSelectedContentType}
+          onSelectContentType={handleSelectContentType}
           currentUser={currentUser}
           onOpenAuth={() => setShowAuth(true)}
           onOpenMobileSearch={() => setShowMobileSearch(true)}
