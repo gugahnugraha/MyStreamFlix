@@ -661,41 +661,6 @@ export default function MovieDetailModal({
 
               <div className="border-t border-zinc-900/60 pt-3">
                 <p className="text-xs text-zinc-500 font-semibold flex items-center gap-1.5 mb-1.5">
-                  <Film className="w-3.5 h-3.5" /> {t.starringCast || "Starring Cast"}
-                </p>
-                <div className="flex flex-wrap gap-1.5 pl-4">
-                  {(movie.tmdbCast && movie.tmdbCast.length > 0) ? (
-                    movie.tmdbCast.slice(0, 10).map((actor) => (
-                      <button 
-                        key={actor.id} 
-                        onClick={() => onSelectCast?.(actor.id)}
-                        className="text-[11px] text-zinc-200 bg-zinc-900 hover:bg-white/10 hover:border-red-500/50 border border-zinc-800 px-2 py-0.5 rounded-full flex items-center gap-1.5 cursor-pointer transition-all active:scale-95 group"
-                        title={`View profile for ${actor.name}`}
-                      >
-                        {actor.profilePath ? (
-                          <img src={actor.profilePath} alt={actor.name} className="w-3.5 h-3.5 rounded-full object-cover" />
-                        ) : (
-                          <Users className="w-3 h-3 text-zinc-500" />
-                        )}
-                        <span className="group-hover:text-white transition-colors">{actor.name}</span>
-                      </button>
-                    ))
-                  ) : (
-                    movie.cast.map((actor, idx) => (
-                      <button 
-                        key={idx} 
-                        onClick={() => onSelectCast?.(actor)}
-                        className="text-xs text-zinc-200 bg-zinc-900 hover:bg-white/10 border border-zinc-850 px-2 py-0.5 rounded cursor-pointer transition-all"
-                      >
-                        {actor}
-                      </button>
-                    ))
-                  )}
-                </div>
-              </div>
-
-              <div className="border-t border-zinc-900/60 pt-3">
-                <p className="text-xs text-zinc-500 font-semibold flex items-center gap-1.5 mb-1.5">
                   <Globe className="w-3.5 h-3.5" /> {t.origins || "Origins"}
                 </p>
                 <div className="text-xs text-zinc-300 pl-5 space-y-1">
