@@ -248,14 +248,13 @@ export default function Header({
             onSelectContentType("livetv");
             setSearchQuery("");
           }}
-          className={`relative px-3 py-1.5 rounded-md transition-all cursor-pointer flex items-center gap-1.5 group ${
+          className={`relative px-3 py-1.5 rounded-md transition-all cursor-pointer group ${
             activeTab === "home" && selectedContentType === "livetv" ? "text-white font-semibold" : "hover:bg-white/[0.04]"
           }`}
           style={activeTab === "home" && selectedContentType === "livetv" ? { backgroundColor: `${brandColor}18`, color: brandColor } : {}}
           id="nav-livetv"
         >
-          <span className="w-2 h-2 rounded-full bg-red-500 animate-ping inline-block" />
-          <span>{t.liveTv || "Live TV"}</span>
+          {t.liveTv || "Live TV"}
         </button>
         {currentUser && (
           <button
