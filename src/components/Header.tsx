@@ -383,13 +383,13 @@ export default function Header({
           >
             <Globe className="w-3.5 h-3.5" style={{ color: brandColor }} />
             <span className="font-medium text-xs">
-              {currentLanguage === "id" ? "Bahasa" : currentLanguage === "es" ? "Espanol" : "English"}
+              {currentLanguage === "id" ? (t?.indonesianLabel || "Bahasa Indonesia") : currentLanguage === "es" ? (t?.spanishLabel || "Español") : (t?.englishLabel || "English")}
             </span>
             <ChevronDown className={`w-3.5 h-3.5 text-zinc-400 transition-transform duration-200 ${showLangMenu ? "rotate-180 text-white" : ""}`} />
           </button>
 
           {showLangMenu && (
-            <div className="absolute right-0 top-full mt-2 w-36 bg-[#111112]/98 backdrop-blur-xl border border-white/[0.1] rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.8)] p-1.5 z-50 animate-in fade-in zoom-in-95 duration-150">
+            <div className="absolute right-0 top-full mt-2 w-44 bg-[#111112]/98 backdrop-blur-xl border border-white/[0.1] rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.8)] p-1.5 z-50 animate-in fade-in zoom-in-95 duration-150">
               <button
                 onClick={() => {
                   onLanguageChange("id");
@@ -400,7 +400,7 @@ export default function Header({
                 }`}
                 style={currentLanguage === "id" ? { color: brandColor, backgroundColor: `${brandColor}15` } : {}}
               >
-                <span>Bahasa</span>
+                <span>{t?.indonesianLabel || "Bahasa Indonesia"}</span>
                 {currentLanguage === "id" && <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: brandColor }} />}
               </button>
 
@@ -414,7 +414,7 @@ export default function Header({
                 }`}
                 style={currentLanguage === "en" ? { color: brandColor, backgroundColor: `${brandColor}15` } : {}}
               >
-                <span>English</span>
+                <span>{t?.englishLabel || "English (US)"}</span>
                 {currentLanguage === "en" && <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: brandColor }} />}
               </button>
 
@@ -428,7 +428,7 @@ export default function Header({
                 }`}
                 style={currentLanguage === "es" ? { color: brandColor, backgroundColor: `${brandColor}15` } : {}}
               >
-                <span>Espanol</span>
+                <span>{t?.spanishLabel || "Español (ES)"}</span>
                 {currentLanguage === "es" && <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: brandColor }} />}
               </button>
             </div>

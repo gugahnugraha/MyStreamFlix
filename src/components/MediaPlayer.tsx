@@ -589,7 +589,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
     // Detect DRM encrypted URLs immediately
     if (rawStreamUrl.includes("cenc") || currentStreamUrl.includes("cenc")) {
       setIsDrmError(true);
-      setErrorMessage("🔒 Siaran Terenkripsi DRM (Widevine / PlayReady). Pemutar web publik tidak dapat memutar siaran terenkripsi tanpa kunci lisensi resmi.");
+      setErrorMessage(t?.drmErrorDesc || "This broadcast is protected by DRM (Widevine/PlayReady). Public web players cannot decrypt this stream without official license keys.");
       setHasError(true);
       setIsSimulating(true);
       return;
@@ -693,9 +693,9 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
           const errStr = JSON.stringify(e || "").toLowerCase();
           if (errStr.includes("drm") || errStr.includes("license") || errStr.includes("key_session") || errStr.includes("cenc")) {
             setIsDrmError(true);
-            setErrorMessage("🔒 Siaran Terenkripsi DRM (Widevine / PlayReady). Pemutar web publik tidak dapat memutar siaran terenkripsi tanpa kunci lisensi resmi.");
+            setErrorMessage(t?.drmErrorDesc || "This broadcast is protected by DRM (Widevine/PlayReady). Public web players cannot decrypt this stream without official license keys.");
           } else {
-            setErrorMessage("⚠️ Gagal memutar siaran DASH. Pastikan saluran aktif dan mengizinkan pemutaran.");
+            setErrorMessage(t?.dashErrorDesc || "Failed to play DASH broadcast. Ensure the channel is online and permits cross-origin playback.");
           }
           setHasError(true);
           setIsSimulating(true);
@@ -1911,7 +1911,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
 
                 {/* Subtitle Badge */}
                 <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-500/10 border border-red-500/30 text-red-400 text-[10px] font-black uppercase tracking-widest mb-2.5">
-                  <span>{isDrmError ? "SIARAN TERENKRIPSI (DRM)" : "GAGAL MEMUTAR SIARAN"}</span>
+                  <span>{isDrmError ? (t?.drmErrorTitle || "DRM ENCRYPTED STREAM") : (t?.streamFailedTitle || "FAILED TO PLAY STREAM")}</span>
                 </div>
 
                 <h3 className="text-base sm:text-lg font-black text-white tracking-tight">
@@ -1921,8 +1921,8 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
                 {/* Detailed Description */}
                 <p className="text-xs text-zinc-300 mt-2 leading-relaxed max-w-sm">
                   {isDrmError
-                    ? "Siaran ini dilindungi oleh DRM (Widevine/PlayReady). Pemutar web publik tidak dapat mendekripsi siaran tanpa sertifikat & lisensi resmi."
-                    : (errorMessage || "Tidak dapat menghubungkan ke siaran langsung. Silakan periksa koneksi atau pilih saluran lain.")}
+                    ? (t?.drmErrorDesc || "This broadcast is protected by DRM (Widevine/PlayReady). Public web players cannot decrypt this stream without official license keys.")
+                    : (errorMessage || t?.streamFailedDesc || "Cannot connect to the live broadcast. Please check your network connection or select another channel.")}
                 </p>
 
                 {/* Technical Error Snippet */}
@@ -2644,7 +2644,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
                         <div className="flex items-center justify-between border-b border-white/10 pb-2">
                           <h4 className="text-[11px] font-black text-white uppercase tracking-wider flex items-center gap-1.5">
                             <SlidersHorizontal className="w-3.5 h-3.5" style={{ color: brandColor }} />
-                            <span>Pengaturan Subtitle</span>
+                            <span>{t?.subtitleSettings || "Subtitle Settings"}</span>
                           </h4>
                           <span
                             className="text-[10px] font-mono px-1.5 py-0.5 rounded font-bold"

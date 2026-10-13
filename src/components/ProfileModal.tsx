@@ -488,10 +488,10 @@ export default function ProfileModal({
                         </span>
                       </div>
                       <div className="flex justify-between items-center py-1">
-                        <span className="text-zinc-500">Member Since:</span>
+                        <span className="text-zinc-500">{t?.memberSince || "Member Since"}:</span>
                         <span className="text-zinc-300 font-semibold flex items-center gap-1">
                           <Calendar className="w-3 h-3 text-zinc-500" />
-                          {new Date(currentUser.createdAt || Date.now()).toLocaleDateString(t?.browse === "Beranda" ? 'id-ID' : 'en-US', {
+                          {new Date(currentUser.createdAt || Date.now()).toLocaleDateString(t?.browse === "Beranda" ? 'id-ID' : t?.browse === "Inicio" ? 'es-ES' : 'en-US', {
                             year: 'numeric',
                             month: 'short',
                             day: 'numeric'
@@ -554,7 +554,7 @@ export default function ProfileModal({
                       <KeyRound className="w-3.5 h-3.5 text-zinc-500" />
                       {t?.passwordLabel || "Edit Password"}
                     </h4>
-                    <p className="text-[10px] text-zinc-500">Provide your current account password to authorize changing to a new password.</p>
+                    <p className="text-[10px] text-zinc-500">{t?.passwordChangeInstruction || "Provide your current password to authorize setting a new password."}</p>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">

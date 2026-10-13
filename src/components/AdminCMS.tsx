@@ -169,21 +169,21 @@ export default function AdminCMS({
     const updated = addCorsProxyDomain(newProxyDomainInput);
     setProxyDomains(updated);
     setNewProxyDomainInput("");
-    setSuccessMsg("✅ Domain berhasil ditambahkan ke Whitelist Proxy CORS!");
+    setSuccessMsg(t?.cmsCorsSuccessAdd || "✅ Domain added to CORS Proxy Whitelist!");
     setTimeout(() => setSuccessMsg(""), 3500);
   };
 
   const handleRemoveProxyDomain = (domain: string) => {
     const updated = removeCorsProxyDomain(domain);
     setProxyDomains(updated);
-    setSuccessMsg(`🗑️ Domain "${domain}" dihapus dari Whitelist Proxy.`);
+    setSuccessMsg(`🗑️ Domain "${domain}" removed from Proxy Whitelist.`);
     setTimeout(() => setSuccessMsg(""), 3500);
   };
 
   const handleResetProxyDomains = () => {
     const updated = resetCorsProxyDomains();
     setProxyDomains(updated);
-    setSuccessMsg("🔄 Whitelist domain proxy dikembalikan ke pengaturan default.");
+    setSuccessMsg(t?.cmsCorsReset || "🔄 Proxy domain whitelist reverted to defaults.");
     setTimeout(() => setSuccessMsg(""), 3500);
   };
 
@@ -536,7 +536,7 @@ export default function AdminCMS({
   const handleSaveChannel = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!channelName.trim() || !channelStreamUrl.trim()) {
-      showAlert('Nama channel dan stream URL wajib diisi.');
+      showAlert(t?.cmsChannelNameUrlRequired || 'Channel name and stream URL are required.');
       return;
     }
     setChannelSaving(true);
@@ -572,14 +572,14 @@ export default function AdminCMS({
       });
       if (!res.ok) {
         const errData = await res.json();
-        throw new Error(errData.error || 'Gagal menyimpan channel.');
+        throw new Error(errData.error || t?.cmsChannelSaveFailed || 'Failed to save channel.');
       }
-      setSuccessMsg(channelFormMode === 'create' ? 'Channel berhasil ditambahkan! âœ…' : 'Channel berhasil diperbarui! âœ…');
+      setSuccessMsg(channelFormMode === 'create' ? (t?.cmsChannelSuccessCreate || 'Channel successfully added! ✅') : (t?.cmsChannelSuccessUpdate || 'Channel successfully updated! ✅'));
       setShowChannelForm(false);
       onRefreshMovies();
       setTimeout(() => setSuccessMsg(''), 3500);
     } catch (err: any) {
-      showAlert(err.message || 'Gagal menyimpan channel.');
+      showAlert(err.message || t?.cmsChannelSaveFailed || 'Failed to save channel.');
     } finally {
       setChannelSaving(false);
     }
@@ -623,7 +623,7 @@ export default function AdminCMS({
       });
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.error || "Gagal mencari subtitle otomatis.");
+        throw new Error(data.error || t?.cmsAutoSubsFailed || "Failed to search subtitles automatically.");
       }
 
       if (!data.subtitles || data.subtitles.length === 0) {
@@ -665,13 +665,13 @@ export default function AdminCMS({
           return a.label.localeCompare(b.label);
         });
         setSubtitles(merged);
-        setSuccessMsg(`Berhasil menambahkan ${addedCount} subtitle (Prioritas: Indonesia & English)! ✨`);
+        setSuccessMsg(t?.cmsAutoSubsSuccess || `Successfully added ${addedCount} subtitles! ✨`);
         setTimeout(() => setSuccessMsg(""), 4500);
       } else {
-        showAlert("Subtitle untuk bahasa yang ditemukan sudah ada di daftar.");
+        showAlert(t?.cmsAutoSubsAlreadyExist || "Subtitles for the detected languages already exist in the list.");
       }
     } catch (err: any) {
-      showAlert(err.message || "Gagal mencari subtitle otomatis.");
+      showAlert(err.message || t?.cmsAutoSubsFailed || "Failed to search subtitles automatically.");
     } finally {
       setAutoSubLoading(false);
     }
@@ -2792,11 +2792,11 @@ export default function AdminCMS({
               <div className="flex items-center gap-2">
                 <Radio className="w-4 h-4 text-red-500" />
                 <h3 className="text-sm font-black text-white uppercase tracking-wider">
-                  Live TV Channels Management
+                  {t?.cmsLiveTvManagement || "Live TV Channels Management"}
                 </h3>
               </div>
               <p className="text-xs text-zinc-400 mt-1">
-                Manage HLS (.m3u8) & DASH (.mpd) live streams, station logos, categories, and stream URLs.
+                {t?.cmsLiveTvSubtitle || "Manage HLS, DASH, and M3U8 broadcast streams in your platform catalog."}
               </p>
             </div>
 
@@ -2817,7 +2817,7 @@ export default function AdminCMS({
                 ) : (
                   <Activity className="w-4 h-4" />
                 )}
-                <span>{healthCheckRunning ? (t?.buffering || "Checking...") : (t?.healthCheckBtn || "Check All Status")}</span>
+                <span>{healthCheckRunning ? (t?.cmsStreamChecking || "Checking...") : (t?.cmsCheckHealthBtn || "Check All Streams Health")}</span>
               </button>
 
               {/* Add Channel Button */}
@@ -2827,7 +2827,7 @@ export default function AdminCMS({
                 id="add-channel-btn"
               >
                 <Plus className="w-4 h-4" />
-                <span>{t?.addChannelBtn || "Add Channel"}</span>
+                <span>{t?.cmsAddNewChannelBtn || "+ Add New TV Channel"}</span>
               </button>
             </div>
           </div>
@@ -2953,7 +2953,7 @@ export default function AdminCMS({
                 </div>
                 <div>
                   <h4 className="text-xs font-black text-white uppercase tracking-wider">
-                    Pengaturan Proxy CORS & Whitelist Domain Live TV
+                    {t?.cmsCorsSettingsTitle || "CORS Proxy & Live TV Whitelist Settings"}
                   </h4>
                   <p className="text-[11px] text-zinc-400 mt-0.5">
                     Domain yang ada di whitelist ini akan diputar otomatis melalui Server Streaming Proxy (<code className="text-red-400 font-mono">/api/livetv/proxy</code>) untuk memotong proteksi CORS & Referer.
@@ -2963,10 +2963,10 @@ export default function AdminCMS({
               <button
                 onClick={handleResetProxyDomains}
                 className="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white text-xs font-bold rounded-lg border border-zinc-800 transition-all cursor-pointer shrink-0"
-                title="Reset Whitelist Domain ke Default"
+                title={t?.cmsResetDefaultDomains || "Reset to Defaults"}
               >
                 <RefreshCw className="w-3.5 h-3.5 text-zinc-400" />
-                <span>Reset Default</span>
+                <span>{t?.cmsResetDefaultDomains || "Reset to Defaults"}</span>
               </button>
             </div>
 
@@ -2997,7 +2997,7 @@ export default function AdminCMS({
               <div className="relative flex-1 w-full">
                 <input
                   type="text"
-                  placeholder="Masukkan nama domain (contoh: visionplus.id, vidio.com, trans7.co.id)"
+                  placeholder={t?.cmsAddDomainPlaceholder || "Enter domain name (e.g. visionplus.id, cnnindonesia.com)..."}
                   value={newProxyDomainInput}
                   onChange={(e) => setNewProxyDomainInput(e.target.value)}
                   className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-2 text-xs text-white placeholder-zinc-600 focus:outline-none focus:border-red-500 font-mono transition-all"
@@ -3051,7 +3051,7 @@ export default function AdminCMS({
             {selectedChannelIds.size > 0 && (
               <div className="flex items-center justify-between gap-3 px-4 py-2.5 bg-red-950/40 border-b border-red-500/30">
                 <span className="text-xs font-bold text-red-400">
-                  {selectedChannelIds.size} saluran dipilih
+                  {selectedChannelIds.size} {t?.cmsSelectedChannels || "channels selected"}
                 </span>
                 <div className="flex items-center gap-2">
                   <button
@@ -3064,7 +3064,7 @@ export default function AdminCMS({
                     onClick={() => {
                       const ids = Array.from(selectedChannelIds);
                       showConfirm(
-                        `Hapus ${ids.length} saluran yang dipilih? Tindakan ini tidak bisa dibatalkan.`,
+                        t?.cmsDeleteSelectedConfirm || `Delete ${ids.length} selected channels? This action cannot be undone.`,
                         async () => {
                           try {
                             await Promise.all(
@@ -3081,14 +3081,14 @@ export default function AdminCMS({
                             }
                             setSelectedChannelIds(new Set());
                             onRefreshMovies();
-                            setSuccessMsg(`${ids.length} saluran berhasil dihapus.`);
+                            setSuccessMsg(t?.cmsDeletedSuccess ? `${ids.length} ${t.cmsDeletedSuccess}` : `${ids.length} channels successfully removed.`);
                             setTimeout(() => setSuccessMsg(""), 3500);
                           } catch (err: any) {
-                            showAlert(err.message || "Gagal menghapus saluran.");
+                            showAlert(err.message || t?.cmsDeleteFailed || "Failed to remove channels.");
                           }
                         },
-                        "Hapus Bulk Saluran",
-                        "Hapus Semua"
+                        t?.cmsRemoveOfflineBtn || "Remove Selected Channels",
+                        t?.delete || "Delete All"
                       );
                     }}
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-white bg-red-600 hover:bg-red-700 border border-red-500 transition-all cursor-pointer shadow-md"
@@ -3135,13 +3135,13 @@ export default function AdminCMS({
                             setSelectedChannelIds(new Set());
                           }
                         }}
-                        title="Pilih semua saluran"
+                        title={t?.cmsSelectAllChannels || "Select all channels"}
                       />
                     </th>
                     <th className="py-3.5 px-4">{t?.channelList || "TV Channel"}</th>
-                    <th className="py-3.5 px-4">URL Stream (HLS/DASH)</th>
-                    <th className="py-3.5 px-4">Format</th>
-                    <th className="py-3.5 px-4">Status</th>
+                    <th className="py-3.5 px-4">{t?.cmsChannelStreamUrl || "Stream URL (HLS/DASH)"}</th>
+                    <th className="py-3.5 px-4">{t?.cmsStreamFormat || "Format"}</th>
+                    <th className="py-3.5 px-4">{t?.cmsStreamStatus || "Status"}</th>
                     <th className="py-3.5 px-4">Stats</th>
                     <th className="py-3.5 px-4 text-right">{t?.cmsColActions || "Actions"}</th>
                   </tr>
@@ -3224,17 +3224,17 @@ export default function AdminCMS({
                       {/* Status Column */}
                       <td className="py-3.5 px-4">
                         {!health ? (
-                          <span className="text-[10px] text-zinc-600 italic">Not checked</span>
+                          <span className="text-[10px] text-zinc-600 italic">{t?.cmsStreamNotChecked || "Not checked"}</span>
                         ) : health.status === "checking" ? (
                           <div className="flex items-center gap-1.5">
                             <Loader2 className="w-3 h-3 text-amber-400 animate-spin" />
-                            <span className="text-[10px] text-amber-400 font-bold">Checking...</span>
+                            <span className="text-[10px] text-amber-400 font-bold">{t?.cmsStreamChecking || "Checking..."}</span>
                           </div>
                         ) : health.status === "online" ? (
                           <div className="space-y-0.5">
                             <div className="flex items-center gap-1.5">
                               <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.5)]" />
-                              <span className="text-[10px] text-emerald-400 font-bold">Online</span>
+                              <span className="text-[10px] text-emerald-400 font-bold">{t?.cmsStreamOnline || "Online"}</span>
                               {health.statusCode && (
                                 <span className="text-[9px] text-emerald-400/50 font-mono">({health.statusCode})</span>
                               )}
@@ -3247,7 +3247,7 @@ export default function AdminCMS({
                           <div className="space-y-0.5">
                             <div className="flex items-center gap-1.5">
                               <span className="w-2 h-2 rounded-full bg-red-500 shadow-[0_0_6px_rgba(239,68,68,0.5)]" />
-                              <span className="text-[10px] text-red-400 font-bold">Offline</span>
+                              <span className="text-[10px] text-red-400 font-bold">{t?.cmsStreamOffline || "Offline"}</span>
                               {health.statusCode && (
                                 <span className="text-[9px] text-red-400/50 font-mono">({health.statusCode})</span>
                               )}
@@ -3259,7 +3259,7 @@ export default function AdminCMS({
                         ) : (
                           <div className="flex items-center gap-1.5">
                             <span className="w-2 h-2 rounded-full bg-zinc-500" />
-                            <span className="text-[10px] text-zinc-500 font-bold">Error</span>
+                            <span className="text-[10px] text-zinc-500 font-bold">{t?.cmsStreamError || "Error"}</span>
                           </div>
                         )}
                       </td>
@@ -3275,21 +3275,21 @@ export default function AdminCMS({
                           <button
                             onClick={() => setPreviewMovie(channel)}
                             className="p-2 rounded-lg bg-zinc-900 hover:bg-[#00ADB5]/20 text-[#00ADB5] border border-zinc-800 transition-colors cursor-pointer"
-                            title="Test Stream Play"
+                            title={t?.cmsTestPlay || "Test Stream Play"}
                           >
                             <Play className="w-3.5 h-3.5 fill-[#00ADB5]" />
                           </button>
                           <button
                             onClick={() => handleOpenEditChannel(channel)}
                             className="p-2 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-white transition-all cursor-pointer"
-                            title="Edit Saluran"
+                            title={t?.cmsEditChannel || "Edit Channel"}
                           >
                             <Pencil className="w-3.5 h-3.5" />
                           </button>
                           <button
                             onClick={() => handleDeleteMovie(channel.id)}
                             className="p-2 rounded-lg bg-zinc-900 hover:bg-red-950 text-zinc-400 hover:text-red-400 transition-all cursor-pointer"
-                            title="Hapus Saluran"
+                            title={t?.cmsDeleteChannel || "Delete Channel"}
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
@@ -3340,21 +3340,21 @@ export default function AdminCMS({
                 if (res.ok) {
                   const importedCount = data.importedCount ?? 0;
                   const skippedCount = data.skippedCount ?? 0;
-                  let msg = `✅ Berhasil mengimport ${importedCount} saluran Live TV!`;
+                  let msg = t?.cmsImportSuccess ? `✅ ${importedCount} ${t.cmsImportSuccess}` : `✅ Successfully imported ${importedCount} Live TV channels!`;
                   if (skippedCount > 0) {
-                    msg += ` (${skippedCount} saluran dilewati karena sudah terdaftar).`;
+                    msg += ` (${skippedCount} ${t?.skipped || "channels skipped"}).`;
                   }
                   setSuccessMsg(msg);
                   onRefreshMovies();
                   setTimeout(() => setSuccessMsg(""), 5000);
                   return { importedCount, skippedCount };
                 } else {
-                  showAlert(data.error || "Gagal melakukan bulk import.");
+                  showAlert(data.error || t?.cmsBulkImportFailed || "Failed to perform bulk import.");
                   return { importedCount: 0, skippedCount: 0 };
                 }
               } catch (e: any) {
                 console.error("Bulk import failed:", e);
-                showAlert(e.message || "Gagal melakukan bulk import.");
+                showAlert(e.message || t?.cmsBulkImportFailed || "Failed to perform bulk import.");
                 return { importedCount: 0, skippedCount: 0 };
               }
             }}
@@ -3386,7 +3386,7 @@ export default function AdminCMS({
                   }),
                 });
                 if (res.ok) {
-                  setSuccessMsg(`✅ "${ch.name}" berhasil diimport ke database!`);
+                  setSuccessMsg(t?.cmsChannelImported ? `✅ "${ch.name}" ${t.cmsChannelImported}` : `✅ "${ch.name}" successfully imported into database!`);
                   onRefreshMovies();
                 }
               } catch (e) {
@@ -3406,7 +3406,7 @@ export default function AdminCMS({
                     </div>
                     <div>
                       <h3 className="text-sm font-extrabold text-white">
-                        {channelFormMode === 'create' ? '+ Tambah Channel TV Baru' : 'Edit Channel TV'}
+                        {channelFormMode === 'create' ? (t?.cmsModalAddChannel || '+ Add New TV Channel') : (t?.cmsModalEditChannel || 'Edit TV Channel')}
                       </h3>
                       <p className="text-[10px] text-zinc-500">HLS (.m3u8), DASH (.mpd), atau MP4 stream URL</p>
                     </div>
@@ -3417,37 +3417,37 @@ export default function AdminCMS({
                 </div>
                 <form id="channel-editor-form" onSubmit={handleSaveChannel} className="flex-1 overflow-y-auto p-6 space-y-4">
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Nama Channel <span className="text-red-500">*</span></label>
+                    <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">{t?.cmsChannelNameLabel || "Channel Name"} <span className="text-red-500">*</span></label>
                     <input type="text" required placeholder="e.g. TVRI Nasional, MetroTV, Kompas TV" value={channelName} onChange={(e) => setChannelName(e.target.value)} className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-red-500/60 transition-colors" id="channel-input-name" />
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Stream URL (M3U8 / DASH / MP4) <span className="text-red-500">*</span></label>
+                    <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">{t?.cmsChannelUrlLabel || "Stream URL (M3U8 / DASH / MP4)"} <span className="text-red-500">*</span></label>
                     <input type="url" required placeholder="https://example.com/live/stream.m3u8" value={channelStreamUrl} onChange={(e) => setChannelStreamUrl(e.target.value)} className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm text-white font-mono placeholder-zinc-600 focus:outline-none focus:border-red-500/60 transition-colors" id="channel-input-stream-url" />
                     <p className="text-[10px] text-zinc-600">Format: .m3u8 (HLS), .mpd (DASH), .mp4</p>
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">URL Logo / Thumbnail</label>
+                    <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">{t?.cmsChannelLogoLabel || "Logo / Thumbnail URL"}</label>
                     <div className="flex gap-2">
                       <input type="url" placeholder="https://example.com/logo.png" value={channelLogoUrl} onChange={(e) => setChannelLogoUrl(e.target.value)} className="flex-1 bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm text-white font-mono placeholder-zinc-600 focus:outline-none focus:border-red-500/60 transition-colors" id="channel-input-logo" />
                       {channelLogoUrl && (<div className="w-11 h-11 rounded-lg overflow-hidden border border-zinc-700 shrink-0 bg-zinc-900"><img src={channelLogoUrl} alt="logo" className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} /></div>)}
                     </div>
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Deskripsi</label>
+                    <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">{t?.cmsChannelDescLabel || "Description"}</label>
                     <textarea placeholder="Deskripsi singkat channel ini..." value={channelDescription} onChange={(e) => setChannelDescription(e.target.value)} rows={2} className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-red-500/60 transition-colors resize-none" id="channel-input-description" />
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1.5">
-                      <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Negara</label>
+                      <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">{t?.cmsChannelCountryLabel || "Country"}</label>
                       <input type="text" placeholder="Indonesia" value={channelCountry} onChange={(e) => setChannelCountry(e.target.value)} className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-red-500/60" id="channel-input-country" />
                     </div>
                     <div className="space-y-1.5">
-                      <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Bahasa</label>
+                      <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">{t?.cmsChannelLangLabel || "Language"}</label>
                       <input type="text" placeholder="Indonesian" value={channelLanguage} onChange={(e) => setChannelLanguage(e.target.value)} className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-red-500/60" id="channel-input-language" />
                     </div>
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Kualitas Stream</label>
+                    <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">{t?.cmsChannelQualityLabel || "Stream Quality"}</label>
                     <select value={channelQuality} onChange={(e) => setChannelQuality(e.target.value)} className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-red-500/60" id="channel-input-quality">
                       <option value="SD">SD (480p)</option>
                       <option value="HD">HD (720p)</option>
@@ -3456,7 +3456,7 @@ export default function AdminCMS({
                     </select>
                   </div>
                   <div className="space-y-2">
-                    <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Kategori Channel</label>
+                    <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">{t?.cmsChannelCategoryLabel || "Channel Category"}</label>
                     <div className="flex flex-wrap gap-2">
                       {LIVE_TV_CATEGORIES.map((cat) => (
                         <button
@@ -3477,14 +3477,14 @@ export default function AdminCMS({
                         </button>
                       ))}
                     </div>
-                    {channelCategories.length === 0 && (<p className="text-[10px] text-amber-400">Pilih minimal 1 kategori</p>)}
+                    {channelCategories.length === 0 && (<p className="text-[10px] text-amber-400">{t?.cmsChannelCategoryMin || "Select at least 1 category"}</p>)}
                   </div>
                 </form>
                 <div className="px-6 py-4 border-t border-zinc-800 flex items-center justify-between gap-3 shrink-0">
-                  <button type="button" onClick={() => setShowChannelForm(false)} className="px-4 py-2 rounded-lg bg-zinc-900 border border-zinc-700 text-zinc-300 hover:text-white text-xs font-bold transition-colors cursor-pointer" id="channel-form-cancel-btn">Batal</button>
+                  <button type="button" onClick={() => setShowChannelForm(false)} className="px-4 py-2 rounded-lg bg-zinc-900 border border-zinc-700 text-zinc-300 hover:text-white text-xs font-bold transition-colors cursor-pointer" id="channel-form-cancel-btn">{t?.cancel || "Cancel"}</button>
                   <button type="submit" form="channel-editor-form" disabled={channelSaving || !channelName.trim() || !channelStreamUrl.trim() || channelCategories.length === 0} className="flex items-center gap-2 px-5 py-2 rounded-lg bg-red-600 hover:bg-red-500 disabled:opacity-60 disabled:cursor-not-allowed text-white text-xs font-bold transition-all cursor-pointer shadow-lg" id="channel-form-save-btn">
                     {channelSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-                    {channelSaving ? 'Menyimpan...' : channelFormMode === 'create' ? 'Simpan Channel' : 'Update Channel'}
+                    {channelSaving ? (t?.cmsSavingChannel || 'Saving...') : channelFormMode === 'create' ? (t?.cmsSaveChannelBtn || 'Save Channel') : (t?.cmsUpdateChannelBtn || 'Update Channel')}
                   </button>
                 </div>
               </div>

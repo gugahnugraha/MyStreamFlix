@@ -455,14 +455,14 @@ export default function CastDetailView({
                       </h4>
                       {credit.character && (
                         <p className="text-[10px] text-zinc-400 italic line-clamp-1 mt-0.5">
-                          as {credit.character}
+                          {t?.asRole || "as"} {credit.character}
                         </p>
                       )}
                     </div>
 
                     {catalogMatch ? (
                       <div className="mt-2 pt-1.5 border-t border-emerald-500/20 flex items-center justify-between text-[10px] font-bold text-emerald-400">
-                        <span>{t.availableOnStream || "In Catalog"}</span>
+                        <span>{t?.inCatalogBadge || "In Catalog"}</span>
                         <span>4K HDR</span>
                       </div>
                     ) : (
@@ -493,11 +493,11 @@ export default function CastDetailView({
               </div>
               <div className="flex-1 min-w-0">
                 <span className="px-2 py-0.5 text-[9px] font-black uppercase rounded bg-white/10 text-zinc-300">
-                  {selectedPreviewCredit.mediaType === "tv" ? "TV Series" : "Movie"}
+                  {selectedPreviewCredit.mediaType === "tv" ? (t?.tvSeries || "TV Series") : (t?.movies || "Movie")}
                 </span>
                 <h3 className="text-base font-black text-white mt-1 line-clamp-2">{selectedPreviewCredit.title}</h3>
                 {selectedPreviewCredit.character && (
-                  <p className="text-xs text-zinc-400 italic mt-0.5">Role: {selectedPreviewCredit.character}</p>
+                  <p className="text-xs text-zinc-400 italic mt-0.5">{t?.roleLabel || "Role"}: {selectedPreviewCredit.character}</p>
                 )}
                 <div className="flex items-center gap-2 mt-2 text-xs text-zinc-400">
                   {selectedPreviewCredit.releaseYear && <span>{selectedPreviewCredit.releaseYear}</span>}

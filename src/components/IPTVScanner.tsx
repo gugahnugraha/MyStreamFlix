@@ -27,6 +27,7 @@ interface IPTVScannerProps {
   brandColor: string;
   onImportChannel: (channel: ParsedChannel) => Promise<void>;
   onImportChannelsBulk?: (channels: ParsedChannel[]) => Promise<{ importedCount: number; skippedCount: number }>;
+  t?: any;
 }
 
 const PRESET_SOURCES = [
@@ -95,7 +96,7 @@ const IPTV_CATEGORY_SOURCES = [
   "education",
 ];
 
-export default function IPTVScanner({ brandColor, onImportChannel, onImportChannelsBulk }: IPTVScannerProps) {
+export default function IPTVScanner({ brandColor, onImportChannel, onImportChannelsBulk, t }: IPTVScannerProps) {
   const [sourceUrl, setSourceUrl] = useState("");
   const [isScanning, setIsScanning] = useState(false);
   const [scanResults, setScanResults] = useState<ParsedChannel[]>([]);
@@ -175,7 +176,7 @@ export default function IPTVScanner({ brandColor, onImportChannel, onImportChann
       const data = await res.json();
 
       if (!res.ok) {
-        setScanError(data.error || "Gagal memindai playlist. Coba lagi.");
+        setScanError(data.error || t?.iptvScanFailed || "Failed to scan playlist. Please try again.");
         return;
       }
 
@@ -184,7 +185,7 @@ export default function IPTVScanner({ brandColor, onImportChannel, onImportChann
       setAvailableGroups(data.filters?.groups || []);
       setAvailableCountries(data.filters?.countries || []);
     } catch {
-      setScanError("Koneksi gagal. Periksa koneksi internet Anda.");
+      setScanError(t?.iptvNetworkError || "Connection failed. Please check your internet connection.");
     } finally {
       setIsScanning(false);
     }
@@ -295,7 +296,7 @@ export default function IPTVScanner({ brandColor, onImportChannel, onImportChann
               </span>
             </h3>
             <p className="text-[11px] text-zinc-400 mt-0.5">
-              Scan playlist M3U dari sumber gratis seperti iptv-org, lalu import saluran ke database secara langsung.
+              {t?.iptvDesc || "Scan public M3U playlists from sources like iptv-org and directly import channels to your database."}
             </p>
           </div>
         </div>
@@ -306,7 +307,7 @@ export default function IPTVScanner({ brandColor, onImportChannel, onImportChann
         <div className="border-t border-zinc-900 p-5 space-y-5">
 
           <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-4 space-y-3">
-            <p className="text-[10px] font-black text-zinc-400 uppercase tracking-wider">Sumber Dinamis iptv-org:</p>
+            <p className="text-[10px] font-black text-zinc-400 uppercase tracking-wider">{t?.iptvDynamicSourceTitle || "iptv-org Dynamic Sources:"}</p>
             <div className="grid grid-cols-1 sm:grid-cols-[140px_1fr_auto] gap-2">
               <select
                 value={dynamicSourceType}
@@ -317,8 +318,8 @@ export default function IPTVScanner({ brandColor, onImportChannel, onImportChann
                 }}
                 className="bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-zinc-600 cursor-pointer"
               >
-                <option value="country" className="bg-zinc-950 text-white py-1.5" style={{ backgroundColor: '#09090b', color: '#f4f4f5' }}>Negara</option>
-                <option value="category" className="bg-zinc-950 text-white py-1.5" style={{ backgroundColor: '#09090b', color: '#f4f4f5' }}>Kategori</option>
+                <option value="country" className="bg-zinc-950 text-white py-1.5" style={{ backgroundColor: '#09090b', color: '#f4f4f5' }}>{t?.country || "Country"}</option>
+                <option value="category" className="bg-zinc-950 text-white py-1.5" style={{ backgroundColor: '#09090b', color: '#f4f4f5' }}>{t?.genres || "Category"}</option>
               </select>
 
               <select
@@ -341,14 +342,14 @@ export default function IPTVScanner({ brandColor, onImportChannel, onImportChann
                 className="flex items-center justify-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-white text-xs font-bold rounded-lg transition-all cursor-pointer"
               >
                 <Zap className="w-3.5 h-3.5" />
-                Pakai Sumber
+                {t?.useSource || "Use Source"}
               </button>
             </div>
           </div>
 
           {/* Preset Source Buttons */}
           <div className="space-y-2">
-            <p className="text-[10px] font-black text-zinc-400 uppercase tracking-wider">Sumber Preset Terpercaya (iptv-org):</p>
+            <p className="text-[10px] font-black text-zinc-400 uppercase tracking-wider">{t?.iptvPresetSourceTitle || "Trusted Preset Sources (iptv-org):"}</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
               {PRESET_SOURCES.map((source) => (
                 <button
@@ -431,7 +432,7 @@ export default function IPTVScanner({ brandColor, onImportChannel, onImportChann
                     )}
                   </p>
                   <p className="text-[10px] text-zinc-500 mt-0.5">
-                    Pilih saluran yang ingin diimport ke database aplikasi
+                    {t?.iptvSelectImportDesc || "Select the channels you wish to import into the catalog database."}
                   </p>
                 </div>
 
@@ -446,7 +447,7 @@ export default function IPTVScanner({ brandColor, onImportChannel, onImportChann
                     ) : (
                       <RefreshCw className="w-3.5 h-3.5 text-emerald-400" />
                     )}
-                    {isCheckingPreImportHealth ? "Cek Stream..." : "Cek Health Stream"}
+                    {isCheckingPreImportHealth ? (t?.checkingStream || "Checking Stream...") : (t?.checkStreamHealth || "Check Stream Health")}
                   </button>
 
                   {Object.keys(preImportHealth).length > 0 && (
@@ -455,7 +456,7 @@ export default function IPTVScanner({ brandColor, onImportChannel, onImportChann
                       className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-950/80 hover:bg-emerald-900/90 text-emerald-300 border border-emerald-500/40 text-xs font-bold rounded-lg transition-all cursor-pointer"
                     >
                       <Check className="w-3.5 h-3.5 text-emerald-400" />
-                      Pilih Stream Online Only
+                      {t?.iptvSelectOnlineOnly || "Select Online Streams Only"}
                     </button>
                   )}
 
@@ -468,7 +469,7 @@ export default function IPTVScanner({ brandColor, onImportChannel, onImportChann
                     ) : (
                       <Square className="w-3.5 h-3.5" />
                     )}
-                    Pilih Semua ({filteredResults.length})
+                    {t?.iptvSelectAll || "Select All"} ({filteredResults.length})
                   </button>
 
                   {selectedChannels.size > 0 && (
@@ -483,7 +484,7 @@ export default function IPTVScanner({ brandColor, onImportChannel, onImportChann
                       ) : (
                         <Download className="w-3.5 h-3.5" />
                       )}
-                      {isImportingBulk ? "Mengimport..." : `Import ${selectedChannels.size} Saluran`}
+                      {isImportingBulk ? (t?.gdriveImportingProgress || "Importing...") : `${t?.iptvImportSelected || "Import Channels"} (${selectedChannels.size})`}
                     </button>
                   )}
                 </div>
@@ -495,7 +496,7 @@ export default function IPTVScanner({ brandColor, onImportChannel, onImportChann
                   <div className="flex items-center justify-between text-xs font-bold text-zinc-300">
                     <span className="flex items-center gap-2">
                       <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-400" />
-                      Proses Bulk Import Saluran...
+                      {t?.bulkImportProcess || "Processing Bulk Channel Import..."}
                     </span>
                     <span className="font-mono text-emerald-400">{importProgress.current} / {importProgress.total} ({importProgress.percentage}%)</span>
                   </div>
@@ -514,7 +515,7 @@ export default function IPTVScanner({ brandColor, onImportChannel, onImportChann
                   <Search className="w-3.5 h-3.5 text-zinc-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                   <input
                     type="text"
-                    placeholder="Filter nama channel..."
+                    placeholder={t?.iptvFilterPlaceholder || "Filter channel name..."}
                     value={filterSearch}
                     onChange={e => setFilterSearch(e.target.value)}
                     className="w-full bg-zinc-900 border border-zinc-800 rounded-lg pl-9 pr-3 py-2 text-xs text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-600"
@@ -528,7 +529,7 @@ export default function IPTVScanner({ brandColor, onImportChannel, onImportChann
                       onChange={e => setFilterGroup(e.target.value)}
                       className="bg-zinc-900 border border-zinc-800 rounded-lg pl-9 pr-8 py-2 text-xs text-white focus:outline-none focus:border-zinc-600 appearance-none cursor-pointer"
                     >
-                      <option value="ALL" className="bg-zinc-950 text-white py-1.5" style={{ backgroundColor: '#09090b', color: '#f4f4f5' }}>Semua Kategori</option>
+                      <option value="ALL" className="bg-zinc-950 text-white py-1.5" style={{ backgroundColor: '#09090b', color: '#f4f4f5' }}>{t?.iptvAllCategories || "All Categories"}</option>
                       {availableGroups.map(g => (
                         <option key={g} value={g} className="bg-zinc-950 text-white py-1.5" style={{ backgroundColor: '#09090b', color: '#f4f4f5' }}>{g}</option>
                       ))}
@@ -543,7 +544,7 @@ export default function IPTVScanner({ brandColor, onImportChannel, onImportChann
                       onChange={e => setFilterCountry(e.target.value)}
                       className="bg-zinc-900 border border-zinc-800 rounded-lg pl-9 pr-8 py-2 text-xs text-white focus:outline-none focus:border-zinc-600 appearance-none cursor-pointer"
                     >
-                      <option value="ALL" className="bg-zinc-950 text-white py-1.5" style={{ backgroundColor: '#09090b', color: '#f4f4f5' }}>Semua Negara</option>
+                      <option value="ALL" className="bg-zinc-950 text-white py-1.5" style={{ backgroundColor: '#09090b', color: '#f4f4f5' }}>{t?.iptvAllCountries || "All Countries"}</option>
                       {availableCountries.map(c => (
                         <option key={c} value={c} className="bg-zinc-950 text-white py-1.5" style={{ backgroundColor: '#09090b', color: '#f4f4f5' }}>{c}</option>
                       ))}
@@ -555,16 +556,16 @@ export default function IPTVScanner({ brandColor, onImportChannel, onImportChann
               {/* Channel Result List */}
               <div className="border border-zinc-800 rounded-xl overflow-hidden max-h-80 overflow-y-auto scrollbar-thin scrollbar-thumb-zinc-800">
                 {filteredResults.length === 0 ? (
-                  <div className="py-8 text-center text-zinc-500 text-xs">Tidak ada saluran yang sesuai filter</div>
+                  <div className="py-8 text-center text-zinc-500 text-xs">{t?.iptvNoMatch || "No channels match the current filter."}</div>
                 ) : (
                   <table className="w-full text-xs">
                     <thead className="sticky top-0 bg-zinc-900/95 backdrop-blur-sm border-b border-zinc-800">
                       <tr className="text-zinc-400 font-bold uppercase text-[10px] tracking-wider">
                         <th className="py-2.5 px-3 w-8"></th>
-                        <th className="py-2.5 px-3 text-left">Saluran</th>
-                        <th className="py-2.5 px-3 text-left hidden sm:table-cell">Kategori</th>
-                        <th className="py-2.5 px-3 text-left hidden md:table-cell">Negara</th>
-                        <th className="py-2.5 px-3 text-right w-16">Aksi</th>
+                        <th className="py-2.5 px-3 text-left">{t?.iptvChannelCol || "Channel"}</th>
+                        <th className="py-2.5 px-3 text-left hidden sm:table-cell">{t?.iptvCategoryCol || "Category"}</th>
+                        <th className="py-2.5 px-3 text-left hidden md:table-cell">{t?.iptvCountryCol || "Country"}</th>
+                        <th className="py-2.5 px-3 text-right w-16">{t?.actionsCol || "Action"}</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-zinc-900">

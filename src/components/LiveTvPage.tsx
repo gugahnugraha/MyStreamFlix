@@ -714,13 +714,13 @@ export default function LiveTvPage({
   };
 
   const candidateCategories = useMemo(() => [
-    { id: "All", label: t?.all || "Semua" },
-    { id: "Local ID", label: "Nasional ID" },
-    { id: "News", label: "Berita" },
-    { id: "Entertainment", label: "Hiburan" },
-    { id: "Sports", label: "Olahraga" },
-    { id: "Documentary", label: "Dokumenter" },
-    { id: "International", label: "Mancanegara" }
+    { id: "All", label: t?.all || "All" },
+    { id: "Local ID", label: t?.catNational || "National ID" },
+    { id: "News", label: t?.catNews || "News" },
+    { id: "Entertainment", label: t?.catEntertainment || "Entertainment" },
+    { id: "Sports", label: t?.catSports || "Sports" },
+    { id: "Documentary", label: t?.catDocumentary || "Documentary" },
+    { id: "International", label: t?.internationalRegion || "International" }
   ], [t]);
 
   const categoryCounts = useMemo(() => {
@@ -736,14 +736,14 @@ export default function LiveTvPage({
   }, [candidateCategories, categoryCounts]);
 
   const candidateRegions = useMemo(() => [
-    { id: "All", label: "Semua Wilayah" },
+    { id: "All", label: t?.allRegions || "All Regions" },
     { id: "Indonesia", label: "🇮🇩 Indonesia" },
     { id: "China", label: "🇨🇳 China" },
-    { id: "Asia", label: "🌏 Asia" },
-    { id: "Europe", label: "🇪🇺 Eropa" },
-    { id: "Americas", label: "🌎 Amerika" },
-    { id: "Middle East", label: "🕌 Timur Tengah" }
-  ], []);
+    { id: "Asia", label: `🌏 ${t?.regAsia || "Asia"}` },
+    { id: "Europe", label: `🇪🇺 ${t?.regEurope || "Europe"}` },
+    { id: "Americas", label: `🌎 ${t?.regAmericas || "Americas"}` },
+    { id: "Middle East", label: `🕌 ${t?.regMiddleEast || "Middle East"}` }
+  ], [t]);
 
   const regionCounts = useMemo(() => {
     const counts: Record<string, number> = {};
@@ -810,7 +810,7 @@ export default function LiveTvPage({
           <Search className="w-3.5 h-3.5 text-zinc-500 absolute left-3 top-1/2 -translate-y-1/2" />
           <input
             type="text"
-            placeholder={t?.searchTvPlaceholder || "Cari nama saluran, genre, negara..."}
+            placeholder={t?.searchTvPlaceholder || "Search channel name, genre, country..."}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full bg-zinc-900/90 border border-white/10 rounded-xl pl-8 pr-8 py-2 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-red-500 transition-all"
@@ -819,7 +819,7 @@ export default function LiveTvPage({
             <button
               onClick={() => setSearchQuery("")}
               className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white p-0.5 rounded cursor-pointer transition-colors"
-              title="Hapus pencarian"
+              title={t?.clearSearch || "Clear search"}
             >
               <X className="w-3.5 h-3.5" />
             </button>
@@ -1249,7 +1249,7 @@ export default function LiveTvPage({
             <div className="flex items-center gap-2">
               <Tv className="w-4 h-4 text-red-500" />
               <span className="text-xs font-black text-white uppercase tracking-wider">
-                {t?.channelList || "Daftar Saluran"} 
+                {t?.channelList || "Channels List"} 
                 <span className="ml-1.5 text-zinc-400 font-mono text-[11px] font-normal">
                   ({filteredChannels.length} / {liveChannels.length})
                 </span>
@@ -1264,7 +1264,7 @@ export default function LiveTvPage({
                   setSearchQuery("");
                 }}
                 className="flex items-center gap-1 text-[10px] font-bold text-zinc-400 hover:text-white px-2 py-1 rounded-lg bg-zinc-800 hover:bg-zinc-700 transition-all cursor-pointer border border-white/5"
-                title="Reset filter saluran"
+                title={t?.resetChannelFilter || "Reset channel filters"}
               >
                 <RotateCcw className="w-3 h-3" />
                 <span>Reset</span>
@@ -1274,7 +1274,7 @@ export default function LiveTvPage({
 
           {/* Category filter pills with count badge */}
           <div className="space-y-1">
-            <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Kategori Saluran:</p>
+            <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">{t?.channelCategories || "Channel Categories:"}</p>
             <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
               {availableCategories.map(cat => {
                 const count = categoryCounts[cat.id] || 0;
@@ -1306,7 +1306,7 @@ export default function LiveTvPage({
             <div className="space-y-1 pt-1 border-t border-white/5">
               <div className="flex items-center gap-1 text-[10px] font-bold text-zinc-400 uppercase tracking-wider">
                 <Globe className="w-3 h-3 text-zinc-500 shrink-0" />
-                <span>Negara / Wilayah:</span>
+                <span>{t?.countryRegion || "Country / Region:"}</span>
               </div>
               <div className="flex items-center gap-1 overflow-x-auto pb-1 scrollbar-none">
                 {availableRegions.map(region => {
@@ -1337,7 +1337,7 @@ export default function LiveTvPage({
               <div className="py-12 px-4 text-center border border-dashed border-zinc-800 rounded-xl space-y-3">
                 <Tv className="w-8 h-8 text-zinc-600 mx-auto" />
                 <p className="text-xs text-zinc-400 font-medium">
-                  {t?.noMatchingTv || "Tidak ada saluran yang cocok dengan filter atau kata kunci saat ini."}
+                  {t?.noMatchingTv || "No channels match your current filter or query."}
                 </p>
                 <button
                   onClick={() => {
@@ -1348,7 +1348,7 @@ export default function LiveTvPage({
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-600/90 hover:bg-red-600 text-white rounded-lg text-xs font-bold shadow-md cursor-pointer transition-all"
                 >
                   <RotateCcw className="w-3.5 h-3.5" />
-                  <span>Reset Semua Filter</span>
+                  <span>{t?.resetAllFilters || "Reset All Filters"}</span>
                 </button>
               </div>
             ) : (

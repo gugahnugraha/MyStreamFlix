@@ -80,7 +80,7 @@ export default function GDriveScanner({
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.error || "Gagal memindai folder Google Drive.");
+        throw new Error(data.error || t?.gdriveScanFailed || "Failed to scan Google Drive folder.");
       }
 
       setScannedMovies(data.movies || []);
@@ -174,7 +174,7 @@ export default function GDriveScanner({
 
       if (!res.ok) {
         const errData = await res.json();
-        throw new Error(errData.error || "Gagal mengimpor film.");
+        throw new Error(errData.error || t?.gdriveImportFailed || "Failed to import movies.");
       }
 
       const resultData = await res.json();
@@ -190,7 +190,7 @@ export default function GDriveScanner({
       setSelectedIds(new Set());
       onRefreshMovies();
     } catch (err: any) {
-      setError(err.message || "Gagal mengimpor film ke database.");
+      setError(err.message || t?.gdriveImportFailed || "Failed to import movies into database.");
     } finally {
       setImporting(false);
       setImportProgress(null);
@@ -274,7 +274,7 @@ export default function GDriveScanner({
                     filterType === "all" ? "bg-zinc-800 text-white" : "text-zinc-400 hover:text-zinc-200"
                   }`}
                 >
-                  Semua ({scannedMovies.length})
+                  {t?.all || "All"} ({scannedMovies.length})
                 </button>
                 <button
                   onClick={() => setFilterType("new")}
@@ -283,7 +283,7 @@ export default function GDriveScanner({
                   }`}
                 >
                   <Sparkles className="w-3 h-3 text-emerald-400" />
-                  Belum Ada di DB ({totalNew})
+                  {t?.gdriveNotYetInDb || "Not in DB"} ({totalNew})
                 </button>
                 <button
                   onClick={() => setFilterType("imported")}
@@ -291,14 +291,14 @@ export default function GDriveScanner({
                     filterType === "imported" ? "bg-zinc-800 text-white" : "text-zinc-400 hover:text-zinc-200"
                   }`}
                 >
-                  Sudah di DB ({scannedMovies.length - totalNew})
+                  {t?.gdriveAlreadyInDb || "Already in DB"} ({scannedMovies.length - totalNew})
                 </button>
               </div>
 
               <div className="flex items-center gap-2">
                 <input
                   type="text"
-                  placeholder="Cari hasil scan..."
+                  placeholder={t?.gdriveSearchScanPlaceholder || "Search scan results..."}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="bg-zinc-950 border border-zinc-800 px-2.5 py-1 rounded-lg text-xs text-zinc-300 placeholder-zinc-600 focus:outline-hidden w-40 sm:w-48"
@@ -308,7 +308,7 @@ export default function GDriveScanner({
                   onClick={toggleSelectAll}
                   className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-zinc-850 hover:bg-zinc-800 text-zinc-300 transition-colors cursor-pointer"
                 >
-                  Pilih Semua yang Baru
+                  {t?.gdriveSelectAllNew || "Select All New"}
                 </button>
               </div>
             </div>
@@ -330,7 +330,7 @@ export default function GDriveScanner({
             <div className="flex items-center gap-2">
               <Check className="w-4 h-4 text-emerald-400 shrink-0" />
               <span>
-                <strong>Berhasil Mengimpor!</strong> {importResult.importedCount} film berhasil ditambahkan ke Catalog Database.
+                <strong>{t?.gdriveSuccessImport || "Successfully Imported!"}</strong> {importResult.importedCount} {t?.movies || "movies"} {t?.availableOnStream || "added to catalog"}.
               </span>
             </div>
             <button onClick={() => setImportResult(null)} className="text-emerald-400 hover:text-white">✕</button>
@@ -342,7 +342,7 @@ export default function GDriveScanner({
           {scanning ? (
             <div className="h-64 flex flex-col items-center justify-center text-center space-y-3">
               <Loader2 className="w-8 h-8 text-blue-400 animate-spin" />
-              <p className="text-sm font-bold text-zinc-300">Menghubungi Google Drive & Mencari Metadata TMDB...</p>
+              <p className="text-sm font-bold text-zinc-300">{t?.gdriveConnectingScanning || "Connecting to Google Drive & Fetching TMDB Metadata..."}</p>
               <p className="text-xs text-zinc-500 max-w-sm">
                 Sistem sedang memindai folder, mendeteksi video, subtitle, dan mencocokkan poster dari TMDB.
               </p>
@@ -352,7 +352,7 @@ export default function GDriveScanner({
               <div className="w-14 h-14 rounded-2xl bg-zinc-900 flex items-center justify-center text-zinc-600">
                 <FolderSearch className="w-7 h-7" />
               </div>
-              <p className="text-sm font-bold text-zinc-300">Belum Ada Hasil Pemindaian</p>
+              <p className="text-sm font-bold text-zinc-300">{t?.gdriveNoScanYet || "No Scan Results Yet"}</p>
               <p className="text-xs text-zinc-500 max-w-md">
                 Klik tombol <strong>"Mulai Scan Drive"</strong> di atas untuk memindai seluruh folder dan file video yang ada di Google Drive Anda.
               </p>
@@ -462,7 +462,7 @@ export default function GDriveScanner({
                 Terpilih <strong>{selectedIds.size}</strong> dari <strong>{totalNew}</strong> film baru yang siap diimpor.
               </span>
             ) : (
-              <span>Pindai folder Google Drive untuk mendeteksi film otomatis.</span>
+              <span>{t?.gdriveScanPrompt || "Scan Google Drive folder to automatically detect movies."}</span>
             )}
           </div>
 
@@ -483,12 +483,12 @@ export default function GDriveScanner({
               {importing ? (
                 <>
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  Mengimpor ({importProgress?.current || 0}/{importProgress?.total || 0})...
+                  {t?.gdriveImportingProgress || "Importing"} ({importProgress?.current || 0}/{importProgress?.total || 0})...
                 </>
               ) : (
                 <>
                   <Download className="w-3.5 h-3.5" />
-                  Impor {selectedIds.size > 0 ? `(${selectedIds.size})` : ""} ke Catalog
+                  {t?.gdriveImportToCatalog || "Import to Catalog"} {selectedIds.size > 0 ? `(${selectedIds.size})` : ""}
                 </>
               )}
             </button>

@@ -670,8 +670,8 @@ export default function App({ initialTab, initialContentType, initialCastId }: A
               <h2 className="text-2xl font-black text-white uppercase tracking-wider">{t.adminDashboard || "Admin Portal"}</h2>
               <p className="text-zinc-400 text-xs leading-relaxed">
                 {currentUser 
-                  ? "Your account does not have administrator privileges to view this console."
-                  : "Please sign in with an administrator account to access the dashboard."}
+                  ? (t.adminAccessDenied || "Your account does not have administrator privileges to view this console.")
+                  : (t.adminSignInPrompt || "Please sign in with an administrator account to access the dashboard.")}
               </p>
               <div className="pt-3 flex flex-col sm:flex-row items-center justify-center gap-3">
                 {!currentUser && (

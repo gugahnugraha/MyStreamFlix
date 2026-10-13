@@ -80,7 +80,7 @@ export default function SubscriptionModal({ currentUser, onClose, onSuccess, t }
 
   const handleStartCheckout = async (provider: "stripe" | "paypal") => {
     if (!currentUser) {
-      setErrorMessage("Please log in first to purchase a subscription.");
+      setErrorMessage(t?.loginToSubscribe || "Please log in first to purchase a subscription.");
       return;
     }
     
