@@ -203,11 +203,18 @@ export async function GET(request: NextRequest) {
 
     // Binary segment streaming (TS, MP4, M4S, etc.)
     const bodyBuffer = await res.arrayBuffer();
+    let finalContentType = contentType || "application/octet-stream";
+    if (fetchUrl.includes(".ts") || contentType.includes("linguist")) {
+      finalContentType = "video/mp2t";
+    } else if (fetchUrl.includes(".m4s") || fetchUrl.includes(".mp4")) {
+      finalContentType = "video/mp4";
+    }
+
     const responseHeaders: Record<string, string> = {
       "Access-Control-Allow-Origin": "*",
       "Access-Control-Allow-Methods": "GET, HEAD, OPTIONS",
       "Access-Control-Allow-Headers": "*",
-      "Content-Type": contentType || "application/octet-stream",
+      "Content-Type": finalContentType,
     };
 
     const passHeaders = ["content-length", "content-range", "accept-ranges"];

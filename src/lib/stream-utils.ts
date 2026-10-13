@@ -214,10 +214,6 @@ export const CHANNEL_ALTERNATIVE_URLS: Record<string, string[]> = {
     "http://202.150.172.59/iNews/index.m3u8",
     "http://202.150.172.59/RCTIHD/index.m3u8"
   ],
-  "net": [
-    "http://202.150.172.59/NetTV/index.m3u8",
-    "http://202.150.172.59/RCTIHD/index.m3u8"
-  ],
   "tvri": [
     "https://ott-balancer.tvri.go.id/live/eds/Nasional/hls/Nasional.m3u8",
     "http://202.150.172.59/TVRISport/index.m3u8",
@@ -273,9 +269,9 @@ export const CHANNEL_ALTERNATIVE_URLS: Record<string, string[]> = {
     "https://op-group1-densxvisionhd-1.dens.tv/h/h40/01.m3u8"
   ],
   "kompas": [
-    "https://op-flashcon-digdayahd-1.dens.tv/h/h234/01.m3u8",
-    "https://op-flashcon-digdayahd-1.dens.tv/h/h234/index.m3u8",
-    "https://op-group1-densxvisionhd-1.dens.tv/h/h234/index.m3u8"
+    "https://op-flashcon-digdayahd-1.dens.tv/s/s104/01.m3u8",
+    "https://op-flashcon-digdayahd-1.dens.tv/s/s104/index.m3u8",
+    "https://op-group1-densxvisionhd-1.dens.tv/s/s104/01.m3u8"
   ],
   "rtv": [
     "https://rtvstream.rtv.co.id:4555/hls/rtv.m3u8",
@@ -284,13 +280,37 @@ export const CHANNEL_ALTERNATIVE_URLS: Record<string, string[]> = {
   ],
   "antv": [
     "https://op-flashcon-digdayahd-1.dens.tv/h/h38/01.m3u8",
-    "https://op-group1-densxvisionhd-1.dens.tv/h/h38/01.m3u8"
+    "https://op-group1-densxvisionhd-1.dens.tv/h/h38/01.m3u8",
+    "https://op-group1-densxvisionhd-1.dens.tv/h/h38/index.m3u8"
   ],
   "daai": [
     "https://pull.daaiplus.com/live-DAAIPLUS/live-DAAIPLUS_HD.m3u8"
   ],
   "mdtv": [
     "https://op-flashcon-digdayahd-1.dens.tv/h/h223/02.m3u8"
+  ],
+  "cna": [
+    "https://amg01082-cna-amg01082c1-rlaxx-us-11304.playouts.now.amagi.tv/playlist.m3u8"
+  ],
+  "zee": [
+    "https://op-group1-densxvisionhd-1.dens.tv/h/h14/01.m3u8"
+  ],
+  "celestial": [
+    "https://op-group1-densxvisionhd-1.dens.tv/h/h17/01.m3u8"
+  ],
+  "beritasatu": [
+    "https://op-flashcon-digdayahd-1.dens.tv/h/h314/stream.m3u8?app_type=web&userid=lite&chname=Berita_Satu",
+    "https://op-flashcon-digdayahd-1.dens.tv/h/h314/S1/mnf.m3u8"
+  ],
+  "btv": [
+    "https://op-flashcon-digdayahd-1.dens.tv/h/h314/stream.m3u8?app_type=web&userid=lite&chname=Berita_Satu",
+    "https://op-flashcon-digdayahd-1.dens.tv/h/h314/S1/mnf.m3u8"
+  ],
+  "transtv": [
+    "https://live.cnbcindonesia.com/transtv/smil:transtv.smil/playlist.m3u8"
+  ],
+  "trans7": [
+    "https://live.cnbcindonesia.com/trans7/smil:trans7.smil/playlist.m3u8"
   ],
   "cgtn": [
     "https://english-livebkali.cgtn.com/live/encgtn_1.m3u8",
@@ -304,8 +324,8 @@ export const CHANNEL_ALTERNATIVE_URLS: Record<string, string[]> = {
     "https://nusantaratv.siar.us/nusantaratv/live/playlist.m3u8"
   ],
   "trans": [
-    "https://video.detik.com/livecnn/smil:cnntv/playlist.m3u8",
-    "https://video.detik.com/livecnbc/smil:cnbctv/playlist.m3u8"
+    "https://live.cnbcindonesia.com/transtv/smil:transtv.smil/playlist.m3u8",
+    "https://live.cnbcindonesia.com/trans7/smil:trans7.smil/playlist.m3u8"
   ],
   // International Channels
   "aljazeera": [
