@@ -154,10 +154,35 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
   const [selectedQuality, setSelectedQuality] = useState<string>("Auto");
   const [showQualityMenu, setShowQualityMenu] = useState(false);
 
-  // Subtitle Customizer States
-  const [subtitleSize, setSubtitleSize] = useState<"small" | "medium" | "large" | "xlarge">("medium");
-  const [subtitleStyle, setSubtitleStyle] = useState<"shadow" | "box" | "yellow">("shadow");
+  // Subtitle Customizer States (Size, Style & Delay Sync)
+  const [subtitleSize, setSubtitleSize] = useState<"small" | "medium" | "large">(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("player_sub_size");
+      if (saved === "small" || saved === "medium" || saved === "large") return saved;
+    }
+    return "medium";
+  });
+  const [subtitleStyle, setSubtitleStyle] = useState<"shadow" | "box" | "yellow">(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("player_sub_style");
+      if (saved === "shadow" || saved === "box" || saved === "yellow") return saved;
+    }
+    return "shadow";
+  });
+  const [subtitleDelay, setSubtitleDelay] = useState<number>(0);
   const [showSubtitleCustomizer, setShowSubtitleCustomizer] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("player_sub_size", subtitleSize);
+    }
+  }, [subtitleSize]);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("player_sub_style", subtitleStyle);
+    }
+  }, [subtitleStyle]);
 
   // Android Native Mobile Gestures & Touch Engine States
   const [aspectRatio, setAspectRatio] = useState<"contain" | "cover" | "fill">("contain");
@@ -1100,22 +1125,37 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
     return () => clearInterval(interval);
   }, [isPlaying, isSimulating, currentTime, duration, movie.id]);
 
-  // Sync caption text
+  // Helper to adjust subtitle delay with gesture toast feedback
+  const changeSubtitleDelay = (delta: number) => {
+    setSubtitleDelay((prev) => {
+      const next = Math.round((prev + delta) * 10) / 10;
+      const formatted = next === 0 ? "0.0s (Normal)" : next > 0 ? `+${next.toFixed(1)}s` : `${next.toFixed(1)}s`;
+      showGestureToast({
+        type: "seek-forward",
+        value: `Subtitle: ${formatted}`,
+      });
+      return next;
+    });
+  };
+
+  // Sync caption text with subtitle delay compensation
   useEffect(() => {
     if (activeSubtitle === "off") {
       setCurrentCaption("");
       return;
     }
 
+    const adjustedTime = currentTime - subtitleDelay;
+
     const cues = parsedSubtitlesMap[activeSubtitle];
     if (cues && cues.length > 0) {
-      const activeCue = cues.find((cue) => currentTime >= cue.start && currentTime <= cue.end);
+      const activeCue = cues.find((cue) => adjustedTime >= cue.start && adjustedTime <= cue.end);
       setCurrentCaption(activeCue ? activeCue.text : "");
       return;
     }
 
     if (isSimulating) {
-      const timeSec = Math.round(currentTime);
+      const timeSec = Math.round(adjustedTime);
       const captionsMap: Record<string, Record<number, string>> = {
         en: {
           2: "This is a demonstration of the FlixSphere HLS Player.",
@@ -1151,7 +1191,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
     } else {
       setCurrentCaption("");
     }
-  }, [currentTime, activeSubtitle, parsedSubtitlesMap, isSimulating]);
+  }, [currentTime, activeSubtitle, parsedSubtitlesMap, isSimulating, subtitleDelay]);
 
   const subtitlesString = JSON.stringify(movie.subtitles || []);
 
@@ -1443,7 +1483,6 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
     let sizeClass = "text-sm sm:text-base md:text-xl";
     if (subtitleSize === "small") sizeClass = "text-xs sm:text-sm md:text-base";
     if (subtitleSize === "large") sizeClass = "text-base sm:text-lg md:text-2xl";
-    if (subtitleSize === "xlarge") sizeClass = "text-lg sm:text-xl md:text-3xl";
 
     let bgStyle = "drop-shadow-[0_2px_4px_rgba(0,0,0,1)] text-white";
     if (subtitleStyle === "box") bgStyle = "bg-black/85 px-3 py-1 rounded-md text-white border border-white/10 backdrop-blur-sm";
@@ -1451,6 +1490,69 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
 
     return `${sizeClass} ${bgStyle}`;
   };
+
+  // Desktop Keyboard Shortcuts (Space, Arrows, F, M, [ / ] for subtitle delay)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (
+        e.target instanceof HTMLInputElement ||
+        e.target instanceof HTMLTextAreaElement ||
+        e.target instanceof HTMLSelectElement
+      ) {
+        return;
+      }
+
+      switch (e.key) {
+        case " ":
+        case "k":
+        case "K":
+          e.preventDefault();
+          handlePlayPause();
+          break;
+        case "ArrowLeft":
+        case "j":
+        case "J":
+          e.preventDefault();
+          handleSkip(-10);
+          showGestureToast({ type: "seek-backward", value: "-10s" });
+          break;
+        case "ArrowRight":
+        case "l":
+        case "L":
+          e.preventDefault();
+          handleSkip(10);
+          showGestureToast({ type: "seek-forward", value: "+10s" });
+          break;
+        case "f":
+        case "F":
+          e.preventDefault();
+          toggleFullscreen();
+          break;
+        case "m":
+        case "M":
+          e.preventDefault();
+          handleMuteToggle();
+          break;
+        case "[":
+          e.preventDefault();
+          changeSubtitleDelay(-0.5);
+          break;
+        case "]":
+          e.preventDefault();
+          changeSubtitleDelay(0.5);
+          break;
+        case "Escape":
+          if (showSubtitleCustomizer) setShowSubtitleCustomizer(false);
+          if (showSubtitleMenu) setShowSubtitleMenu(false);
+          if (showSpeedMenu) setShowSpeedMenu(false);
+          if (showQualityMenu) setShowQualityMenu(false);
+          break;
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isPlaying, isSimulating, volume, isMuted, isFullscreen, showSubtitleCustomizer, showSubtitleMenu, showSpeedMenu, showQualityMenu]);
 
   const defaultQualityPresets = [
     { index: 0, height: 1080, bitrate: 5000000, label: "1080p FHD" },
@@ -2433,47 +2535,116 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
 
                     {/* Subtitle Customizer Panel */}
                     {showSubtitleCustomizer && (
-                      <div className="player-menu-popover absolute bottom-10 right-0 w-52 bg-zinc-950 border border-zinc-800 p-3 rounded-2xl shadow-2xl flex flex-col gap-3 z-50">
+                      <div className="player-menu-popover absolute bottom-12 right-0 w-64 bg-zinc-950/95 border border-white/10 p-3.5 rounded-2xl shadow-2xl flex flex-col gap-3.5 z-50 backdrop-blur-xl">
+                        {/* Header */}
+                        <div className="flex items-center justify-between border-b border-white/10 pb-2">
+                          <h4 className="text-[11px] font-black text-white uppercase tracking-wider flex items-center gap-1.5">
+                            <SlidersHorizontal className="w-3.5 h-3.5" style={{ color: brandColor }} />
+                            <span>Pengaturan Subtitle</span>
+                          </h4>
+                          <span
+                            className="text-[10px] font-mono px-1.5 py-0.5 rounded font-bold"
+                            style={{ backgroundColor: `${brandColor}20`, color: brandColor }}
+                          >
+                            {subtitleDelay === 0 ? "0.0s" : `${subtitleDelay > 0 ? `+${subtitleDelay.toFixed(1)}` : subtitleDelay.toFixed(1)}s`}
+                          </span>
+                        </div>
+
+                        {/* Subtitle Delay Sync (+0.5s / -0.5s) */}
                         <div>
-                          <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1.5">
-                            Subtitle Size
-                          </p>
-                          <div className="grid grid-cols-4 gap-1">
-                            {(["small", "medium", "large", "xlarge"] as const).map((sz) => (
+                          <div className="flex items-center justify-between mb-1.5">
+                            <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">
+                              Sinkronisasi Delay
+                            </span>
+                            {subtitleDelay !== 0 && (
                               <button
-                                key={sz}
-                                onClick={() => setSubtitleSize(sz)}
-                                className={`text-[10px] py-1 rounded-md border capitalize font-semibold transition-colors ${
-                                  subtitleSize === sz
-                                    ? "bg-red-600 border-red-500 text-white font-bold"
-                                    : "bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-white"
-                                }`}
+                                onClick={() => changeSubtitleDelay(-subtitleDelay)}
+                                className="text-[10px] font-bold hover:underline transition-colors cursor-pointer"
+                                style={{ color: brandColor }}
                               >
-                                {sz.replace("xlarge", "XL")}
+                                Reset (0s)
+                              </button>
+                            )}
+                          </div>
+                          <div className="flex items-center justify-between bg-white/[0.04] border border-white/10 rounded-xl p-1 gap-2">
+                            <button
+                              onClick={() => changeSubtitleDelay(-0.5)}
+                              className="px-2.5 py-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-white font-black text-xs transition-colors cursor-pointer active:scale-95 border border-white/5"
+                              title="Subtitle muncul lebih cepat (-0.5s) atau tekan '['"
+                            >
+                              -0.5s
+                            </button>
+                            <div className="flex flex-col items-center">
+                              <span className="text-xs font-mono font-black text-white">
+                                {subtitleDelay === 0 ? "0.0s" : `${subtitleDelay > 0 ? `+${subtitleDelay.toFixed(1)}` : subtitleDelay.toFixed(1)}s`}
+                              </span>
+                              <span className="text-[8px] text-zinc-500 font-sans">
+                                {subtitleDelay === 0 ? "Normal" : subtitleDelay > 0 ? "Lambat" : "Cepat"}
+                              </span>
+                            </div>
+                            <button
+                              onClick={() => changeSubtitleDelay(0.5)}
+                              className="px-2.5 py-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-white font-black text-xs transition-colors cursor-pointer active:scale-95 border border-white/5"
+                              title="Subtitle muncul lebih lambat (+0.5s) atau tekan ']'"
+                            >
+                              +0.5s
+                            </button>
+                          </div>
+                          <div className="flex items-center justify-between mt-1 text-[8px] text-zinc-500">
+                            <span>Mundurkan</span>
+                            <span className="font-mono text-zinc-600">[ / ] shortcut</span>
+                            <span>Majukan</span>
+                          </div>
+                        </div>
+
+                        {/* Subtitle Size */}
+                        <div>
+                          <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-1.5">
+                            Ukuran Teks
+                          </p>
+                          <div className="grid grid-cols-3 gap-1.5">
+                            {[
+                              { id: "small", label: "Kecil" },
+                              { id: "medium", label: "Sedang" },
+                              { id: "large", label: "Besar" }
+                            ].map((sz) => (
+                              <button
+                                key={sz.id}
+                                onClick={() => setSubtitleSize(sz.id as any)}
+                                className={`text-[11px] py-1.5 rounded-lg border font-bold transition-all cursor-pointer ${
+                                  subtitleSize === sz.id
+                                    ? "text-white shadow-md font-black"
+                                    : "bg-zinc-900/60 border-white/10 text-zinc-400 hover:text-white hover:bg-zinc-800"
+                                }`}
+                                style={subtitleSize === sz.id ? { backgroundColor: brandColor, borderColor: brandColor, boxShadow: `0 0 12px ${brandColor}40` } : {}}
+                              >
+                                {sz.label}
                               </button>
                             ))}
                           </div>
                         </div>
 
+                        {/* Subtitle Style */}
                         <div>
-                          <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1.5">
-                            Subtitle Style
+                          <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-1.5">
+                            Gaya Visual
                           </p>
-                          <div className="flex flex-col gap-1">
+                          <div className="grid grid-cols-3 gap-1">
                             {[
-                              { id: "shadow", label: "Shadow Text" },
-                              { id: "box", label: "Black Box" },
-                              { id: "yellow", label: "Yellow Cinema" }
+                              { id: "shadow", label: "Shadow" },
+                              { id: "box", label: "Kotak" },
+                              { id: "yellow", label: "Kuning" }
                             ].map((st) => (
                               <button
                                 key={st.id}
                                 onClick={() => setSubtitleStyle(st.id as any)}
-                                className={`text-left text-xs px-2.5 py-1.5 rounded-md hover:bg-zinc-900 transition-colors flex items-center justify-between ${
-                                  subtitleStyle === st.id ? "text-red-500 font-bold bg-red-500/10" : "text-zinc-400"
+                                className={`text-[10px] py-1.5 rounded-md border font-medium transition-colors cursor-pointer ${
+                                  subtitleStyle === st.id
+                                    ? "bg-white/10 border-white/30 text-white font-bold"
+                                    : "bg-zinc-900/60 border-white/5 text-zinc-400 hover:text-white"
                                 }`}
                               >
-                                <span>{st.label}</span>
-                                {subtitleStyle === st.id && <Check className="w-3.5 h-3.5 text-red-500" />}
+                                {st.label}
                               </button>
                             ))}
                           </div>
@@ -2703,21 +2874,68 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
                   ))}
                 </div>
 
-                {/* Subtitle Size */}
-                <div className="pt-2 border-t border-zinc-900">
-                  <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-2">Size</p>
-                  <div className="grid grid-cols-4 gap-1.5">
-                    {(["small", "medium", "large", "xlarge"] as const).map((sz) => (
+                {/* Subtitle Delay Sync (+0.5s / -0.5s) */}
+                <div className="pt-3 border-t border-zinc-900">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider">
+                      Sinkronisasi Delay
+                    </p>
+                    {subtitleDelay !== 0 && (
                       <button
-                        key={sz}
-                        onClick={() => setSubtitleSize(sz)}
-                        className={`py-2 rounded-lg text-xs font-bold capitalize border ${
-                          subtitleSize === sz
-                            ? "bg-red-600 border-red-500 text-white"
+                        onClick={() => changeSubtitleDelay(-subtitleDelay)}
+                        className="text-[11px] font-bold"
+                        style={{ color: brandColor }}
+                      >
+                        Reset (0s)
+                      </button>
+                    )}
+                  </div>
+                  <div className="flex items-center justify-between bg-zinc-900 border border-zinc-800 rounded-xl p-2 gap-2">
+                    <button
+                      onClick={() => changeSubtitleDelay(-0.5)}
+                      className="px-4 py-2.5 rounded-lg bg-zinc-800 active:bg-zinc-700 text-white font-black text-xs"
+                    >
+                      -0.5s
+                    </button>
+                    <div className="flex flex-col items-center">
+                      <span className="text-sm font-mono font-black text-white">
+                        {subtitleDelay === 0 ? "0.0s" : `${subtitleDelay > 0 ? `+${subtitleDelay.toFixed(1)}` : subtitleDelay.toFixed(1)}s`}
+                      </span>
+                      <span className="text-[9px] text-zinc-500 font-sans">
+                        {subtitleDelay === 0 ? "Normal" : subtitleDelay > 0 ? "Lambat" : "Cepat"}
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => changeSubtitleDelay(0.5)}
+                      className="px-4 py-2.5 rounded-lg bg-zinc-800 active:bg-zinc-700 text-white font-black text-xs"
+                    >
+                      +0.5s
+                    </button>
+                  </div>
+                </div>
+
+                {/* Subtitle Size */}
+                <div className="pt-3 border-t border-zinc-900">
+                  <p className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider mb-2">
+                    Ukuran Subtitle
+                  </p>
+                  <div className="grid grid-cols-3 gap-2">
+                    {[
+                      { id: "small", label: "Kecil" },
+                      { id: "medium", label: "Sedang" },
+                      { id: "large", label: "Besar" }
+                    ].map((sz) => (
+                      <button
+                        key={sz.id}
+                        onClick={() => setSubtitleSize(sz.id as any)}
+                        className={`py-2.5 rounded-xl text-xs font-bold border transition-colors ${
+                          subtitleSize === sz.id
+                            ? "text-white"
                             : "bg-zinc-900 border-zinc-800 text-zinc-400"
                         }`}
+                        style={subtitleSize === sz.id ? { backgroundColor: brandColor, borderColor: brandColor } : {}}
                       >
-                        {sz.replace("xlarge", "XL")}
+                        {sz.label}
                       </button>
                     ))}
                   </div>
