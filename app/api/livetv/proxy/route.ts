@@ -60,6 +60,11 @@ export async function GET(request: NextRequest) {
     } else if (parsedUrl.hostname.includes("dens.tv")) {
       headers["Referer"] = "https://www.dens.tv/";
       headers["Origin"] = "https://www.dens.tv";
+    } else if (parsedUrl.hostname.includes("rtv.co.id")) {
+      headers["Referer"] = "https://www.rtv.co.id/";
+    } else if (parsedUrl.hostname.includes("daaiplus.com") || parsedUrl.hostname.includes("daai.tv")) {
+      headers["Referer"] = "https://www.daaiplus.com/";
+      headers["Origin"] = "https://www.daaiplus.com";
     } else if (parsedUrl.hostname.includes("vidio.com")) {
       headers["Referer"] = "https://www.vidio.com/";
       headers["Origin"] = "https://www.vidio.com";

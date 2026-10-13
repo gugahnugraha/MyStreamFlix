@@ -54,7 +54,11 @@ export const DEFAULT_PROXY_DOMAINS = [
   "wurl.com",
   "wurl.tv",
   "amagi.tv",
-  "beritasatumedia.com"
+  "beritasatumedia.com",
+  "dens.tv",
+  "rtv.co.id",
+  "daaiplus.com",
+  "daai.tv"
 ];
 
 const STORAGE_KEY = "mystreamflix_cors_proxy_domains";
@@ -265,13 +269,25 @@ export const CHANNEL_ALTERNATIVE_URLS: Record<string, string[]> = {
     "https://edge.medcom.id/live-edge/smil:metro.smil/playlist.m3u8"
   ],
   "tvone": [
-    "https://op-group1-densxvisionhd-1.dens.tv/h/h40/01.m3u8",
-    "https://op-flashcon-digdayahd-1.dens.tv/h/h40/01.m3u8"
+    "https://op-flashcon-digdayahd-1.dens.tv/h/h40/01.m3u8",
+    "https://op-group1-densxvisionhd-1.dens.tv/h/h40/01.m3u8"
   ],
   "kompas": [
+    "https://op-flashcon-digdayahd-1.dens.tv/h/h234/01.m3u8",
     "https://op-flashcon-digdayahd-1.dens.tv/h/h234/index.m3u8",
-    "https://op-group1-densxvisionhd-1.dens.tv/h/h234/index.m3u8",
-    "https://op-flashcon-digdayahd-1.dens.tv/h/h234/01.m3u8"
+    "https://op-group1-densxvisionhd-1.dens.tv/h/h234/index.m3u8"
+  ],
+  "rtv": [
+    "https://rtvstream.rtv.co.id:4555/hls/rtv.m3u8",
+    "https://op-flashcon-digdayahd-1.dens.tv/h/h39/01.m3u8",
+    "https://op-group1-densxvisionhd-1.dens.tv/h/h39/01.m3u8"
+  ],
+  "antv": [
+    "https://op-flashcon-digdayahd-1.dens.tv/h/h38/01.m3u8",
+    "https://op-group1-densxvisionhd-1.dens.tv/h/h38/01.m3u8"
+  ],
+  "daai": [
+    "https://pull.daaiplus.com/live-DAAIPLUS/live-DAAIPLUS_HD.m3u8"
   ],
   "mdtv": [
     "https://op-flashcon-digdayahd-1.dens.tv/h/h223/02.m3u8"
