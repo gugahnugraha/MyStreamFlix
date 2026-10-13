@@ -179,7 +179,7 @@ export default function Header({
   return (
     <header className="fixed top-0 left-0 right-0 z-40 bg-[#070708]/75 backdrop-blur-xl border-b border-white/[0.06] px-4 md:px-8 pt-[calc(0.875rem+env(safe-area-inset-top,0px))] pb-3.5 flex items-center justify-between shadow-[0_12px_40px_rgba(0,0,0,0.4)] transition-all duration-300">
       {/* Brand Logo */}
-      <div 
+      <div
         className="flex items-center gap-2 cursor-pointer group"
         onClick={() => {
           setActiveTab("home");
@@ -216,9 +216,8 @@ export default function Header({
             onSelectContentType("all");
             setSearchQuery("");
           }}
-          className={`relative px-3 py-1.5 rounded-md transition-all cursor-pointer group ${
-            activeTab === "home" && selectedContentType === "all" ? "text-white font-semibold" : "hover:bg-white/[0.04]"
-          }`}
+          className={`relative px-3 py-1.5 rounded-md transition-all cursor-pointer group ${activeTab === "home" && selectedContentType === "all" ? "text-white font-semibold" : "hover:bg-white/[0.04]"
+            }`}
           style={activeTab === "home" && selectedContentType === "all" ? { backgroundColor: `${brandColor}18`, color: brandColor } : {}}
           id="nav-home"
         >
@@ -230,9 +229,8 @@ export default function Header({
             onSelectContentType("movie");
             setSearchQuery("");
           }}
-          className={`relative px-3 py-1.5 rounded-md transition-all cursor-pointer group ${
-            activeTab === "home" && selectedContentType === "movie" ? "text-white font-semibold" : "hover:bg-white/[0.04]"
-          }`}
+          className={`relative px-3 py-1.5 rounded-md transition-all cursor-pointer group ${activeTab === "home" && selectedContentType === "movie" ? "text-white font-semibold" : "hover:bg-white/[0.04]"
+            }`}
           style={activeTab === "home" && selectedContentType === "movie" ? { backgroundColor: `${brandColor}18`, color: brandColor } : {}}
           id="nav-movies"
         >
@@ -244,9 +242,8 @@ export default function Header({
             onSelectContentType("series");
             setSearchQuery("");
           }}
-          className={`relative px-3 py-1.5 rounded-md transition-all cursor-pointer group ${
-            activeTab === "home" && selectedContentType === "series" ? "text-white font-semibold" : "hover:bg-white/[0.04]"
-          }`}
+          className={`relative px-3 py-1.5 rounded-md transition-all cursor-pointer group ${activeTab === "home" && selectedContentType === "series" ? "text-white font-semibold" : "hover:bg-white/[0.04]"
+            }`}
           style={activeTab === "home" && selectedContentType === "series" ? { backgroundColor: `${brandColor}18`, color: brandColor } : {}}
           id="nav-series"
         >
@@ -258,9 +255,8 @@ export default function Header({
             onSelectContentType("livetv");
             setSearchQuery("");
           }}
-          className={`relative px-3 py-1.5 rounded-md transition-all cursor-pointer group ${
-            activeTab === "home" && selectedContentType === "livetv" ? "text-white font-semibold" : "hover:bg-white/[0.04]"
-          }`}
+          className={`relative px-3 py-1.5 rounded-md transition-all cursor-pointer group ${activeTab === "home" && selectedContentType === "livetv" ? "text-white font-semibold" : "hover:bg-white/[0.04]"
+            }`}
           style={activeTab === "home" && selectedContentType === "livetv" ? { backgroundColor: `${brandColor}18`, color: brandColor } : {}}
           id="nav-livetv"
         >
@@ -272,9 +268,8 @@ export default function Header({
               setActiveTab("favorites");
               setSearchQuery("");
             }}
-            className={`relative px-3 py-1.5 rounded-md transition-all cursor-pointer flex items-center gap-1.5 group ${
-              activeTab === "favorites" ? "text-white font-semibold" : "hover:bg-white/[0.04]"
-            }`}
+            className={`relative px-3 py-1.5 rounded-md transition-all cursor-pointer flex items-center gap-1.5 group ${activeTab === "favorites" ? "text-white font-semibold" : "hover:bg-white/[0.04]"
+              }`}
             style={activeTab === "favorites" ? { backgroundColor: `${brandColor}18`, color: brandColor } : {}}
             id="nav-favorites"
           >
@@ -395,12 +390,11 @@ export default function Header({
                   onLanguageChange("id");
                   setShowLangMenu(false);
                 }}
-                className={`w-full text-left px-3 py-2 text-xs font-semibold rounded-lg flex items-center justify-between transition-colors cursor-pointer ${
-                  currentLanguage === "id" ? "text-white bg-white/10" : "text-zinc-300 hover:text-white hover:bg-white/5"
-                }`}
+                className={`w-full text-left px-3 py-2 text-xs font-semibold rounded-lg flex items-center justify-between transition-colors cursor-pointer ${currentLanguage === "id" ? "text-white bg-white/10" : "text-zinc-300 hover:text-white hover:bg-white/5"
+                  }`}
                 style={currentLanguage === "id" ? { color: brandColor, backgroundColor: `${brandColor}15` } : {}}
               >
-                <span>{t?.indonesianLabel || "Bahasa Indonesia"}</span>
+                <span>{t?.indonesianLabel || "ID"}</span>
                 {currentLanguage === "id" && <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: brandColor }} />}
               </button>
 
@@ -409,12 +403,11 @@ export default function Header({
                   onLanguageChange("en");
                   setShowLangMenu(false);
                 }}
-                className={`w-full text-left px-3 py-2 text-xs font-semibold rounded-lg flex items-center justify-between transition-colors cursor-pointer ${
-                  currentLanguage === "en" ? "text-white bg-white/10" : "text-zinc-300 hover:text-white hover:bg-white/5"
-                }`}
+                className={`w-full text-left px-3 py-2 text-xs font-semibold rounded-lg flex items-center justify-between transition-colors cursor-pointer ${currentLanguage === "en" ? "text-white bg-white/10" : "text-zinc-300 hover:text-white hover:bg-white/5"
+                  }`}
                 style={currentLanguage === "en" ? { color: brandColor, backgroundColor: `${brandColor}15` } : {}}
               >
-                <span>{t?.englishLabel || "English (US)"}</span>
+                <span>{t?.englishLabel || "EN"}</span>
                 {currentLanguage === "en" && <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: brandColor }} />}
               </button>
 
@@ -423,12 +416,11 @@ export default function Header({
                   onLanguageChange("es");
                   setShowLangMenu(false);
                 }}
-                className={`w-full text-left px-3 py-2 text-xs font-semibold rounded-lg flex items-center justify-between transition-colors cursor-pointer ${
-                  currentLanguage === "es" ? "text-white bg-white/10" : "text-zinc-300 hover:text-white hover:bg-white/5"
-                }`}
+                className={`w-full text-left px-3 py-2 text-xs font-semibold rounded-lg flex items-center justify-between transition-colors cursor-pointer ${currentLanguage === "es" ? "text-white bg-white/10" : "text-zinc-300 hover:text-white hover:bg-white/5"
+                  }`}
                 style={currentLanguage === "es" ? { color: brandColor, backgroundColor: `${brandColor}15` } : {}}
               >
-                <span>{t?.spanishLabel || "Español (ES)"}</span>
+                <span>{t?.spanishLabel || "ES"}</span>
                 {currentLanguage === "es" && <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: brandColor }} />}
               </button>
             </div>
@@ -466,96 +458,95 @@ export default function Header({
             {/* Account Dropdown */}
             {showProfileMenu && (
               <div className="absolute right-0 top-full mt-2.5 w-60 bg-[#111112]/98 backdrop-blur-xl border border-white/[0.08] rounded-xl shadow-[0_24px_60px_rgba(0,0,0,0.7)] p-1.5 z-50 origin-top-right animate-in fade-in zoom-in-95 slide-in-from-top-2 duration-200">
-                  <div className="px-3 py-2.5 border-b border-zinc-900">
-                    <div className="flex items-center gap-1.5">
-                      <p className="text-xs font-bold text-white truncate max-w-[140px]">{profileName}</p>
-                      {currentUser.isPremium && (
-                        <Crown className="w-3 h-3 text-amber-500 fill-amber-500 shrink-0" />
-                      )}
-                    </div>
-                    <p className="text-[10px] text-zinc-500 truncate mt-0.5">{currentUser.email}</p>
-                    
-                    <div className="mt-2 flex flex-wrap gap-1">
-                      <span className={`px-1.5 py-0.5 text-[9px] rounded-sm font-semibold tracking-wider ${
-                        currentUser.role === "admin" 
-                          ? "border" 
-                          : "bg-zinc-800 text-zinc-400 border border-zinc-700"
-                      }`}
-                      style={currentUser.role === "admin" ? { backgroundColor: `${brandColor}10`, color: brandColor, borderColor: `${brandColor}25` } : undefined}
-                      >
-                        {currentUser.role === "admin" ? "ADMIN" : t.freeTier}
-                      </span>
-                      {currentUser.isPremium ? (
-                        <span className="px-1.5 py-0.5 text-[9px] rounded-sm font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/20">
-                          {t.premiumVip}
-                        </span>
-                      ) : (
-                        <span className="px-1.5 py-0.5 text-[9px] rounded-sm font-semibold bg-zinc-800 text-zinc-500">
-                          {t.freeTier}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Admin Dashboard Section */}
-                  {currentUser.role === "admin" && (
-                    <div className="py-1 border-b border-zinc-900">
-                      <button
-                        onClick={() => { setActiveTab("admin"); setShowProfileMenu(false); }}
-                        className="w-full text-left px-3 py-1.5 text-xs text-zinc-300 hover:text-white hover:bg-zinc-900 rounded-md flex items-center gap-2 transition-colors cursor-pointer"
-                        id="dropdown-admin-btn"
-                      >
-                        <LayoutDashboard className="w-3.5 h-3.5" style={{ color: brandColor }} />
-                        {t.adminDashboard}
-                      </button>
-                    </div>
-                  )}
-
-                  {/* Profile Management Section */}
-                  <div className="py-1 border-b border-zinc-900">
-                    <button
-                      onClick={() => { onOpenProfileSwitcher("select"); setShowProfileMenu(false); }}
-                      className="w-full text-left px-3 py-1.5 text-xs text-zinc-300 hover:text-white hover:bg-zinc-900 rounded-md flex items-center gap-2 transition-colors cursor-pointer"
-                    >
-                      <Users className="w-3.5 h-3.5" style={{ color: brandColor }} />
-                      {t.switchProfile}
-                    </button>
-                    <button
-                      onClick={() => { onOpenProfileSwitcher("account"); setShowProfileMenu(false); }}
-                      className="w-full text-left px-3 py-1.5 text-xs text-zinc-300 hover:text-white hover:bg-zinc-900 rounded-md flex items-center gap-2 transition-colors cursor-pointer"
-                      id="dropdown-profile-settings-btn"
-                    >
-                      <UserRound className="w-3.5 h-3.5" style={{ color: brandColor }} />
-                      {t.accountSettings || "Account Settings"}
-                    </button>
-                    {!currentUser.isPremium && (
-                      <button
-                        onClick={() => { onOpenSubscription(); setShowProfileMenu(false); }}
-                        className="w-full text-left px-3 py-1.5 text-xs text-amber-400 hover:text-amber-300 hover:bg-amber-500/5 rounded-md flex items-center gap-2 transition-colors cursor-pointer"
-                      >
-                        <Sparkles className="w-3.5 h-3.5 text-amber-500 animate-pulse" />
-                        {t.upgradePlan}
-                      </button>
+                <div className="px-3 py-2.5 border-b border-zinc-900">
+                  <div className="flex items-center gap-1.5">
+                    <p className="text-xs font-bold text-white truncate max-w-[140px]">{profileName}</p>
+                    {currentUser.isPremium && (
+                      <Crown className="w-3 h-3 text-amber-500 fill-amber-500 shrink-0" />
                     )}
                   </div>
+                  <p className="text-[10px] text-zinc-500 truncate mt-0.5">{currentUser.email}</p>
 
-                  <button
-                    onClick={() => { onLogout(); setShowProfileMenu(false); }}
-                    className="w-full text-left px-3 py-2 text-xs text-zinc-400 hover:text-white rounded-md flex items-center gap-2 transition-colors mt-1 cursor-pointer"
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = `${brandColor}10`;
-                      e.currentTarget.style.color = brandColor;
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = "";
-                      e.currentTarget.style.color = "";
-                    }}
-                    id="header-logout-btn"
-                  >
-                    <LogOut className="w-3.5 h-3.5" />
-                    {t.signOut}
-                  </button>
+                  <div className="mt-2 flex flex-wrap gap-1">
+                    <span className={`px-1.5 py-0.5 text-[9px] rounded-sm font-semibold tracking-wider ${currentUser.role === "admin"
+                        ? "border"
+                        : "bg-zinc-800 text-zinc-400 border border-zinc-700"
+                      }`}
+                      style={currentUser.role === "admin" ? { backgroundColor: `${brandColor}10`, color: brandColor, borderColor: `${brandColor}25` } : undefined}
+                    >
+                      {currentUser.role === "admin" ? "ADMIN" : t.freeTier}
+                    </span>
+                    {currentUser.isPremium ? (
+                      <span className="px-1.5 py-0.5 text-[9px] rounded-sm font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                        {t.premiumVip}
+                      </span>
+                    ) : (
+                      <span className="px-1.5 py-0.5 text-[9px] rounded-sm font-semibold bg-zinc-800 text-zinc-500">
+                        {t.freeTier}
+                      </span>
+                    )}
+                  </div>
                 </div>
+
+                {/* Admin Dashboard Section */}
+                {currentUser.role === "admin" && (
+                  <div className="py-1 border-b border-zinc-900">
+                    <button
+                      onClick={() => { setActiveTab("admin"); setShowProfileMenu(false); }}
+                      className="w-full text-left px-3 py-1.5 text-xs text-zinc-300 hover:text-white hover:bg-zinc-900 rounded-md flex items-center gap-2 transition-colors cursor-pointer"
+                      id="dropdown-admin-btn"
+                    >
+                      <LayoutDashboard className="w-3.5 h-3.5" style={{ color: brandColor }} />
+                      {t.adminDashboard}
+                    </button>
+                  </div>
+                )}
+
+                {/* Profile Management Section */}
+                <div className="py-1 border-b border-zinc-900">
+                  <button
+                    onClick={() => { onOpenProfileSwitcher("select"); setShowProfileMenu(false); }}
+                    className="w-full text-left px-3 py-1.5 text-xs text-zinc-300 hover:text-white hover:bg-zinc-900 rounded-md flex items-center gap-2 transition-colors cursor-pointer"
+                  >
+                    <Users className="w-3.5 h-3.5" style={{ color: brandColor }} />
+                    {t.switchProfile}
+                  </button>
+                  <button
+                    onClick={() => { onOpenProfileSwitcher("account"); setShowProfileMenu(false); }}
+                    className="w-full text-left px-3 py-1.5 text-xs text-zinc-300 hover:text-white hover:bg-zinc-900 rounded-md flex items-center gap-2 transition-colors cursor-pointer"
+                    id="dropdown-profile-settings-btn"
+                  >
+                    <UserRound className="w-3.5 h-3.5" style={{ color: brandColor }} />
+                    {t.accountSettings || "Account Settings"}
+                  </button>
+                  {!currentUser.isPremium && (
+                    <button
+                      onClick={() => { onOpenSubscription(); setShowProfileMenu(false); }}
+                      className="w-full text-left px-3 py-1.5 text-xs text-amber-400 hover:text-amber-300 hover:bg-amber-500/5 rounded-md flex items-center gap-2 transition-colors cursor-pointer"
+                    >
+                      <Sparkles className="w-3.5 h-3.5 text-amber-500 animate-pulse" />
+                      {t.upgradePlan}
+                    </button>
+                  )}
+                </div>
+
+                <button
+                  onClick={() => { onLogout(); setShowProfileMenu(false); }}
+                  className="w-full text-left px-3 py-2 text-xs text-zinc-400 hover:text-white rounded-md flex items-center gap-2 transition-colors mt-1 cursor-pointer"
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = `${brandColor}10`;
+                    e.currentTarget.style.color = brandColor;
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = "";
+                    e.currentTarget.style.color = "";
+                  }}
+                  id="header-logout-btn"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                  {t.signOut}
+                </button>
+              </div>
             )}
           </div>
         ) : (
