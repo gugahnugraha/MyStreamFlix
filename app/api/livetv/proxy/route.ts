@@ -76,6 +76,11 @@ export async function GET(request: NextRequest) {
       headers["Referer"] = "https://www.indihometv.com/";
     } else if (parsedUrl.hostname.includes("france24.com")) {
       headers["Referer"] = "https://www.france24.com/";
+    } else if (parsedUrl.hostname.includes("rttv.com") || parsedUrl.hostname.includes("rt.com")) {
+      headers["Referer"] = "https://www.rt.com/";
+      headers["Origin"] = "https://www.rt.com";
+    } else if (parsedUrl.hostname.includes("trt.com.tr") || parsedUrl.hostname.includes("trtworld")) {
+      headers["Referer"] = "https://www.trtworld.com/";
     } else if (parsedUrl.hostname.includes("getaj.net") || parsedUrl.hostname.includes("aljazeera")) {
       headers["Referer"] = "https://www.aljazeera.com/";
     } else {

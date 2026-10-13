@@ -58,7 +58,13 @@ export const DEFAULT_PROXY_DOMAINS = [
   "dens.tv",
   "rtv.co.id",
   "daaiplus.com",
-  "daai.tv"
+  "daai.tv",
+  "rttv.com",
+  "rt.com",
+  "trt.com.tr",
+  "trtworld.com",
+  "88.212.15.29",
+  "57.128.231.171"
 ];
 
 const STORAGE_KEY = "mystreamflix_cors_proxy_domains";
@@ -310,7 +316,9 @@ export const CHANNEL_ALTERNATIVE_URLS: Record<string, string[]> = {
     "https://live.cnbcindonesia.com/transtv/smil:transtv.smil/playlist.m3u8"
   ],
   "trans7": [
-    "https://live.cnbcindonesia.com/trans7/smil:trans7.smil/playlist.m3u8"
+    "https://op-flashcon-digdayahd-1.dens.tv/h/h07/01.m3u8",
+    "https://live.cnbcindonesia.com/trans7/smil:trans7.smil/playlist.m3u8",
+    "https://op-group1-densxvisionhd-1.dens.tv/h/h07/01.m3u8"
   ],
   "cgtn": [
     "https://english-livebkali.cgtn.com/live/encgtn_1.m3u8",
@@ -354,6 +362,31 @@ export const CHANNEL_ALTERNATIVE_URLS: Record<string, string[]> = {
   ],
   "action": [
     "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8"
+  ],
+  "rt": [
+    "https://rt-glb.rttv.com/live/rtnews/playlist.m3u8",
+    "https://rt-glb.rttv.com/live/rtdoc/playlist.m3u8"
+  ],
+  "rt news": [
+    "https://rt-glb.rttv.com/live/rtnews/playlist.m3u8"
+  ],
+  "rt doc": [
+    "https://rt-glb.rttv.com/live/rtdoc/playlist.m3u8"
+  ],
+  "trt": [
+    "https://op-flashcon-digdayahd-1.dens.tv/h/h204/01.m3u8",
+    "https://tv-trtworld.medya.trt.com.tr/master.m3u8"
+  ],
+  "trt world": [
+    "https://op-flashcon-digdayahd-1.dens.tv/h/h204/01.m3u8",
+    "https://tv-trtworld.medya.trt.com.tr/master.m3u8"
+  ],
+  "bbc news": [
+    "https://vs-hls-push-ww-live.akamaized.net/x=4/i=urn:bbc:pips:service:bbc_news_channel_hd/t=3840/v=pv14/b=5070016/main.m3u8"
+  ],
+  "bbc earth": [
+    "http://57.128.231.171:8080/307/index.m3u8",
+    "http://88.212.15.29/live/test_bbc_eartch_hevc/playlist.m3u8"
   ]
 };
 
