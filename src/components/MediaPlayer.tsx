@@ -28,7 +28,8 @@ import {
   Layers,
   Zap,
   Gauge,
-  Globe
+  Globe,
+  PictureInPicture
 } from "lucide-react";
 import Hls from "hls.js";
 import * as dashjs from "dashjs";
@@ -896,22 +897,17 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
     } catch {}
   }, [volume, isMuted, isSimulating, currentStreamUrl]);
 
-  // Auto-hide controls overlay
+  // Auto-hide controls overlay & mouse cursor after 3s of inactivity
   useEffect(() => {
-    // Use a ref so the timeout survives re-renders without needing it in deps.
     let timeout: number;
 
     const scheduleHide = () => {
       clearTimeout(timeout);
       timeout = window.setTimeout(() => {
-        if (isPlaying) {
+        if (isPlaying && !showQualityMenu && !showSpeedMenu && !showSubtitleMenu && !showSubtitleCustomizer) {
           setShowControls(false);
-          setShowSpeedMenu(false);
-          setShowSubtitleMenu(false);
-          setShowQualityMenu(false);
-          setShowSubtitleCustomizer(false);
         }
-      }, 4500); // 4.5s — enough time to read and tap a control on mobile
+      }, 3000); // 3s inactivity timeout
     };
 
     const resetTimer = () => {
@@ -920,34 +916,27 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
       scheduleHide();
     };
 
-    // touchstart: only reset the hide-timer and ensure controls are visible.
-    // Do NOT toggle here — the click/tap event on buttons handles actual actions.
-    // This prevents the race where touchstart shows controls and the subsequent
-    // click immediately hides them again.
     const handleTouchStart = () => {
       if (isScreenLocked) return;
       setShowControls(true);
       scheduleHide();
     };
 
-    const container = containerRef.current;
-    if (container) {
-      container.addEventListener("mousemove", resetTimer);
-      container.addEventListener("click", resetTimer);
-      container.addEventListener("touchstart", handleTouchStart, { passive: true });
-    }
+    window.addEventListener("mousemove", resetTimer);
+    window.addEventListener("pointermove", resetTimer);
+    window.addEventListener("click", resetTimer);
+    window.addEventListener("touchstart", handleTouchStart, { passive: true });
 
     scheduleHide();
 
     return () => {
       clearTimeout(timeout);
-      if (container) {
-        container.removeEventListener("mousemove", resetTimer);
-        container.removeEventListener("click", resetTimer);
-        container.removeEventListener("touchstart", handleTouchStart);
-      }
+      window.removeEventListener("mousemove", resetTimer);
+      window.removeEventListener("pointermove", resetTimer);
+      window.removeEventListener("click", resetTimer);
+      window.removeEventListener("touchstart", handleTouchStart);
     };
-  }, [isPlaying, isScreenLocked]);
+  }, [isPlaying, isScreenLocked, showQualityMenu, showSpeedMenu, showSubtitleMenu, showSubtitleCustomizer]);
 
   // Auto-collapse expanded popup menus when clicking outside
   useEffect(() => {
@@ -1612,7 +1601,24 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
     return `${sizeClass} ${bgStyle}`;
   };
 
-  // Desktop Keyboard Shortcuts (Space, Arrows, F, M, [ / ] for subtitle delay)
+  // Picture-in-Picture Toggle
+  const togglePiP = async () => {
+    try {
+      const video = videoRef.current;
+      if (!video) return;
+      if (document.pictureInPictureElement) {
+        await document.exitPictureInPicture();
+        showGestureToast({ type: "seek-forward", value: "PiP: Off" });
+      } else if (document.pictureInPictureEnabled && video.requestPictureInPicture) {
+        await video.requestPictureInPicture();
+        showGestureToast({ type: "seek-forward", value: "Picture-in-Picture" });
+      }
+    } catch (err) {
+      console.warn("PiP toggle error:", err);
+    }
+  };
+
+  // Desktop Keyboard Shortcuts (Space, Arrows, F, M, P, C, N, B, S, T, >, <, 0-9, [ / ] for subtitle delay)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (
@@ -1623,7 +1629,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
         return;
       }
 
-      // Wake up TV HUD on remote navigation
+      // Wake up HUD on any key navigation
       setShowControls(true);
 
       switch (e.key) {
@@ -1663,6 +1669,9 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
           showGestureToast({ type: "seek-forward", value: "+10s" });
           break;
         case "ArrowUp":
+        case "+":
+        case "=":
+        case "AudioVolumeUp":
           e.preventDefault();
           {
             const newVol = Math.min(1, Math.round((volume + 0.05) * 100) / 100);
@@ -1671,20 +1680,15 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
           }
           break;
         case "ArrowDown":
+        case "-":
+        case "_":
+        case "AudioVolumeDown":
           e.preventDefault();
           {
             const newVol = Math.max(0, Math.round((volume - 0.05) * 100) / 100);
             applyVolume(newVol);
             showGestureToast({ type: "volume", value: `${Math.round(newVol * 100)}%` });
           }
-          break;
-        case "AudioVolumeUp":
-          e.preventDefault();
-          applyVolume(Math.min(1, volume + 0.05));
-          break;
-        case "AudioVolumeDown":
-          e.preventDefault();
-          applyVolume(Math.max(0, volume - 0.05));
           break;
         case "AudioVolumeMute":
         case "m":
@@ -1696,6 +1700,75 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
         case "F":
           e.preventDefault();
           toggleFullscreen();
+          break;
+        case "p":
+        case "P":
+          e.preventDefault();
+          togglePiP();
+          break;
+        case "c":
+        case "C":
+          e.preventDefault();
+          {
+            const options = ["off", ...effectiveSubtitles.map((s) => s.language)];
+            const currIdx = options.indexOf(activeSubtitle);
+            const nextIdx = currIdx === -1 || currIdx >= options.length - 1 ? 0 : currIdx + 1;
+            const nextLang = options[nextIdx];
+            setActiveSubtitle(nextLang);
+            const label = nextLang === "off" ? "Off" : (effectiveSubtitles.find((s) => s.language === nextLang)?.label || nextLang.toUpperCase());
+            showGestureToast({ type: "seek-forward", value: `Subtitles: ${label}` });
+          }
+          break;
+        case "n":
+        case "N":
+          e.preventDefault();
+          if (nextEpisodeInfo) {
+            handlePlayNextEpisode();
+            showGestureToast({ type: "seek-forward", value: `Next: E${nextEpisodeInfo.episode.episodeNumber}` });
+          }
+          break;
+        case "b":
+        case "B":
+          e.preventDefault();
+          if (prevEpisodeInfo) {
+            handlePlayPrevEpisode();
+            showGestureToast({ type: "seek-backward", value: `Prev: E${prevEpisodeInfo.episode.episodeNumber}` });
+          }
+          break;
+        case "s":
+        case "S":
+          if (currentTime >= 5 && currentTime <= 90 && movie.contentType === "series") {
+            e.preventDefault();
+            handleSkipIntro();
+            showGestureToast({ type: "seek-forward", value: "Intro Skipped" });
+          }
+          break;
+        case "t":
+        case "T":
+          e.preventDefault();
+          cycleAspectRatio();
+          break;
+        case ">":
+        case ".":
+          e.preventDefault();
+          {
+            const speeds = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
+            const currIdx = speeds.indexOf(playbackRate);
+            const nextSpeed = currIdx !== -1 && currIdx < speeds.length - 1 ? speeds[currIdx + 1] : 2;
+            handleSpeedSelect(nextSpeed);
+            showGestureToast({ type: "seek-forward", value: `${nextSpeed}x Speed` });
+          }
+          break;
+        case "<":
+        case ",":
+          e.preventDefault();
+          {
+            const speeds = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
+            const currIdx = speeds.indexOf(playbackRate);
+            const prevSpeed = currIdx > 0 ? speeds[currIdx - 1] : 0.5;
+            handleSpeedSelect(prevSpeed);
+            showGestureToast({ type: "seek-backward", value: `${prevSpeed}x Speed` });
+          }
           break;
         case "[":
           e.preventDefault();
@@ -1717,12 +1790,42 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
           if (isFullscreen) { toggleFullscreen(); return; }
           onClose();
           break;
+        default:
+          if (duration > 0 && /^[0-9]$/.test(e.key)) {
+            e.preventDefault();
+            const percent = parseInt(e.key, 10) * 10;
+            const targetTime = (percent / 100) * duration;
+            setCurrentTime(targetTime);
+            if (!isSimulating && videoRef.current) {
+              videoRef.current.currentTime = targetTime;
+            }
+            showGestureToast({ type: "seek-forward", value: `${percent}%` });
+          }
+          break;
       }
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isPlaying, isSimulating, volume, isMuted, isFullscreen, showSubtitleCustomizer, showSubtitleMenu, showSpeedMenu, showQualityMenu]);
+  }, [
+    isPlaying,
+    isSimulating,
+    volume,
+    isMuted,
+    isFullscreen,
+    showSubtitleCustomizer,
+    showSubtitleMenu,
+    showSpeedMenu,
+    showQualityMenu,
+    nextEpisodeInfo,
+    prevEpisodeInfo,
+    effectiveSubtitles,
+    activeSubtitle,
+    duration,
+    playbackRate,
+    currentTime,
+    movie.contentType,
+  ]);
 
   const defaultQualityPresets = [
     { index: 0, height: 1080, bitrate: 5000000, label: "1080p FHD" },
@@ -1823,20 +1926,25 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
       };
 
   return (
-    <div className="fixed inset-0 z-[100] bg-black flex flex-col md:flex-row landscape:flex-row justify-between overflow-hidden" id="media-player-root">
-        {(!showControls || isScreenLocked || isBuffering) && (
-          <button
-            onClick={handleClosePlayer}
-            className="absolute z-[60] w-11 h-11 rounded-full bg-zinc-900/80 hover:bg-red-600 text-white flex items-center justify-center border border-zinc-800 transition-colors shadow-lg cursor-pointer"
-            style={{
-              top: "max(calc(env(safe-area-inset-top, 0px) + 1.25rem), 20px)",
-              right: "max(calc(env(safe-area-inset-right, 0px) + 1.25rem), 20px)",
-            }}
-            title={t.exitPlayer || "Exit Player"}
-          >
-            <X className="w-5 h-5" />
-          </button>
-        )}
+    <div
+      className={`fixed inset-0 z-[100] bg-black flex flex-col md:flex-row landscape:flex-row justify-between overflow-hidden ${
+        !showControls && isPlaying ? "cursor-none" : "cursor-default"
+      }`}
+      id="media-player-root"
+    >
+      {((isScreenLocked || isBuffering) || (!showControls && !isPlaying)) && (
+        <button
+          onClick={handleClosePlayer}
+          className="absolute z-[60] w-11 h-11 rounded-full bg-zinc-900/80 hover:bg-red-600 text-white flex items-center justify-center border border-zinc-800 transition-colors shadow-lg cursor-pointer"
+          style={{
+            top: "max(calc(env(safe-area-inset-top, 0px) + 1.25rem), 20px)",
+            right: "max(calc(env(safe-area-inset-right, 0px) + 1.25rem), 20px)",
+          }}
+          title={t.exitPlayer || "Exit Player"}
+        >
+          <X className="w-5 h-5" />
+        </button>
+      )}
       <style>{`
         video::cue, #video-core-element::cue {
           background: transparent !important;
@@ -1849,7 +1957,9 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
       {/* Primary Video Screen Area */}
       <div
         ref={containerRef}
-        className="relative flex-1 min-h-0 bg-black flex items-center justify-center overflow-hidden touch-none select-none"
+        className={`relative flex-1 min-h-0 bg-black flex items-center justify-center overflow-hidden touch-none select-none ${
+          !showControls && isPlaying ? "cursor-none" : "cursor-default"
+        }`}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
@@ -2849,6 +2959,15 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
                     )}
                   </div>
                 )}
+
+                {/* Picture in Picture */}
+                <button
+                  onClick={togglePiP}
+                  className="text-zinc-300 hover:text-white transition-colors cursor-pointer min-w-11 min-h-11 flex items-center justify-center hover:scale-105 active:scale-95"
+                  title="Picture-in-Picture (P)"
+                >
+                  <PictureInPicture className="w-5 h-5" />
+                </button>
 
                 {/* Fullscreen control */}
                 <button

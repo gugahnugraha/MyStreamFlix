@@ -7,7 +7,8 @@ import React, { useState, useEffect, useRef, useMemo } from "react";
 import {
   Tv, Play, Pause, Volume2, VolumeX, Maximize, Minimize,
   Search, Globe, Check, RefreshCw, AlertCircle,
-  SlidersHorizontal, X, SkipBack, SkipForward, RotateCcw, Radio
+  SlidersHorizontal, X, SkipBack, SkipForward, RotateCcw, Radio,
+  PictureInPicture
 } from "lucide-react";
 import Hls from "hls.js";
 import * as dashjs from "dashjs";
@@ -104,14 +105,14 @@ export default function LiveTvPage({
   }, []);
 
   // Auto-hide HUD & Playlist
-  const scheduleControlsHide = (delayMs = 4500) => {
+  const scheduleControlsHide = (delayMs = 3000) => {
     if (controlsTimerRef.current) clearTimeout(controlsTimerRef.current);
     controlsTimerRef.current = window.setTimeout(() => {
       if (!showQualityMenu) setShowControls(false);
     }, delayMs) as unknown as number;
   };
 
-  const revealControls = (delayMs = 4500) => {
+  const revealControls = (delayMs = 3000) => {
     setShowControls(true);
     setShowFullscreenPlaylist(true);
     scheduleControlsHide(delayMs);
@@ -122,7 +123,7 @@ export default function LiveTvPage({
       const target = e.target as HTMLElement;
       // Jangan sembunyikan jika yang disentuh/diklik adalah tombol kontrol, slider, popover, atau elemen di dock
       if (target.closest("button, input, a, select, .player-menu-popover, .player-interactive")) {
-        scheduleControlsHide(4500);
+        scheduleControlsHide(3000);
         return;
       }
     }
@@ -132,7 +133,7 @@ export default function LiveTvPage({
       // tap di area kosong player akan membuka kembali playlist bar!
       setShowFullscreenPlaylist(true);
       setShowQualityMenu(false);
-      scheduleControlsHide(4500);
+      scheduleControlsHide(3000);
       return;
     }
 
@@ -141,7 +142,7 @@ export default function LiveTvPage({
       if (next) {
         setShowFullscreenPlaylist(true);
         setShowQualityMenu(false);
-        scheduleControlsHide(4500);
+        scheduleControlsHide(3000);
       } else {
         setShowFullscreenPlaylist(false);
         setShowQualityMenu(false);
@@ -168,11 +169,11 @@ export default function LiveTvPage({
     };
 
     const handleMouseMove = () => {
-      revealControls(4000);
+      revealControls(3000);
     };
 
     const handleMouseEnter = () => {
-      revealControls(4000);
+      revealControls(3000);
     };
 
     const handleMouseLeave = () => {
@@ -188,7 +189,14 @@ export default function LiveTvPage({
     el.addEventListener("mouseenter", handleMouseEnter);
     el.addEventListener("mouseleave", handleMouseLeave);
 
-    scheduleControlsHide(4500);
+    const handleWindowMouseMove = () => {
+      if (isFullscreen) {
+        revealControls(3000);
+      }
+    };
+    window.addEventListener("mousemove", handleWindowMouseMove);
+
+    scheduleControlsHide(3000);
 
     return () => {
       el.removeEventListener("touchstart", handleTouch);
@@ -196,6 +204,7 @@ export default function LiveTvPage({
       el.removeEventListener("mousemove", handleMouseMove);
       el.removeEventListener("mouseenter", handleMouseEnter);
       el.removeEventListener("mouseleave", handleMouseLeave);
+      window.removeEventListener("mousemove", handleWindowMouseMove);
       if (controlsTimerRef.current) clearTimeout(controlsTimerRef.current);
     };
   }, [isPlaying, showQualityMenu, isFullscreen]);
@@ -784,7 +793,7 @@ export default function LiveTvPage({
     });
   }, [liveChannels, fullscreenCategory, fullscreenRegion]);
 
-  // Remote Control (Android TV / Smart TV D-Pad) navigation
+  // Remote Control (Android TV / Smart TV D-Pad) & Keyboard Shortcuts
   useEffect(() => {
     const handleTvRemote = (e: KeyboardEvent) => {
       // Ignore if user is typing in search input
@@ -796,7 +805,7 @@ export default function LiveTvPage({
         return;
       }
 
-      revealControls(4500);
+      revealControls(3000);
 
       const channelList = filteredChannels.length > 0 ? filteredChannels : channels;
       const currentIndex = channelList.findIndex((ch) => ch.id === activeChannel?.id);
@@ -804,18 +813,53 @@ export default function LiveTvPage({
       switch (e.key) {
         case "ArrowUp":
         case "ChannelDown":
+        case "[":
+        case "PageUp":
           e.preventDefault();
           if (channelList.length > 0) {
             const prevIdx = currentIndex <= 0 ? channelList.length - 1 : currentIndex - 1;
-            setActiveChannel(channelList[prevIdx]);
+            handleSelectChannel(channelList[prevIdx]);
           }
           break;
         case "ArrowDown":
         case "ChannelUp":
+        case "]":
+        case "PageDown":
           e.preventDefault();
           if (channelList.length > 0) {
             const nextIdx = currentIndex === -1 || currentIndex >= channelList.length - 1 ? 0 : currentIndex + 1;
-            setActiveChannel(channelList[nextIdx]);
+            handleSelectChannel(channelList[nextIdx]);
+          }
+          break;
+        case "ArrowRight":
+        case "+":
+        case "=":
+        case "AudioVolumeUp":
+          e.preventDefault();
+          {
+            const newVol = Math.min(1, Math.round((volume + 0.05) * 100) / 100);
+            setVolume(newVol);
+            setIsMuted(false);
+            if (videoRef.current) {
+              videoRef.current.volume = newVol;
+              videoRef.current.muted = false;
+            }
+          }
+          break;
+        case "ArrowLeft":
+        case "-":
+        case "_":
+        case "AudioVolumeDown":
+          e.preventDefault();
+          {
+            const newVol = Math.max(0, Math.round((volume - 0.05) * 100) / 100);
+            setVolume(newVol);
+            const isMute = newVol === 0;
+            setIsMuted(isMute);
+            if (videoRef.current) {
+              videoRef.current.volume = newVol;
+              videoRef.current.muted = isMute;
+            }
           }
           break;
         case " ":
@@ -836,6 +880,36 @@ export default function LiveTvPage({
           e.preventDefault();
           toggleFullscreen();
           break;
+        case "p":
+        case "P":
+          e.preventDefault();
+          try {
+            if (document.pictureInPictureElement) {
+              document.exitPictureInPicture();
+            } else if (videoRef.current && document.pictureInPictureEnabled) {
+              videoRef.current.requestPictureInPicture();
+            }
+          } catch (err) {
+            console.warn("PiP error:", err);
+          }
+          break;
+        case "l":
+        case "L":
+          e.preventDefault();
+          if (isFullscreen) {
+            setShowFullscreenPlaylist((prev) => !prev);
+          }
+          break;
+        case "q":
+        case "Q":
+          e.preventDefault();
+          setShowQualityMenu((prev) => !prev);
+          break;
+        case "r":
+        case "R":
+          e.preventDefault();
+          setReloadSeq((s) => s + 1);
+          break;
         case "Escape":
         case "Back":
         case "BrowserBack":
@@ -848,12 +922,21 @@ export default function LiveTvPage({
             toggleFullscreen();
           }
           break;
+        default:
+          if (/^[1-9]$/.test(e.key)) {
+            e.preventDefault();
+            const targetIdx = parseInt(e.key, 10) - 1;
+            if (channelList[targetIdx]) {
+              handleSelectChannel(channelList[targetIdx]);
+            }
+          }
+          break;
       }
     };
 
     window.addEventListener("keydown", handleTvRemote);
     return () => window.removeEventListener("keydown", handleTvRemote);
-  }, [filteredChannels, channels, activeChannel, isPlaying, isFullscreen, showQualityMenu]);
+  }, [filteredChannels, channels, activeChannel, isPlaying, isFullscreen, showQualityMenu, volume]);
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white pb-24 sm:pb-20 pt-2 sm:pt-3 px-3 sm:px-6 lg:px-8 max-w-7xl mx-auto space-y-3 sm:space-y-5">
@@ -908,6 +991,8 @@ export default function LiveTvPage({
           <div
             ref={playerShellRef}
             className={`bg-black overflow-hidden shadow-2xl border border-white/10 transition-all ${
+              !showControls && isPlaying ? "cursor-none" : "cursor-default"
+            } ${
               isFullscreen && isNativeApp
                 ? "fixed inset-0 z-50 rounded-none border-0 w-full h-full"
                 : "relative aspect-video rounded-xl sm:rounded-2xl fullscreen:rounded-none fullscreen:border-0"
@@ -1150,6 +1235,26 @@ export default function LiveTvPage({
                   </div>
                 )}
 
+                {/* Picture in Picture */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    try {
+                      if (document.pictureInPictureElement) {
+                        document.exitPictureInPicture();
+                      } else if (videoRef.current && document.pictureInPictureEnabled) {
+                        videoRef.current.requestPictureInPicture();
+                      }
+                    } catch (err) {
+                      console.warn("PiP error:", err);
+                    }
+                  }}
+                  className="w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-md text-white flex items-center justify-center transition-all cursor-pointer"
+                  title="Picture-in-Picture (P)"
+                >
+                  <PictureInPicture className="w-5 h-5" />
+                </button>
+
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
@@ -1157,6 +1262,7 @@ export default function LiveTvPage({
                     toggleFullscreen();
                   }}
                   className="w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-md text-white flex items-center justify-center transition-all cursor-pointer"
+                  title={isFullscreen ? (t?.exitFullscreen || "Exit Fullscreen") : (t?.fullscreen || "Fullscreen")}
                 >
                   {isFullscreen ? <Minimize className="w-5 h-5 text-red-400" /> : <Maximize className="w-5 h-5" />}
                 </button>
