@@ -281,7 +281,14 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
     setHoverSeekTime(null);
   };
 
-  const activeSubtitleObj = (movie.subtitles || []).find((s) => s.language === activeSubtitle);
+  const effectiveSubtitles = useMemo(() => {
+    if (activeEpisode?.subtitles && activeEpisode.subtitles.length > 0) {
+      return activeEpisode.subtitles;
+    }
+    return movie.subtitles || [];
+  }, [activeEpisode?.subtitles, movie.subtitles]);
+
+  const activeSubtitleObj = effectiveSubtitles.find((s) => s.language === activeSubtitle);
 
   // Helper to find next episode
   const getNextEpisodeInfo = () => {
@@ -1234,13 +1241,32 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
     }
   }, [currentTime, activeSubtitle, parsedSubtitlesMap, isSimulating, subtitleDelay]);
 
-  const subtitlesString = JSON.stringify(movie.subtitles || []);
+  const subtitlesString = JSON.stringify(effectiveSubtitles);
+
+  // Sync default active subtitle when episode changes or subtitles list changes
+  useEffect(() => {
+    const idSub = effectiveSubtitles.find((s) => s.language === "id" && s.fileUrl);
+    if (idSub) {
+      setActiveSubtitle("id");
+      return;
+    }
+    const enSub = effectiveSubtitles.find((s) => s.language === "en" && s.fileUrl);
+    if (enSub) {
+      setActiveSubtitle("en");
+      return;
+    }
+    if (effectiveSubtitles.length > 0 && effectiveSubtitles[0].fileUrl) {
+      setActiveSubtitle(effectiveSubtitles[0].language);
+      return;
+    }
+    setActiveSubtitle("off");
+  }, [activeEpisode?.id, subtitlesString]);
 
   useEffect(() => {
     const processSubs = async () => {
       const map: Record<string, Cue[]> = {};
       await Promise.all(
-        (movie.subtitles || []).map(async (sub) => {
+        effectiveSubtitles.map(async (sub) => {
           if (!sub.fileUrl || !sub.fileUrl.trim()) return;
 
           try {
@@ -2640,7 +2666,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
                 </div>
 
                 {/* Subtitle Selector & Subtitle Style Customizer */}
-                {movie.subtitles.length > 0 && (
+                {effectiveSubtitles.length > 0 && (
                   <div className="relative flex items-center gap-1">
                     <button
                       onClick={() => {
@@ -2689,7 +2715,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
                         >
                           {t.noneOff || "Off (None)"}
                         </button>
-                        {movie.subtitles.map((sub) => (
+                        {effectiveSubtitles.map((sub) => (
                           <button
                             key={sub.id}
                             onClick={() => handleSubtitleSelect(sub.language)}
@@ -3025,7 +3051,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
                     <span>{t.noneOff || "Off (None)"}</span>
                     {activeSubtitle === "off" && <Check className="w-4 h-4 text-red-400" />}
                   </button>
-                  {movie.subtitles.map((sub) => (
+                  {effectiveSubtitles.map((sub) => (
                     <button
                       key={sub.id}
                       onClick={() => {

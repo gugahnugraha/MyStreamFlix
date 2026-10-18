@@ -13,7 +13,7 @@ import {
   BarChart3, Film, Settings, Plus, Edit, Trash2, Save, 
   Tv, Eye, Play, ShieldAlert, CheckCircle, TrendingUp, Users, RefreshCw, X, Search, Database,
   CreditCard, UserCheck, Subtitles, Upload, Radio, Pencil, Wifi, WifiOff, Activity, Loader2, AlertCircle,
-  FolderSearch, Sparkles
+  FolderSearch, Sparkles, ChevronDown, ChevronUp, Image as ImageIcon
 } from "lucide-react";
 import { Movie, DashboardStats, CMSSettings, Subtitle, User, Season, Episode, MovieTranslations } from "../types";
 import IPTVScanner from "./IPTVScanner";
@@ -492,6 +492,19 @@ export default function AdminCMS({
   const [seasons, setSeasons] = useState<Season[]>([]);
   const [subtitles, setSubtitles] = useState<Subtitle[]>([]);
   const [autoSubLoading, setAutoSubLoading] = useState(false);
+  const [syncingSeasonId, setSyncingSeasonId] = useState<string | null>(null);
+  const [syncingAllSeasons, setSyncingAllSeasons] = useState(false);
+  const [syncingEpisodeSubId, setSyncingEpisodeSubId] = useState<string | null>(null);
+  const [expandedEpisodeIds, setExpandedEpisodeIds] = useState<Set<string>>(new Set());
+
+  const toggleEpisodeExpand = (episodeId: string) => {
+    setExpandedEpisodeIds(prev => {
+      const next = new Set(prev);
+      if (next.has(episodeId)) next.delete(episodeId);
+      else next.add(episodeId);
+      return next;
+    });
+  };
 
   // ====== Dedicated Live TV Channel Form States ======
   const [showChannelForm, setShowChannelForm] = useState(false);
@@ -764,6 +777,212 @@ export default function AdminCMS({
     }));
   };
 
+  // Subtitle management per episode
+  const handleAddEpisodeSubtitle = (seasonId: string, episodeId: string) => {
+    const newSub: Subtitle = {
+      id: `sub-ep-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      language: "id",
+      label: "Bahasa Indonesia",
+      fileUrl: ""
+    };
+    setSeasons(seasons.map(s => {
+      if (s.id !== seasonId) return s;
+      return {
+        ...s,
+        episodes: s.episodes.map(e => {
+          if (e.id !== episodeId) return e;
+          return {
+            ...e,
+            subtitles: [...(e.subtitles || []), newSub]
+          };
+        })
+      };
+    }));
+  };
+
+  const handleRemoveEpisodeSubtitle = (seasonId: string, episodeId: string, subId: string) => {
+    setSeasons(seasons.map(s => {
+      if (s.id !== seasonId) return s;
+      return {
+        ...s,
+        episodes: s.episodes.map(e => {
+          if (e.id !== episodeId) return e;
+          return {
+            ...e,
+            subtitles: (e.subtitles || []).filter(sub => sub.id !== subId)
+          };
+        })
+      };
+    }));
+  };
+
+  const handleUpdateEpisodeSubtitle = (seasonId: string, episodeId: string, subId: string, field: keyof Subtitle, value: string) => {
+    setSeasons(seasons.map(s => {
+      if (s.id !== seasonId) return s;
+      return {
+        ...s,
+        episodes: s.episodes.map(e => {
+          if (e.id !== episodeId) return e;
+          return {
+            ...e,
+            subtitles: (e.subtitles || []).map(sub => sub.id === subId ? { ...sub, [field]: value } : sub)
+          };
+        })
+      };
+    }));
+  };
+
+  const handleAutoAddEpisodeSubtitle = async (seasonId: string, episodeId: string, seasonNumber: number, episodeNumber: number) => {
+    if (!title.trim()) {
+      showAlert("Harap isi judul tayangan terlebih dahulu untuk mencari subtitle otomatis.");
+      return;
+    }
+    setSyncingEpisodeSubId(episodeId);
+    try {
+      const res = await fetch("/api/subtitles/auto-search", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: title.trim(),
+          year: releaseYear,
+          tmdbId: selectedTmdbId,
+          mediaType: "series",
+          seasonNumber,
+          episodeNumber,
+          languages: "id,en,es,ar,fr,ko,ja"
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Gagal mencari subtitle otomatis untuk episode ini.");
+      }
+
+      if (!data.subtitles || data.subtitles.length === 0) {
+        showAlert(t.cmsAutoSubtitleNotFound || "Tidak ada subtitle ditemukan untuk episode ini.");
+        return;
+      }
+
+      setSeasons(prevSeasons => prevSeasons.map(s => {
+        if (s.id !== seasonId) return s;
+        return {
+          ...s,
+          episodes: s.episodes.map(e => {
+            if (e.id !== episodeId) return e;
+            const existingLangs = new Set((e.subtitles || []).map(sub => sub.language.toLowerCase()));
+            const newTracks: Subtitle[] = [];
+            for (const found of data.subtitles) {
+              if (!existingLangs.has(found.language.toLowerCase())) {
+                existingLangs.add(found.language.toLowerCase());
+                newTracks.push({
+                  id: found.id || `sub-ep-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+                  language: found.language,
+                  label: found.label,
+                  fileUrl: found.fileUrl
+                });
+              }
+            }
+            return {
+              ...e,
+              subtitles: [...(e.subtitles || []), ...newTracks]
+            };
+          })
+        };
+      }));
+
+      setSuccessMsg(t.cmsEpisodeAutoSubSuccess || `Subtitle berhasil ditambahkan ke Episode ${episodeNumber}!`);
+      setTimeout(() => setSuccessMsg(""), 3000);
+    } catch (err: any) {
+      showAlert(err.message || "Gagal mencari subtitle untuk episode ini.");
+    } finally {
+      setSyncingEpisodeSubId(null);
+    }
+  };
+
+  const handleSyncSeasonFromTmdb = async (seasonId: string, seasonNumber: number) => {
+    if (!selectedTmdbId) {
+      showAlert("Pilih atau isi TMDB ID terlebih dahulu untuk mengambil metadata episode dari TMDB.");
+      return;
+    }
+    setSyncingSeasonId(seasonId);
+    try {
+      const res = await fetch(`/api/tmdb/season?id=${selectedTmdbId}&season=${seasonNumber}`);
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Gagal mengambil data musim dari TMDB.");
+      }
+
+      setSeasons(prevSeasons => prevSeasons.map(s => {
+        if (s.id !== seasonId) return s;
+        const currentEpMap = new Map(s.episodes.map(ep => [ep.episodeNumber, ep]));
+        const updatedEpisodes = (data.episodes || []).map((tmdbEp: Episode) => {
+          const existing = currentEpMap.get(tmdbEp.episodeNumber);
+          return {
+            ...tmdbEp,
+            videoUrl: existing?.videoUrl || tmdbEp.videoUrl || "",
+            stillUrl: tmdbEp.stillUrl || existing?.stillUrl || "",
+            subtitles: (existing?.subtitles && existing.subtitles.length > 0) ? existing.subtitles : (tmdbEp.subtitles || [])
+          };
+        });
+
+        return {
+          ...s,
+          title: data.title || s.title,
+          episodes: updatedEpisodes.length > 0 ? updatedEpisodes : s.episodes
+        };
+      }));
+
+      setSuccessMsg(t.cmsSyncSeasonSuccess || `Musim ${seasonNumber} berhasil disinkronisasi dari TMDB!`);
+      setTimeout(() => setSuccessMsg(""), 3000);
+    } catch (err: any) {
+      showAlert(err.message || "Gagal menyinkronkan musim dari TMDB.");
+    } finally {
+      setSyncingSeasonId(null);
+    }
+  };
+
+  const handleSyncAllSeasonsFromTmdb = async () => {
+    if (!selectedTmdbId) {
+      showAlert("Pilih atau isi TMDB ID terlebih dahulu.");
+      return;
+    }
+    setSyncingAllSeasons(true);
+    try {
+      const updatedSeasons = await Promise.all(
+        seasons.map(async (s) => {
+          try {
+            const res = await fetch(`/api/tmdb/season?id=${selectedTmdbId}&season=${s.seasonNumber}`);
+            if (!res.ok) return s;
+            const data = await res.json();
+            const currentEpMap = new Map(s.episodes.map(ep => [ep.episodeNumber, ep]));
+            const updatedEpisodes = (data.episodes || []).map((tmdbEp: Episode) => {
+              const existing = currentEpMap.get(tmdbEp.episodeNumber);
+              return {
+                ...tmdbEp,
+                videoUrl: existing?.videoUrl || tmdbEp.videoUrl || "",
+                stillUrl: tmdbEp.stillUrl || existing?.stillUrl || "",
+                subtitles: (existing?.subtitles && existing.subtitles.length > 0) ? existing.subtitles : (tmdbEp.subtitles || [])
+              };
+            });
+            return {
+              ...s,
+              title: data.title || s.title,
+              episodes: updatedEpisodes.length > 0 ? updatedEpisodes : s.episodes
+            };
+          } catch {
+            return s;
+          }
+        })
+      );
+      setSeasons(updatedSeasons);
+      setSuccessMsg(t.cmsSyncSeasonSuccess || "Semua musim berhasil disinkronisasi dari TMDB!");
+      setTimeout(() => setSuccessMsg(""), 3000);
+    } catch (err: any) {
+      showAlert(err.message || "Gagal menyinkronkan episode dari TMDB.");
+    } finally {
+      setSyncingAllSeasons(false);
+    }
+  };
+
   // Populate default seasons/episodes when changing to series
   useEffect(() => {
     if (contentType === "series" && seasons.length === 0) {
@@ -931,7 +1150,12 @@ export default function AdminCMS({
     setSeasons(
       (movie.seasons || []).map((s) => ({
         ...s,
-        episodes: (s.episodes || []).map((e) => ({ ...e, videoUrl: e.videoUrl || "" }))
+        episodes: (s.episodes || []).map((e) => ({
+          ...e,
+          videoUrl: e.videoUrl || "",
+          subtitles: e.subtitles || [],
+          stillUrl: e.stillUrl || ""
+        }))
       }))
     );
     setTmdbQuery(movie.title);
@@ -2509,7 +2733,7 @@ export default function AdminCMS({
                   {/* Seasons & Episodes Builder */}
                   {contentType === "series" && (
                     <div className="border-t border-zinc-900/80 pt-4 space-y-4">
-                      <div className="flex items-center justify-between">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
                         <div>
                           <h4 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
                             <Tv className="w-4 h-4 text-red-500" />
@@ -2519,14 +2743,37 @@ export default function AdminCMS({
                             {t.cmsSeasonsBuilderDesc}
                           </p>
                         </div>
-                        <button
-                          type="button"
-                          onClick={handleAddSeason}
-                          className="px-2.5 py-1.5 bg-red-600/10 hover:bg-red-600/20 text-red-500 hover:text-red-400 border border-red-500/20 rounded text-[10px] font-bold flex items-center gap-1 transition-all cursor-pointer"
-                        >
-                          <Plus className="w-3.5 h-3.5" />
-                          {t.cmsAddSeason}
-                        </button>
+                        <div className="flex items-center gap-2">
+                          {selectedTmdbId && (
+                            <button
+                              type="button"
+                              onClick={handleSyncAllSeasonsFromTmdb}
+                              disabled={syncingAllSeasons}
+                              className="px-2.5 py-1.5 bg-blue-600/15 hover:bg-blue-600/25 text-blue-400 hover:text-blue-300 border border-blue-500/30 rounded text-[10px] font-bold flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
+                              title="Sinkronisasi seluruh episode, judul, dan sinopsis dari TMDB"
+                            >
+                              {syncingAllSeasons ? (
+                                <>
+                                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                  <span>{t.cmsSyncingTmdb || "Mengambil TMDB..."}</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Sparkles className="w-3.5 h-3.5 text-blue-400" />
+                                  <span>{t.cmsSyncTmdbEpisodes || "Sync dari TMDB"}</span>
+                                </>
+                              )}
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            onClick={handleAddSeason}
+                            className="px-2.5 py-1.5 bg-red-600/10 hover:bg-red-600/20 text-red-500 hover:text-red-400 border border-red-500/20 rounded text-[10px] font-bold flex items-center gap-1 transition-all cursor-pointer"
+                          >
+                            <Plus className="w-3.5 h-3.5" />
+                            {t.cmsAddSeason}
+                          </button>
+                        </div>
                       </div>
 
                       {seasons.length === 0 ? (
@@ -2538,30 +2785,52 @@ export default function AdminCMS({
                       ) : (
                         <div className="space-y-4">
                           {seasons.map((season) => (
-                            <div key={season.id} className="border border-zinc-900 bg-zinc-950/40 rounded-lg p-3 space-y-3">
-                              <div className="flex items-center justify-between border-b border-zinc-900/60 pb-2">
-                                <div className="flex items-center gap-2 flex-1">
-                                  <span className="text-xs font-black text-red-500 font-mono">S{season.seasonNumber}</span>
+                            <div key={season.id} className="border border-zinc-850 bg-zinc-950/60 rounded-xl p-3.5 space-y-3.5 shadow-sm">
+                              {/* Season Header */}
+                              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-850/80 pb-2.5">
+                                <div className="flex items-center gap-2 flex-1 min-w-[200px]">
+                                  <span className="text-xs font-black text-red-500 font-mono px-2 py-0.5 rounded bg-red-500/10 border border-red-500/20">
+                                    S{season.seasonNumber}
+                                  </span>
                                   <input
                                     type="text"
                                     value={season.title}
                                     onChange={(e) => handleUpdateSeasonTitle(season.id, e.target.value)}
                                     placeholder={`Season ${season.seasonNumber} Title`}
-                                    className="bg-transparent border-b border-transparent hover:border-zinc-850 focus:border-red-500/50 text-xs font-bold text-zinc-200 focus:outline-hidden py-0.5 px-1 max-w-sm"
+                                    className="bg-transparent border-b border-transparent hover:border-zinc-800 focus:border-red-500/50 text-xs font-bold text-zinc-200 focus:outline-hidden py-0.5 px-1 max-w-sm"
                                   />
+                                  <span className="text-[10px] font-mono text-zinc-500">
+                                    ({season.episodes.length} Episodes)
+                                  </span>
                                 </div>
                                 <div className="flex items-center gap-2">
+                                  {selectedTmdbId && (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleSyncSeasonFromTmdb(season.id, season.seasonNumber)}
+                                      disabled={syncingSeasonId === season.id}
+                                      className="px-2 py-1 bg-zinc-900 hover:bg-zinc-850 text-zinc-300 hover:text-white border border-zinc-800 rounded text-[10px] font-bold flex items-center gap-1 cursor-pointer transition-colors"
+                                      title="Ambil episode & sinopsis musim ini dari TMDB"
+                                    >
+                                      {syncingSeasonId === season.id ? (
+                                        <Loader2 className="w-3 h-3 animate-spin text-blue-400" />
+                                      ) : (
+                                        <Sparkles className="w-3 h-3 text-blue-400" />
+                                      )}
+                                      <span>TMDB</span>
+                                    </button>
+                                  )}
                                   <button
                                     type="button"
                                     onClick={() => handleAddEpisode(season.id)}
-                                    className="px-2 py-1 bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white rounded text-[10px] font-bold flex items-center gap-1 cursor-pointer"
+                                    className="px-2 py-1 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-white rounded text-[10px] font-bold flex items-center gap-1 cursor-pointer border border-zinc-800"
                                   >
                                     <Plus className="w-3 h-3" /> {t.cmsAddEpisode}
                                   </button>
                                   <button
                                     type="button"
                                     onClick={() => handleRemoveSeason(season.id)}
-                                    className="p-1 text-zinc-600 hover:text-red-500 transition-colors cursor-pointer"
+                                    className="p-1 text-zinc-500 hover:text-red-500 transition-colors cursor-pointer"
                                     title="Remove Season"
                                   >
                                     <Trash2 className="w-3.5 h-3.5" />
@@ -2570,73 +2839,243 @@ export default function AdminCMS({
                               </div>
 
                               {/* Episodes List in Season */}
-                              <div className="space-y-3 pl-3 border-l border-zinc-900">
-                                {season.episodes.map((ep) => (
-                                  <div key={ep.id} className="bg-zinc-900/30 border border-zinc-900 rounded p-2.5 space-y-2 relative group/ep">
-                                    <div className="flex items-center justify-between">
-                                      <span className="text-[9px] font-black text-zinc-500 font-mono uppercase">
-                                        {t.cmsEpisodeLabel} {ep.episodeNumber}
-                                      </span>
-                                      <button
-                                        type="button"
-                                        onClick={() => handleRemoveEpisode(season.id, ep.id)}
-                                        className="p-1 text-zinc-700 hover:text-red-500 transition-colors cursor-pointer"
-                                        title="Remove Episode"
-                                      >
-                                        <Trash2 className="w-3 h-3" />
-                                      </button>
-                                    </div>
+                              <div className="space-y-3">
+                                {season.episodes.map((ep) => {
+                                  const isExpanded = expandedEpisodeIds.has(ep.id) || season.episodes.length === 1;
+                                  const subCount = (ep.subtitles || []).length;
+                                  const isSubSyncing = syncingEpisodeSubId === ep.id;
 
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                      <div className="space-y-0.5">
-                                        <label className="text-[9px] font-bold uppercase text-zinc-600">{t.cmsEpisodeTitleField}</label>
-                                        <input
-                                          type="text"
-                                          required
-                                          value={ep.title}
-                                          onChange={(e) => handleUpdateEpisode(season.id, ep.id, "title", e.target.value)}
-                                          placeholder={`Episode ${ep.episodeNumber} Title`}
-                                          className="w-full bg-zinc-950 border border-zinc-900 p-1.5 rounded text-[11px] text-zinc-300 focus:outline-hidden focus:border-red-500/30"
-                                        />
+                                  return (
+                                    <div 
+                                      key={ep.id} 
+                                      className="bg-zinc-900/40 border border-zinc-850 hover:border-zinc-800 rounded-xl p-3 space-y-3 transition-colors"
+                                    >
+                                      {/* Episode Summary Bar */}
+                                      <div className="flex items-center justify-between gap-2">
+                                        <div 
+                                          className="flex items-center gap-2.5 flex-1 min-w-0 cursor-pointer select-none"
+                                          onClick={() => toggleEpisodeExpand(ep.id)}
+                                        >
+                                          <button
+                                            type="button"
+                                            className="text-zinc-500 hover:text-zinc-300 p-0.5"
+                                          >
+                                            {isExpanded ? (
+                                              <ChevronUp className="w-3.5 h-3.5" />
+                                            ) : (
+                                              <ChevronDown className="w-3.5 h-3.5" />
+                                            )}
+                                          </button>
+
+                                          <span className="text-[10px] font-black text-red-400 font-mono uppercase px-1.5 py-0.5 rounded bg-red-950/40 border border-red-800/30 shrink-0">
+                                            EP {ep.episodeNumber}
+                                          </span>
+
+                                          {/* Mini Still Thumbnail */}
+                                          {ep.stillUrl ? (
+                                            <div className="w-10 h-6 rounded bg-zinc-950 overflow-hidden shrink-0 border border-zinc-800">
+                                              <img src={ep.stillUrl} alt={ep.title} className="w-full h-full object-cover" />
+                                            </div>
+                                          ) : null}
+
+                                          <span className="text-xs font-bold text-zinc-200 truncate">
+                                            {ep.title}
+                                          </span>
+
+                                          <span className="text-[10px] text-zinc-500 shrink-0 font-mono">
+                                            • {ep.duration}m
+                                          </span>
+
+                                          {/* Subtitle count indicator badge */}
+                                          {subCount > 0 ? (
+                                            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-cyan-950/80 text-cyan-300 border border-cyan-800/40 shrink-0">
+                                              💬 {subCount} Sub
+                                            </span>
+                                          ) : (
+                                            <span className="text-[9px] text-zinc-500 hidden sm:inline-block">
+                                              (Tanpa Sub)
+                                            </span>
+                                          )}
+                                        </div>
+
+                                        <div className="flex items-center gap-1 shrink-0">
+                                          <button
+                                            type="button"
+                                            onClick={() => handleRemoveEpisode(season.id, ep.id)}
+                                            className="p-1 text-zinc-600 hover:text-red-400 transition-colors cursor-pointer"
+                                            title="Remove Episode"
+                                          >
+                                            <Trash2 className="w-3.5 h-3.5" />
+                                          </button>
+                                        </div>
                                       </div>
-                                      <div className="space-y-0.5">
-                                        <label className="text-[9px] font-bold uppercase text-zinc-600">{t.cmsEpisodeDuration}</label>
-                                        <input
-                                          type="number"
-                                          required
-                                          min={1}
-                                          value={ep.duration}
-                                          onChange={(e) => handleUpdateEpisode(season.id, ep.id, "duration", Number(e.target.value))}
-                                          placeholder="e.g. 45"
-                                          className="w-full bg-zinc-950 border border-zinc-900 p-1.5 rounded text-[11px] text-zinc-300 focus:outline-hidden focus:border-red-500/30"
-                                        />
-                                      </div>
-                                    </div>
 
-                                    <div className="space-y-0.5">
-                                      <label className="text-[9px] font-bold uppercase text-zinc-600">{t.cmsEpisodeVideoUrl}</label>
-                                      <input
-                                        type="text"
-                                        required
-                                        value={ep.videoUrl}
-                                        onChange={(e) => handleUpdateEpisode(season.id, ep.id, "videoUrl", e.target.value)}
-                                        placeholder="e.g. https://pub-e7ecd47498224d3fbfd74c81dd22c504.r2.dev/series/episode.mp4"
-                                        className="w-full bg-zinc-950 border border-zinc-900 p-1.5 rounded text-[11px] text-zinc-300 focus:outline-hidden focus:border-red-500/30 font-mono"
-                                      />
-                                    </div>
+                                      {/* Episode Detail Form (Expandable) */}
+                                      {isExpanded && (
+                                        <div className="pt-2 border-t border-zinc-850/60 space-y-3 animate-fade-in-quick">
+                                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                                            <div className="sm:col-span-2 space-y-1">
+                                              <label className="text-[9px] font-bold uppercase text-zinc-400">{t.cmsEpisodeTitleField}</label>
+                                              <input
+                                                type="text"
+                                                required
+                                                value={ep.title}
+                                                onChange={(e) => handleUpdateEpisode(season.id, ep.id, "title", e.target.value)}
+                                                placeholder={`Episode ${ep.episodeNumber} Title`}
+                                                className="w-full bg-zinc-950 border border-zinc-850 p-2 rounded-lg text-xs text-zinc-200 focus:outline-hidden focus:border-red-500/40"
+                                              />
+                                            </div>
+                                            <div className="space-y-1">
+                                              <label className="text-[9px] font-bold uppercase text-zinc-400">{t.cmsEpisodeDuration}</label>
+                                              <input
+                                                type="number"
+                                                required
+                                                min={1}
+                                                value={ep.duration}
+                                                onChange={(e) => handleUpdateEpisode(season.id, ep.id, "duration", Number(e.target.value))}
+                                                placeholder="e.g. 45"
+                                                className="w-full bg-zinc-950 border border-zinc-850 p-2 rounded-lg text-xs text-zinc-200 focus:outline-hidden focus:border-red-500/40"
+                                              />
+                                            </div>
+                                          </div>
 
-                                    <div className="space-y-0.5">
-                                      <label className="text-[9px] font-bold uppercase text-zinc-600">{t.cmsEpisodeShortSynopsis}</label>
-                                      <textarea
-                                        value={ep.description || ""}
-                                        onChange={(e) => handleUpdateEpisode(season.id, ep.id, "description", e.target.value)}
-                                        placeholder="Brief description of the episode's plot..."
-                                        rows={1.5}
-                                        className="w-full bg-zinc-950 border border-zinc-900 p-1.5 rounded text-[11px] text-zinc-300 focus:outline-hidden focus:border-red-500/30 leading-snug"
-                                      />
+                                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                                            <div className="space-y-1">
+                                              <label className="text-[9px] font-bold uppercase text-zinc-400">{t.cmsEpisodeVideoUrl}</label>
+                                              <input
+                                                type="text"
+                                                required
+                                                value={ep.videoUrl}
+                                                onChange={(e) => handleUpdateEpisode(season.id, ep.id, "videoUrl", e.target.value)}
+                                                placeholder="e.g. https://.../episode.mp4"
+                                                className="w-full bg-zinc-950 border border-zinc-850 p-2 rounded-lg text-xs text-zinc-200 focus:outline-hidden focus:border-red-500/40 font-mono"
+                                              />
+                                            </div>
+                                            <div className="space-y-1">
+                                              <label className="text-[9px] font-bold uppercase text-zinc-400 flex items-center justify-between">
+                                                <span>{t.cmsEpisodeStillUrl || "Thumbnail / Gambar Episode"}</span>
+                                                {ep.stillUrl && <span className="text-emerald-400 text-[9px] font-normal">✓ Preview OK</span>}
+                                              </label>
+                                              <input
+                                                type="text"
+                                                value={ep.stillUrl || ""}
+                                                onChange={(e) => handleUpdateEpisode(season.id, ep.id, "stillUrl", e.target.value)}
+                                                placeholder="https://image.tmdb.org/t/p/w500/... atau URL gambar"
+                                                className="w-full bg-zinc-950 border border-zinc-850 p-2 rounded-lg text-xs text-zinc-200 focus:outline-hidden focus:border-red-500/40 font-mono"
+                                              />
+                                            </div>
+                                          </div>
+
+                                          <div className="space-y-1">
+                                            <div className="flex items-center justify-between">
+                                              <label className="text-[9px] font-bold uppercase text-zinc-400">{t.cmsEpisodeShortSynopsis}</label>
+                                              <span className="text-[9px] text-zinc-500">Sinopsis terisi otomatis dari TMDB</span>
+                                            </div>
+                                            <textarea
+                                              value={ep.description || ""}
+                                              onChange={(e) => handleUpdateEpisode(season.id, ep.id, "description", e.target.value)}
+                                              placeholder="Deskripsi dan ringkasan cerita episode ini..."
+                                              rows={2}
+                                              className="w-full bg-zinc-950 border border-zinc-850 p-2 rounded-lg text-xs text-zinc-200 focus:outline-hidden focus:border-red-500/40 leading-snug"
+                                            />
+                                          </div>
+
+                                          {/* Episode Dedicated Subtitles Section */}
+                                          <div className="border border-zinc-850/80 bg-zinc-950/40 rounded-xl p-3 space-y-2.5">
+                                            <div className="flex flex-wrap items-center justify-between gap-2">
+                                              <div className="flex items-center gap-1.5">
+                                                <Subtitles className="w-3.5 h-3.5 text-cyan-400" />
+                                                <span className="text-[10px] font-bold text-zinc-200 uppercase tracking-wide">
+                                                  {t.cmsEpisodeSubtitles || "Subtitle Episode"} ({subCount})
+                                                </span>
+                                              </div>
+                                              <div className="flex items-center gap-2">
+                                                <button
+                                                  type="button"
+                                                  onClick={() => handleAutoAddEpisodeSubtitle(season.id, ep.id, season.seasonNumber, ep.episodeNumber)}
+                                                  disabled={isSubSyncing || !title.trim()}
+                                                  className="px-2 py-1 bg-cyan-950/60 hover:bg-cyan-900/60 text-cyan-300 border border-cyan-800/50 rounded text-[9px] font-bold flex items-center gap-1 cursor-pointer transition-all disabled:opacity-50"
+                                                  title="Cari subtitle otomatis via API untuk episode ini"
+                                                >
+                                                  {isSubSyncing ? (
+                                                    <>
+                                                      <Loader2 className="w-3 h-3 animate-spin text-cyan-400" />
+                                                      <span>Mencari...</span>
+                                                    </>
+                                                  ) : (
+                                                    <>
+                                                      <Sparkles className="w-3 h-3 text-cyan-400" />
+                                                      <span>{t.cmsAutoAddEpisodeSubBtn || "Auto-Cari Subtitle"}</span>
+                                                    </>
+                                                  )}
+                                                </button>
+                                                <button
+                                                  type="button"
+                                                  onClick={() => handleAddEpisodeSubtitle(season.id, ep.id)}
+                                                  className="px-2 py-1 bg-zinc-900 hover:bg-zinc-850 text-zinc-300 hover:text-white border border-zinc-800 rounded text-[9px] font-bold flex items-center gap-1 cursor-pointer transition-colors"
+                                                >
+                                                  <Plus className="w-3 h-3" />
+                                                  <span>{t.cmsAddEpisodeSub || "Tambah Subtitle"}</span>
+                                                </button>
+                                              </div>
+                                            </div>
+
+                                            {(!ep.subtitles || ep.subtitles.length === 0) ? (
+                                              <div className="py-2.5 text-center text-[10px] text-zinc-500 bg-zinc-950/20 rounded-lg border border-dashed border-zinc-850">
+                                                {t.cmsEpisodeNoSubtitles || "Belum ada subtitle khusus untuk episode ini. Klik 'Tambah Subtitle' atau gunakan 'Auto-Cari'."}
+                                              </div>
+                                            ) : (
+                                              <div className="space-y-2">
+                                                {ep.subtitles.map((sub, sIdx) => (
+                                                  <div key={sub.id || sIdx} className="grid grid-cols-1 sm:grid-cols-12 gap-2 items-center bg-zinc-900/60 p-2 rounded-lg border border-zinc-850">
+                                                    <div className="sm:col-span-3">
+                                                      <input
+                                                        type="text"
+                                                        value={sub.language}
+                                                        onChange={(e) => handleUpdateEpisodeSubtitle(season.id, ep.id, sub.id, "language", e.target.value)}
+                                                        placeholder="Kode (id, en)"
+                                                        className="w-full bg-zinc-950 border border-zinc-850 p-1.5 rounded text-[11px] text-zinc-200 focus:outline-hidden font-mono"
+                                                      />
+                                                    </div>
+                                                    <div className="sm:col-span-3">
+                                                      <input
+                                                        type="text"
+                                                        value={sub.label}
+                                                        onChange={(e) => handleUpdateEpisodeSubtitle(season.id, ep.id, sub.id, "label", e.target.value)}
+                                                        placeholder="Label (Bahasa Indonesia)"
+                                                        className="w-full bg-zinc-950 border border-zinc-850 p-1.5 rounded text-[11px] text-zinc-200 focus:outline-hidden"
+                                                      />
+                                                    </div>
+                                                    <div className="sm:col-span-5">
+                                                      <input
+                                                        type="text"
+                                                        value={sub.fileUrl}
+                                                        onChange={(e) => handleUpdateEpisodeSubtitle(season.id, ep.id, sub.id, "fileUrl", e.target.value)}
+                                                        placeholder="URL Subtitle (.vtt / .srt)"
+                                                        className="w-full bg-zinc-950 border border-zinc-850 p-1.5 rounded text-[11px] text-zinc-200 focus:outline-hidden font-mono"
+                                                      />
+                                                    </div>
+                                                    <div className="sm:col-span-1 flex justify-end">
+                                                      <button
+                                                        type="button"
+                                                        onClick={() => handleRemoveEpisodeSubtitle(season.id, ep.id, sub.id)}
+                                                        className="p-1 text-zinc-600 hover:text-red-400 transition-colors"
+                                                        title="Hapus Subtitle"
+                                                      >
+                                                        <Trash2 className="w-3.5 h-3.5" />
+                                                      </button>
+                                                    </div>
+                                                  </div>
+                                                ))}
+                                              </div>
+                                            )}
+                                          </div>
+
+                                        </div>
+                                      )}
                                     </div>
-                                  </div>
-                                ))}
+                                  );
+                                })}
                               </div>
                             </div>
                           ))}

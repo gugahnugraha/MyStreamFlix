@@ -18,8 +18,12 @@ import { Movie } from "../types";
 interface ScannedMovie {
   id: string;
   folderId?: string;
+  folderPath?: string;
   fileId?: string;
+  fileName?: string;
   rawName: string;
+  fileExtension?: string;
+  fileSizeBytes?: number;
   title: string;
   releaseYear: number;
   description: string;
@@ -36,9 +40,12 @@ interface ScannedMovie {
   country: string;
   language: string;
   contentType: "movie" | "series";
+  seasons?: any[];
   subtitles: { id: string; language: string; label: string; fileUrl: string }[];
   alreadyInDb: boolean;
   tmdbMatched: boolean;
+  seasonNumber?: number;
+  episodeNumber?: number;
 }
 
 interface GDriveScannerProps {
@@ -161,6 +168,7 @@ export default function GDriveScanner({
         country: m.country,
         language: m.language,
         contentType: m.contentType,
+        seasons: m.seasons || [],
         subtitles: m.subtitles,
         isFeatured: false,
         isBanner: false,
@@ -419,14 +427,32 @@ export default function GDriveScanner({
                           )}
                         </div>
 
-                        <p className="text-[10px] text-zinc-400 mt-0.5 font-mono truncate" title={movie.rawName}>
-                          📁 {movie.rawName}
-                        </p>
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          {movie.fileExtension && (
+                            <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-300 border border-blue-500/30 font-mono shrink-0">
+                              {movie.fileExtension}
+                            </span>
+                          )}
+                          <p className="text-[10px] text-zinc-400 font-mono truncate" title={movie.fileName || movie.rawName}>
+                            🎬 {movie.fileName || movie.rawName}
+                          </p>
+                        </div>
+
+                        {movie.folderPath && movie.folderPath !== "Root" && (
+                          <p className="text-[9px] text-zinc-500 font-mono truncate mt-0.5" title={movie.folderPath}>
+                            📁 {movie.folderPath}
+                          </p>
+                        )}
 
                         <div className="flex flex-wrap items-center gap-1.5 mt-2">
                           <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-white/5 text-zinc-300">
                             {movie.releaseYear}
                           </span>
+                          {movie.contentType === "series" && (
+                            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-purple-500/15 text-purple-300 border border-purple-500/30">
+                              📺 Series {movie.seasonNumber ? `S${movie.seasonNumber}` : ""}{movie.episodeNumber ? `E${movie.episodeNumber}` : ""}
+                            </span>
+                          )}
                           <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/20">
                             ★ {movie.rating}
                           </span>
@@ -436,7 +462,7 @@ export default function GDriveScanner({
                             </span>
                           )}
                           {movie.subtitles.length > 0 && (
-                            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-purple-500/10 text-purple-300 border border-purple-500/20">
+                            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-cyan-500/10 text-cyan-300 border border-cyan-500/20">
                               💬 {movie.subtitles.length} Subtitle
                             </span>
                           )}

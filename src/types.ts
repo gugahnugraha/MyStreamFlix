@@ -25,6 +25,8 @@ export interface Episode {
   duration: number; // in minutes
   videoUrl: string;
   description?: string;
+  subtitles?: Subtitle[];
+  stillUrl?: string;
 }
 
 export interface Season {

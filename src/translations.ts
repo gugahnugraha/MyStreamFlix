@@ -418,6 +418,15 @@ export const translations = {
     cmsEpisodeDuration: "Duration (Minutes) *",
     cmsEpisodeVideoUrl: "Episode Video URL *",
     cmsEpisodeShortSynopsis: "Short Synopsis",
+    cmsEpisodeSubtitles: "Episode Subtitles",
+    cmsAddEpisodeSub: "Add Subtitle Track",
+    cmsAutoAddEpisodeSubBtn: "Auto-Add Subtitles",
+    cmsEpisodeStillUrl: "Episode Thumbnail / Still URL",
+    cmsEpisodeNoSubtitles: "No subtitles added for this episode yet.",
+    cmsSyncTmdbEpisodes: "Sync Episodes from TMDB",
+    cmsSyncingTmdb: "Syncing from TMDB...",
+    cmsSyncSeasonSuccess: "Episodes successfully imported from TMDB!",
+    cmsSyncSeasonFailed: "Failed to fetch episodes from TMDB.",
 
     // Admin CMS — Settings
     cmsPortalIdentity: "Portal Identity",
@@ -1069,6 +1078,15 @@ export const translations = {
     cmsEpisodeDuration: "Durasi (Menit) *",
     cmsEpisodeVideoUrl: "URL Video Episode *",
     cmsEpisodeShortSynopsis: "Sinopsis Singkat",
+    cmsEpisodeSubtitles: "Subtitle Episode",
+    cmsAddEpisodeSub: "Tambah Subtitle Track",
+    cmsAutoAddEpisodeSubBtn: "Auto-Cari Subtitle",
+    cmsEpisodeStillUrl: "URL Thumbnail / Gambar Episode",
+    cmsEpisodeNoSubtitles: "Belum ada subtitle khusus untuk episode ini.",
+    cmsSyncTmdbEpisodes: "Sinkronisasi Episode dari TMDB",
+    cmsSyncingTmdb: "Mengambil dari TMDB...",
+    cmsSyncSeasonSuccess: "Episode berhasil disinkronisasi dari TMDB!",
+    cmsSyncSeasonFailed: "Gagal mengambil data episode dari TMDB.",
 
     // Admin CMS — Settings
     cmsPortalIdentity: "Identitas Portal",
@@ -1720,6 +1738,15 @@ export const translations = {
     cmsEpisodeDuration: "Duración (Minutos) *",
     cmsEpisodeVideoUrl: "URL de Video del Episodio *",
     cmsEpisodeShortSynopsis: "Sinopsis Breve",
+    cmsEpisodeSubtitles: "Subtítulos del Episodio",
+    cmsAddEpisodeSub: "Añadir Pista de Subtítulo",
+    cmsAutoAddEpisodeSubBtn: "Auto-Buscar Subtítulos",
+    cmsEpisodeStillUrl: "URL de Miniatura del Episodio",
+    cmsEpisodeNoSubtitles: "Aún no hay subtítulos para este episodio.",
+    cmsSyncTmdbEpisodes: "Sincronizar Episodios desde TMDB",
+    cmsSyncingTmdb: "Sincronizando desde TMDB...",
+    cmsSyncSeasonSuccess: "¡Episodios sincronizados con éxito desde TMDB!",
+    cmsSyncSeasonFailed: "Error al obtener episodios desde TMDB.",
 
     // Admin CMS — Settings
     cmsPortalIdentity: "Identidad del Portal",

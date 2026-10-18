@@ -4,9 +4,41 @@ import { getCurrentSessionUser } from "@/src/lib/session";
 import { getMovies } from "@/src/lib/data-service";
 import { searchTmdbMulti, fetchTmdbMetadata } from "@/src/lib/tmdb";
 
-function cleanMovieTitle(rawName: string): { title: string; year?: number } {
+function cleanMovieTitle(rawName: string): { 
+  title: string; 
+  year?: number; 
+  isSeries?: boolean; 
+  seasonNumber?: number; 
+  episodeNumber?: number; 
+} {
   // Remove file extension
-  let clean = rawName.replace(/\.[a-zA-Z0-9]{2,4}$/, "");
+  let clean = rawName.replace(/\.[a-zA-Z0-9]{2,5}$/, "");
+
+  // Detect TV Series patterns, e.g. S01E02, s1e2, 1x02, EP02
+  let isSeries = false;
+  let seasonNumber: number | undefined;
+  let episodeNumber: number | undefined;
+
+  const sEpMatch = clean.match(/[\s\.\-_][sS](\d{1,2})[\s\.\-_]?[eE](\d{1,2})/i);
+  if (sEpMatch) {
+    isSeries = true;
+    seasonNumber = parseInt(sEpMatch[1], 10);
+    episodeNumber = parseInt(sEpMatch[2], 10);
+  } else {
+    const xMatch = clean.match(/[\s\.\-_](\d{1,2})x(\d{1,2})/i);
+    if (xMatch) {
+      isSeries = true;
+      seasonNumber = parseInt(xMatch[1], 10);
+      episodeNumber = parseInt(xMatch[2], 10);
+    } else {
+      const epMatch = clean.match(/[\s\.\-_](?:ep|episode)[\s\.\-_]?(\d{1,3})/i);
+      if (epMatch) {
+        isSeries = true;
+        seasonNumber = 1;
+        episodeNumber = parseInt(epMatch[1], 10);
+      }
+    }
+  }
 
   // Extract year if present, e.g. (2022) or .2022. or - 2022
   let year: number | undefined;
@@ -15,16 +47,44 @@ function cleanMovieTitle(rawName: string): { title: string; year?: number } {
     year = parseInt(yearMatch[1], 10);
   }
 
+  // Remove series tag from title clean
+  clean = clean
+    .replace(/[\s\.\-_][sS]\d{1,2}[\s\.\-_]?[eE]\d{1,2}.*$/i, "")
+    .replace(/[\s\.\-_]\d{1,2}x\d{1,2}.*$/i, "")
+    .replace(/[\s\.\-_](?:ep|episode)[\s\.\-_]?\d{1,3}.*$/i, "");
+
   // Remove common video tags
   clean = clean
     .replace(/[\(\[](19\d\d|20\d\d)[\)\]]/g, "")
     .replace(/[\._]/g, " ")
-    .replace(/\b(1080p|720p|2160p|4k|uhd|bluray|blu-ray|web-dl|webrip|hdrip|dvdrip|x264|x265|hevc|aac|ac3|dts|remux|hdr|sub_indo|sub_eng)\b/gi, "")
+    .replace(/\b(1080p|720p|2160p|4k|uhd|bluray|blu-ray|web-dl|webrip|hdrip|dvdrip|x264|x265|hevc|aac|ac3|dts|remux|hdr|sub_indo|sub_eng|rarbg|yts|yify|galaxy)\b/gi, "")
     .replace(/\s+/g, " ")
     .trim();
 
-  return { title: clean || rawName, year };
+  return { 
+    title: clean || rawName.replace(/\.[a-zA-Z0-9]{2,5}$/, ""), 
+    year, 
+    isSeries, 
+    seasonNumber, 
+    episodeNumber 
+  };
 }
+
+// Video MIME types and extensions
+const isVideoFile = (mime?: string, name?: string) => {
+  if (mime && (mime.startsWith("video/") || mime === "application/x-matroska" || mime === "application/vnd.rn-realmedia")) {
+    return true;
+  }
+  if (name && /\.(mp4|mkv|webm|avi|mov|m4v|ts|flv|wmv|3gp|m2ts)$/i.test(name)) {
+    return true;
+  }
+  return false;
+};
+
+// Subtitle extensions
+const isSubtitleFile = (name?: string) => {
+  return name && /\.(vtt|srt|ass|sub|ssa)$/i.test(name);
+};
 
 export async function GET(request: NextRequest) {
   try {
@@ -66,156 +126,200 @@ export async function GET(request: NextRequest) {
     const existingTitles = new Set(existingMovies.map((m) => m.title.toLowerCase().trim()));
     const existingUrls = new Set(existingMovies.map((m) => m.videoUrl.trim()));
 
-    // 1. List all items in the root folder (subfolders and standalone files)
-    const listRes = await drive.files.list({
-      q: `'${folderIdParam}' in parents and trashed = false`,
-      fields: "files(id, name, mimeType, size, modifiedTime)",
-      pageSize: 200,
-    });
+    // BFS Queue to scan folders recursively for video files
+    interface QueueItem {
+      id: string;
+      path: string;
+    }
 
-    const items = listRes.data.files || [];
+    const queue: QueueItem[] = [{ id: folderIdParam, path: "" }];
+    const visitedFolders = new Set<string>([folderIdParam]);
+
+    interface DiscoveredVideo {
+      file: any;
+      folderId: string;
+      folderPath: string;
+    }
+
+    const discoveredVideos: DiscoveredVideo[] = [];
+    const folderSubtitles: Record<string, any[]> = {};
+
+    let foldersScanned = 0;
+    const MAX_FOLDERS = 40;
+    const MAX_VIDEOS = 150;
+
+    while (queue.length > 0 && foldersScanned < MAX_FOLDERS && discoveredVideos.length < MAX_VIDEOS) {
+      const current = queue.shift()!;
+      foldersScanned++;
+
+      try {
+        const listRes = await drive.files.list({
+          q: `'${current.id}' in parents and trashed = false`,
+          fields: "files(id, name, mimeType, size, modifiedTime)",
+          pageSize: 200,
+          supportsAllDrives: true,
+          includeItemsFromAllDrives: true,
+        });
+
+        const items = listRes.data.files || [];
+        for (const item of items) {
+          if (!item.id || !item.name) continue;
+
+          // If item is a subfolder, add to queue to explore video files inside it
+          if (item.mimeType === "application/vnd.google-apps.folder") {
+            if (!visitedFolders.has(item.id)) {
+              visitedFolders.add(item.id);
+              const nextPath = current.path ? `${current.path} / ${item.name}` : item.name;
+              queue.push({ id: item.id, path: nextPath });
+            }
+          } 
+          // If item is a VIDEO FILE (mp4, mkv, etc.), collect it!
+          else if (isVideoFile(item.mimeType, item.name)) {
+            discoveredVideos.push({
+              file: item,
+              folderId: current.id,
+              folderPath: current.path,
+            });
+          } 
+          // If item is a subtitle file, keep track for association
+          else if (isSubtitleFile(item.name)) {
+            if (!folderSubtitles[current.id]) folderSubtitles[current.id] = [];
+            folderSubtitles[current.id].push(item);
+          }
+        }
+      } catch (folderErr) {
+        console.warn(`[GDrive Scan] Could not scan folder ${current.id}:`, folderErr);
+      }
+    }
+
     const scannedMovies: any[] = [];
 
-    // Video MIME types and extensions
-    const isVideoFile = (mime?: string, name?: string) => {
-      if (mime && mime.startsWith("video/")) return true;
-      if (name && /\.(mp4|mkv|webm|avi|mov|m4v|ts)$/i.test(name)) return true;
-      return false;
-    };
+    // Process each discovered VIDEO FILE (NOT folders!)
+    for (const item of discoveredVideos) {
+      const videoFile = item.file;
+      const { title: parsedTitle, year: parsedYear, isSeries, seasonNumber, episodeNumber } = cleanMovieTitle(videoFile.name);
 
-    const isSubtitleFile = (name?: string) => {
-      return name && /\.(vtt|srt|ass|sub)$/i.test(name);
-    };
+      const videoUrl = `https://drive.google.com/uc?export=download&id=${videoFile.id}`;
+      const ext = (videoFile.name.split(".").pop() || "mp4").toUpperCase();
 
-    for (const item of items) {
-      if (!item.id || !item.name) continue;
+      // Find subtitles in the same folder that match this video or language codes
+      const subsInFolder = folderSubtitles[item.folderId] || [];
+      const baseVideoName = videoFile.name.replace(/\.[a-zA-Z0-9]{2,5}$/, "").toLowerCase();
 
-      // ── CASE A: Item is a subfolder (e.g. "Avatar (2009)" folder) ──────────
-      if (item.mimeType === "application/vnd.google-apps.folder") {
-        const subfolderRes = await drive.files.list({
-          q: `'${item.id}' in parents and trashed = false`,
-          fields: "files(id, name, mimeType, size)",
-          pageSize: 50,
+      const detectedSubtitles = subsInFolder
+        .filter((sub) => {
+          const subLower = (sub.name || "").toLowerCase();
+          // Check if subtitle matches the video base name or is the only subtitle for this folder
+          return subsInFolder.length <= 4 || subLower.includes(baseVideoName) || baseVideoName.includes(subLower.replace(/\.[a-z0-9]+$/i, ""));
+        })
+        .map((sub, idx) => {
+          const isIndo = /indo|id|bahasa/i.test(sub.name || "");
+          const isSpan = /spa|es|spanish/i.test(sub.name || "");
+          const langCode = isIndo ? "id" : isSpan ? "es" : "en";
+          const langLabel = isIndo ? "Bahasa Indonesia" : isSpan ? "Español" : "English";
+          return {
+            id: `sub-${videoFile.id}-${idx}`,
+            language: langCode,
+            label: langLabel,
+            fileUrl: `https://drive.google.com/uc?id=${sub.id}`,
+            fileName: sub.name,
+          };
         });
 
-        const subfiles = subfolderRes.data.files || [];
-        const videoFile = subfiles.find((f) => isVideoFile(f.mimeType, f.name));
-        const subtitleFiles = subfiles.filter((f) => isSubtitleFile(f.name));
+      // TMDB Search with the cleaned title from the video file
+      let tmdbData: any = null;
+      try {
+        const tmdbResults = await searchTmdbMulti(parsedTitle);
+        const preferredType = isSeries ? "series" : "movie";
+        const bestMatch = 
+          tmdbResults.find((r) => r.type === preferredType) || 
+          tmdbResults.find((r) => r.type === "movie" || r.type === "series");
 
-        if (videoFile && videoFile.id) {
-          const { title: parsedTitle, year: parsedYear } = cleanMovieTitle(item.name);
-          const videoUrl = `https://drive.google.com/uc?export=download&id=${videoFile.id}`;
-
-          // Format subtitles
-          const detectedSubtitles = subtitleFiles.map((sub, idx) => {
-            const isIndo = /indo|id|bahasa/i.test(sub.name || "");
-            const langCode = isIndo ? "id" : "en";
-            const langLabel = isIndo ? "Bahasa Indonesia" : "English";
-            return {
-              id: `sub-${Date.now()}-${idx}`,
-              language: langCode,
-              label: langLabel,
-              fileUrl: `https://drive.google.com/uc?id=${sub.id}`,
-            };
-          });
-
-          // TMDB search
-          let tmdbData: any = null;
-          try {
-            const tmdbResults = await searchTmdbMulti(parsedTitle);
-            const bestMatch = tmdbResults.find((r) => r.type === "movie" || r.type === "series");
-            if (bestMatch && bestMatch.tmdbId) {
-              const fullTmdb = await fetchTmdbMetadata(bestMatch.type as any, String(bestMatch.tmdbId));
-              tmdbData = fullTmdb;
-            }
-          } catch {}
-
-          const alreadyInDb =
-            existingTitles.has(parsedTitle.toLowerCase()) ||
-            (tmdbData && existingTitles.has(tmdbData.title.toLowerCase())) ||
-            existingUrls.has(videoUrl);
-
-          scannedMovies.push({
-            id: `gdrive-${item.id}`,
-            folderId: item.id,
-            rawName: item.name,
-            title: tmdbData?.title || parsedTitle,
-            releaseYear: tmdbData?.releaseYear || parsedYear || new Date().getFullYear(),
-            description: tmdbData?.description || `${parsedTitle} from Google Drive.`,
-            posterUrl: tmdbData?.posterUrl || "https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=300&auto=format&fit=crop&q=80",
-            backdropUrl: tmdbData?.backdropUrl || "https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=1200&auto=format&fit=crop&q=80",
-            videoUrl,
-            duration: tmdbData?.duration || 120,
-            rating: tmdbData?.rating || 7.5,
-            ageRating: tmdbData?.ageRating || "PG-13",
-            quality: "Full HD",
-            genres: tmdbData?.genres || ["Action", "Drama"],
-            cast: tmdbData?.cast || [],
-            directors: tmdbData?.directors || [],
-            country: tmdbData?.country || "United States",
-            language: tmdbData?.language || "English",
-            contentType: tmdbData?.contentType || "movie",
-            subtitles: detectedSubtitles,
-            alreadyInDb,
-            tmdbMatched: Boolean(tmdbData),
-          });
+        if (bestMatch && bestMatch.tmdbId) {
+          const fullTmdb = await fetchTmdbMetadata(bestMatch.type as any, String(bestMatch.tmdbId));
+          tmdbData = fullTmdb;
         }
+      } catch (tmdbErr) {
+        console.warn(`[GDrive Scan] TMDB search failed for "${parsedTitle}":`, tmdbErr);
       }
-      // ── CASE B: Standalone video file directly in root folder ──────────────
-      else if (isVideoFile(item.mimeType, item.name)) {
-        const { title: parsedTitle, year: parsedYear } = cleanMovieTitle(item.name);
-        const videoUrl = `https://drive.google.com/uc?export=download&id=${item.id}`;
 
-        let tmdbData: any = null;
-        try {
-          const tmdbResults = await searchTmdbMulti(parsedTitle);
-          const bestMatch = tmdbResults.find((r) => r.type === "movie" || r.type === "series");
-          if (bestMatch && bestMatch.tmdbId) {
-            const fullTmdb = await fetchTmdbMetadata(bestMatch.type as any, String(bestMatch.tmdbId));
-            tmdbData = fullTmdb;
-          }
-        } catch {}
+      const finalTitle = tmdbData?.title || parsedTitle;
+      const alreadyInDb =
+        existingTitles.has(parsedTitle.toLowerCase()) ||
+        (tmdbData && existingTitles.has(tmdbData.title.toLowerCase())) ||
+        existingUrls.has(videoUrl);
 
-        const alreadyInDb =
-          existingTitles.has(parsedTitle.toLowerCase()) ||
-          (tmdbData && existingTitles.has(tmdbData.title.toLowerCase())) ||
-          existingUrls.has(videoUrl);
+      // Determine content type
+      const contentType = isSeries ? "series" : (tmdbData?.contentType || "movie");
 
-        scannedMovies.push({
-          id: `gdrive-${item.id}`,
-          fileId: item.id,
-          rawName: item.name,
-          title: tmdbData?.title || parsedTitle,
-          releaseYear: tmdbData?.releaseYear || parsedYear || new Date().getFullYear(),
-          description: tmdbData?.description || `${parsedTitle} from Google Drive.`,
-          posterUrl: tmdbData?.posterUrl || "https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=300&auto=format&fit=crop&q=80",
-          backdropUrl: tmdbData?.backdropUrl || "https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=1200&auto=format&fit=crop&q=80",
-          videoUrl,
-          duration: tmdbData?.duration || 120,
-          rating: tmdbData?.rating || 7.5,
-          ageRating: tmdbData?.ageRating || "PG-13",
-          quality: "Full HD",
-          genres: tmdbData?.genres || ["Action", "Drama"],
-          cast: tmdbData?.cast || [],
-          directors: tmdbData?.directors || [],
-          country: tmdbData?.country || "United States",
-          language: tmdbData?.language || "English",
-          contentType: tmdbData?.contentType || "movie",
-          subtitles: [],
-          alreadyInDb,
-          tmdbMatched: Boolean(tmdbData),
-        });
+      // Build seasons structure if series episode detected
+      let seriesSeasons: any[] = [];
+      if (contentType === "series") {
+        const sNum = seasonNumber || 1;
+        const eNum = episodeNumber || 1;
+        seriesSeasons = [
+          {
+            id: `sea-${Date.now()}-1`,
+            seasonNumber: sNum,
+            title: `Season ${sNum}`,
+            episodes: [
+              {
+                id: `ep-${videoFile.id}`,
+                episodeNumber: eNum,
+                title: `${finalTitle} - Episode ${eNum}`,
+                duration: tmdbData?.duration || 45,
+                videoUrl,
+                description: tmdbData?.description || `${finalTitle} Season ${sNum} Episode ${eNum}.`,
+                subtitles: detectedSubtitles,
+                stillUrl: tmdbData?.backdropUrl || "",
+              },
+            ],
+          },
+        ];
       }
+
+      scannedMovies.push({
+        id: `gdrive-${videoFile.id}`,
+        fileId: videoFile.id,
+        fileName: videoFile.name,
+        rawName: videoFile.name,
+        folderPath: item.folderPath || "Root",
+        fileExtension: ext,
+        fileSizeBytes: parseInt(videoFile.size || "0", 10),
+        title: finalTitle,
+        releaseYear: tmdbData?.releaseYear || parsedYear || new Date().getFullYear(),
+        description: tmdbData?.description || `${finalTitle} from Google Drive.`,
+        posterUrl: tmdbData?.posterUrl || "https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=300&auto=format&fit=crop&q=80",
+        backdropUrl: tmdbData?.backdropUrl || "https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=1200&auto=format&fit=crop&q=80",
+        videoUrl,
+        duration: tmdbData?.duration || (contentType === "series" ? 45 : 120),
+        rating: tmdbData?.rating || 7.5,
+        ageRating: tmdbData?.ageRating || "PG-13",
+        quality: videoFile.name.toLowerCase().includes("2160p") || videoFile.name.toLowerCase().includes("4k") ? "4K" : "Full HD",
+        genres: tmdbData?.genres || ["Action", "Drama"],
+        cast: tmdbData?.cast || [],
+        directors: tmdbData?.directors || [],
+        country: tmdbData?.country || "United States",
+        language: tmdbData?.language || "English",
+        contentType,
+        seasons: seriesSeasons,
+        subtitles: detectedSubtitles,
+        alreadyInDb,
+        tmdbMatched: Boolean(tmdbData),
+        seasonNumber,
+        episodeNumber,
+      });
     }
 
     return NextResponse.json({
       success: true,
       count: scannedMovies.length,
       newCount: scannedMovies.filter((m) => !m.alreadyInDb).length,
+      foldersScanned,
       movies: scannedMovies,
     });
   } catch (error: any) {
     console.error("GDrive scan error:", error);
-    return NextResponse.json({ error: error.message || "Failed to scan Google Drive folder" }, { status: 500 });
+    return NextResponse.json({ error: error.message || "Failed to scan Google Drive video files" }, { status: 500 });
   }
 }

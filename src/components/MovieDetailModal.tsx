@@ -639,9 +639,9 @@ export default function MovieDetailModal({
                     >
                       <div className="relative w-32 aspect-video shrink-0 bg-zinc-900 rounded-lg overflow-hidden border border-white/10">
                         <img 
-                          src={movie.backdropUrl || movie.posterUrl} 
+                          src={ep.stillUrl || movie.backdropUrl || movie.posterUrl} 
                           alt={ep.title} 
-                          className="w-full h-full object-cover opacity-70 group-hover:scale-105 transition-transform duration-500"
+                          className="w-full h-full object-cover opacity-80 group-hover:scale-105 transition-transform duration-500"
                           referrerPolicy="no-referrer"
                         />
                         <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -653,11 +653,16 @@ export default function MovieDetailModal({
                       </div>
                       
                       <div className="flex-1 min-w-0 flex flex-col justify-center">
-                        <div className="flex items-center gap-2 mb-1">
+                        <div className="flex items-center gap-2 mb-1 flex-wrap">
                           <span className="text-[10px] font-black text-red-500 font-mono">EP {ep.episodeNumber}</span>
                           <span className="text-xs sm:text-sm font-bold text-white group-hover:[color:var(--theme-primary)] transition-colors truncate">
                             {ep.title}
                           </span>
+                          {ep.subtitles && ep.subtitles.length > 0 && (
+                            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-blue-500/15 text-blue-300 border border-blue-500/30 font-sans">
+                              💬 Subtitle
+                            </span>
+                          )}
                         </div>
                         {ep.description ? (
                           <p className="text-xs text-zinc-400 line-clamp-2 leading-relaxed">{ep.description}</p>

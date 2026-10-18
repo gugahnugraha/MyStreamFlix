@@ -168,24 +168,75 @@ export async function fetchTmdbMetadata(mediaType: "movie" | "tv", tmdbId: strin
       ? Math.max(1, Math.round(data.number_of_episodes / data.number_of_seasons))
       : 5,
     seasons: !isMovie && Array.isArray(data.seasons)
-      ? data.seasons
-          .filter((season: any) => season.season_number > 0)
-          .slice(0, 8)
-          .map((season: any) => ({
-            id: `tmdb-s${season.season_number}-${Date.now()}`,
-            seasonNumber: season.season_number,
-            title: season.name || `Season ${season.season_number}`,
-            episodes: Array.from({ length: Math.min(season.episode_count || 1, 12) }, (_, idx) => ({
-              id: `tmdb-s${season.season_number}-e${idx + 1}-${Date.now()}`,
-              episodeNumber: idx + 1,
-              title: `Episode ${idx + 1}`,
-              duration: data.episode_run_time?.[0] || 45,
-              videoUrl: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
-              description: ""
-            }))
-          }))
+      ? await Promise.all(
+          data.seasons
+            .filter((season: any) => season.season_number > 0)
+            .slice(0, 10)
+            .map(async (season: any) => {
+              try {
+                const sDetail = await fetchTmdbSeasonDetails(data.id, season.season_number);
+                if (sDetail && sDetail.episodes && sDetail.episodes.length > 0) {
+                  return {
+                    id: `tmdb-s${season.season_number}-${Date.now()}`,
+                    seasonNumber: season.season_number,
+                    title: sDetail.title || season.name || `Season ${season.season_number}`,
+                    episodes: sDetail.episodes
+                  };
+                }
+              } catch (err) {
+                console.warn(`Could not load details for season ${season.season_number}:`, err);
+              }
+
+              return {
+                id: `tmdb-s${season.season_number}-${Date.now()}`,
+                seasonNumber: season.season_number,
+                title: season.name || `Season ${season.season_number}`,
+                episodes: Array.from({ length: Math.min(season.episode_count || 1, 24) }, (_, idx) => ({
+                  id: `tmdb-s${season.season_number}-e${idx + 1}-${Date.now()}`,
+                  episodeNumber: idx + 1,
+                  title: `Episode ${idx + 1}`,
+                  duration: data.episode_run_time?.[0] || 45,
+                  videoUrl: "",
+                  description: "",
+                  subtitles: []
+                }))
+              };
+            })
+        )
       : []
   };
+}
+
+export async function fetchTmdbSeasonDetails(tmdbId: string | number, seasonNumber: number) {
+  const apiKey = getTmdbApiKey();
+  if (!apiKey || !tmdbId) return null;
+
+  try {
+    const url = `https://api.themoviedb.org/3/tv/${tmdbId}/season/${seasonNumber}?api_key=${apiKey}&language=en-US`;
+    const res = await fetch(url, { next: { revalidate: 3600 } });
+    if (!res.ok) return null;
+
+    const seasonData = await res.json();
+    return {
+      seasonNumber: seasonData.season_number,
+      title: seasonData.name || `Season ${seasonData.season_number}`,
+      overview: seasonData.overview || "",
+      posterUrl: tmdbImage(seasonData.poster_path, "w500"),
+      episodes: (seasonData.episodes || []).map((ep: any) => ({
+        id: `tmdb-s${seasonData.season_number}-e${ep.episode_number}-${Date.now()}`,
+        episodeNumber: ep.episode_number,
+        title: ep.name ? ep.name : `Episode ${ep.episode_number}`,
+        duration: ep.runtime || 45,
+        videoUrl: "",
+        description: ep.overview || "",
+        stillUrl: ep.still_path ? tmdbImage(ep.still_path, "w500") : "",
+        subtitles: []
+      }))
+    };
+  } catch (err) {
+    console.warn(`Failed to fetch season ${seasonNumber} details from TMDB:`, err);
+    return null;
+  }
 }
 
 export async function fetchTmdbMovieCredits(
