@@ -102,7 +102,7 @@ export async function fetchTmdbMetadata(mediaType: "movie" | "tv", tmdbId: strin
   const apiKey = getTmdbApiKey();
   if (!apiKey) throw new Error("TMDB_API_KEY is not configured.");
 
-  const append = mediaType === "movie" ? "credits,release_dates,translations" : "credits,content_ratings,translations";
+  const append = mediaType === "movie" ? "credits,release_dates,translations" : "aggregate_credits,credits,content_ratings,translations";
   const params = new URLSearchParams({
     api_key: apiKey,
     append_to_response: append,
@@ -134,13 +134,16 @@ export async function fetchTmdbMetadata(mediaType: "movie" | "tv", tmdbId: strin
   const isMovie = mediaType === "movie";
   const title = isMovie ? data.title : data.name;
   const dateValue = isMovie ? data.release_date : data.first_air_date;
+  const rawCast = isMovie
+    ? (data.credits?.cast || [])
+    : (data.aggregate_credits?.cast || data.credits?.cast || []);
   const directors = isMovie
     ? (data.credits?.crew || [])
         .filter((person: any) => person.job === "Director")
         .map((person: any) => person.name)
     : [
         ...(data.created_by || []).map((person: any) => person.name),
-        ...(data.credits?.crew || [])
+        ...((data.aggregate_credits?.crew || data.credits?.crew || []))
           .filter((person: any) => person.job === "Director" || person.job === "Executive Producer")
           .map((person: any) => person.name)
       ];
@@ -159,7 +162,7 @@ export async function fetchTmdbMetadata(mediaType: "movie" | "tv", tmdbId: strin
     rating: data.vote_average ? Number(data.vote_average.toFixed(1)) : 7.5,
     ageRating: isMovie ? getMovieCertification(data.release_dates) : getTvCertification(data.content_ratings),
     genres: (data.genres || []).map((genre: any) => genre.name),
-    cast: (data.credits?.cast || []).slice(0, 10).map((person: any) => person.name),
+    cast: rawCast.slice(0, 15).map((person: any) => person.name),
     directors: Array.from(new Set(directors.filter(Boolean))).slice(0, 5),
     country: data.production_countries?.[0]?.name || data.origin_country?.[0] || "United States",
     language: getLanguageName(data.original_language),
@@ -247,8 +250,16 @@ export async function fetchTmdbMovieCredits(
   if (!apiKey || !tmdbId) return [];
 
   try {
-    const url = `https://api.themoviedb.org/3/${mediaType}/${tmdbId}/credits?api_key=${apiKey}&language=en-US`;
-    const response = await fetch(url, { next: { revalidate: 3600 } });
+    const endpoint = mediaType === "tv" ? "aggregate_credits" : "credits";
+    const url = `https://api.themoviedb.org/3/${mediaType}/${tmdbId}/${endpoint}?api_key=${apiKey}&language=en-US`;
+    let response = await fetch(url, { next: { revalidate: 3600 } });
+
+    // Fallback to regular credits if aggregate_credits fails
+    if (!response.ok && mediaType === "tv") {
+      const fallbackUrl = `https://api.themoviedb.org/3/tv/${tmdbId}/credits?api_key=${apiKey}&language=en-US`;
+      response = await fetch(fallbackUrl, { next: { revalidate: 3600 } });
+    }
+
     if (!response.ok) {
       console.warn(`TMDB credits fetch failed: ${response.status}`);
       return [];
@@ -260,7 +271,7 @@ export async function fetchTmdbMovieCredits(
       .map((item: any) => ({
         id: item.id,
         name: item.name,
-        character: item.character || "",
+        character: (Array.isArray(item.roles) && item.roles[0]?.character) || item.character || "",
         profilePath: item.profile_path ? tmdbImage(item.profile_path, "w185") : "",
         order: item.order ?? 0,
         knownForDepartment: item.known_for_department || "Acting"

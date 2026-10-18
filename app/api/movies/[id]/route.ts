@@ -57,10 +57,20 @@ export async function GET(
       }
     }
 
+    const effectiveCast = (tmdbCast && tmdbCast.length > 0)
+      ? tmdbCast.slice(0, 20).map(c => c.name)
+      : movie.cast;
+
+    // Asynchronously update cached cast in database if TMDB provided a richer cast list
+    if (movie.id && effectiveCast && effectiveCast.length > (movie.cast?.length || 0)) {
+      updateMovie(movie.id, { cast: effectiveCast }).catch(() => {});
+    }
+
     return NextResponse.json({
       ...movie,
       trailerUrl,
       tmdbCast,
+      cast: effectiveCast,
       tmdbId: resolvedTmdbId || movie.tmdbId
     });
   } catch (error: any) {
