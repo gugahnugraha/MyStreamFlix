@@ -46,12 +46,55 @@ export async function GET(request: NextRequest) {
 
     const drive = google.drive({ version: "v3", auth });
 
-    // 1. Get file metadata (size, mimeType, name)
-    const metaRes = await drive.files.get({
-      fileId,
-      fields: "id, name, mimeType, size",
+    // 1. Get file metadata (size, mimeType, name, shortcutDetails)
+    let activeFileId = fileId;
+    let metaRes = await drive.files.get({
+      fileId: activeFileId,
+      fields: "id, name, mimeType, size, shortcutDetails",
       supportsAllDrives: true,
     });
+
+    // If it's a shortcut, follow the targetId
+    if (metaRes.data.mimeType === "application/vnd.google-apps.shortcut" && metaRes.data.shortcutDetails?.targetId) {
+      activeFileId = metaRes.data.shortcutDetails.targetId;
+      metaRes = await drive.files.get({
+        fileId: activeFileId,
+        fields: "id, name, mimeType, size",
+        supportsAllDrives: true,
+      });
+    }
+
+    // If it's a folder, search for video files inside this folder automatically!
+    if (metaRes.data.mimeType === "application/vnd.google-apps.folder") {
+      const listRes = await drive.files.list({
+        q: `'${activeFileId}' in parents and trashed = false`,
+        fields: "files(id, name, mimeType, size)",
+        supportsAllDrives: true,
+        includeItemsFromAllDrives: true,
+        pageSize: 20,
+      });
+
+      const videoFiles = (listRes.data.files || []).filter(
+        (f) => (f.mimeType && f.mimeType.startsWith("video/")) || (f.name && /\.(mp4|mkv|webm|avi|mov|m4v)$/i.test(f.name))
+      );
+
+      // Pick video file (or the largest file if mimeType isn't explicitly video)
+      const targetFile = videoFiles[0] || (listRes.data.files || []).sort((a, b) => parseInt(b.size || "0", 10) - parseInt(a.size || "0", 10))[0];
+
+      if (!targetFile) {
+        return NextResponse.json(
+          { error: `Folder "${metaRes.data.name}" tidak berisi file video yang dapat diputar.` },
+          { status: 400 }
+        );
+      }
+
+      activeFileId = targetFile.id!;
+      metaRes = await drive.files.get({
+        fileId: activeFileId,
+        fields: "id, name, mimeType, size",
+        supportsAllDrives: true,
+      });
+    }
 
     const fileSize = parseInt(metaRes.data.size || "0", 10);
     const mimeType = metaRes.data.mimeType || "video/mp4";
@@ -67,7 +110,7 @@ export async function GET(request: NextRequest) {
 
       const streamRes = await drive.files.get(
         {
-          fileId,
+          fileId: activeFileId,
           alt: "media",
           supportsAllDrives: true,
         },
@@ -107,7 +150,7 @@ export async function GET(request: NextRequest) {
     // 3. Full file stream
     const streamRes = await drive.files.get(
       {
-        fileId,
+        fileId: activeFileId,
         alt: "media",
         supportsAllDrives: true,
       },
