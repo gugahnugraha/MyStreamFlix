@@ -71,19 +71,44 @@ export async function GET(request: NextRequest) {
         fields: "files(id, name, mimeType, size)",
         supportsAllDrives: true,
         includeItemsFromAllDrives: true,
-        pageSize: 20,
+        pageSize: 30,
       });
 
       const videoFiles = (listRes.data.files || []).filter(
         (f) => (f.mimeType && f.mimeType.startsWith("video/")) || (f.name && /\.(mp4|mkv|webm|avi|mov|m4v)$/i.test(f.name))
       );
 
-      // Pick video file (or the largest file if mimeType isn't explicitly video)
-      const targetFile = videoFiles[0] || (listRes.data.files || []).sort((a, b) => parseInt(b.size || "0", 10) - parseInt(a.size || "0", 10))[0];
+      let targetFile = videoFiles[0] || (listRes.data.files || []).filter(f => f.mimeType !== "application/vnd.google-apps.folder").sort((a, b) => parseInt(b.size || "0", 10) - parseInt(a.size || "0", 10))[0];
+
+      // If no video file in root of folder, check inside immediate subfolders (e.g. San Andreas/Season 1/)
+      if (!targetFile) {
+        const subFolders = (listRes.data.files || []).filter(f => f.mimeType === "application/vnd.google-apps.folder");
+        for (const sub of subFolders) {
+          const subList = await drive.files.list({
+            q: `'${sub.id}' in parents and trashed = false`,
+            fields: "files(id, name, mimeType, size)",
+            supportsAllDrives: true,
+            includeItemsFromAllDrives: true,
+            pageSize: 20,
+          });
+          const found = (subList.data.files || []).find(
+            (f) => (f.mimeType && f.mimeType.startsWith("video/")) || (f.name && /\.(mp4|mkv|webm|avi|mov|m4v)$/i.test(f.name))
+          );
+          if (found) {
+            targetFile = found;
+            break;
+          }
+        }
+      }
 
       if (!targetFile) {
+        const itemNames = (listRes.data.files || []).map(f => f.name).join(", ");
         return NextResponse.json(
-          { error: `Folder "${metaRes.data.name}" tidak berisi file video yang dapat diputar.` },
+          {
+            error: `Folder "${metaRes.data.name}" tidak berisi file video yang dapat diputar.` + (itemNames ? ` Isi folder: [${itemNames}].` : " (Folder kosong atau file di dalamnya belum dibagikan)."),
+            folderName: metaRes.data.name,
+            contents: (listRes.data.files || []).map(f => ({ id: f.id, name: f.name, mimeType: f.mimeType }))
+          },
           { status: 400 }
         );
       }
