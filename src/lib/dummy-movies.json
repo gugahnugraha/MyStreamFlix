@@ -61,7 +61,18 @@
     "tier": "free",
     "contentType": "movie",
     "tmdbId": 1339713,
-    "tmdbMediaType": "movie"
+    "tmdbMediaType": "movie",
+    "translations": {
+      "en": {
+        "description": "After breaking the mysterious \"One Wish Willow\" to win his crush's heart, a hopeless romantic finds himself getting exactly what he asked for but soon discovers that some desires come at a dark, sinister price."
+      },
+      "id": {
+        "description": "Setelah menghancurkan \"One Wish Willow\" yang misterius untuk memenangkan hatinya, seorang romantis yang putus asa menemukan dirinya mendapatkan apa yang dia minta tetapi segera menemukan bahwa beberapa keinginan datang dengan harga yang gelap dan menyeramkan."
+      },
+      "es": {
+        "description": "After breaking the mysterious \"One Wish Willow\" to win his crush's heart, a hopeless romantic finds himself getting exactly what he asked for but soon discovers that some desires come at a dark, sinister price."
+      }
+    }
   },
   {
     "id": "mov-1084244",
@@ -127,7 +138,18 @@
     "tier": "vip",
     "contentType": "movie",
     "tmdbId": 1084244,
-    "tmdbMediaType": "movie"
+    "tmdbMediaType": "movie",
+    "translations": {
+      "en": {
+        "description": "When Bonnie receives a Lilypad tablet as a gift and becomes obsessed, Buzz, Woody, Jessie and the rest of the gang's jobs become exponentially harder when they have to go head to head with the all-new threat to playtime."
+      },
+      "id": {
+        "description": "Ketika Bonnie menerima tablet Lilypad sebagai hadiah dan menjadi terobsesi, Buzz, Woody, Jessie dan anggota geng lainnya menjadi semakin sulit ketika mereka harus berhadapan langsung dengan ancaman baru untuk waktu bermain."
+      },
+      "es": {
+        "description": "When Bonnie receives a Lilypad tablet as a gift and becomes obsessed, Buzz, Woody, Jessie and the rest of the gang's jobs become exponentially harder when they have to go head to head with the all-new threat to playtime."
+      }
+    }
   },
   {
     "id": "mov-1275779",
@@ -191,7 +213,18 @@
     "tier": "premium",
     "contentType": "movie",
     "tmdbId": 1275779,
-    "tmdbMediaType": "movie"
+    "tmdbMediaType": "movie",
+    "translations": {
+      "en": {
+        "description": "A cybersecurity expert becomes a whistleblower after uncovering secrets about aliens, putting him on the run from a corporation. Meanwhile, a meteorologist experiencing strange phenomena joins forces with him to prove there's life beyond our understanding."
+      },
+      "id": {
+        "description": "Seorang pakar keamanan dunia maya menjadi pelapor setelah mengungkap rahasia tentang alien, membuatnya melarikan diri dari sebuah perusahaan. Sementara itu, seorang ahli meteorologi yang mengalami fenomena aneh bergabung dengannya untuk membuktikan ada kehidupan di luar pemahaman kita."
+      },
+      "es": {
+        "description": "A cybersecurity expert becomes a whistleblower after uncovering secrets about aliens, putting him on the run from a corporation. Meanwhile, a meteorologist experiencing strange phenomena joins forces with him to prove there's life beyond our understanding."
+      }
+    }
   },
   {
     "id": "mov-1083381",
@@ -256,7 +289,18 @@
     "tier": "free",
     "contentType": "movie",
     "tmdbId": 1083381,
-    "tmdbMediaType": "movie"
+    "tmdbMediaType": "movie",
+    "translations": {
+      "en": {
+        "description": "A strange doorway appears in the basement of a furniture showroom."
+      },
+      "id": {
+        "description": "Sebuah pintu aneh muncul di ruang bawah tanah ruang pamer furnitur."
+      },
+      "es": {
+        "description": "A strange doorway appears in the basement of a furniture showroom."
+      }
+    }
   },
   {
     "id": "mov-1273221",
@@ -320,7 +364,18 @@
     "tier": "vip",
     "contentType": "movie",
     "tmdbId": 1273221,
-    "tmdbMediaType": "movie"
+    "tmdbMediaType": "movie",
+    "translations": {
+      "en": {
+        "description": "Twenty-six years after outrunning a suspiciously familiar masked killer, the Core Four are back in the killer's crosshairs and no horror movie IP is safe."
+      },
+      "id": {
+        "description": "Dua puluh enam tahun setelah mengalahkan pembunuh bertopeng yang mencurigakan, Core Four kembali berada di garis bidik si pembunuh dan tidak ada IP film horor yang aman."
+      },
+      "es": {
+        "description": "Twenty-six years after outrunning a suspiciously familiar masked killer, the Core Four are back in the killer's crosshairs and no horror movie IP is safe."
+      }
+    }
   },
   {
     "id": "mov-1314481",
@@ -384,7 +439,18 @@
     "tier": "premium",
     "contentType": "movie",
     "tmdbId": 1314481,
-    "tmdbMediaType": "movie"
+    "tmdbMediaType": "movie",
+    "translations": {
+      "en": {
+        "description": "Andy Sachs returns to Runway as Miranda Priestly navigates a new media landscape and Runway's position within. The duo reconnect with former assistant Emily Charlton, now the head of a luxury brand that possesses funding which could ensure Runway's survival."
+      },
+      "id": {
+        "description": "Andy Sachs kembali ke Runway saat Miranda Priestly menavigasi lanskap media baru dan posisi Runway di dalamnya. Duo ini berhubungan kembali dengan mantan asisten Emily Charlton, sekarang kepala merek mewah yang memiliki dana yang dapat memastikan kelangsungan hidup Runway."
+      },
+      "es": {
+        "description": "Andy Sachs returns to Runway as Miranda Priestly navigates a new media landscape and Runway's position within. The duo reconnect with former assistant Emily Charlton, now the head of a luxury brand that possesses funding which could ensure Runway's survival."
+      }
+    }
   },
   {
     "id": "mov-1413976",
@@ -449,7 +515,18 @@
     "tier": "free",
     "contentType": "movie",
     "tmdbId": 1413976,
-    "tmdbMediaType": "movie"
+    "tmdbMediaType": "movie",
+    "translations": {
+      "en": {
+        "description": "A man takes justice into his own hands, hunting down criminals. His vigilante crusade makes him a social media star but puts him at odds with the local police chief."
+      },
+      "id": {
+        "description": "Seorang pria mengambil keadilan ke tangannya sendiri, memburu penjahat. Perang salib main hakim sendiri membuatnya menjadi bintang media sosial tetapi membuatnya berselisih dengan kepala polisi setempat."
+      },
+      "es": {
+        "description": "A man takes justice into his own hands, hunting down criminals. His vigilante crusade makes him a social media star but puts him at odds with the local police chief."
+      }
+    }
   },
   {
     "id": "mov-1127384",
@@ -513,7 +590,18 @@
     "tier": "vip",
     "contentType": "movie",
     "tmdbId": 1127384,
-    "tmdbMediaType": "movie"
+    "tmdbMediaType": "movie",
+    "translations": {
+      "en": {
+        "description": "A group of international passengers on a flight from Los Angeles to Shanghai is forced to make an emergency landing in shark-infested waters. The terrified group is forced to work together and overcome their differences if they hope to escape their sinking plane and the frenzy of sharks drawn to the wreckage."
+      },
+      "id": {
+        "description": "Sekelompok penumpang internasional dalam penerbangan dari Los Angeles ke Shanghai terpaksa melakukan pendaratan darurat di perairan yang dipenuhi hiu. Kelompok yang ketakutan dipaksa untuk bekerja sama dan mengatasi perbedaan mereka jika mereka berharap untuk melarikan diri dari pesawat mereka yang tenggelam dan hiruk - pikuk hiu yang tertarik ke reruntuhan."
+      },
+      "es": {
+        "description": "A group of international passengers on a flight from Los Angeles to Shanghai is forced to make an emergency landing in shark-infested waters. The terrified group is forced to work together and overcome their differences if they hope to escape their sinking plane and the frenzy of sharks drawn to the wreckage."
+      }
+    }
   },
   {
     "id": "mov-1280738",
@@ -578,7 +666,18 @@
     "tier": "premium",
     "contentType": "movie",
     "tmdbId": 1280738,
-    "tmdbMediaType": "movie"
+    "tmdbMediaType": "movie",
+    "translations": {
+      "en": {
+        "description": "After Wang Wei's daughter is kidnapped by a criminal network and he receives no help from the corrupt police, Wei sets out to find her himself. His only ally is Navin, a relentless journalist whose wife has mysteriously disappeared. Fueled by a furious vengeance, the unlikely duo ruthlessly battle the kidnappers in this explosive martial arts showdown."
+      },
+      "id": {
+        "description": "Setelah putri Wang Wei diculik oleh jaringan kriminal dan dia tidak menerima bantuan dari polisi yang korup, Wei berangkat untuk menemukannya sendiri. Satu - satunya sekutunya adalah Navin, seorang jurnalis tanpa henti yang istrinya menghilang secara misterius. Dipicu oleh pembalasan yang marah, duo yang tidak mungkin itu dengan kejam melawan para penculik dalam pertarungan seni bela diri yang eksplosif ini."
+      },
+      "es": {
+        "description": "After Wang Wei's daughter is kidnapped by a criminal network and he receives no help from the corrupt police, Wei sets out to find her himself. His only ally is Navin, a relentless journalist whose wife has mysteriously disappeared. Fueled by a furious vengeance, the unlikely duo ruthlessly battle the kidnappers in this explosive martial arts showdown."
+      }
+    }
   },
   {
     "id": "mov-1523145",
@@ -641,7 +740,18 @@
     "tier": "free",
     "contentType": "movie",
     "tmdbId": 1523145,
-    "tmdbMediaType": "movie"
+    "tmdbMediaType": "movie",
+    "translations": {
+      "en": {
+        "description": "High school student Polina is saved from bullying at her new school and makes a deal with the main bully Bars: he must pretend to be her boyfriend and protect her, and she must do everything he says. During this game, the couple develops real feelings, but her family and classmates have reasons to separate the lovers."
+      },
+      "id": {
+        "description": "Siswa SMA Polina diselamatkan dari penindasan di sekolah barunya dan membuat kesepakatan dengan Bar pengganggu utama: dia harus berpura - pura menjadi pacarnya dan melindunginya, dan dia harus melakukan semua yang dia katakan. Selama permainan ini, pasangan ini mengembangkan perasaan nyata, tetapi keluarga dan teman sekelasnya memiliki alasan untuk memisahkan kekasih."
+      },
+      "es": {
+        "description": "High school student Polina is saved from bullying at her new school and makes a deal with the main bully Bars: he must pretend to be her boyfriend and protect her, and she must do everything he says. During this game, the couple develops real feelings, but her family and classmates have reasons to separate the lovers."
+      }
+    }
   },
   {
     "id": "mov-1315772",
@@ -708,7 +818,18 @@
     "tier": "vip",
     "contentType": "movie",
     "tmdbId": 1315772,
-    "tmdbMediaType": "movie"
+    "tmdbMediaType": "movie",
+    "translations": {
+      "en": {
+        "description": "This is the rambunctious, ridiculous and totally true story of how the Minions conquered Hollywood, became movie stars, lost everything, unleashed monsters onto the world and then banded together to try and save the planet from the mayhem they had just created."
+      },
+      "id": {
+        "description": "Ini adalah kisah kasar, konyol, dan benar - benar nyata tentang bagaimana Minion menaklukkan Hollywood, menjadi bintang film, kehilangan segalanya, melepaskan monster ke dunia dan kemudian bersatu untuk mencoba dan menyelamatkan planet ini dari kekacauan yang baru saja mereka ciptakan."
+      },
+      "es": {
+        "description": "This is the rambunctious, ridiculous and totally true story of how the Minions conquered Hollywood, became movie stars, lost everything, unleashed monsters onto the world and then banded together to try and save the planet from the mayhem they had just created."
+      }
+    }
   },
   {
     "id": "mov-936075",
@@ -772,7 +893,18 @@
     "tier": "premium",
     "contentType": "movie",
     "tmdbId": 936075,
-    "tmdbMediaType": "movie"
+    "tmdbMediaType": "movie",
+    "translations": {
+      "en": {
+        "description": "The story of Michael Jackson, one of the most influential artists the world has ever known, and his life beyond the music. His journey from the discovery of his extraordinary talent as the lead of the Jackson Five, to the visionary artist whose creative ambition fueled a relentless pursuit to become the biggest entertainer in the world, highlighting both his life off-stage and some of the most iconic performances from his early solo career."
+      },
+      "id": {
+        "description": "Kisah Michael Jackson, salah satu seniman paling berpengaruh di dunia yang pernah dikenal, dan kehidupannya di luar musik. Perjalanannya dari penemuan bakatnya yang luar biasa sebagai pemeran utama Jackson Five, hingga seniman visioner yang ambisi kreatifnya memicu pengejaran tanpa henti untuk menjadi penghibur terbesar di dunia, menyoroti kehidupannya di luar panggung dan beberapa pertunjukan paling ikonik dari awal karier solonya."
+      },
+      "es": {
+        "description": "The story of Michael Jackson, one of the most influential artists the world has ever known, and his life beyond the music. His journey from the discovery of his extraordinary talent as the lead of the Jackson Five, to the visionary artist whose creative ambition fueled a relentless pursuit to become the biggest entertainer in the world, highlighting both his life off-stage and some of the most iconic performances from his early solo career."
+      }
+    }
   },
   {
     "id": "mov-1202033",
@@ -837,7 +969,18 @@
     "tier": "free",
     "contentType": "movie",
     "tmdbId": 1202033,
-    "tmdbMediaType": "movie"
+    "tmdbMediaType": "movie",
+    "translations": {
+      "en": {
+        "description": "Adventure follows detective Enola Holmes to Malta, where her plans to tie the knot unravel when Sherlock's disappearance plunges her into a perilous case."
+      },
+      "id": {
+        "description": "Petualangan mengikuti detektif Enola Holmes ke Malta, di mana rencananya untuk mengikat simpul terurai ketika hilangnya Sherlock menjerumuskannya ke dalam kasus berbahaya."
+      },
+      "es": {
+        "description": "Adventure follows detective Enola Holmes to Malta, where her plans to tie the knot unravel when Sherlock's disappearance plunges her into a perilous case."
+      }
+    }
   },
   {
     "id": "mov-1368314",
@@ -901,7 +1044,18 @@
     "tier": "vip",
     "contentType": "movie",
     "tmdbId": 1368314,
-    "tmdbMediaType": "movie"
+    "tmdbMediaType": "movie",
+    "translations": {
+      "en": {
+        "description": "After a young couple witnesses a gruesome highway accident, they soon realize they did not leave the crash scene alone, as a demonic presence called the Passenger that won't stop until it claims them both turns their van life adventure into a nightmare."
+      },
+      "id": {
+        "description": "Setelah pasangan muda menyaksikan kecelakaan jalan raya yang mengerikan, mereka segera menyadari bahwa mereka tidak meninggalkan lokasi kecelakaan sendirian, karena kehadiran iblis memanggil Penumpang yang tidak akan berhenti sampai mereka berdua mengubah petualangan kehidupan van mereka menjadi mimpi buruk."
+      },
+      "es": {
+        "description": "After a young couple witnesses a gruesome highway accident, they soon realize they did not leave the crash scene alone, as a demonic presence called the Passenger that won't stop until it claims them both turns their van life adventure into a nightmare."
+      }
+    }
   },
   {
     "id": "mov-687163",
@@ -966,7 +1120,18 @@
     "tier": "premium",
     "contentType": "movie",
     "tmdbId": 687163,
-    "tmdbMediaType": "movie"
+    "tmdbMediaType": "movie",
+    "translations": {
+      "en": {
+        "description": "Science teacher Ryland Grace wakes up on a spaceship light years from home with no recollection of who he is or how he got there. As his memory returns, he begins to uncover his mission: solve the riddle of the mysterious substance causing the sun to die out. He must call on his scientific knowledge and unorthodox ideas to save everything on Earth from extinction."
+      },
+      "id": {
+        "description": "Guru sains Ryland Grace bangun di pesawat ruang angkasa tahun cahaya dari rumah tanpa mengingat siapa dia atau bagaimana dia sampai di sana. Saat ingatannya kembali, dia mulai mengungkap misinya: memecahkan teka - teki zat misterius yang menyebabkan matahari mati. Dia harus meminta pengetahuan ilmiahnya dan ide - ide yang tidak ortodoks untuk menyelamatkan segala sesuatu di Bumi dari kepunahan."
+      },
+      "es": {
+        "description": "Science teacher Ryland Grace wakes up on a spaceship light years from home with no recollection of who he is or how he got there. As his memory returns, he begins to uncover his mission: solve the riddle of the mysterious substance causing the sun to die out. He must call on his scientific knowledge and unorthodox ideas to save everything on Earth from extinction."
+      }
+    }
   },
   {
     "id": "mov-278",
@@ -1030,7 +1195,18 @@
     "tier": "free",
     "contentType": "movie",
     "tmdbId": 278,
-    "tmdbMediaType": "movie"
+    "tmdbMediaType": "movie",
+    "translations": {
+      "en": {
+        "description": "Imprisoned in the 1940s for the double murder of his wife and her lover, upstanding banker Andy Dufresne begins a new life at the Shawshank prison, where he puts his accounting skills to work for an amoral warden. During his long stretch in prison, Dufresne comes to be admired by the other inmates -- including an older prisoner named Red -- for his integrity and unquenchable sense of hope."
+      },
+      "id": {
+        "description": "Dipenjara pada tahun 1940 - an karena pembunuhan ganda terhadap istri dan kekasihnya, bankir terkemuka Andy Dufresne memulai kehidupan baru di penjara Shawshank, di mana ia menggunakan keterampilan akuntansinya untuk bekerja sebagai sipir amoral. Selama masa penjaranya yang panjang, Dufresne dikagumi oleh narapidana lain - termasuk seorang tahanan yang lebih tua bernama Red - karena integritas dan rasa harapannya yang tak terpadamkan."
+      },
+      "es": {
+        "description": "Imprisoned in the 1940s for the double murder of his wife and her lover, upstanding banker Andy Dufresne begins a new life at the Shawshank prison, where he puts his accounting skills to work for an amoral warden. During his long stretch in prison, Dufresne comes to be admired by the other inmates -- including an older prisoner named Red -- for his integrity and unquenchable sense of hope."
+      }
+    }
   },
   {
     "id": "mov-1279493",
@@ -1094,7 +1270,18 @@
     "tier": "vip",
     "contentType": "movie",
     "tmdbId": 1279493,
-    "tmdbMediaType": "movie"
+    "tmdbMediaType": "movie",
+    "translations": {
+      "en": {
+        "description": "A nightclub owner is on the verge of leaving his dangerous past behind for retirement with his girlfriend. When masked gunmen rob him and he finds himself squeezed by ruthless cartels, a mysterious newcomer arrives with an interest in buying the business. With danger closing in from all sides, he must navigate a deadly web of deception, power, and survival  -  where escape may no longer be an option."
+      },
+      "id": {
+        "description": "Seorang pemilik klub malam hampir meninggalkan masa lalunya yang berbahaya untuk pensiun bersama pacarnya. Ketika orang - orang bersenjata bertopeng merampoknya dan dia mendapati dirinya diperas oleh kartel yang kejam, seorang pendatang baru misterius datang dengan minat untuk membeli bisnis ini. Dengan bahaya yang mendekat dari semua sisi, dia harus menavigasi jaringan penipuan, kekuatan, dan kelangsungan hidup yang mematikan -  di mana melarikan diri mungkin tidak lagi menjadi pilihan."
+      },
+      "es": {
+        "description": "A nightclub owner is on the verge of leaving his dangerous past behind for retirement with his girlfriend. When masked gunmen rob him and he finds himself squeezed by ruthless cartels, a mysterious newcomer arrives with an interest in buying the business. With danger closing in from all sides, he must navigate a deadly web of deception, power, and survival  -  where escape may no longer be an option."
+      }
+    }
   },
   {
     "id": "mov-931285",
@@ -1159,7 +1346,18 @@
     "tier": "premium",
     "contentType": "movie",
     "tmdbId": 931285,
-    "tmdbMediaType": "movie"
+    "tmdbMediaType": "movie",
+    "translations": {
+      "en": {
+        "description": "The fan favorite champions—now joined by Johnny Cage himself—are pitted against one another in the ultimate, no-holds barred, gory battle to defeat the dark rule of Shao Kahn that threatens the very existence of the Earthrealm and its defenders."
+      },
+      "id": {
+        "description": "Juara favorit penggemar - sekarang bergabung dengan Johnny Cage sendiri - diadu satu sama lain dalam pertempuran berdarah tanpa batas untuk mengalahkan aturan gelap Shao Kahn yang mengancam keberadaan Earthrealm dan para pembelanya."
+      },
+      "es": {
+        "description": "The fan favorite champions—now joined by Johnny Cage himself—are pitted against one another in the ultimate, no-holds barred, gory battle to defeat the dark rule of Shao Kahn that threatens the very existence of the Earthrealm and its defenders."
+      }
+    }
   },
   {
     "id": "mov-11012",
@@ -1223,7 +1421,18 @@
     "tier": "free",
     "contentType": "movie",
     "tmdbId": 11012,
-    "tmdbMediaType": "movie"
+    "tmdbMediaType": "movie",
+    "translations": {
+      "en": {
+        "description": "The life of a respected British politician at the height of his career crumbles when he becomes obsessed with his son's lover."
+      },
+      "id": {
+        "description": "Kehidupan seorang politisi Inggris yang disegani di puncak kariernya hancur ketika ia terobsesi dengan kekasih putranya."
+      },
+      "es": {
+        "description": "The life of a respected British politician at the height of his career crumbles when he becomes obsessed with his son's lover."
+      }
+    }
   },
   {
     "id": "mov-1226863",
@@ -1291,7 +1500,18 @@
     "tier": "vip",
     "contentType": "movie",
     "tmdbId": 1226863,
-    "tmdbMediaType": "movie"
+    "tmdbMediaType": "movie",
+    "translations": {
+      "en": {
+        "description": "Having thwarted Bowser's previous plot to marry Princess Peach, Mario and Luigi now face a fresh threat in Bowser Jr., who is determined to liberate his father from captivity and restore the family legacy. Alongside companions new and old, the brothers travel across the stars to stop the young heir's crusade."
+      },
+      "id": {
+        "description": "Setelah menggagalkan rencana Bowser sebelumnya untuk menikahi Putri Peach, Mario dan Luigi sekarang menghadapi ancaman baru di Bowser Jr. , yang bertekad untuk membebaskan ayahnya dari penangkaran dan memulihkan warisan keluarga. Bersama teman - teman baru dan lama, saudara - saudara melakukan perjalanan melintasi bintang - bintang untuk menghentikan perang salib pewaris muda itu."
+      },
+      "es": {
+        "description": "Having thwarted Bowser's previous plot to marry Princess Peach, Mario and Luigi now face a fresh threat in Bowser Jr., who is determined to liberate his father from captivity and restore the family legacy. Alongside companions new and old, the brothers travel across the stars to stop the young heir's crusade."
+      }
+    }
   },
   {
     "id": "mov-1155818",
@@ -1356,7 +1576,18 @@
     "tier": "free",
     "contentType": "movie",
     "tmdbId": 1155818,
-    "tmdbMediaType": "movie"
+    "tmdbMediaType": "movie",
+    "translations": {
+      "en": {
+        "description": "Triggered by the search for his missing aunt, human rights activist Jaswant Singh Khalra takes on a broken system in a courageous fight to uncover the conspiracy behind thousands of disappearances and extrajudicial killings during the nadir of Punjab’s period of insurgency."
+      },
+      "id": {
+        "description": "Dipicu oleh pencarian bibinya yang hilang, aktivis hak asasi manusia Jaswant Singh Khalra mengambil sistem yang rusak dalam perjuangan berani untuk mengungkap konspirasi di balik ribuan penghilangan dan pembunuhan di luar hukum selama nadir periode pemberontakan Punjab."
+      },
+      "es": {
+        "description": "Triggered by the search for his missing aunt, human rights activist Jaswant Singh Khalra takes on a broken system in a courageous fight to uncover the conspiracy behind thousands of disappearances and extrajudicial killings during the nadir of Punjab’s period of insurgency."
+      }
+    }
   },
   {
     "id": "mov-980431",
@@ -1422,7 +1653,18 @@
     "tier": "vip",
     "contentType": "movie",
     "tmdbId": 980431,
-    "tmdbMediaType": "movie"
+    "tmdbMediaType": "movie",
+    "translations": {
+      "en": {
+        "description": "Avatar Aang, the world's last Airbender, learns of an ancient power that could save his culture from extinction. With the help of his friends, he embarks on a global quest to find it before it falls into the wrong hands and threatens to upend the peace they sacrificed everything to achieve."
+      },
+      "id": {
+        "description": "Avatar Aang, Pengendali Udara terakhir di dunia, mengetahui kekuatan kuno yang dapat menyelamatkan budayanya dari kepunahan. Dengan bantuan teman - temannya, dia memulai pencarian global untuk menemukannya sebelum jatuh ke tangan yang salah dan mengancam untuk menjungkirbalikkan perdamaian yang mereka korbankan untuk dicapai."
+      },
+      "es": {
+        "description": "Avatar Aang, the world's last Airbender, learns of an ancient power that could save his culture from extinction. With the help of his friends, he embarks on a global quest to find it before it falls into the wrong hands and threatens to upend the peace they sacrificed everything to achieve."
+      }
+    }
   },
   {
     "id": "mov-83533",
@@ -1487,7 +1729,18 @@
     "tier": "premium",
     "contentType": "movie",
     "tmdbId": 83533,
-    "tmdbMediaType": "movie"
+    "tmdbMediaType": "movie",
+    "translations": {
+      "en": {
+        "description": "In the wake of the devastating war against the RDA and the loss of their eldest son, Jake Sully and Neytiri face a new threat on Pandora: the Ash People, a violent and power-hungry Na'vi tribe led by the ruthless Varang. Jake's family must fight for their survival and the future of Pandora in a conflict that pushes them to their emotional and physical limits."
+      },
+      "id": {
+        "description": "Setelah perang yang menghancurkan melawan RDA dan kehilangan putra sulung mereka, Jake Sully dan Neytiri menghadapi ancaman baru di Pandora: Orang Abu, suku Na'vi yang kejam dan haus kekuasaan yang dipimpin oleh Varang yang kejam. Keluarga Jake harus berjuang untuk kelangsungan hidup mereka dan masa depan Pandora dalam konflik yang mendorong mereka ke batas emosional dan fisik mereka."
+      },
+      "es": {
+        "description": "In the wake of the devastating war against the RDA and the loss of their eldest son, Jake Sully and Neytiri face a new threat on Pandora: the Ash People, a violent and power-hungry Na'vi tribe led by the ruthless Varang. Jake's family must fight for their survival and the future of Pandora in a conflict that pushes them to their emotional and physical limits."
+      }
+    }
   },
   {
     "id": "mov-1081003",
@@ -1552,7 +1805,18 @@
     "tier": "free",
     "contentType": "movie",
     "tmdbId": 1081003,
-    "tmdbMediaType": "movie"
+    "tmdbMediaType": "movie",
+    "translations": {
+      "en": {
+        "description": "When an unexpected and ruthless adversary strikes too close to home, Kara Zor-El, aka Supergirl, reluctantly joins forces with an unlikely companion on an epic, interstellar journey of vengeance and justice."
+      },
+      "id": {
+        "description": "Ketika musuh yang tak terduga dan kejam menyerang terlalu dekat dengan rumah, Kara Zor - El, alias Supergirl, dengan enggan bergabung dengan pasukan pendamping yang tidak mungkin dalam perjalanan pembalasan dan keadilan antarbintang yang epik."
+      },
+      "es": {
+        "description": "When an unexpected and ruthless adversary strikes too close to home, Kara Zor-El, aka Supergirl, reluctantly joins forces with an unlikely companion on an epic, interstellar journey of vengeance and justice."
+      }
+    }
   },
   {
     "id": "mov-1304313",
@@ -1616,7 +1880,18 @@
     "tier": "vip",
     "contentType": "movie",
     "tmdbId": 1304313,
-    "tmdbMediaType": "movie"
+    "tmdbMediaType": "movie",
+    "translations": {
+      "en": {
+        "description": "The young daughter of a journalist disappears into the desert without a trace—eight years later, the broken family is shocked when she is returned to them, as what should be a joyful reunion turns into a living nightmare."
+      },
+      "id": {
+        "description": "Putri muda seorang jurnalis menghilang ke padang pasir tanpa jejak - delapan tahun kemudian, keluarga yang hancur terkejut ketika dia dikembalikan kepada mereka, karena apa yang seharusnya menjadi reuni yang menyenangkan berubah menjadi mimpi buruk yang hidup."
+      },
+      "es": {
+        "description": "The young daughter of a journalist disappears into the desert without a trace—eight years later, the broken family is shocked when she is returned to them, as what should be a joyful reunion turns into a living nightmare."
+      }
+    }
   },
   {
     "id": "mov-64439",
@@ -1679,7 +1954,18 @@
     "tier": "premium",
     "contentType": "movie",
     "tmdbId": 64439,
-    "tmdbMediaType": "movie"
+    "tmdbMediaType": "movie",
+    "translations": {
+      "en": {
+        "description": "Mércedès, an actress from Paris attempts to break off a difficult relationship with the jealous and possessive stalker Johnny. She meets newspaper writer Pierre and goes with him for an afternoon fling. Before the sweat even dries, she finds herself hopelessly in love with him. But soon after their affair begins, he is called off on a business trip leaving the suddenly distraught Mércedès alone. Though preparing for a new play, she is unable to concentrate and barely able to function. Mércedès quits the production, locks herself in Pierre's apartment and quietly begins falling apart, collapsing into a bleak, reclusive madness until his return."
+      },
+      "id": {
+        "description": "Mércedès, seorang aktris dari Paris mencoba untuk memutuskan hubungan yang sulit dengan penguntit Johnny yang cemburu dan posesif. Dia bertemu penulis surat kabar Pierre dan pergi bersamanya untuk kencan sore. Bahkan sebelum keringat mengering, dia mendapati dirinya jatuh cinta padanya tanpa harapan. Tetapi segera setelah perselingkuhan mereka dimulai, dia dibatalkan dalam perjalanan bisnis meninggalkan Mércedès yang tiba - tiba putus asa sendirian. Meskipun mempersiapkan drama baru, dia tidak dapat berkonsentrasi dan hampir tidak dapat berfungsi. Mércedès berhenti dari produksi, mengunci diri di apartemen Pierre dan diam - diam mulai berantakan, jatuh ke dalam kegilaan yang suram dan tertutup sampai dia kembali."
+      },
+      "es": {
+        "description": "Mércedès, an actress from Paris attempts to break off a difficult relationship with the jealous and possessive stalker Johnny. She meets newspaper writer Pierre and goes with him for an afternoon fling. Before the sweat even dries, she finds herself hopelessly in love with him. But soon after their affair begins, he is called off on a business trip leaving the suddenly distraught Mércedès alone. Though preparing for a new play, she is unable to concentrate and barely able to function. Mércedès quits the production, locks herself in Pierre's apartment and quietly begins falling apart, collapsing into a bleak, reclusive madness until his return."
+      }
+    }
   },
   {
     "id": "mov-1228710",
@@ -1744,7 +2030,18 @@
     "tier": "free",
     "contentType": "movie",
     "tmdbId": 1228710,
-    "tmdbMediaType": "movie"
+    "tmdbMediaType": "movie",
+    "translations": {
+      "en": {
+        "description": "The evil Empire has fallen, and Imperial warlords remain scattered throughout the galaxy. As the fledgling New Republic works to protect everything the Rebellion fought for, they have enlisted the help of legendary Mandalorian bounty hunter Din Djarin and his young apprentice Grogu."
+      },
+      "id": {
+        "description": "Kekaisaran jahat telah jatuh, dan panglima perang Kekaisaran tetap tersebar di seluruh galaksi. Saat Republik Baru yang masih muda bekerja untuk melindungi semua yang diperjuangkan Pemberontakan, mereka telah meminta bantuan pemburu hadiah Mandalorian legendaris Din Djarin dan murid mudanya Grogu."
+      },
+      "es": {
+        "description": "The evil Empire has fallen, and Imperial warlords remain scattered throughout the galaxy. As the fledgling New Republic works to protect everything the Rebellion fought for, they have enlisted the help of legendary Mandalorian bounty hunter Din Djarin and his young apprentice Grogu."
+      }
+    }
   },
   {
     "id": "mov-976912",
@@ -1808,7 +2105,18 @@
     "tier": "vip",
     "contentType": "movie",
     "tmdbId": 976912,
-    "tmdbMediaType": "movie"
+    "tmdbMediaType": "movie",
+    "translations": {
+      "en": {
+        "description": "When reclusive Franklin cheats on his partner with a mysterious girl he meets on a dating app, it becomes the start of a deadly obsession."
+      },
+      "id": {
+        "description": "Ketika Franklin yang tertutup menipu pasangannya dengan seorang gadis misterius yang dia temui di aplikasi kencan, itu menjadi awal dari obsesi yang mematikan."
+      },
+      "es": {
+        "description": "When reclusive Franklin cheats on his partner with a mysterious girl he meets on a dating app, it becomes the start of a deadly obsession."
+      }
+    }
   },
   {
     "id": "mov-1397385",
@@ -1871,7 +2179,18 @@
     "tier": "premium",
     "contentType": "movie",
     "tmdbId": 1397385,
-    "tmdbMediaType": "movie"
+    "tmdbMediaType": "movie",
+    "translations": {
+      "en": {
+        "description": "A tightly wound realtor's picture-perfect life gets an extreme makeover when his lovably chaotic \"little brother\" suddenly reappears."
+      },
+      "id": {
+        "description": "Kehidupan sempurna seorang makelar yang terluka parah mendapat perubahan ekstrim ketika \"adik laki - lakinya\" yang kacau balau tiba - tiba muncul kembali."
+      },
+      "es": {
+        "description": "A tightly wound realtor's picture-perfect life gets an extreme makeover when his lovably chaotic \"little brother\" suddenly reappears."
+      }
+    }
   },
   {
     "id": "mov-1368337",
@@ -1936,7 +2255,18 @@
     "tier": "free",
     "contentType": "movie",
     "tmdbId": 1368337,
-    "tmdbMediaType": "movie"
+    "tmdbMediaType": "movie",
+    "translations": {
+      "en": {
+        "description": "Odysseus, the legendary King of Ithaca, embarks on a long and perilous journey home following the Trojan War. Throughout his voyage, he is forced to confront the whims of gods, mythological monsters, and trials that stretch both his cunning and his humanity to the breaking point."
+      },
+      "id": {
+        "description": "Odiseus, Raja Ithaca yang legendaris, memulai perjalanan pulang yang panjang dan berbahaya setelah Perang Troya. Sepanjang perjalanannya, dia dipaksa untuk menghadapi keinginan para dewa, monster mitologis, dan cobaan yang meregangkan kelicikan dan kemanusiaannya hingga titik puncak."
+      },
+      "es": {
+        "description": "Odysseus, the legendary King of Ithaca, embarks on a long and perilous journey home following the Trojan War. Throughout his voyage, he is forced to confront the whims of gods, mythological monsters, and trials that stretch both his cunning and his humanity to the breaking point."
+      }
+    }
   },
   {
     "id": "mov-301528",
@@ -2002,7 +2332,18 @@
     "tier": "vip",
     "contentType": "movie",
     "tmdbId": 301528,
-    "tmdbMediaType": "movie"
+    "tmdbMediaType": "movie",
+    "translations": {
+      "en": {
+        "description": "Woody has always been confident about his place in the world, devoted to taking care of his kid—whether that's Andy or Bonnie. But after Bonnie creates a reluctant new toy called \"Forky\", a road trip adventure alongside old and new friends challenges everything Woody believes about loyalty, purpose, and what it truly means to be a toy."
+      },
+      "id": {
+        "description": "Woody selalu yakin tentang tempatnya di dunia, mengabdikan diri untuk merawat anaknya - entah itu Andy atau Bonnie. Tetapi setelah Bonnie menciptakan mainan baru yang enggan disebut \"Forky \", petualangan perjalanan bersama teman - teman lama dan baru menantang semua yang Woody yakini tentang kesetiaan, tujuan, dan apa artinya menjadi mainan."
+      },
+      "es": {
+        "description": "Woody has always been confident about his place in the world, devoted to taking care of his kid—whether that's Andy or Bonnie. But after Bonnie creates a reluctant new toy called \"Forky\", a road trip adventure alongside old and new friends challenges everything Woody believes about loyalty, purpose, and what it truly means to be a toy."
+      }
+    }
   },
   {
     "id": "mov-1309083",
@@ -2065,7 +2406,18 @@
     "tier": "premium",
     "contentType": "movie",
     "tmdbId": 1309083,
-    "tmdbMediaType": "movie"
+    "tmdbMediaType": "movie",
+    "translations": {
+      "en": {
+        "description": "Young Macy is abducted by a deranged, monstrous figure who wants to raise her as its child."
+      },
+      "id": {
+        "description": "Macy muda diculik oleh sosok gila dan mengerikan yang ingin membesarkannya sebagai anaknya."
+      },
+      "es": {
+        "description": "Young Macy is abducted by a deranged, monstrous figure who wants to raise her as its child."
+      }
+    }
   },
   {
     "id": "mov-1007757",
@@ -2131,7 +2483,18 @@
     "tier": "free",
     "contentType": "movie",
     "tmdbId": 1007757,
-    "tmdbMediaType": "movie"
+    "tmdbMediaType": "movie",
+    "translations": {
+      "en": {
+        "description": "A small woodland creature and a majestic bird, two natural sworn enemies of the Valley, magically trade places and set off on an adventure of a lifetime to switch back. Their journey soon uncovers a greater threat—one that could endanger not only their species, but the entire valley they call home."
+      },
+      "id": {
+        "description": "Makhluk hutan kecil dan burung yang agung, dua musuh bebuyutan alami Lembah, secara ajaib bertukar tempat dan memulai petualangan seumur hidup untuk beralih kembali. Perjalanan mereka segera mengungkap ancaman yang lebih besar - ancaman yang tidak hanya dapat membahayakan spesies mereka, tetapi juga seluruh lembah yang mereka sebut rumah."
+      },
+      "es": {
+        "description": "A small woodland creature and a majestic bird, two natural sworn enemies of the Valley, magically trade places and set off on an adventure of a lifetime to switch back. Their journey soon uncovers a greater threat—one that could endanger not only their species, but the entire valley they call home."
+      }
+    }
   },
   {
     "id": "mov-1645603",
@@ -2194,7 +2557,18 @@
     "tier": "vip",
     "contentType": "movie",
     "tmdbId": 1645603,
-    "tmdbMediaType": "movie"
+    "tmdbMediaType": "movie",
+    "translations": {
+      "en": {
+        "description": "A ragtag group barricade themselves in an old Pennsylvania farmhouse to remain safe from a horde of flesh-eating ghouls ravaging the Northeast."
+      },
+      "id": {
+        "description": "Sebuah kelompok sampah masyarakat membarikade diri mereka sendiri di sebuah rumah pertanian tua di Pennsylvania agar tetap aman dari gerombolan hantu pemakan daging yang melanda Timur Laut."
+      },
+      "es": {
+        "description": "A ragtag group barricade themselves in an old Pennsylvania farmhouse to remain safe from a horde of flesh-eating ghouls ravaging the Northeast."
+      }
+    }
   },
   {
     "id": "mov-1327819",
@@ -2261,7 +2635,18 @@
     "tier": "premium",
     "contentType": "movie",
     "tmdbId": 1327819,
-    "tmdbMediaType": "movie"
+    "tmdbMediaType": "movie",
+    "translations": {
+      "en": {
+        "description": "Scientists have discovered how to 'hop' human consciousness into lifelike robotic animals, allowing people to communicate with animals as animals. Animal lover Mabel seizes an opportunity to use the technology, uncovering mysteries within the animal world beyond anything she could have imagined."
+      },
+      "id": {
+        "description": "Para ilmuwan telah menemukan cara 'melompat' kesadaran manusia ke dalam hewan robot yang hidup, memungkinkan orang untuk berkomunikasi dengan hewan sebagai hewan. Pencinta hewan Mabel memanfaatkan kesempatan untuk menggunakan teknologi ini, mengungkap misteri dalam dunia hewan di luar apa pun yang bisa dia bayangkan."
+      },
+      "es": {
+        "description": "Scientists have discovered how to 'hop' human consciousness into lifelike robotic animals, allowing people to communicate with animals as animals. Animal lover Mabel seizes an opportunity to use the technology, uncovering mysteries within the animal world beyond anything she could have imagined."
+      }
+    }
   },
   {
     "id": "mov-969681",
@@ -2326,7 +2711,18 @@
     "tier": "free",
     "contentType": "movie",
     "tmdbId": 969681,
-    "tmdbMediaType": "movie"
+    "tmdbMediaType": "movie",
+    "translations": {
+      "en": {
+        "description": "Fighting crime full-time as Spider-Man in a world that doesn't remember him—and the pressure of seeing his old friends move on without him—sparks a change in Peter Parker he may not have the power to control. But that transformation might also be the only thing that can stop a shocking new threat to the city and those he loves - a powerful villain no one can even see."
+      },
+      "id": {
+        "description": "Memerangi kejahatan penuh waktu sebagai Spider - Man di dunia yang tidak mengingatnya - dan tekanan untuk melihat teman - teman lamanya bergerak tanpanya - memicu perubahan pada Peter Parker yang mungkin tidak dapat dia kendalikan. Tetapi transformasi itu mungkin juga satu - satunya hal yang dapat menghentikan ancaman baru yang mengejutkan bagi kota dan orang - orang yang dicintainya - penjahat kuat yang bahkan tidak bisa dilihat siapa pun."
+      },
+      "es": {
+        "description": "Fighting crime full-time as Spider-Man in a world that doesn't remember him—and the pressure of seeing his old friends move on without him—sparks a change in Peter Parker he may not have the power to control. But that transformation might also be the only thing that can stop a shocking new threat to the city and those he loves - a powerful villain no one can even see."
+      }
+    }
   },
   {
     "id": "mov-1311031",
@@ -2391,7 +2787,18 @@
     "tier": "vip",
     "contentType": "movie",
     "tmdbId": 1311031,
-    "tmdbMediaType": "movie"
+    "tmdbMediaType": "movie",
+    "translations": {
+      "en": {
+        "description": "The Demon Slayer Corps are drawn into the Infinity Castle, where Tanjiro, Nezuko, and the Hashira face terrifying Upper Rank demons in a desperate fight as the final battle against Muzan Kibutsuji begins."
+      },
+      "id": {
+        "description": "Korps Pembunuh Iblis ditarik ke dalam Kastil Infinity, di mana Tanjiro, Nezuko, dan Hashira menghadapi iblis Peringkat Atas yang menakutkan dalam pertarungan putus asa saat pertempuran terakhir melawan Muzan Kibutsuji dimulai."
+      },
+      "es": {
+        "description": "The Demon Slayer Corps are drawn into the Infinity Castle, where Tanjiro, Nezuko, and the Hashira face terrifying Upper Rank demons in a desperate fight as the final battle against Muzan Kibutsuji begins."
+      }
+    }
   },
   {
     "id": "mov-1439930",
@@ -2456,7 +2863,18 @@
     "tier": "premium",
     "contentType": "movie",
     "tmdbId": 1439930,
-    "tmdbMediaType": "movie"
+    "tmdbMediaType": "movie",
+    "translations": {
+      "en": {
+        "description": "As Frank Castle searches for meaning beyond revenge, an unexpected force pulls him back into the fight."
+      },
+      "id": {
+        "description": "Saat Frank Castle mencari makna di luar balas dendam, kekuatan tak terduga menariknya kembali ke pertarungan."
+      },
+      "es": {
+        "description": "As Frank Castle searches for meaning beyond revenge, an unexpected force pulls him back into the fight."
+      }
+    }
   },
   {
     "id": "mov-614945",
@@ -2520,7 +2938,18 @@
     "tier": "free",
     "contentType": "movie",
     "tmdbId": 614945,
-    "tmdbMediaType": "movie"
+    "tmdbMediaType": "movie",
+    "translations": {
+      "en": {
+        "description": "A young woman's hilariously confessional voicemails to her late sister are unknowingly redirected to a stranger, who begins to fall in love from afar."
+      },
+      "id": {
+        "description": "Pesan suara pengakuan seorang wanita muda yang lucu kepada almarhum saudara perempuannya tanpa sadar dialihkan ke orang asing, yang mulai jatuh cinta dari jauh."
+      },
+      "es": {
+        "description": "A young woman's hilariously confessional voicemails to her late sister are unknowingly redirected to a stranger, who begins to fall in love from afar."
+      }
+    }
   },
   {
     "id": "mov-1122573",
@@ -2584,7 +3013,18 @@
     "tier": "vip",
     "contentType": "movie",
     "tmdbId": 1122573,
-    "tmdbMediaType": "movie"
+    "tmdbMediaType": "movie",
+    "translations": {
+      "en": {
+        "description": "A covert team of elite operatives are living in the shadows. When a ruthless despot steals a billion-dollar fortune, they're sent to take it back—an impossible heist that erupts into a deadly game of strategy, deception and survival."
+      },
+      "id": {
+        "description": "Sebuah tim rahasia yang terdiri dari para operator elit hidup dalam bayang - bayang. Ketika seorang lalim yang kejam mencuri kekayaan miliaran dolar, mereka dikirim untuk mengambilnya kembali - pencurian mustahil yang meletus menjadi permainan strategi, penipuan, dan kelangsungan hidup yang mematikan."
+      },
+      "es": {
+        "description": "A covert team of elite operatives are living in the shadows. When a ruthless despot steals a billion-dollar fortune, they're sent to take it back—an impossible heist that erupts into a deadly game of strategy, deception and survival."
+      }
+    }
   },
   {
     "id": "mov-1301310",
@@ -2648,7 +3088,18 @@
     "tier": "premium",
     "contentType": "movie",
     "tmdbId": 1301310,
-    "tmdbMediaType": "movie"
+    "tmdbMediaType": "movie",
+    "translations": {
+      "en": {
+        "description": "During WW2, a group of assembled allied forces are sent to a secret nuclear bunker occupied by Nazi Germany to  uncover the operations of what's been occurring there. But when they discover the bunker is infested with rabid, zombie, super-humans in a nuclear testing operation gone wrong, they must destroy every last one in hopes of survival."
+      },
+      "id": {
+        "description": "Selama Perang Dunia II, sekelompok pasukan sekutu yang berkumpul dikirim ke bunker nuklir rahasia yang diduduki oleh Nazi Jerman untuk  mengungkap operasi apa yang telah terjadi di sana. Tetapi ketika mereka menemukan bunker dipenuhi dengan manusia super yang gila, zombie, dalam operasi pengujian nuklir yang salah, mereka harus menghancurkan setiap yang terakhir dengan harapan bertahan hidup."
+      },
+      "es": {
+        "description": "During WW2, a group of assembled allied forces are sent to a secret nuclear bunker occupied by Nazi Germany to  uncover the operations of what's been occurring there. But when they discover the bunker is infested with rabid, zombie, super-humans in a nuclear testing operation gone wrong, they must destroy every last one in hopes of survival."
+      }
+    }
   },
   {
     "id": "mov-1108427",
@@ -2714,7 +3165,18 @@
     "tier": "free",
     "contentType": "movie",
     "tmdbId": 1108427,
-    "tmdbMediaType": "movie"
+    "tmdbMediaType": "movie",
+    "translations": {
+      "en": {
+        "description": "Moana answers the Ocean's call and, for the first time, voyages beyond the reef of her island of Motunui with the infamous demigod Maui on an unforgettable journey to restore prosperity to her people."
+      },
+      "id": {
+        "description": "Moana menjawab panggilan Samudra dan, untuk pertama kalinya, melakukan pelayaran di luar terumbu karangnya di pulau Motunui dengan Maui setengah dewa yang terkenal dalam perjalanan yang tak terlupakan untuk mengembalikan kemakmuran bagi rakyatnya."
+      },
+      "es": {
+        "description": "Moana answers the Ocean's call and, for the first time, voyages beyond the reef of her island of Motunui with the infamous demigod Maui on an unforgettable journey to restore prosperity to her people."
+      }
+    }
   },
   {
     "id": "mov-5721",
@@ -2777,7 +3239,18 @@
     "tier": "vip",
     "contentType": "movie",
     "tmdbId": 5721,
-    "tmdbMediaType": "movie"
+    "tmdbMediaType": "movie",
+    "translations": {
+      "en": {
+        "description": "In a Canadian mountain resort, Vixen Palmer resides with her naive pilot husband Tom. While he's away flying in tourists, she sleeps with practically everybody including a husband and his wife, and even her biker brother. However, the only one she won't bed is her brother's friend... who is Black."
+      },
+      "id": {
+        "description": "Di sebuah resor pegunungan Kanada, Vixen Palmer tinggal bersama suami pilotnya yang naif, Tom. Sementara dia pergi terbang dengan turis, dia tidur dengan hampir semua orang termasuk suami dan istrinya, dan bahkan saudara laki - lakinya yang pengendara motor. Namun, satu - satunya yang tidak akan dia tiduri adalah teman kakaknya... yang berkulit Hitam."
+      },
+      "es": {
+        "description": "In a Canadian mountain resort, Vixen Palmer resides with her naive pilot husband Tom. While he's away flying in tourists, she sleeps with practically everybody including a husband and his wife, and even her biker brother. However, the only one she won't bed is her brother's friend... who is Black."
+      }
+    }
   },
   {
     "id": "mov-949536",
@@ -2842,7 +3315,18 @@
     "tier": "premium",
     "contentType": "movie",
     "tmdbId": 949536,
-    "tmdbMediaType": "movie"
+    "tmdbMediaType": "movie",
+    "translations": {
+      "en": {
+        "description": "North America has been divided into four main quadrants. A power-hungry corporation has taken over the conventional prison system and made criminals the new law enforcers.  The owner of that corporation, nanoscientist Eion Prescott, created a nano-virus called Onyx. Which is distributed through deadly watches to criminals. First, infecting them. Then, forcing them into eliminating each other for freedom. Who can topple the corporation's entire system from within?"
+      },
+      "id": {
+        "description": "Amerika Utara telah dibagi menjadi empat kuadran utama. Sebuah perusahaan yang haus kekuasaan telah mengambil alih sistem penjara konvensional dan menjadikan penjahat sebagai penegak hukum baru. Pemilik perusahaan itu, ilmuwan nano Eion Prescott, menciptakan virus nano yang disebut Onyx. Yang didistribusikan melalui jam tangan mematikan kepada penjahat. Pertama, menginfeksi mereka. Kemudian, memaksa mereka untuk menghilangkan satu sama lain demi kebebasan. Siapa yang dapat menggulingkan seluruh sistem perusahaan dari dalam?"
+      },
+      "es": {
+        "description": "North America has been divided into four main quadrants. A power-hungry corporation has taken over the conventional prison system and made criminals the new law enforcers.  The owner of that corporation, nanoscientist Eion Prescott, created a nano-virus called Onyx. Which is distributed through deadly watches to criminals. First, infecting them. Then, forcing them into eliminating each other for freedom. Who can topple the corporation's entire system from within?"
+      }
+    }
   },
   {
     "id": "mov-862",
@@ -2908,7 +3392,18 @@
     "tier": "free",
     "contentType": "movie",
     "tmdbId": 862,
-    "tmdbMediaType": "movie"
+    "tmdbMediaType": "movie",
+    "translations": {
+      "en": {
+        "description": "Led by Woody, Andy's toys live happily in his room until Andy's birthday brings Buzz Lightyear onto the scene. Afraid of losing his place in Andy's heart, Woody plots against Buzz. But when circumstances separate Buzz and Woody from their owner, the duo eventually learns to put aside their differences."
+      },
+      "id": {
+        "description": "Dipimpin oleh Woody, mainan Andy hidup bahagia di kamarnya sampai ulang tahun Andy membawa Buzz Lightyear ke tempat kejadian. Takut kehilangan tempatnya di hati Andy, Woody berkomplot melawan Buzz. Tetapi ketika keadaan memisahkan Buzz dan Woody dari pemiliknya, keduanya akhirnya belajar untuk mengesampingkan perbedaan mereka."
+      },
+      "es": {
+        "description": "Led by Woody, Andy's toys live happily in his room until Andy's birthday brings Buzz Lightyear onto the scene. Afraid of losing his place in Andy's heart, Woody plots against Buzz. But when circumstances separate Buzz and Woody from their owner, the duo eventually learns to put aside their differences."
+      }
+    }
   },
   {
     "id": "mov-28322",
@@ -2973,7 +3468,18 @@
     "tier": "vip",
     "contentType": "movie",
     "tmdbId": 28322,
-    "tmdbMediaType": "movie"
+    "tmdbMediaType": "movie",
+    "translations": {
+      "en": {
+        "description": "An escaped convicted murderer invades the cottage of a man, his wife and the wife's sister, whereupon he proceeds to torment this already dysfunctional trio with rape and violence."
+      },
+      "id": {
+        "description": "Seorang pembunuh terpidana yang melarikan diri menyerbu pondok seorang pria, istrinya, dan saudara perempuan istri, di mana ia mulai menyiksa trio yang sudah disfungsional ini dengan pemerkosaan dan kekerasan."
+      },
+      "es": {
+        "description": "An escaped convicted murderer invades the cottage of a man, his wife and the wife's sister, whereupon he proceeds to torment this already dysfunctional trio with rape and violence."
+      }
+    }
   },
   {
     "id": "mov-1169516",
@@ -3039,7 +3545,18 @@
     "tier": "premium",
     "contentType": "movie",
     "tmdbId": 1169516,
-    "tmdbMediaType": "movie"
+    "tmdbMediaType": "movie",
+    "translations": {
+      "en": {
+        "description": "A group of quirky characters gets stuck in a dangerous jungle during a chaotic mission. Filled with confusion, criminals, and hilarious situations, they must work together to survive and find their way out."
+      },
+      "id": {
+        "description": "Sekelompok karakter unik terjebak di hutan berbahaya selama misi yang kacau. Dipenuhi dengan kebingungan, penjahat, dan situasi lucu, mereka harus bekerja sama untuk bertahan hidup dan menemukan jalan keluar."
+      },
+      "es": {
+        "description": "A group of quirky characters gets stuck in a dangerous jungle during a chaotic mission. Filled with confusion, criminals, and hilarious situations, they must work together to survive and find their way out."
+      }
+    }
   },
   {
     "id": "mov-1241752",
@@ -3102,7 +3619,18 @@
     "tier": "free",
     "contentType": "movie",
     "tmdbId": 1241752,
-    "tmdbMediaType": "movie"
+    "tmdbMediaType": "movie",
+    "translations": {
+      "en": {
+        "description": "Rita, who finds herself alone when husband Ariel works abroad. They both find solace and sexual satisfaction in other people. When Ariel comes back, they both act like nothing happened. But will this keep their marriage from falling apart?"
+      },
+      "id": {
+        "description": "Rita, yang mendapati dirinya sendirian ketika suami Ariel bekerja di luar negeri. Mereka berdua menemukan penghiburan dan kepuasan seksual pada orang lain. Ketika Ariel kembali, mereka berdua bertingkah seperti tidak terjadi apa - apa. Tetapi apakah ini akan membuat pernikahan mereka tidak berantakan?"
+      },
+      "es": {
+        "description": "Rita, who finds herself alone when husband Ariel works abroad. They both find solace and sexual satisfaction in other people. When Ariel comes back, they both act like nothing happened. But will this keep their marriage from falling apart?"
+      }
+    }
   },
   {
     "id": "mov-157336",
@@ -3167,7 +3695,18 @@
     "tier": "vip",
     "contentType": "movie",
     "tmdbId": 157336,
-    "tmdbMediaType": "movie"
+    "tmdbMediaType": "movie",
+    "translations": {
+      "en": {
+        "description": "The adventures of a group of explorers who make use of a newly discovered wormhole to surpass the limitations on human space travel and conquer the vast distances involved in an interstellar voyage."
+      },
+      "id": {
+        "description": "Petualangan sekelompok penjelajah yang memanfaatkan lubang cacing yang baru ditemukan untuk melampaui keterbatasan perjalanan ruang angkasa manusia dan menaklukkan jarak yang sangat jauh yang terlibat dalam perjalanan antarbintang."
+      },
+      "es": {
+        "description": "The adventures of a group of explorers who make use of a newly discovered wormhole to surpass the limitations on human space travel and conquer the vast distances involved in an interstellar voyage."
+      }
+    }
   },
   {
     "id": "mov-tv-243206",
@@ -3282,7 +3821,18 @@
       }
     ],
     "tmdbId": 243206,
-    "tmdbMediaType": "tv"
+    "tmdbMediaType": "tv",
+    "translations": {
+      "en": {
+        "description": "The dynamic between the two contrasting personalities, a seasoned cop who prefers old-school methods and a tech-savvy cop who relies on modern technology for investigations, as they navigate their partnership in solving crimes."
+      },
+      "id": {
+        "description": "Dinamika antara dua kepribadian yang kontras, seorang polisi berpengalaman yang lebih menyukai metode sekolah lama dan seorang polisi yang paham teknologi yang mengandalkan teknologi modern untuk penyelidikan, saat mereka menavigasi kemitraan mereka dalam menyelesaikan kejahatan."
+      },
+      "es": {
+        "description": "The dynamic between the two contrasting personalities, a seasoned cop who prefers old-school methods and a tech-savvy cop who relies on modern technology for investigations, as they navigate their partnership in solving crimes."
+      }
+    }
   },
   {
     "id": "mov-tv-124364",
@@ -3443,7 +3993,18 @@
       }
     ],
     "tmdbId": 124364,
-    "tmdbMediaType": "tv"
+    "tmdbMediaType": "tv",
+    "translations": {
+      "en": {
+        "description": "Unravel the mystery of a nightmarish town in middle America that traps all those who enter. As the unwilling residents fight to keep a sense of normalcy and search for a way out, they must also survive the threats of the surrounding forest – including the terrifying creatures that come out when the sun goes down."
+      },
+      "id": {
+        "description": "Mengungkap misteri kota mimpi buruk di Amerika tengah yang menjebak semua orang yang masuk. Ketika penduduk yang tidak mau berjuang untuk menjaga rasa normal dan mencari jalan keluar, mereka juga harus selamat dari ancaman hutan di sekitarnya – termasuk makhluk mengerikan yang keluar ketika matahari terbenam."
+      },
+      "es": {
+        "description": "Unravel the mystery of a nightmarish town in middle America that traps all those who enter. As the unwilling residents fight to keep a sense of normalcy and search for a way out, they must also survive the threats of the surrounding forest – including the terrifying creatures that come out when the sun goes down."
+      }
+    }
   },
   {
     "id": "mov-tv-94997",
@@ -3605,7 +4166,18 @@
       }
     ],
     "tmdbId": 94997,
-    "tmdbMediaType": "tv"
+    "tmdbMediaType": "tv",
+    "translations": {
+      "en": {
+        "description": "The Targaryen dynasty is at the absolute apex of its power, with more than 15 dragons under their yoke. Most empires crumble from such heights. In the case of the Targaryens, their slow fall begins when King Viserys breaks with a century of tradition by naming his daughter Rhaenyra heir to the Iron Throne. But when Viserys later fathers a son, the court is shocked when Rhaenyra retains her status as his heir, and seeds of division sow friction across the realm."
+      },
+      "id": {
+        "description": "Dinasti Targaryen berada di puncak kekuasaannya, dengan lebih dari 15 naga di bawah kuk mereka. Sebagian besar kerajaan runtuh dari ketinggian seperti itu. Dalam kasus Targaryens, kejatuhan mereka yang lambat dimulai ketika Raja Viserys melanggar tradisi selama satu abad dengan menamai putrinya Rhaenyra pewaris Tahta Besi. Tetapi ketika Viserys kemudian memiliki seorang putra, pengadilan terkejut ketika Rhaenyra mempertahankan statusnya sebagai ahli warisnya, dan benih perpecahan menabur gesekan di seluruh wilayah."
+      },
+      "es": {
+        "description": "The Targaryen dynasty is at the absolute apex of its power, with more than 15 dragons under their yoke. Most empires crumble from such heights. In the case of the Targaryens, their slow fall begins when King Viserys breaks with a century of tradition by naming his daughter Rhaenyra heir to the Iron Throne. But when Viserys later fathers a son, the court is shocked when Rhaenyra retains her status as his heir, and seeds of division sow friction across the realm."
+      }
+    }
   },
   {
     "id": "mov-tv-4304",
@@ -3756,7 +4328,18 @@
       }
     ],
     "tmdbId": 4304,
-    "tmdbMediaType": "tv"
+    "tmdbMediaType": "tv",
+    "translations": {
+      "en": {
+        "description": "Xplay (previously GameSpot TV and Extended Play) is a TV program about video games. The program, known for its reviews and comedy skits, airs on G4 in the United States and had aired on G4 Canada in Canada (and briefly on YTV during its time as GameSpot TV), FUEL TV in Australia, Ego in Israel, GXT in Italy, MTV Russia & Rambler TV in Russia, Solar Sports in the Philippines and Adult Swim and MuchMusic in Latin America. The show ran between July 4, 1998, and January 23, 2013, and returned in November 2021 as a part of G4's relaunch."
+      },
+      "id": {
+        "description": "Xplay (sebelumnya GameSpot TV dan Extended Play) adalah program TV tentang video game. Program ini, yang dikenal dengan ulasan dan sandiwara komedi, mengudara di G4 di Amerika Serikat dan telah ditayangkan di G4 Kanada di Kanada (dan secara singkat di YTV selama waktunya sebagai GameSpot TV), FUEL TV di Australia, Ego di Israel, GXT di Italia, MTV Rusia & Rambler TV di Rusia, Solar Sports di Filipina dan Adult Swim dan MuchMusic di Amerika Latin. Acara ini berlangsung antara 4 Juli 1998 dan 23 Januari 2013, dan kembali pada November 2021 sebagai bagian dari peluncuran kembali G4."
+      },
+      "es": {
+        "description": "Xplay (previously GameSpot TV and Extended Play) is a TV program about video games. The program, known for its reviews and comedy skits, airs on G4 in the United States and had aired on G4 Canada in Canada (and briefly on YTV during its time as GameSpot TV), FUEL TV in Australia, Ego in Israel, GXT in Italy, MTV Russia & Rambler TV in Russia, Solar Sports in the Philippines and Adult Swim and MuchMusic in Latin America. The show ran between July 4, 1998, and January 23, 2013, and returned in November 2021 as a part of G4's relaunch."
+      }
+    }
   },
   {
     "id": "mov-tv-94664",
@@ -3917,7 +4500,18 @@
       }
     ],
     "tmdbId": 94664,
-    "tmdbMediaType": "tv"
+    "tmdbMediaType": "tv",
+    "translations": {
+      "en": {
+        "description": "When a 34-year-old underachiever gets run over by a truck, his story doesn't end there. Reincarnated in a new world as an infant, Rudy will seize every opportunity to live the life he's always wanted. Armed with new friends, some freshly acquired magical abilities, and the courage to do the things he's always dreamed of, he's embarking on an epic adventure—with all of his past experience intact!"
+      },
+      "id": {
+        "description": "Ketika seorang anak berusia 34 tahun yang kurang berprestasi ditabrak truk, ceritanya tidak berakhir di sana. Terlahir kembali di dunia baru sebagai bayi, Rudy akan memanfaatkan setiap kesempatan untuk menjalani kehidupan yang selalu diinginkannya. Berbekal teman - teman baru, beberapa kemampuan magis yang baru diperoleh, dan keberanian untuk melakukan hal - hal yang selalu dia impikan, dia memulai petualangan epik - dengan semua pengalaman masa lalunya yang utuh!"
+      },
+      "es": {
+        "description": "When a 34-year-old underachiever gets run over by a truck, his story doesn't end there. Reincarnated in a new world as an infant, Rudy will seize every opportunity to live the life he's always wanted. Armed with new friends, some freshly acquired magical abilities, and the courage to do the things he's always dreamed of, he's embarking on an epic adventure—with all of his past experience intact!"
+      }
+    }
   },
   {
     "id": "mov-tv-2734",
@@ -4078,7 +4672,18 @@
       }
     ],
     "tmdbId": 2734,
-    "tmdbMediaType": "tv"
+    "tmdbMediaType": "tv",
+    "translations": {
+      "en": {
+        "description": "In the criminal justice system, sexually-based offenses are considered especially heinous. In New York City, the dedicated detectives who investigate these vicious felonies are members of an elite squad known as the Special Victims Unit. These are their stories."
+      },
+      "id": {
+        "description": "In the criminal justice system, sexually-based offenses are considered especially heinous. In New York City, the dedicated detectives who investigate these vicious felonies are members of an elite squad known as the Special Victims Unit. These are their stories."
+      },
+      "es": {
+        "description": "In the criminal justice system, sexually-based offenses are considered especially heinous. In New York City, the dedicated detectives who investigate these vicious felonies are members of an elite squad known as the Special Victims Unit. These are their stories."
+      }
+    }
   },
   {
     "id": "mov-tv-241002",
@@ -4190,7 +4795,18 @@
       }
     ],
     "tmdbId": 241002,
-    "tmdbMediaType": "tv"
+    "tmdbMediaType": "tv",
+    "translations": {
+      "en": {
+        "description": "This is the story of a boy, who became the lone Adam among four billion Eves. In a world where a pandemic has rendered all men impotent, high school student Itsuki is the exception who escaped it. In order to protect this secret, he transfers to a very special high school, which turns out to be composed of 90% girls! There, he encounters an upbeat and friendly senior, a sexually frustrated female teacher, a tomboyish school 'prince,' and an heiress from a wealthy family. For Itsuki, who has his pick of any woman in the world, the question remains: which one will he choose?"
+      },
+      "id": {
+        "description": "This is the story of a boy, who became the lone Adam among four billion Eves. In a world where a pandemic has rendered all men impotent, high school student Itsuki is the exception who escaped it. In order to protect this secret, he transfers to a very special high school, which turns out to be composed of 90% girls! There, he encounters an upbeat and friendly senior, a sexually frustrated female teacher, a tomboyish school 'prince,' and an heiress from a wealthy family. For Itsuki, who has his pick of any woman in the world, the question remains: which one will he choose?"
+      },
+      "es": {
+        "description": "This is the story of a boy, who became the lone Adam among four billion Eves. In a world where a pandemic has rendered all men impotent, high school student Itsuki is the exception who escaped it. In order to protect this secret, he transfers to a very special high school, which turns out to be composed of 90% girls! There, he encounters an upbeat and friendly senior, a sexually frustrated female teacher, a tomboyish school 'prince,' and an heiress from a wealthy family. For Itsuki, who has his pick of any woman in the world, the question remains: which one will he choose?"
+      }
+    }
   },
   {
     "id": "mov-tv-17892",
@@ -4350,7 +4966,18 @@
       }
     ],
     "tmdbId": 17892,
-    "tmdbMediaType": "tv"
+    "tmdbMediaType": "tv",
+    "translations": {
+      "en": {
+        "description": "Unter uns is a German television soap opera, first broadcast on RTL on 28 November 1994. Centered around the lives of the people in a residential house, which is set in the fictional Schillerallee in Cologne. Since the show debuted the baker's family Weigel is the series core family. Unter uns isn't based on a foreign soap opera like Verbotene Liebe or Gute Zeiten, schlechte Zeiten. After Gute Zeiten, schlechte Zeiten, the show was the second daily soap for RTL, followed years later in 2006 by Alles was zählt. The show aired its 3,500th episode on 30 December 2008."
+      },
+      "id": {
+        "description": "Unter uns is a German television soap opera, first broadcast on RTL on 28 November 1994. Centered around the lives of the people in a residential house, which is set in the fictional Schillerallee in Cologne. Since the show debuted the baker's family Weigel is the series core family. Unter uns isn't based on a foreign soap opera like Verbotene Liebe or Gute Zeiten, schlechte Zeiten. After Gute Zeiten, schlechte Zeiten, the show was the second daily soap for RTL, followed years later in 2006 by Alles was zählt. The show aired its 3,500th episode on 30 December 2008."
+      },
+      "es": {
+        "description": "Unter uns is a German television soap opera, first broadcast on RTL on 28 November 1994. Centered around the lives of the people in a residential house, which is set in the fictional Schillerallee in Cologne. Since the show debuted the baker's family Weigel is the series core family. Unter uns isn't based on a foreign soap opera like Verbotene Liebe or Gute Zeiten, schlechte Zeiten. After Gute Zeiten, schlechte Zeiten, the show was the second daily soap for RTL, followed years later in 2006 by Alles was zählt. The show aired its 3,500th episode on 30 December 2008."
+      }
+    }
   },
   {
     "id": "mov-tv-312949",
@@ -4464,7 +5091,18 @@
       }
     ],
     "tmdbId": 312949,
-    "tmdbMediaType": "tv"
+    "tmdbMediaType": "tv",
+    "translations": {
+      "en": {
+        "description": "Catgirl Yani struggles to pay her rent and keep a job while feeding her smoking habit. As her loved ones' concerns grow, she must rethink her future."
+      },
+      "id": {
+        "description": "Catgirl Yani struggles to pay her rent and keep a job while feeding her smoking habit. As her loved ones' concerns grow, she must rethink her future."
+      },
+      "es": {
+        "description": "Catgirl Yani struggles to pay her rent and keep a job while feeding her smoking habit. As her loved ones' concerns grow, she must rethink her future."
+      }
+    }
   },
   {
     "id": "mov-tv-79744",
@@ -4625,7 +5263,18 @@
       }
     ],
     "tmdbId": 79744,
-    "tmdbMediaType": "tv"
+    "tmdbMediaType": "tv",
+    "translations": {
+      "en": {
+        "description": "Starting over isn't easy, especially for small-town guy John Nolan who, after a life-altering incident, is pursuing his dream of being an LAPD officer. As the force's oldest rookie, he's met with skepticism from some higher-ups who see him as just a walking midlife crisis."
+      },
+      "id": {
+        "description": "Starting over isn't easy, especially for small-town guy John Nolan who, after a life-altering incident, is pursuing his dream of being an LAPD officer. As the force's oldest rookie, he's met with skepticism from some higher-ups who see him as just a walking midlife crisis."
+      },
+      "es": {
+        "description": "Starting over isn't easy, especially for small-town guy John Nolan who, after a life-altering incident, is pursuing his dream of being an LAPD officer. As the force's oldest rookie, he's met with skepticism from some higher-ups who see him as just a walking midlife crisis."
+      }
+    }
   },
   {
     "id": "mov-tv-125988",
@@ -4785,7 +5434,18 @@
       }
     ],
     "tmdbId": 125988,
-    "tmdbMediaType": "tv"
+    "tmdbMediaType": "tv",
+    "translations": {
+      "en": {
+        "description": "In a ruined and toxic future, thousands live in a giant silo deep underground. After its sheriff breaks a cardinal rule and residents die mysteriously, engineer Juliette starts to uncover shocking secrets and the truth about the silo."
+      },
+      "id": {
+        "description": "In a ruined and toxic future, thousands live in a giant silo deep underground. After its sheriff breaks a cardinal rule and residents die mysteriously, engineer Juliette starts to uncover shocking secrets and the truth about the silo."
+      },
+      "es": {
+        "description": "In a ruined and toxic future, thousands live in a giant silo deep underground. After its sheriff breaks a cardinal rule and residents die mysteriously, engineer Juliette starts to uncover shocking secrets and the truth about the silo."
+      }
+    }
   },
   {
     "id": "mov-tv-299167",
@@ -4898,7 +5558,18 @@
       }
     ],
     "tmdbId": 299167,
-    "tmdbMediaType": "tv"
+    "tmdbMediaType": "tv",
+    "translations": {
+      "en": {
+        "description": "Rip Wheeler and Beth Dutton gamble everything on a new life in South Texas, but the promise of building a future far from the ghosts of Yellowstone quickly collides with brutal new realities and a rival ranch that will stop at nothing to protect its empire."
+      },
+      "id": {
+        "description": "Rip Wheeler and Beth Dutton gamble everything on a new life in South Texas, but the promise of building a future far from the ghosts of Yellowstone quickly collides with brutal new realities and a rival ranch that will stop at nothing to protect its empire."
+      },
+      "es": {
+        "description": "Rip Wheeler and Beth Dutton gamble everything on a new life in South Texas, but the promise of building a future far from the ghosts of Yellowstone quickly collides with brutal new realities and a rival ranch that will stop at nothing to protect its empire."
+      }
+    }
   },
   {
     "id": "mov-tv-549",
@@ -5058,7 +5729,18 @@
       }
     ],
     "tmdbId": 549,
-    "tmdbMediaType": "tv"
+    "tmdbMediaType": "tv",
+    "translations": {
+      "en": {
+        "description": "In cases ripped from the headlines, police investigate serious and often deadly crimes, weighing the evidence and questioning the suspects until someone is taken into custody. The district attorney's office then builds a case to convict the perpetrator by proving the person guilty beyond a reasonable doubt. Working together, these expert teams navigate all sides of the complex criminal justice system to make New York a safer place."
+      },
+      "id": {
+        "description": "In cases ripped from the headlines, police investigate serious and often deadly crimes, weighing the evidence and questioning the suspects until someone is taken into custody. The district attorney's office then builds a case to convict the perpetrator by proving the person guilty beyond a reasonable doubt. Working together, these expert teams navigate all sides of the complex criminal justice system to make New York a safer place."
+      },
+      "es": {
+        "description": "In cases ripped from the headlines, police investigate serious and often deadly crimes, weighing the evidence and questioning the suspects until someone is taken into custody. The district attorney's office then builds a case to convict the perpetrator by proving the person guilty beyond a reasonable doubt. Working together, these expert teams navigate all sides of the complex criminal justice system to make New York a safer place."
+      }
+    }
   },
   {
     "id": "mov-tv-1434",
@@ -5218,7 +5900,18 @@
       }
     ],
     "tmdbId": 1434,
-    "tmdbMediaType": "tv"
+    "tmdbMediaType": "tv",
+    "translations": {
+      "en": {
+        "description": "Sick, twisted, politically incorrect and Freakin' Sweet animated series featuring the adventures of the dysfunctional Griffin family. Bumbling Peter and long-suffering Lois have three kids. Stewie (a brilliant but sadistic baby bent on killing his mother and taking over the world), Meg (the oldest, and is the most unpopular girl in town) and Chris (the middle kid, he's not very bright but has a passion for movies). The final member of the family is Brian - a talking dog and much more than a pet, he keeps Stewie in check whilst sipping Martinis and sorting through his own life issues."
+      },
+      "id": {
+        "description": "Sick, twisted, politically incorrect and Freakin' Sweet animated series featuring the adventures of the dysfunctional Griffin family. Bumbling Peter and long-suffering Lois have three kids. Stewie (a brilliant but sadistic baby bent on killing his mother and taking over the world), Meg (the oldest, and is the most unpopular girl in town) and Chris (the middle kid, he's not very bright but has a passion for movies). The final member of the family is Brian - a talking dog and much more than a pet, he keeps Stewie in check whilst sipping Martinis and sorting through his own life issues."
+      },
+      "es": {
+        "description": "Sick, twisted, politically incorrect and Freakin' Sweet animated series featuring the adventures of the dysfunctional Griffin family. Bumbling Peter and long-suffering Lois have three kids. Stewie (a brilliant but sadistic baby bent on killing his mother and taking over the world), Meg (the oldest, and is the most unpopular girl in town) and Chris (the middle kid, he's not very bright but has a passion for movies). The final member of the family is Brian - a talking dog and much more than a pet, he keeps Stewie in check whilst sipping Martinis and sorting through his own life issues."
+      }
+    }
   },
   {
     "id": "mov-tv-1622",
@@ -5377,7 +6070,18 @@
       }
     ],
     "tmdbId": 1622,
-    "tmdbMediaType": "tv"
+    "tmdbMediaType": "tv",
+    "translations": {
+      "en": {
+        "description": "When they were boys, Sam and Dean Winchester lost their mother to a mysterious and demonic supernatural force. Subsequently, their father raised them to be soldiers. He taught them about the paranormal evil that lives in the dark corners and on the back roads of America ... and he taught them how to kill it. Now, the Winchester brothers crisscross the country in their '67 Chevy Impala, battling every kind of supernatural threat they encounter along the way. "
+      },
+      "id": {
+        "description": "When they were boys, Sam and Dean Winchester lost their mother to a mysterious and demonic supernatural force. Subsequently, their father raised them to be soldiers. He taught them about the paranormal evil that lives in the dark corners and on the back roads of America ... and he taught them how to kill it. Now, the Winchester brothers crisscross the country in their '67 Chevy Impala, battling every kind of supernatural threat they encounter along the way."
+      },
+      "es": {
+        "description": "When they were boys, Sam and Dean Winchester lost their mother to a mysterious and demonic supernatural force. Subsequently, their father raised them to be soldiers. He taught them about the paranormal evil that lives in the dark corners and on the back roads of America ... and he taught them how to kill it. Now, the Winchester brothers crisscross the country in their '67 Chevy Impala, battling every kind of supernatural threat they encounter along the way. "
+      }
+    }
   },
   {
     "id": "mov-tv-5920",
@@ -5538,7 +6242,18 @@
       }
     ],
     "tmdbId": 5920,
-    "tmdbMediaType": "tv"
+    "tmdbMediaType": "tv",
+    "translations": {
+      "en": {
+        "description": "Patrick Jane, a former celebrity psychic medium, uses his razor sharp skills of observation and expertise at \"reading\" people to solve serious crimes with the California Bureau of Investigation."
+      },
+      "id": {
+        "description": "Patrick Jane, a former celebrity psychic medium, uses his razor sharp skills of observation and expertise at \"reading\" people to solve serious crimes with the California Bureau of Investigation."
+      },
+      "es": {
+        "description": "Patrick Jane, a former celebrity psychic medium, uses his razor sharp skills of observation and expertise at \"reading\" people to solve serious crimes with the California Bureau of Investigation."
+      }
+    }
   },
   {
     "id": "mov-tv-1416",
@@ -5697,7 +6412,18 @@
       }
     ],
     "tmdbId": 1416,
-    "tmdbMediaType": "tv"
+    "tmdbMediaType": "tv",
+    "translations": {
+      "en": {
+        "description": "Follows the personal and professional lives of a group of doctors at Seattle's Grey Sloan Memorial Hospital."
+      },
+      "id": {
+        "description": "Follows the personal and professional lives of a group of doctors at Seattle's Grey Sloan Memorial Hospital."
+      },
+      "es": {
+        "description": "Follows the personal and professional lives of a group of doctors at Seattle's Grey Sloan Memorial Hospital."
+      }
+    }
   },
   {
     "id": "mov-tv-95897",
@@ -5807,7 +6533,18 @@
       }
     ],
     "tmdbId": 95897,
-    "tmdbMediaType": "tv"
+    "tmdbMediaType": "tv",
+    "translations": {
+      "en": {
+        "description": "Kazushi Sudou is a university student who is visited by his two childhood friends, the sisters Ayane and Kotone Shirakawa. When Ayane discovers that Kazushi not only forgot to buy her pudding but is also using her special lotion in the bath, she decides to take revenge and join Kazushi in his bath along with Kotone. Will the perverted Kazushi be able to remain indifferent to them both?"
+      },
+      "id": {
+        "description": "Kazushi Sudou is a university student who is visited by his two childhood friends, the sisters Ayane and Kotone Shirakawa. When Ayane discovers that Kazushi not only forgot to buy her pudding but is also using her special lotion in the bath, she decides to take revenge and join Kazushi in his bath along with Kotone. Will the perverted Kazushi be able to remain indifferent to them both?"
+      },
+      "es": {
+        "description": "Kazushi Sudou is a university student who is visited by his two childhood friends, the sisters Ayane and Kotone Shirakawa. When Ayane discovers that Kazushi not only forgot to buy her pudding but is also using her special lotion in the bath, she decides to take revenge and join Kazushi in his bath along with Kotone. Will the perverted Kazushi be able to remain indifferent to them both?"
+      }
+    }
   },
   {
     "id": "mov-tv-82452",
@@ -5969,7 +6706,18 @@
       }
     ],
     "tmdbId": 82452,
-    "tmdbMediaType": "tv"
+    "tmdbMediaType": "tv",
+    "translations": {
+      "en": {
+        "description": "A young boy known as the Avatar must master the four elemental powers to save a world at war — and fight a ruthless enemy bent on stopping him."
+      },
+      "id": {
+        "description": "A young boy known as the Avatar must master the four elemental powers to save a world at war — and fight a ruthless enemy bent on stopping him."
+      },
+      "es": {
+        "description": "A young boy known as the Avatar must master the four elemental powers to save a world at war — and fight a ruthless enemy bent on stopping him."
+      }
+    }
   },
   {
     "id": "mov-tv-4614",
@@ -6131,7 +6879,18 @@
       }
     ],
     "tmdbId": 4614,
-    "tmdbMediaType": "tv"
+    "tmdbMediaType": "tv",
+    "translations": {
+      "en": {
+        "description": "From murder and espionage to terrorism and stolen submarines, a team of special agents investigates any crime that has any connection to Navy and Marine Corps personnel, regardless of rank or position."
+      },
+      "id": {
+        "description": "From murder and espionage to terrorism and stolen submarines, a team of special agents investigates any crime that has any connection to Navy and Marine Corps personnel, regardless of rank or position."
+      },
+      "es": {
+        "description": "From murder and espionage to terrorism and stolen submarines, a team of special agents investigates any crime that has any connection to Navy and Marine Corps personnel, regardless of rank or position."
+      }
+    }
   },
   {
     "id": "mov-tv-1399",
@@ -6293,7 +7052,18 @@
       }
     ],
     "tmdbId": 1399,
-    "tmdbMediaType": "tv"
+    "tmdbMediaType": "tv",
+    "translations": {
+      "en": {
+        "description": "Seven noble families fight for control of the mythical land of Westeros. Friction between the houses leads to full-scale war. All while a very ancient evil awakens in the farthest north. Amidst the war, a neglected military order of misfits, the Night's Watch, is all that stands between the realms of men and icy horrors beyond."
+      },
+      "id": {
+        "description": "Seven noble families fight for control of the mythical land of Westeros. Friction between the houses leads to full-scale war. All while a very ancient evil awakens in the farthest north. Amidst the war, a neglected military order of misfits, the Night's Watch, is all that stands between the realms of men and icy horrors beyond."
+      },
+      "es": {
+        "description": "Seven noble families fight for control of the mythical land of Westeros. Friction between the houses leads to full-scale war. All while a very ancient evil awakens in the farthest north. Amidst the war, a neglected military order of misfits, the Night's Watch, is all that stands between the realms of men and icy horrors beyond."
+      }
+    }
   },
   {
     "id": "mov-tv-76479",
@@ -6453,7 +7223,18 @@
       }
     ],
     "tmdbId": 76479,
-    "tmdbMediaType": "tv"
+    "tmdbMediaType": "tv",
+    "translations": {
+      "en": {
+        "description": "A group of vigilantes known informally as “The Boys” set out to take down corrupt superheroes with no more than blue-collar grit and a willingness to fight dirty."
+      },
+      "id": {
+        "description": "A group of vigilantes known informally as “The Boys” set out to take down corrupt superheroes with no more than blue-collar grit and a willingness to fight dirty."
+      },
+      "es": {
+        "description": "A group of vigilantes known informally as “The Boys” set out to take down corrupt superheroes with no more than blue-collar grit and a willingness to fight dirty."
+      }
+    }
   },
   {
     "id": "mov-tv-207840",
@@ -6565,7 +7346,18 @@
       }
     ],
     "tmdbId": 207840,
-    "tmdbMediaType": "tv"
+    "tmdbMediaType": "tv",
+    "translations": {
+      "en": {
+        "description": "The story follows teacher and veteran solo camper Kensuke, who forms a camping group with four girls."
+      },
+      "id": {
+        "description": "The story follows teacher and veteran solo camper Kensuke, who forms a camping group with four girls."
+      },
+      "es": {
+        "description": "The story follows teacher and veteran solo camper Kensuke, who forms a camping group with four girls."
+      }
+    }
   },
   {
     "id": "mov-tv-322430",
@@ -6678,7 +7470,18 @@
       }
     ],
     "tmdbId": 322430,
-    "tmdbMediaType": "tv"
+    "tmdbMediaType": "tv",
+    "translations": {
+      "en": {
+        "description": "Social media darling, Joyce, is the picture of marital perfection — until her cheating husband's conquests ignite a scandalous emotional meltdown."
+      },
+      "id": {
+        "description": "Social media darling, Joyce, is the picture of marital perfection — until her cheating husband's conquests ignite a scandalous emotional meltdown."
+      },
+      "es": {
+        "description": "Social media darling, Joyce, is the picture of marital perfection — until her cheating husband's conquests ignite a scandalous emotional meltdown."
+      }
+    }
   },
   {
     "id": "mov-tv-60625",
@@ -6841,7 +7644,18 @@
       }
     ],
     "tmdbId": 60625,
-    "tmdbMediaType": "tv"
+    "tmdbMediaType": "tv",
+    "translations": {
+      "en": {
+        "description": "Follows a sociopathic genius scientist who drags his inherently timid grandson on adventures across the universe."
+      },
+      "id": {
+        "description": "Follows a sociopathic genius scientist who drags his inherently timid grandson on adventures across the universe."
+      },
+      "es": {
+        "description": "Follows a sociopathic genius scientist who drags his inherently timid grandson on adventures across the universe."
+      }
+    }
   },
   {
     "id": "mov-tv-317270",
@@ -6953,7 +7767,18 @@
       }
     ],
     "tmdbId": 317270,
-    "tmdbMediaType": "tv"
+    "tmdbMediaType": "tv",
+    "translations": {
+      "en": {
+        "description": "No description available."
+      },
+      "id": {
+        "description": "No description available."
+      },
+      "es": {
+        "description": "No description available."
+      }
+    }
   },
   {
     "id": "mov-tv-4057",
@@ -7114,7 +7939,18 @@
       }
     ],
     "tmdbId": 4057,
-    "tmdbMediaType": "tv"
+    "tmdbMediaType": "tv",
+    "translations": {
+      "en": {
+        "description": "An elite team of FBI profilers analyze the country's most twisted criminal minds, anticipating their next moves before they strike again. The Behavioral Analysis Unit's most experienced agent is David Rossi, a founding member of the BAU who returns to help the team solve new cases."
+      },
+      "id": {
+        "description": "An elite team of FBI profilers analyze the country's most twisted criminal minds, anticipating their next moves before they strike again. The Behavioral Analysis Unit's most experienced agent is David Rossi, a founding member of the BAU who returns to help the team solve new cases."
+      },
+      "es": {
+        "description": "An elite team of FBI profilers analyze the country's most twisted criminal minds, anticipating their next moves before they strike again. The Behavioral Analysis Unit's most experienced agent is David Rossi, a founding member of the BAU who returns to help the team solve new cases."
+      }
+    }
   },
   {
     "id": "mov-tv-502",
@@ -7276,7 +8112,18 @@
       }
     ],
     "tmdbId": 502,
-    "tmdbMediaType": "tv"
+    "tmdbMediaType": "tv",
+    "translations": {
+      "en": {
+        "description": "On a special inner city street, the inhabitants—human and muppet—teach preschoolers basic educational and social concepts using comedy, cartoons, games, and songs."
+      },
+      "id": {
+        "description": "On a special inner city street, the inhabitants—human and muppet—teach preschoolers basic educational and social concepts using comedy, cartoons, games, and songs."
+      },
+      "es": {
+        "description": "On a special inner city street, the inhabitants—human and muppet—teach preschoolers basic educational and social concepts using comedy, cartoons, games, and songs."
+      }
+    }
   },
   {
     "id": "mov-tv-296206",
@@ -7390,7 +8237,18 @@
       }
     ],
     "tmdbId": 296206,
-    "tmdbMediaType": "tv"
+    "tmdbMediaType": "tv",
+    "translations": {
+      "en": {
+        "description": "When an unassuming dad's daughter goes missing, he dusts off his old black-ops skills to track her down — only to attract the wrong kind of attention."
+      },
+      "id": {
+        "description": "When an unassuming dad's daughter goes missing, he dusts off his old black-ops skills to track her down — only to attract the wrong kind of attention."
+      },
+      "es": {
+        "description": "When an unassuming dad's daughter goes missing, he dusts off his old black-ops skills to track her down — only to attract the wrong kind of attention."
+      }
+    }
   },
   {
     "id": "mov-tv-456",
@@ -7551,7 +8409,18 @@
       }
     ],
     "tmdbId": 456,
-    "tmdbMediaType": "tv"
+    "tmdbMediaType": "tv",
+    "translations": {
+      "en": {
+        "description": "Set in Springfield, the average American town, the show focuses on the antics and everyday adventures of the Simpson family; Homer, Marge, Bart, Lisa and Maggie, as well as a virtual cast of thousands. Since the beginning, the series has been a pop culture icon, attracting hundreds of celebrities to guest star. The show has also made name for itself in its fearless satirical take on politics, media and American life in general."
+      },
+      "id": {
+        "description": "Set in Springfield, the average American town, the show focuses on the antics and everyday adventures of the Simpson family; Homer, Marge, Bart, Lisa and Maggie, as well as a virtual cast of thousands. Since the beginning, the series has been a pop culture icon, attracting hundreds of celebrities to guest star. The show has also made name for itself in its fearless satirical take on politics, media and American life in general."
+      },
+      "es": {
+        "description": "Set in Springfield, the average American town, the show focuses on the antics and everyday adventures of the Simpson family; Homer, Marge, Bart, Lisa and Maggie, as well as a virtual cast of thousands. Since the beginning, the series has been a pop culture icon, attracting hundreds of celebrities to guest star. The show has also made name for itself in its fearless satirical take on politics, media and American life in general."
+      }
+    }
   },
   {
     "id": "mov-tv-273240",
@@ -7663,7 +8532,18 @@
       }
     ],
     "tmdbId": 273240,
-    "tmdbMediaType": "tv"
+    "tmdbMediaType": "tv",
+    "translations": {
+      "en": {
+        "description": "Hannah Wells tutors hockey captain Garrett Graham to win over her crush. Their deal becomes real connection as they face their pasts. Friends Logan, Dean, Tucker, and Allie navigate college life and love."
+      },
+      "id": {
+        "description": "Hannah Wells tutors hockey captain Garrett Graham to win over her crush. Their deal becomes real connection as they face their pasts. Friends Logan, Dean, Tucker, and Allie navigate college life and love."
+      },
+      "es": {
+        "description": "Hannah Wells tutors hockey captain Garrett Graham to win over her crush. Their deal becomes real connection as they face their pasts. Friends Logan, Dean, Tucker, and Allie navigate college life and love."
+      }
+    }
   },
   {
     "id": "mov-tv-4604",
@@ -7824,7 +8704,18 @@
       }
     ],
     "tmdbId": 4604,
-    "tmdbMediaType": "tv"
+    "tmdbMediaType": "tv",
+    "translations": {
+      "en": {
+        "description": "The origins of the world’s greatest hero–from Krypton refugee Kal-el’s arrival on Earth through his tumultuous teen years to Clark Kent’s final steps toward embracing his destiny as the Man of Steel."
+      },
+      "id": {
+        "description": "The origins of the world’s greatest hero–from Krypton refugee Kal-el’s arrival on Earth through his tumultuous teen years to Clark Kent’s final steps toward embracing his destiny as the Man of Steel."
+      },
+      "es": {
+        "description": "The origins of the world’s greatest hero–from Krypton refugee Kal-el’s arrival on Earth through his tumultuous teen years to Clark Kent’s final steps toward embracing his destiny as the Man of Steel."
+      }
+    }
   },
   {
     "id": "mov-tv-322055",
@@ -7939,7 +8830,18 @@
       }
     ],
     "tmdbId": 322055,
-    "tmdbMediaType": "tv"
+    "tmdbMediaType": "tv",
+    "translations": {
+      "en": {
+        "description": "A victim’s son and a killer’s son reunite as a prosecutor and investigator, fighting systemic corruption while becoming each other's salvation."
+      },
+      "id": {
+        "description": "A victim’s son and a killer’s son reunite as a prosecutor and investigator, fighting systemic corruption while becoming each other's salvation."
+      },
+      "es": {
+        "description": "A victim’s son and a killer’s son reunite as a prosecutor and investigator, fighting systemic corruption while becoming each other's salvation."
+      }
+    }
   },
   {
     "id": "mov-tv-57243",
@@ -8100,7 +9002,18 @@
       }
     ],
     "tmdbId": 57243,
-    "tmdbMediaType": "tv"
+    "tmdbMediaType": "tv",
+    "translations": {
+      "en": {
+        "description": "The Doctor is a Time Lord: a 900 year old alien with 2 hearts, part of a gifted civilization who mastered time travel. The Doctor saves planets for a living—more of a hobby actually, and the Doctor's very, very good at it."
+      },
+      "id": {
+        "description": "The Doctor is a Time Lord: a 900 year old alien with 2 hearts, part of a gifted civilization who mastered time travel. The Doctor saves planets for a living—more of a hobby actually, and the Doctor's very, very good at it."
+      },
+      "es": {
+        "description": "The Doctor is a Time Lord: a 900 year old alien with 2 hearts, part of a gifted civilization who mastered time travel. The Doctor saves planets for a living—more of a hobby actually, and the Doctor's very, very good at it."
+      }
+    }
   },
   {
     "id": "mov-tv-62245",
@@ -8255,7 +9168,18 @@
       }
     ],
     "tmdbId": 62245,
-    "tmdbMediaType": "tv"
+    "tmdbMediaType": "tv",
+    "translations": {
+      "en": {
+        "description": "Based on a Thai radio show that gives love advice to callers, this series dramatizes stories of infidelity, love triangles, sexual identity and more."
+      },
+      "id": {
+        "description": "Based on a Thai radio show that gives love advice to callers, this series dramatizes stories of infidelity, love triangles, sexual identity and more."
+      },
+      "es": {
+        "description": "Based on a Thai radio show that gives love advice to callers, this series dramatizes stories of infidelity, love triangles, sexual identity and more."
+      }
+    }
   },
   {
     "id": "mov-tv-70672",
@@ -8368,7 +9292,18 @@
       }
     ],
     "tmdbId": 70672,
-    "tmdbMediaType": "tv"
+    "tmdbMediaType": "tv",
+    "translations": {
+      "en": {
+        "description": "Male celebs play make-believe as high schoolers, welcoming star transfer students every week and engaging in battles of witty humor and slapstick."
+      },
+      "id": {
+        "description": "Male celebs play make-believe as high schoolers, welcoming star transfer students every week and engaging in battles of witty humor and slapstick."
+      },
+      "es": {
+        "description": "Male celebs play make-believe as high schoolers, welcoming star transfer students every week and engaging in battles of witty humor and slapstick."
+      }
+    }
   },
   {
     "id": "mov-tv-86342",
@@ -8524,7 +9459,18 @@
       }
     ],
     "tmdbId": 86342,
-    "tmdbMediaType": "tv"
+    "tmdbMediaType": "tv",
+    "translations": {
+      "en": {
+        "description": "After ending his Chicago-based show, Steve Harvey heads to Los Angeles to host a new weekday syndicated program aiming to bring a late night atmosphere to the afternoon."
+      },
+      "id": {
+        "description": "After ending his Chicago-based show, Steve Harvey heads to Los Angeles to host a new weekday syndicated program aiming to bring a late night atmosphere to the afternoon."
+      },
+      "es": {
+        "description": "After ending his Chicago-based show, Steve Harvey heads to Los Angeles to host a new weekday syndicated program aiming to bring a late night atmosphere to the afternoon."
+      }
+    }
   },
   {
     "id": "mov-tv-65334",
@@ -8686,7 +9632,18 @@
       }
     ],
     "tmdbId": 65334,
-    "tmdbMediaType": "tv"
+    "tmdbMediaType": "tv",
+    "translations": {
+      "en": {
+        "description": "Marinette and Adrien, two Parisian teenagers, are entrusted with powerful jewels in order to transform into superheroes Ladybug and Cat Noir. But neither hero knows the other's true identity — or that they're classmates!"
+      },
+      "id": {
+        "description": "Marinette and Adrien, two Parisian teenagers, are entrusted with powerful jewels in order to transform into superheroes Ladybug and Cat Noir. But neither hero knows the other's true identity — or that they're classmates!"
+      },
+      "es": {
+        "description": "Marinette and Adrien, two Parisian teenagers, are entrusted with powerful jewels in order to transform into superheroes Ladybug and Cat Noir. But neither hero knows the other's true identity — or that they're classmates!"
+      }
+    }
   },
   {
     "id": "mov-tv-764",
@@ -8847,7 +9804,18 @@
       }
     ],
     "tmdbId": 764,
-    "tmdbMediaType": "tv"
+    "tmdbMediaType": "tv",
+    "translations": {
+      "en": {
+        "description": "The peacefulness of the Midsomer community is shattered by violent crimes, suspects are placed under suspicion, and it is up to a veteran DCI and his young sergeant to calmly and diligently eliminate the innocent and ruthlessly pursue the guilty. "
+      },
+      "id": {
+        "description": "The peacefulness of the Midsomer community is shattered by violent crimes, suspects are placed under suspicion, and it is up to a veteran DCI and his young sergeant to calmly and diligently eliminate the innocent and ruthlessly pursue the guilty."
+      },
+      "es": {
+        "description": "The peacefulness of the Midsomer community is shattered by violent crimes, suspects are placed under suspicion, and it is up to a veteran DCI and his young sergeant to calmly and diligently eliminate the innocent and ruthlessly pursue the guilty. "
+      }
+    }
   },
   {
     "id": "mov-tv-316540",
@@ -8959,7 +9927,18 @@
       }
     ],
     "tmdbId": 316540,
-    "tmdbMediaType": "tv"
+    "tmdbMediaType": "tv",
+    "translations": {
+      "en": {
+        "description": "A poor young man trapped in a sham marriage falls for his wife’s older brother, risking everything for forbidden love."
+      },
+      "id": {
+        "description": "A poor young man trapped in a sham marriage falls for his wife’s older brother, risking everything for forbidden love."
+      },
+      "es": {
+        "description": "A poor young man trapped in a sham marriage falls for his wife’s older brother, risking everything for forbidden love."
+      }
+    }
   },
   {
     "id": "mov-tv-60735",
@@ -9121,7 +10100,18 @@
       }
     ],
     "tmdbId": 60735,
-    "tmdbMediaType": "tv"
+    "tmdbMediaType": "tv",
+    "translations": {
+      "en": {
+        "description": "After being struck by lightning, CSI investigator Barry Allen awakens from a nine-month coma to discover he has been  granted the gift of super speed.  Teaming up with S.T.A.R. Labs, Barry takes on the persona of The Flash, the Fastest  Man Alive, to protect his city."
+      },
+      "id": {
+        "description": "After being struck by lightning, CSI investigator Barry Allen awakens from a nine-month coma to discover he has been  granted the gift of super speed. Teaming up with S. T. A. R. Labs, Barry takes on the persona of The Flash, the Fastest  Man Alive, to protect his city."
+      },
+      "es": {
+        "description": "After being struck by lightning, CSI investigator Barry Allen awakens from a nine-month coma to discover he has been  granted the gift of super speed.  Teaming up with S.T.A.R. Labs, Barry takes on the persona of The Flash, the Fastest  Man Alive, to protect his city."
+      }
+    }
   },
   {
     "id": "mov-tv-46188",
@@ -9278,7 +10268,18 @@
       }
     ],
     "tmdbId": 46188,
-    "tmdbMediaType": "tv"
+    "tmdbMediaType": "tv",
+    "translations": {
+      "en": {
+        "description": "No description available."
+      },
+      "id": {
+        "description": "No description available."
+      },
+      "es": {
+        "description": "No description available."
+      }
+    }
   },
   {
     "id": "mov-tv-73586",
@@ -9439,7 +10440,18 @@
       }
     ],
     "tmdbId": 73586,
-    "tmdbMediaType": "tv"
+    "tmdbMediaType": "tv",
+    "translations": {
+      "en": {
+        "description": "Follow the violent world of the Dutton family, who controls the largest contiguous ranch in the United States. Led by their patriarch John Dutton, the family defends their property against constant attack by land developers, an Indian reservation, and America’s first National Park."
+      },
+      "id": {
+        "description": "Follow the violent world of the Dutton family, who controls the largest contiguous ranch in the United States. Led by their patriarch John Dutton, the family defends their property against constant attack by land developers, an Indian reservation, and America’s first National Park."
+      },
+      "es": {
+        "description": "Follow the violent world of the Dutton family, who controls the largest contiguous ranch in the United States. Led by their patriarch John Dutton, the family defends their property against constant attack by land developers, an Indian reservation, and America’s first National Park."
+      }
+    }
   },
   {
     "id": "mov-tv-276161",
@@ -9554,7 +10566,18 @@
       }
     ],
     "tmdbId": 276161,
-    "tmdbMediaType": "tv"
+    "tmdbMediaType": "tv",
+    "translations": {
+      "en": {
+        "description": "An inspector from the Educational Rights Protection Bureau (ERPB) who is authorized by the government to use physical intervention and unconventional methods to discipline delinquent students and reform the educational system."
+      },
+      "id": {
+        "description": "An inspector from the Educational Rights Protection Bureau (ERPB) who is authorized by the government to use physical intervention and unconventional methods to discipline delinquent students and reform the educational system."
+      },
+      "es": {
+        "description": "An inspector from the Educational Rights Protection Bureau (ERPB) who is authorized by the government to use physical intervention and unconventional methods to discipline delinquent students and reform the educational system."
+      }
+    }
   },
   {
     "id": "mov-tv-232393",
@@ -9662,7 +10685,18 @@
       }
     ],
     "tmdbId": 232393,
-    "tmdbMediaType": "tv"
+    "tmdbMediaType": "tv",
+    "translations": {
+      "en": {
+        "description": "The July issue of Dear+ announced anime adaptions of a series of manga serialized in the magazine in celebration of the magazine's 20th anniversary. Six anime series are collected into an \"in motion\" series titled \"6 Lovers.\""
+      },
+      "id": {
+        "description": "The July issue of Dear+ announced anime adaptions of a series of manga serialized in the magazine in celebration of the magazine's 20th anniversary. Six anime series are collected into an \"in motion\" series titled \"6 Lovers. \""
+      },
+      "es": {
+        "description": "The July issue of Dear+ announced anime adaptions of a series of manga serialized in the magazine in celebration of the magazine's 20th anniversary. Six anime series are collected into an \"in motion\" series titled \"6 Lovers.\""
+      }
+    }
   },
   {
     "id": "mov-tv-1408",
@@ -9821,7 +10855,18 @@
       }
     ],
     "tmdbId": 1408,
-    "tmdbMediaType": "tv"
+    "tmdbMediaType": "tv",
+    "translations": {
+      "en": {
+        "description": "Dr. Gregory House, a drug-addicted, unconventional, misanthropic medical genius, leads a team of diagnosticians at the fictional Princeton–Plainsboro Teaching Hospital in New Jersey."
+      },
+      "id": {
+        "description": "Dr. Gregory House, a drug-addicted, unconventional, misanthropic medical genius, leads a team of diagnosticians at the fictional Princeton–Plainsboro Teaching Hospital in New Jersey."
+      },
+      "es": {
+        "description": "Dr. Gregory House, a drug-addicted, unconventional, misanthropic medical genius, leads a team of diagnosticians at the fictional Princeton–Plainsboro Teaching Hospital in New Jersey."
+      }
+    }
   },
   {
     "id": "mov-tv-303493",
@@ -9935,7 +10980,18 @@
       }
     ],
     "tmdbId": 303493,
-    "tmdbMediaType": "tv"
+    "tmdbMediaType": "tv",
+    "translations": {
+      "en": {
+        "description": "A young man’s life changes forever when a powerful Alpha marks him, binding their fates together in an inescapable bond."
+      },
+      "id": {
+        "description": "A young man’s life changes forever when a powerful Alpha marks him, binding their fates together in an inescapable bond."
+      },
+      "es": {
+        "description": "A young man’s life changes forever when a powerful Alpha marks him, binding their fates together in an inescapable bond."
+      }
+    }
   },
   {
     "id": "mov-tv-233643",
@@ -10044,7 +11100,18 @@
       }
     ],
     "tmdbId": 233643,
-    "tmdbMediaType": "tv"
+    "tmdbMediaType": "tv",
+    "translations": {
+      "en": {
+        "description": "Narcotics Enforcement Agent Riko Ikazuchi is undercover with her junior colleague Noma in an apartment that serves as the hideout for a criminal organization. Despite Riko and Noma posing as a newlywed couple, the criminals begin to suspect them after not hearing any marital intimacy during the night. To convince them that they are a loving couple, Noma starts touching Riko's body..."
+      },
+      "id": {
+        "description": "Narcotics Enforcement Agent Riko Ikazuchi is undercover with her junior colleague Noma in an apartment that serves as the hideout for a criminal organization. Despite Riko and Noma posing as a newlywed couple, the criminals begin to suspect them after not hearing any marital intimacy during the night. To convince them that they are a loving couple, Noma starts touching Riko's body..."
+      },
+      "es": {
+        "description": "Narcotics Enforcement Agent Riko Ikazuchi is undercover with her junior colleague Noma in an apartment that serves as the hideout for a criminal organization. Despite Riko and Noma posing as a newlywed couple, the criminals begin to suspect them after not hearing any marital intimacy during the night. To convince them that they are a loving couple, Noma starts touching Riko's body..."
+      }
+    }
   },
   {
     "id": "mov-tv-1396",
@@ -10204,7 +11271,18 @@
       }
     ],
     "tmdbId": 1396,
-    "tmdbMediaType": "tv"
+    "tmdbMediaType": "tv",
+    "translations": {
+      "en": {
+        "description": "Walter White, a New Mexico chemistry teacher, is diagnosed with Stage III cancer and given a prognosis of only two years left to live. He becomes filled with a sense of fearlessness and an unrelenting desire to secure his family's financial future at any cost as he enters the dangerous world of drugs and crime."
+      },
+      "id": {
+        "description": "Walter White, a New Mexico chemistry teacher, is diagnosed with Stage III cancer and given a prognosis of only two years left to live. He becomes filled with a sense of fearlessness and an unrelenting desire to secure his family's financial future at any cost as he enters the dangerous world of drugs and crime."
+      },
+      "es": {
+        "description": "Walter White, a New Mexico chemistry teacher, is diagnosed with Stage III cancer and given a prognosis of only two years left to live. He becomes filled with a sense of fearlessness and an unrelenting desire to secure his family's financial future at any cost as he enters the dangerous world of drugs and crime."
+      }
+    }
   },
   {
     "id": "mov-tv-1431",
@@ -10366,6 +11444,17 @@
       }
     ],
     "tmdbId": 1431,
-    "tmdbMediaType": "tv"
+    "tmdbMediaType": "tv",
+    "translations": {
+      "en": {
+        "description": "A Las Vegas team of forensic investigators are trained to solve criminal cases by scouring the crime scene, collecting irrefutable evidence and finding the missing pieces that solve the mystery."
+      },
+      "id": {
+        "description": "A Las Vegas team of forensic investigators are trained to solve criminal cases by scouring the crime scene, collecting irrefutable evidence and finding the missing pieces that solve the mystery."
+      },
+      "es": {
+        "description": "A Las Vegas team of forensic investigators are trained to solve criminal cases by scouring the crime scene, collecting irrefutable evidence and finding the missing pieces that solve the mystery."
+      }
+    }
   }
 ]

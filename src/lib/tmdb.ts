@@ -1,5 +1,6 @@
 import { TmdbCastMember, TmdbPersonDetail, TmdbCreditItem } from "@/src/types";
 import { getPerson, upsertPerson } from "./data-service";
+import { translateToIndonesian, isLikelyEnglish } from "./translate";
 
 export const getTmdbApiKey = () => {
   const key = (process.env.TMDB_API_KEY || process.env.NEXT_PUBLIC_TMDB_API_KEY)?.trim();
@@ -120,15 +121,29 @@ export async function fetchTmdbMetadata(mediaType: "movie" | "tv", tmdbId: strin
   const esTrans = rawTranslations.find((t: any) => t.iso_639_1 === "es");
   const enTrans = rawTranslations.find((t: any) => t.iso_639_1 === "en");
 
+  const enOverview = data.overview || enTrans?.data?.overview || "";
+  let idOverview = idTrans?.data?.overview?.trim() || "";
+  const esOverview = esTrans?.data?.overview || enOverview || "";
+
+  // If TMDB does not provide an Indonesian overview or if it's still in English, auto-translate!
+  if ((!idOverview || isLikelyEnglish(idOverview)) && enOverview) {
+    try {
+      idOverview = await translateToIndonesian(enOverview);
+    } catch (err) {
+      console.warn("Failed to auto-translate overview to Indonesian:", err);
+      if (!idOverview) idOverview = enOverview;
+    }
+  }
+
   const translations = {
     en: {
-      description: data.overview || enTrans?.data?.overview || ""
+      description: enOverview
     },
     id: {
-      description: idTrans?.data?.overview || data.overview || ""
+      description: idOverview || enOverview
     },
     es: {
-      description: esTrans?.data?.overview || data.overview || ""
+      description: esOverview
     }
   };
   const isMovie = mediaType === "movie";

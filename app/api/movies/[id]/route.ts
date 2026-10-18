@@ -3,6 +3,7 @@ import { getMovieById, updateMovie, deleteMovie, findDuplicateMovie } from "@/sr
 import { getCurrentSessionUser } from "@/src/lib/session";
 import { fetchTmdbMovieCredits, searchTmdbId, getTmdbApiKey } from "@/src/lib/tmdb";
 import { TmdbCastMember } from "@/src/types";
+import { translateToIndonesian, isLikelyEnglish } from "@/src/lib/translate";
 
 export async function GET(
   request: NextRequest,
@@ -61,9 +62,37 @@ export async function GET(
       ? tmdbCast.slice(0, 20).map(c => c.name)
       : movie.cast;
 
+    let effectiveTranslations = movie.translations ? { ...movie.translations } : {};
+    let shouldSyncUpdates = false;
+    const updatePayload: any = {};
+
+    // Check if Indonesian synopsis is missing or still in English
+    const currentIdDesc = movie.translations?.id?.description?.trim() || "";
+    if ((!currentIdDesc || isLikelyEnglish(currentIdDesc)) && movie.description) {
+      try {
+        const translatedId = await translateToIndonesian(movie.description);
+        if (translatedId && !isLikelyEnglish(translatedId)) {
+          effectiveTranslations = {
+            ...effectiveTranslations,
+            id: { description: translatedId },
+            en: effectiveTranslations.en || { description: movie.description }
+          };
+          updatePayload.translations = effectiveTranslations;
+          shouldSyncUpdates = true;
+        }
+      } catch (err) {
+        console.warn("Dynamic translation failed:", err);
+      }
+    }
+
     // Asynchronously update cached cast in database if TMDB provided a richer cast list
     if (movie.id && effectiveCast && effectiveCast.length > (movie.cast?.length || 0)) {
-      updateMovie(movie.id, { cast: effectiveCast }).catch(() => {});
+      updatePayload.cast = effectiveCast;
+      shouldSyncUpdates = true;
+    }
+
+    if (movie.id && shouldSyncUpdates) {
+      updateMovie(movie.id, updatePayload).catch(() => {});
     }
 
     return NextResponse.json({
@@ -71,6 +100,7 @@ export async function GET(
       trailerUrl,
       tmdbCast,
       cast: effectiveCast,
+      translations: effectiveTranslations,
       tmdbId: resolvedTmdbId || movie.tmdbId
     });
   } catch (error: any) {

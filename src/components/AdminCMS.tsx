@@ -2510,14 +2510,46 @@ export default function AdminCMS({
                       />
                     )}
                     {synopsisLangTab === "id" && (
-                      <textarea
-                        placeholder="Sinopsis narasi lengkap dalam Bahasa Indonesia..."
-                        value={descriptionId}
-                        onChange={(e) => setDescriptionId(e.target.value)}
-                        rows={3}
-                        className="w-full bg-zinc-900 border border-zinc-850 p-2.5 rounded text-xs focus:outline-hidden focus:border-red-500/50"
-                        id="form-input-desc-id"
-                      />
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between text-[10px]">
+                          <span className="text-zinc-500">Sinopsis Bahasa Indonesia</span>
+                          {description.trim() && (
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                try {
+                                  const res = await fetch("/api/translate", {
+                                    method: "POST",
+                                    headers: { "Content-Type": "application/json" },
+                                    body: JSON.stringify({ text: description.trim() })
+                                  });
+                                  const data = await res.json();
+                                  if (data.translatedText) {
+                                    setDescriptionId(data.translatedText);
+                                    setSuccessMsg("Sinopsis berhasil diterjemahkan ke Bahasa Indonesia! 🇮🇩✨");
+                                    setTimeout(() => setSuccessMsg(""), 3500);
+                                  }
+                                } catch (e: any) {
+                                  showAlert("Gagal menerjemahkan sinopsis: " + (e.message || "Error"));
+                                }
+                              }}
+                              className="text-cyan-400 hover:text-cyan-300 flex items-center gap-1 font-bold hover:underline cursor-pointer"
+                              title="Terjemahkan sinopsis dari Bahasa Inggris ke Bahasa Indonesia"
+                            >
+                              <Sparkles className="w-3 h-3 text-cyan-400" />
+                              <span>Terjemahkan Otomatis</span>
+                            </button>
+                          )}
+                        </div>
+                        <textarea
+                          placeholder="Sinopsis narasi lengkap dalam Bahasa Indonesia..."
+                          value={descriptionId}
+                          onChange={(e) => setDescriptionId(e.target.value)}
+                          rows={3}
+                          className="w-full bg-zinc-900 border border-zinc-850 p-2.5 rounded text-xs focus:outline-hidden focus:border-red-500/50"
+                          id="form-input-desc-id"
+                        />
+                      </div>
                     )}
                     {synopsisLangTab === "es" && (
                       <textarea
