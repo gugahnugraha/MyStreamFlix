@@ -678,7 +678,7 @@ export default function AdminCMS({
           year: releaseYear,
           tmdbId: selectedTmdbId,
           contentType: contentType,
-          languages: "id,en,es,ar,fr,ko,ja"
+          languages: "id,en"
         })
       });
       const data = await res.json();
@@ -891,7 +891,7 @@ export default function AdminCMS({
           mediaType: "series",
           seasonNumber,
           episodeNumber,
-          languages: "id,en,es,ar,fr,ko,ja"
+          languages: "id,en"
         })
       });
       const data = await res.json();

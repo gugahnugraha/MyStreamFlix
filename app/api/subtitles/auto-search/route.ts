@@ -50,6 +50,15 @@ function normalizeLang(rawLang: string) {
   return { code: clean.substring(0, 2), label: clean.toUpperCase() };
 }
 
+function cleanTitleForSearch(raw: string): string {
+  return (raw || "")
+    .replace(/\.(mp4|mkv|avi|mov|wmv|webm|flv|m4v)$/i, "")
+    .replace(/\b(1080p|720p|480p|2160p|4k|bluray|blu-ray|brrip|web-dl|webdl|webrip|hdrip|hdcam|unrated|extended|remastered|x264|x265|hevc|h264|yify|yts|bokutox|rarbg|eztv)\b/gi, "")
+    .replace(/[\._\-]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim() || raw;
+}
+
 async function resolveImdbId(title: string, year?: number, tmdbId?: number | string, mediaType: string = "movie"): Promise<string | null> {
   const tmdbApiKey = process.env.TMDB_API_KEY?.trim();
 
@@ -69,7 +78,7 @@ async function resolveImdbId(title: string, year?: number, tmdbId?: number | str
 
   // 2. Query IMDb Suggestion Public API (Fast, Free, No API Key Required)
   try {
-    const cleanQuery = title.toLowerCase().replace(/[^a-z0-9 ]/g, " ").trim().replace(/\s+/g, " ");
+    const cleanQuery = cleanTitleForSearch(title).toLowerCase().replace(/[^a-z0-9 ]/g, " ").trim().replace(/\s+/g, " ");
     const imdbUrl = `https://v3.sg.media-imdb.com/suggestion/x/${encodeURIComponent(cleanQuery)}.json`;
     const res = await fetch(imdbUrl, {
       headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" }
@@ -151,44 +160,38 @@ export async function POST(request: NextRequest) {
         const data = await res.json();
         const rawSubs = Array.isArray(data.subtitles) ? data.subtitles : [];
 
-        // Group by language code and pick highest rated/first
-        const seenLangs = new Set<string>();
-
-        // Prioritize requested languages first in order of request (Indonesian #1, English #2)
-        for (const targetLang of requestedLangs) {
-          for (const raw of rawSubs) {
-            const langMeta = normalizeLang(raw.lang || "");
-            const matchesTarget = langMeta.code === targetLang || (raw.lang || "").toLowerCase() === targetLang;
-            if (matchesTarget && !seenLangs.has(langMeta.code)) {
-              seenLangs.add(langMeta.code);
-              subtitlesFound.push({
-                id: `sub-auto-${langMeta.code}-${raw.id || Math.random().toString(36).substring(2, 7)}`,
-                language: langMeta.code,
-                label: langMeta.label,
-                fileUrl: raw.url,
-                fileName: raw.subtitleFileName || raw.movieReleaseName || `${title} (${langMeta.label})`,
-                source: "OpenSubtitles"
-              });
-              break; // Pick the best/first subtitle for this requested language
-            }
+        // 1. Prioritize Indonesian subtitle as primary goal (jika ada)
+        let indoCount = 0;
+        for (const raw of rawSubs) {
+          const rawLang = (raw.lang || "").toLowerCase().trim();
+          if (rawLang === "ind" || rawLang === "id" || rawLang === "in") {
+            indoCount++;
+            subtitlesFound.push({
+              id: `sub-auto-id-${raw.id || Math.random().toString(36).substring(2, 7)}`,
+              language: "id",
+              label: indoCount === 1 ? "Bahasa Indonesia" : `Bahasa Indonesia (Sync ${indoCount})`,
+              fileUrl: raw.url,
+              fileName: raw.subtitleFileName || raw.movieReleaseName || `${title} (Bahasa Indonesia)`,
+              source: "OpenSubtitles"
+            });
+            if (indoCount >= 2) break; // Keep up to 2 Indonesian releases
           }
         }
 
-        // Also add other available popular languages if not already added
-        if (subtitlesFound.length < 5) {
+        // 2. Also check English only as fallback/secondary option if requested
+        if (requestedLangs.includes("en") || requestedLangs.includes("eng")) {
           for (const raw of rawSubs) {
-            const langMeta = normalizeLang(raw.lang || "");
-            if (!seenLangs.has(langMeta.code)) {
-              seenLangs.add(langMeta.code);
+            const rawLang = (raw.lang || "").toLowerCase().trim();
+            if (rawLang === "eng" || rawLang === "en") {
               subtitlesFound.push({
-                id: `sub-auto-${langMeta.code}-${raw.id || Math.random().toString(36).substring(2, 7)}`,
-                language: langMeta.code,
-                label: langMeta.label,
+                id: `sub-auto-en-${raw.id || Math.random().toString(36).substring(2, 7)}`,
+                language: "en",
+                label: "English",
                 fileUrl: raw.url,
-                fileName: raw.subtitleFileName || raw.movieReleaseName || `${title} (${langMeta.label})`,
+                fileName: raw.subtitleFileName || raw.movieReleaseName || `${title} (English)`,
                 source: "OpenSubtitles"
               });
-              if (subtitlesFound.length >= 6) break;
+              break;
             }
           }
         }
@@ -245,11 +248,16 @@ export async function POST(request: NextRequest) {
       return a.label.localeCompare(b.label);
     });
 
+    const hasIndonesian = subtitlesFound.some(s => s.language === "id");
+    const hasEnglish = subtitlesFound.some(s => s.language === "en");
+
     return NextResponse.json({
       success: true,
       imdbId,
       title,
       totalFound: subtitlesFound.length,
+      hasIndonesian,
+      hasEnglish,
       subtitles: subtitlesFound
     });
   } catch (error: any) {
