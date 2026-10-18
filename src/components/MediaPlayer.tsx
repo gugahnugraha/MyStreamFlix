@@ -283,10 +283,21 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
   };
 
   const effectiveSubtitles = useMemo(() => {
-    if (activeEpisode?.subtitles && activeEpisode.subtitles.length > 0) {
-      return activeEpisode.subtitles;
-    }
-    return movie.subtitles || [];
+    const raw = (activeEpisode?.subtitles && activeEpisode.subtitles.length > 0)
+      ? activeEpisode.subtitles
+      : (movie.subtitles || []);
+    return [...raw].sort((a, b) => {
+      const getPriority = (lang: string) => {
+        const l = (lang || "").toLowerCase().trim();
+        if (l === "id" || l === "ind" || l === "in") return 1;
+        if (l === "en" || l === "eng") return 2;
+        return 3;
+      };
+      const pA = getPriority(a.language);
+      const pB = getPriority(b.language);
+      if (pA !== pB) return pA - pB;
+      return (a.label || "").localeCompare(b.label || "");
+    });
   }, [activeEpisode?.subtitles, movie.subtitles]);
 
   const activeSubtitleObj = effectiveSubtitles.find((s) => s.language === activeSubtitle);
@@ -1234,14 +1245,24 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
 
   // Sync default active subtitle when episode changes or subtitles list changes
   useEffect(() => {
-    const idSub = effectiveSubtitles.find((s) => s.language === "id" && s.fileUrl);
-    if (idSub) {
-      setActiveSubtitle("id");
+    if (!effectiveSubtitles || effectiveSubtitles.length === 0) {
+      setActiveSubtitle("off");
       return;
     }
-    const enSub = effectiveSubtitles.find((s) => s.language === "en" && s.fileUrl);
+    const idSub = effectiveSubtitles.find((s) => {
+      const l = (s.language || "").toLowerCase().trim();
+      return (l === "id" || l === "ind" || l === "in") && s.fileUrl;
+    });
+    if (idSub) {
+      setActiveSubtitle(idSub.language);
+      return;
+    }
+    const enSub = effectiveSubtitles.find((s) => {
+      const l = (s.language || "").toLowerCase().trim();
+      return (l === "en" || l === "eng") && s.fileUrl;
+    });
     if (enSub) {
-      setActiveSubtitle("en");
+      setActiveSubtitle(enSub.language);
       return;
     }
     if (effectiveSubtitles.length > 0 && effectiveSubtitles[0].fileUrl) {

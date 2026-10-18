@@ -5,6 +5,9 @@ import { getCurrentSessionUser } from "@/src/lib/session";
 const LANGUAGE_META: Record<string, { code: string; label: string }> = {
   ind: { code: "id", label: "Bahasa Indonesia" },
   id: { code: "id", label: "Bahasa Indonesia" },
+  in: { code: "id", label: "Bahasa Indonesia" },
+  indonesian: { code: "id", label: "Bahasa Indonesia" },
+  indonesia: { code: "id", label: "Bahasa Indonesia" },
   eng: { code: "en", label: "English" },
   en: { code: "en", label: "English" },
   spa: { code: "es", label: "Español" },
@@ -151,21 +154,23 @@ export async function POST(request: NextRequest) {
         // Group by language code and pick highest rated/first
         const seenLangs = new Set<string>();
 
-        // Prioritize requested languages first (e.g. Indonesian & English)
-        for (const raw of rawSubs) {
-          const langMeta = normalizeLang(raw.lang || "");
-          const isRequested = requestedLangs.includes(langMeta.code) || requestedLangs.includes(raw.lang) || requestedLangs.includes("all");
-
-          if (isRequested && !seenLangs.has(langMeta.code)) {
-            seenLangs.add(langMeta.code);
-            subtitlesFound.push({
-              id: `sub-auto-${langMeta.code}-${raw.id || Math.random().toString(36).substring(2, 7)}`,
-              language: langMeta.code,
-              label: langMeta.label,
-              fileUrl: raw.url,
-              fileName: raw.subtitleFileName || raw.movieReleaseName || `${title} (${langMeta.label})`,
-              source: "OpenSubtitles"
-            });
+        // Prioritize requested languages first in order of request (Indonesian #1, English #2)
+        for (const targetLang of requestedLangs) {
+          for (const raw of rawSubs) {
+            const langMeta = normalizeLang(raw.lang || "");
+            const matchesTarget = langMeta.code === targetLang || (raw.lang || "").toLowerCase() === targetLang;
+            if (matchesTarget && !seenLangs.has(langMeta.code)) {
+              seenLangs.add(langMeta.code);
+              subtitlesFound.push({
+                id: `sub-auto-${langMeta.code}-${raw.id || Math.random().toString(36).substring(2, 7)}`,
+                language: langMeta.code,
+                label: langMeta.label,
+                fileUrl: raw.url,
+                fileName: raw.subtitleFileName || raw.movieReleaseName || `${title} (${langMeta.label})`,
+                source: "OpenSubtitles"
+              });
+              break; // Pick the best/first subtitle for this requested language
+            }
           }
         }
 
@@ -229,8 +234,8 @@ export async function POST(request: NextRequest) {
     // Strictly prioritize Bahasa Indonesia (#1) and English (#2) at the top of results
     subtitlesFound.sort((a, b) => {
       const getPriority = (lang: string) => {
-        const l = (lang || "").toLowerCase();
-        if (l === "id" || l === "ind") return 1;
+        const l = (lang || "").toLowerCase().trim();
+        if (l === "id" || l === "ind" || l === "in") return 1;
         if (l === "en" || l === "eng") return 2;
         return 3;
       };

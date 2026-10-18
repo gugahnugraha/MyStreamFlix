@@ -96,6 +96,37 @@ type TmdbMetadata = {
   translations?: MovieTranslations;
 };
 
+export const POPULAR_SUBTITLE_LANGUAGES = [
+  { code: "id", label: "Bahasa Indonesia", flag: "🇮🇩", priority: true },
+  { code: "en", label: "English", flag: "🇬🇧", priority: false },
+  { code: "es", label: "Español", flag: "🇪🇸", priority: false },
+  { code: "ja", label: "日本語 (Japanese)", flag: "🇯🇵", priority: false },
+  { code: "ko", label: "한국어 (Korean)", flag: "🇰🇷", priority: false },
+  { code: "ar", label: "العربية (Arabic)", flag: "🇸🇦", priority: false },
+  { code: "zh", label: "中文 (Chinese)", flag: "🇨🇳", priority: false },
+  { code: "fr", label: "Français", flag: "🇫🇷", priority: false },
+  { code: "de", label: "Deutsch", flag: "🇩🇪", priority: false },
+  { code: "ru", label: "Русский (Russian)", flag: "🇷🇺", priority: false },
+  { code: "th", label: "ไทย (Thai)", flag: "🇹🇭", priority: false },
+  { code: "vi", label: "Tiếng Việt", flag: "🇻🇳", priority: false },
+  { code: "ms", label: "Bahasa Melayu", flag: "🇲🇾", priority: false },
+];
+
+export const sortSubsPriority = (subsList: Subtitle[]): Subtitle[] => {
+  return [...(subsList || [])].sort((a, b) => {
+    const getPriority = (lang: string) => {
+      const l = (lang || "").toLowerCase().trim();
+      if (l === "id" || l === "ind" || l === "in") return 1;
+      if (l === "en" || l === "eng") return 2;
+      return 3;
+    };
+    const pA = getPriority(a.language);
+    const pB = getPriority(b.language);
+    if (pA !== pB) return pA - pB;
+    return (a.label || "").localeCompare(b.label || "");
+  });
+};
+
 export default function AdminCMS({ 
   onRefreshMovies, 
   movies, 
@@ -602,14 +633,26 @@ export default function AdminCMS({
     }
   };
 
-  const handleAddSubtitle = () => {
+  const handleAddSubtitle = (langCode: string = "id", label: string = "Bahasa Indonesia") => {
+    let targetLang = langCode;
+    let targetLabel = label;
+    if (langCode === "id") {
+      const hasIndo = subtitles.some(s => {
+        const l = (s.language || "").toLowerCase().trim();
+        return l === "id" || l === "ind" || l === "in";
+      });
+      if (hasIndo) {
+        targetLang = "en";
+        targetLabel = "English";
+      }
+    }
     const newSub: Subtitle = {
       id: `sub-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      language: "id",
-      label: "Bahasa Indonesia",
+      language: targetLang,
+      label: targetLabel,
       fileUrl: ""
     };
-    setSubtitles([...subtitles, newSub]);
+    setSubtitles(sortSubsPriority([...subtitles, newSub]));
   };
 
   const handleRemoveSubtitle = (subId: string) => {
@@ -667,20 +710,7 @@ export default function AdminCMS({
       }
 
       if (addedCount > 0) {
-        const merged = [...subtitles, ...newTracks];
-        // Sort strictly prioritizing Bahasa Indonesia (#1) and English (#2)
-        merged.sort((a, b) => {
-          const getPriority = (lang: string) => {
-            const l = (lang || "").toLowerCase();
-            if (l === "id" || l === "ind") return 1;
-            if (l === "en" || l === "eng") return 2;
-            return 3;
-          };
-          const pA = getPriority(a.language);
-          const pB = getPriority(b.language);
-          if (pA !== pB) return pA - pB;
-          return a.label.localeCompare(b.label);
-        });
+        const merged = sortSubsPriority([...subtitles, ...newTracks]);
         setSubtitles(merged);
         setSuccessMsg(t?.cmsAutoSubsSuccess || `Successfully added ${addedCount} subtitles! ✨`);
         setTimeout(() => setSuccessMsg(""), 4500);
@@ -778,22 +808,34 @@ export default function AdminCMS({
   };
 
   // Subtitle management per episode
-  const handleAddEpisodeSubtitle = (seasonId: string, episodeId: string) => {
-    const newSub: Subtitle = {
-      id: `sub-ep-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
-      language: "id",
-      label: "Bahasa Indonesia",
-      fileUrl: ""
-    };
+  const handleAddEpisodeSubtitle = (seasonId: string, episodeId: string, langCode: string = "id", label: string = "Bahasa Indonesia") => {
     setSeasons(seasons.map(s => {
       if (s.id !== seasonId) return s;
       return {
         ...s,
         episodes: s.episodes.map(e => {
           if (e.id !== episodeId) return e;
+          let targetLang = langCode;
+          let targetLabel = label;
+          if (langCode === "id") {
+            const hasIndo = (e.subtitles || []).some(sub => {
+              const l = (sub.language || "").toLowerCase().trim();
+              return l === "id" || l === "ind" || l === "in";
+            });
+            if (hasIndo) {
+              targetLang = "en";
+              targetLabel = "English";
+            }
+          }
+          const newSub: Subtitle = {
+            id: `sub-ep-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+            language: targetLang,
+            label: targetLabel,
+            fileUrl: ""
+          };
           return {
             ...e,
-            subtitles: [...(e.subtitles || []), newSub]
+            subtitles: sortSubsPriority([...(e.subtitles || []), newSub])
           };
         })
       };
@@ -883,13 +925,14 @@ export default function AdminCMS({
             }
             return {
               ...e,
-              subtitles: [...(e.subtitles || []), ...newTracks]
+              subtitles: sortSubsPriority([...(e.subtitles || []), ...newTracks])
             };
           })
         };
       }));
 
-      setSuccessMsg(t.cmsEpisodeAutoSubSuccess || `Subtitle berhasil ditambahkan ke Episode ${episodeNumber}!`);
+      setSuccessMsg(t.cmsEpisodeAutoSubSuccess || `Subtitle berhasil ditambahkan ke Episode ${episodeNumber}! ✨`);
+      setTimeout(() => setSuccessMsg(""), 3000);
       setTimeout(() => setSuccessMsg(""), 3000);
     } catch (err: any) {
       showAlert(err.message || "Gagal mencari subtitle untuk episode ini.");
@@ -1243,7 +1286,13 @@ export default function AdminCMS({
       return;
     }
 
-    const seasonsPayload = contentType === "series" ? seasons : [];
+    const seasonsPayload = contentType === "series" ? seasons.map(s => ({
+      ...s,
+      episodes: s.episodes.map(e => ({
+        ...e,
+        subtitles: sortSubsPriority(e.subtitles || [])
+      }))
+    })) : [];
 
     const payload = {
       tmdbId: selectedTmdbId,
@@ -1272,7 +1321,7 @@ export default function AdminCMS({
       isBanner,
       contentType,
       seasons: seasonsPayload,
-      subtitles
+      subtitles: sortSubsPriority(subtitles)
     };
 
     try {
@@ -3026,47 +3075,99 @@ export default function AdminCMS({
                                               </div>
                                             ) : (
                                               <div className="space-y-2">
-                                                {ep.subtitles.map((sub, sIdx) => (
-                                                  <div key={sub.id || sIdx} className="grid grid-cols-1 sm:grid-cols-12 gap-2 items-center bg-zinc-900/60 p-2 rounded-lg border border-zinc-850">
-                                                    <div className="sm:col-span-3">
-                                                      <input
-                                                        type="text"
-                                                        value={sub.language}
-                                                        onChange={(e) => handleUpdateEpisodeSubtitle(season.id, ep.id, sub.id, "language", e.target.value)}
-                                                        placeholder="Kode (id, en)"
-                                                        className="w-full bg-zinc-950 border border-zinc-850 p-1.5 rounded text-[11px] text-zinc-200 focus:outline-hidden font-mono"
-                                                      />
+                                                {ep.subtitles.map((sub, sIdx) => {
+                                                  const isIndo = (sub.language || "").toLowerCase().trim() === "id" || (sub.language || "").toLowerCase().trim() === "ind" || (sub.language || "").toLowerCase().trim() === "in";
+                                                  return (
+                                                    <div key={sub.id || sIdx} className="bg-zinc-900/60 p-2.5 rounded-lg border border-zinc-850 space-y-2">
+                                                      <div className="flex items-center justify-between">
+                                                        <div className="flex items-center gap-1.5">
+                                                          <span className="text-[9px] font-mono font-bold text-zinc-400 uppercase">
+                                                            TRACK #{sIdx + 1}
+                                                          </span>
+                                                          {isIndo && (
+                                                            <span className="px-1.5 py-0.5 rounded text-[8px] font-black bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                                                              🇮🇩 PRIORITAS UTAMA
+                                                            </span>
+                                                          )}
+                                                        </div>
+                                                        <button
+                                                          type="button"
+                                                          onClick={() => handleRemoveEpisodeSubtitle(season.id, ep.id, sub.id)}
+                                                          className="p-1 text-zinc-600 hover:text-red-400 transition-colors"
+                                                          title="Hapus Subtitle"
+                                                        >
+                                                          <Trash2 className="w-3.5 h-3.5" />
+                                                        </button>
+                                                      </div>
+                                                      <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 items-center">
+                                                        <div className="sm:col-span-3">
+                                                          <select
+                                                            value={POPULAR_SUBTITLE_LANGUAGES.some(l => l.code === sub.language) ? sub.language : "custom"}
+                                                            onChange={(e) => {
+                                                              const val = e.target.value;
+                                                              if (val !== "custom") {
+                                                                const match = POPULAR_SUBTITLE_LANGUAGES.find(l => l.code === val);
+                                                                if (match) {
+                                                                  handleUpdateEpisodeSubtitle(season.id, ep.id, sub.id, "language", match.code);
+                                                                  handleUpdateEpisodeSubtitle(season.id, ep.id, sub.id, "label", match.label);
+                                                                }
+                                                              }
+                                                            }}
+                                                            className="w-full bg-zinc-950 border border-zinc-850 p-1.5 rounded text-[11px] text-zinc-200 focus:outline-hidden"
+                                                          >
+                                                            {POPULAR_SUBTITLE_LANGUAGES.map((lang) => (
+                                                              <option key={lang.code} value={lang.code} className="bg-zinc-900 text-zinc-200">
+                                                                {lang.flag} {lang.label} {lang.priority ? "★ (Prioritas)" : ""}
+                                                              </option>
+                                                            ))}
+                                                            <option value="custom" className="bg-zinc-900 text-zinc-400">🌐 Custom</option>
+                                                          </select>
+                                                        </div>
+                                                        <div className="sm:col-span-2">
+                                                          <input
+                                                            type="text"
+                                                            value={sub.language}
+                                                            onChange={(e) => handleUpdateEpisodeSubtitle(season.id, ep.id, sub.id, "language", e.target.value)}
+                                                            placeholder="Kode (id)"
+                                                            className="w-full bg-zinc-950 border border-zinc-850 p-1.5 rounded text-[11px] text-zinc-200 focus:outline-hidden font-mono"
+                                                          />
+                                                        </div>
+                                                        <div className="sm:col-span-3">
+                                                          <input
+                                                            type="text"
+                                                            value={sub.label}
+                                                            onChange={(e) => handleUpdateEpisodeSubtitle(season.id, ep.id, sub.id, "label", e.target.value)}
+                                                            placeholder="Label (Bahasa Indonesia)"
+                                                            className="w-full bg-zinc-950 border border-zinc-850 p-1.5 rounded text-[11px] text-zinc-200 focus:outline-hidden"
+                                                          />
+                                                        </div>
+                                                        <div className="sm:col-span-4 flex items-center gap-1.5">
+                                                          <input
+                                                            type="text"
+                                                            value={sub.fileUrl}
+                                                            onChange={(e) => handleUpdateEpisodeSubtitle(season.id, ep.id, sub.id, "fileUrl", e.target.value)}
+                                                            placeholder="URL Subtitle (.vtt / .srt)"
+                                                            className="w-full bg-zinc-950 border border-zinc-850 p-1.5 rounded text-[11px] text-zinc-200 focus:outline-hidden font-mono"
+                                                          />
+                                                          <label className="text-[9px] font-bold text-red-400 hover:text-red-300 hover:underline cursor-pointer flex items-center gap-0.5 whitespace-nowrap px-1.5 py-1 bg-red-600/10 border border-red-500/20 rounded">
+                                                            <Upload className="w-2.5 h-2.5" />
+                                                            Upload
+                                                            <input
+                                                              type="file"
+                                                              accept=".vtt,.srt,text/vtt,text/plain"
+                                                              className="hidden"
+                                                              onChange={(e) => {
+                                                                if (e.target.files && e.target.files[0]) {
+                                                                  handleGenericFileUpload(e.target.files[0], "subtitles", (url) => handleUpdateEpisodeSubtitle(season.id, ep.id, sub.id, "fileUrl", url), undefined, subtitleUploadProvider);
+                                                                }
+                                                              }}
+                                                            />
+                                                          </label>
+                                                        </div>
+                                                      </div>
                                                     </div>
-                                                    <div className="sm:col-span-3">
-                                                      <input
-                                                        type="text"
-                                                        value={sub.label}
-                                                        onChange={(e) => handleUpdateEpisodeSubtitle(season.id, ep.id, sub.id, "label", e.target.value)}
-                                                        placeholder="Label (Bahasa Indonesia)"
-                                                        className="w-full bg-zinc-950 border border-zinc-850 p-1.5 rounded text-[11px] text-zinc-200 focus:outline-hidden"
-                                                      />
-                                                    </div>
-                                                    <div className="sm:col-span-5">
-                                                      <input
-                                                        type="text"
-                                                        value={sub.fileUrl}
-                                                        onChange={(e) => handleUpdateEpisodeSubtitle(season.id, ep.id, sub.id, "fileUrl", e.target.value)}
-                                                        placeholder="URL Subtitle (.vtt / .srt)"
-                                                        className="w-full bg-zinc-950 border border-zinc-850 p-1.5 rounded text-[11px] text-zinc-200 focus:outline-hidden font-mono"
-                                                      />
-                                                    </div>
-                                                    <div className="sm:col-span-1 flex justify-end">
-                                                      <button
-                                                        type="button"
-                                                        onClick={() => handleRemoveEpisodeSubtitle(season.id, ep.id, sub.id)}
-                                                        className="p-1 text-zinc-600 hover:text-red-400 transition-colors"
-                                                        title="Hapus Subtitle"
-                                                      >
-                                                        <Trash2 className="w-3.5 h-3.5" />
-                                                      </button>
-                                                    </div>
-                                                  </div>
-                                                ))}
+                                                  );
+                                                })}
                                               </div>
                                             )}
                                           </div>
@@ -3099,6 +3200,22 @@ export default function AdminCMS({
                       <div className="flex items-center gap-2">
                         <button
                           type="button"
+                          onClick={() => handleAddSubtitle("id", "Bahasa Indonesia")}
+                          className="px-2.5 py-1.5 bg-emerald-600/15 hover:bg-emerald-600/25 text-emerald-400 hover:text-emerald-300 border border-emerald-500/30 rounded text-[10px] font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-sm"
+                          title="Tambah Subtitle Bahasa Indonesia (Prioritas)"
+                        >
+                          <span>🇮🇩 + Subtitle Indonesia (Prioritas)</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleAddSubtitle("en", "English")}
+                          className="px-2.5 py-1.5 bg-zinc-900 hover:bg-zinc-850 text-zinc-300 hover:text-white border border-zinc-800 rounded text-[10px] font-bold flex items-center gap-1.5 transition-all cursor-pointer"
+                          title="Tambah Subtitle English"
+                        >
+                          <span>🇬🇧 + English</span>
+                        </button>
+                        <button
+                          type="button"
                           onClick={handleAutoAddSubtitles}
                           disabled={autoSubLoading || !title.trim()}
                           className="px-3 py-1.5 bg-cyan-600/15 hover:bg-cyan-600/25 text-cyan-400 hover:text-cyan-300 border border-cyan-500/30 rounded text-[10px] font-bold flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
@@ -3119,7 +3236,7 @@ export default function AdminCMS({
                         </button>
                         <button
                           type="button"
-                          onClick={handleAddSubtitle}
+                          onClick={() => handleAddSubtitle()}
                           className="px-2.5 py-1.5 bg-red-600/10 hover:bg-red-600/20 text-red-500 hover:text-red-400 border border-red-500/20 rounded text-[10px] font-bold flex items-center gap-1 transition-all cursor-pointer"
                         >
                           <Plus className="w-3.5 h-3.5" />
@@ -3134,12 +3251,19 @@ export default function AdminCMS({
                       </div>
                     ) : (
                       <div className="space-y-3">
-                        {subtitles.map((sub) => (
+                        {subtitles.map((sub, subIndex) => (
                           <div key={sub.id} className="bg-zinc-900/30 border border-zinc-900 rounded p-3 space-y-2 relative group/sub">
                             <div className="flex items-center justify-between">
-                              <span className="text-[9px] font-black text-zinc-500 font-mono uppercase">
-                                SUBTITLE TRACK
-                              </span>
+                              <div className="flex items-center gap-2">
+                                <span className="text-[9px] font-black text-zinc-500 font-mono uppercase">
+                                  SUBTITLE TRACK #{subIndex + 1}
+                                </span>
+                                {((sub.language || "").toLowerCase().trim() === "id" || (sub.language || "").toLowerCase().trim() === "ind" || (sub.language || "").toLowerCase().trim() === "in") && (
+                                  <span className="px-1.5 py-0.5 rounded text-[8px] font-black bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
+                                    🇮🇩 PRIORITAS UTAMA
+                                  </span>
+                                )}
+                              </div>
                               <button
                                 type="button"
                                 onClick={() => handleRemoveSubtitle(sub.id)}
@@ -3150,20 +3274,44 @@ export default function AdminCMS({
                               </button>
                             </div>
 
-                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
                               <div className="space-y-0.5">
-                                <label className="text-[9px] font-bold uppercase text-zinc-600">{t.cmsSubLangCode || "Lang Code"}</label>
+                                <label className="text-[9px] font-bold uppercase text-zinc-600">Pilih Bahasa Preset</label>
+                                <select
+                                  value={POPULAR_SUBTITLE_LANGUAGES.some(l => l.code === sub.language) ? sub.language : "custom"}
+                                  onChange={(e) => {
+                                    const val = e.target.value;
+                                    if (val !== "custom") {
+                                      const match = POPULAR_SUBTITLE_LANGUAGES.find(l => l.code === val);
+                                      if (match) {
+                                        handleUpdateSubtitle(sub.id, "language", match.code);
+                                        handleUpdateSubtitle(sub.id, "label", match.label);
+                                      }
+                                    }
+                                  }}
+                                  className="w-full bg-zinc-950 border border-zinc-900 p-2 rounded text-xs text-zinc-300 focus:outline-hidden focus:border-red-500/30"
+                                >
+                                  {POPULAR_SUBTITLE_LANGUAGES.map((lang) => (
+                                    <option key={lang.code} value={lang.code} className="bg-zinc-900 text-zinc-200">
+                                      {lang.flag} {lang.label} {lang.priority ? "★ (Prioritas)" : ""}
+                                    </option>
+                                  ))}
+                                  <option value="custom" className="bg-zinc-900 text-zinc-400">🌐 Custom / Lainnya</option>
+                                </select>
+                              </div>
+                              <div className="space-y-0.5">
+                                <label className="text-[9px] font-bold uppercase text-zinc-600">{t.cmsSubLangCode || "Kode Bahasa (Prioritas: id)"}</label>
                                 <input
                                   type="text"
                                   required
                                   value={sub.language}
                                   onChange={(e) => handleUpdateSubtitle(sub.id, "language", e.target.value)}
-                                  placeholder="e.g. id, en, es"
-                                  className="w-full bg-zinc-950 border border-zinc-900 p-2 rounded text-xs text-zinc-300 focus:outline-hidden focus:border-red-500/30"
+                                  placeholder="e.g. id, en"
+                                  className="w-full bg-zinc-950 border border-zinc-900 p-2 rounded text-xs text-zinc-300 focus:outline-hidden focus:border-red-500/30 font-mono"
                                 />
                               </div>
                               <div className="space-y-0.5">
-                                <label className="text-[9px] font-bold uppercase text-zinc-600">{t.cmsSubLabel || "Label"}</label>
+                                <label className="text-[9px] font-bold uppercase text-zinc-600">{t.cmsSubLabel || "Label Bahasa"}</label>
                                 <input
                                   type="text"
                                   required

@@ -213,8 +213,8 @@ export async function GET(request: NextRequest) {
           return subsInFolder.length <= 4 || subLower.includes(baseVideoName) || baseVideoName.includes(subLower.replace(/\.[a-z0-9]+$/i, ""));
         })
         .map((sub, idx) => {
-          const isIndo = /indo|id|bahasa/i.test(sub.name || "");
-          const isSpan = /spa|es|spanish/i.test(sub.name || "");
+          const isIndo = /indo|id\b|indonesia|bahasa/i.test(sub.name || "");
+          const isSpan = /spa|es\b|spanish/i.test(sub.name || "");
           const langCode = isIndo ? "id" : isSpan ? "es" : "en";
           const langLabel = isIndo ? "Bahasa Indonesia" : isSpan ? "Español" : "English";
           return {
@@ -225,6 +225,20 @@ export async function GET(request: NextRequest) {
             fileName: sub.name,
           };
         });
+
+      // Strictly prioritize Indonesian (#1) and English (#2) at the top of the subtitles list
+      detectedSubtitles.sort((a, b) => {
+        const getPriority = (lang: string) => {
+          const l = (lang || "").toLowerCase().trim();
+          if (l === "id" || l === "ind" || l === "in") return 1;
+          if (l === "en" || l === "eng") return 2;
+          return 3;
+        };
+        const pA = getPriority(a.language);
+        const pB = getPriority(b.language);
+        if (pA !== pB) return pA - pB;
+        return a.label.localeCompare(b.label);
+      });
 
       // TMDB Search with the cleaned title from the video file
       let tmdbData: any = null;

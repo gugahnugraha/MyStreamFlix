@@ -414,6 +414,22 @@ export function normalizeCdnUrl(url: string | undefined): string {
   return trimmed;
 }
 
+export function sortSubtitlesPriority(subs: Subtitle[]): Subtitle[] {
+  if (!subs || !Array.isArray(subs)) return [];
+  return [...subs].sort((a, b) => {
+    const getPriority = (lang: string) => {
+      const l = (lang || "").toLowerCase().trim();
+      if (l === "id" || l === "ind" || l === "in") return 1;
+      if (l === "en" || l === "eng") return 2;
+      return 3;
+    };
+    const pA = getPriority(a.language);
+    const pB = getPriority(b.language);
+    if (pA !== pB) return pA - pB;
+    return (a.label || "").localeCompare(b.label || "");
+  });
+}
+
 function mapPrismaMovie(movie: any): Movie {
   const subtitlesRaw = Array.isArray(movie.subtitles) 
     ? (movie.subtitles as any as Subtitle[]) 
@@ -449,7 +465,7 @@ function mapPrismaMovie(movie: any): Movie {
     genres: movie.genres,
     cast: movie.cast,
     directors: movie.directors,
-    subtitles: subtitlesRaw.map((s) => ({ ...s, fileUrl: normalizeCdnUrl(s.fileUrl) })),
+    subtitles: sortSubtitlesPriority(subtitlesRaw.map((s) => ({ ...s, fileUrl: normalizeCdnUrl(s.fileUrl) }))),
     country: movie.country,
     language: movie.language,
     views: movie.views,
@@ -463,7 +479,11 @@ function mapPrismaMovie(movie: any): Movie {
     contentType: (movie.contentType as any) || undefined,
     seasons: seasonsRaw.map((s) => ({
       ...s,
-      episodes: (s.episodes || []).map((e) => ({ ...e, videoUrl: e.videoUrl || "" }))
+      episodes: (s.episodes || []).map((e) => ({
+        ...e,
+        videoUrl: e.videoUrl || "",
+        subtitles: sortSubtitlesPriority((e.subtitles || []).map((sub) => ({ ...sub, fileUrl: normalizeCdnUrl(sub.fileUrl) })))
+      }))
     })),
     translations: translationsObj
   };
@@ -769,7 +789,7 @@ export async function createMovie(movieData: Partial<Movie>): Promise<Movie> {
     genres: movieData.genres || ["Drama"],
     cast: movieData.cast || [],
     directors: movieData.directors || [],
-    subtitles: movieData.subtitles || [],
+    subtitles: sortSubtitlesPriority(movieData.subtitles || []),
     country: movieData.country || "United States",
     language: movieData.language || "English",
     views: 0,
@@ -778,7 +798,13 @@ export async function createMovie(movieData: Partial<Movie>): Promise<Movie> {
     isBanner: movieData.isBanner || false,
     tier: movieData.tier || "free",
     contentType: movieData.contentType || "movie",
-    seasons: movieData.seasons || [],
+    seasons: (movieData.seasons || []).map((s: any) => ({
+      ...s,
+      episodes: (s.episodes || []).map((e: any) => ({
+        ...e,
+        subtitles: sortSubtitlesPriority(e.subtitles || [])
+      }))
+    })),
     translations: movieData.translations || {},
     createdAt: new Date().toISOString()
   };
@@ -849,14 +875,23 @@ export async function updateMovie(id: string, updateData: Partial<Movie>): Promi
       if (updateData.genres !== undefined) updatePayload.genres = updateData.genres;
       if (updateData.cast !== undefined) updatePayload.cast = updateData.cast;
       if (updateData.directors !== undefined) updatePayload.directors = updateData.directors;
-      if (updateData.subtitles !== undefined) updatePayload.subtitles = JSON.stringify(updateData.subtitles);
+      if (updateData.subtitles !== undefined) updatePayload.subtitles = JSON.stringify(sortSubtitlesPriority(updateData.subtitles));
       if (updateData.country !== undefined) updatePayload.country = updateData.country;
       if (updateData.language !== undefined) updatePayload.language = updateData.language;
       if (updateData.isFeatured !== undefined) updatePayload.isFeatured = updateData.isFeatured;
       if (updateData.isBanner !== undefined) updatePayload.isBanner = updateData.isBanner;
       if (updateData.tier !== undefined) updatePayload.tier = updateData.tier;
       if (updateData.contentType !== undefined) updatePayload.contentType = updateData.contentType;
-      if (updateData.seasons !== undefined) updatePayload.seasons = JSON.stringify(updateData.seasons);
+      if (updateData.seasons !== undefined) {
+        const sortedSeasons = (updateData.seasons || []).map((s: any) => ({
+          ...s,
+          episodes: (s.episodes || []).map((e: any) => ({
+            ...e,
+            subtitles: sortSubtitlesPriority(e.subtitles || [])
+          }))
+        }));
+        updatePayload.seasons = JSON.stringify(sortedSeasons);
+      }
       if (updateData.tmdbId !== undefined) updatePayload.tmdbId = updateData.tmdbId !== null && (updateData.tmdbId as any) !== "" ? Number(updateData.tmdbId) : null;
       if (updateData.tmdbMediaType !== undefined) updatePayload.tmdbMediaType = updateData.tmdbMediaType || null;
       if (updateData.translations !== undefined) updatePayload.translations = updateData.translations as any;
