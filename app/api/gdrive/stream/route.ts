@@ -98,6 +98,18 @@ export async function GET(request: NextRequest) {
 
     const fileSize = parseInt(metaRes.data.size || "0", 10);
     const mimeType = metaRes.data.mimeType || "video/mp4";
+    const fileName = metaRes.data.name || activeFileId;
+
+    if (metaRes.data.mimeType && metaRes.data.mimeType.startsWith("application/vnd.google-apps.")) {
+      return NextResponse.json(
+        {
+          error: `Item "${fileName}" adalah tipe "${metaRes.data.mimeType}" (bukan file video). Pastikan Anda menyalin link file video (.mp4/.mkv), bukan dokumen atau folder kosong.`,
+          name: fileName,
+          mimeType: metaRes.data.mimeType,
+        },
+        { status: 400 }
+      );
+    }
 
     // 2. Handle HTTP Range Requests for video player seeking
     const rangeHeader = request.headers.get("range");
