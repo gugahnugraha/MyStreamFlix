@@ -1977,7 +1977,6 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
             preload="auto"
             playsInline
             webkit-playsinline="true"
-            crossOrigin="anonymous"
             className="w-full h-full max-h-screen transition-all duration-300"
             style={{
               objectFit: aspectRatio,

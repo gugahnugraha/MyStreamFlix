@@ -1003,7 +1003,6 @@ export default function LiveTvPage({
               className="w-full h-full object-contain bg-black"
               playsInline
               webkit-playsinline="true"
-              crossOrigin="anonymous"
               onWaiting={() => { setIsBuffering(true); scheduleBufferTimeout(); }}
               onPlaying={() => { setIsBuffering(false); setStreamError(false); clearStreamTimers(); }}
               onCanPlay={() => { setIsBuffering(false); clearStreamTimers(); }}
