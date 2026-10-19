@@ -78,9 +78,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: MyStreamFlix-Mobile-Android-APK
-          path: |
-            android/app/build/outputs/apk/debug/*.apk
+          path: android/app/build/outputs/apk/debug/MyStreamFlix-Mobile-v1.0.0-debug.apk
           if-no-files-found: error
+
 
       - name: Upload Detailed Build Log
         if: always()
