@@ -380,20 +380,22 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
     setIsBlackScreenDetected(false);
   }, [movie.id, activeEpisode?.id]);
 
-  // Monitor for black screen (typical with MKV/unsupported codecs on mobile browsers):
-  // When playback is progressing for > 2.5 seconds but videoWidth remains 0.
+  // Monitor for black screen (typical with MKV, HEVC/H.265, or 10-bit color on mobile browsers):
+  // When playback is progressing for > 2.0 seconds but videoWidth remains 0.
   useEffect(() => {
     if (!isPlaying || isBlackScreenDetected || isNativeCapacitor()) return;
 
     const interval = setInterval(() => {
       const v = videoRef.current;
-      if (v && !v.paused && v.currentTime > 2.5) {
-        if (v.videoWidth === 0 && v.videoHeight === 0 && isMkvStream) {
-          console.warn("[MediaPlayer] Black screen detected: MKV format container/codec cannot be decoded by this mobile browser.");
+      if (v && !v.paused && v.currentTime > 2.0) {
+        // Condition: audio/playback is moving forward, but video frame dimension is 0 (hardware decoder cannot decode video stream)
+        const isUnsupportedVideo = (v.videoWidth === 0 && v.videoHeight === 0);
+        if (isUnsupportedVideo && (isAndroidDevice() || isMkvStream)) {
+          console.warn("[MediaPlayer] Black screen detected: Video codec (HEVC/H.265/10-bit/MKV) cannot be rendered by this mobile browser.");
           setIsBlackScreenDetected(true);
         }
       }
-    }, 1200);
+    }, 1000);
 
     return () => clearInterval(interval);
   }, [isPlaying, isBlackScreenDetected, isMkvStream]);
@@ -2275,17 +2277,17 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
               </div>
 
               <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 text-[10px] font-black uppercase tracking-widest">
-                <span>FORMAT MKV TERDETEKSI (LAYAR HITAM)</span>
+                <span>CODEC TIDAK DIDUKUNG / LAYAR HITAM</span>
               </div>
 
               <h3 className="text-white font-black text-base sm:text-lg tracking-tight">
-                Layar Hitam di Browser Web Android
+                Layar Hitam di Browser Web HP
               </h3>
 
               <p className="text-xs text-zinc-300 leading-relaxed">
-                Browser Chrome/Safari di HP secara teknis tidak mendukung container <b>MKV</b> (Matroska) pada tag video web.
+                Video ini menggunakan codec (seperti <b>HEVC / H.265</b>, <b>10-bit color profile</b>, atau <b>MKV</b>) yang tidak didukung oleh browser web HP. Di laptop/PC browser bisa memutar karena memiliki software decoder bawaan.
                 <br /><br />
-                Gunakan tombol di bawah untuk langsung memutar dengan jernih & lancar di pemutar video HP Anda:
+                Gunakan tombol di bawah untuk langsung memutar dengan jernih & lancar di pemutar video HP Anda (VLC / MX Player):
               </p>
 
               <div className="flex flex-col gap-2.5 pt-2">
