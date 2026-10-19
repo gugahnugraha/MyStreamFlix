@@ -64,7 +64,7 @@ jobs:
       - name: Build Debug Android APK
         run: |
           cd android
-          ./gradlew assembleDebug --no-daemon --stacktrace
+          ./gradlew assembleDebug --no-daemon --stacktrace 2>&1 | tee ../gradle_output.txt
 
       - name: Prepare APK Output
         run: |
@@ -82,12 +82,11 @@ jobs:
             android/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
 
-      - name: Upload Build Logs on Failure
-        if: failure()
+      - name: Upload Detailed Build Log
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: Mobile-Build-Logs
-          path: |
-            android/app/build/reports/**
-            android/app/build/outputs/logs/**
+          name: Full-Gradle-Build-Log
+          path: gradle_output.txt
           if-no-files-found: ignore
+
