@@ -57,6 +57,30 @@ jobs:
         run: |
           npx --yes @capacitor/cli sync android --no-build || ./node_modules/.bin/cap sync android || true
 
+      - name: Ensure Cordova Plugin Files Exist
+        run: |
+          mkdir -p android/capacitor-cordova-android-plugins/src/main
+          if [ ! -f "android/capacitor-cordova-android-plugins/cordova.variables.gradle" ]; then
+            echo "ext { cdvMinSdkVersion = 24; cdvPluginPostBuildExtras = []; cordovaConfig = [:] }" > android/capacitor-cordova-android-plugins/cordova.variables.gradle
+          fi
+          if [ ! -f "android/capacitor-cordova-android-plugins/build.gradle" ]; then
+            cat << 'EOF' > android/capacitor-cordova-android-plugins/build.gradle
+          ext {
+              androidxAppCompatVersion = '1.7.1'
+              cordovaAndroidVersion = '14.0.1'
+          }
+          apply plugin: 'com.android.library'
+          android {
+              namespace = "capacitor.cordova.android.plugins"
+              compileSdk = 35
+              defaultConfig { minSdkVersion 24; targetSdk 35 }
+          }
+          EOF
+          fi
+          if [ ! -f "android/capacitor-cordova-android-plugins/src/main/AndroidManifest.xml" ]; then
+            echo '<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="capacitor.cordova.android.plugins" />' > android/capacitor-cordova-android-plugins/src/main/AndroidManifest.xml
+          fi
+
       - name: Grant Execute Permission for Gradle Wrapper
         run: |
           chmod +x android/gradlew
@@ -64,13 +88,18 @@ jobs:
       - name: Build Debug Android APK
         run: |
           cd android
-          ./gradlew assembleDebug --no-daemon --stacktrace 2>&1 | tee ../gradle_output.txt
+          ./gradlew assembleDebug --no-daemon --stacktrace
 
       - name: Prepare APK Output
         run: |
           mkdir -p release-apk
           find android/ -name "*.apk" -type f -exec cp -v {} release-apk/ \;
           ls -la release-apk/
+          if [ -z "$(ls -A release-apk)" ]; then
+            echo "::error::No APK found in android/ directory after build!"
+            find android/ -type f
+            exit 1
+          fi
 
       - name: Upload Mobile Android APK Artifact
         uses: actions/upload-artifact@v4
@@ -78,6 +107,8 @@ jobs:
           name: MyStreamFlix-Mobile-Android-APK
           path: release-apk/
           if-no-files-found: error
+
+
 
 
 
