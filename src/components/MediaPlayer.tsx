@@ -40,7 +40,7 @@ import * as dashjs from "dashjs";
 import { ScreenOrientation } from "@capacitor/screen-orientation";
 import { Movie, Subtitle, getLocalizedDescription } from "../types";
 import { getProxiedStreamUrl, describeQualityLabel, shortQualityHint, getAlternativeStreamUrls } from "../lib/stream-utils";
-import { isNativeCapacitor, enterImmersiveMode, exitImmersiveMode, addImmersiveStateListener, isAndroidDevice, openInAndroidPlayer } from "../lib/native-fullscreen";
+import { isNativeCapacitor, enterImmersiveMode, exitImmersiveMode, addImmersiveStateListener, isAndroidDevice } from "../lib/native-fullscreen";
 import { playWithNativeExoPlayer } from "../lib/capacitor-exoplayer";
 
 interface MediaPlayerProps {
@@ -372,33 +372,10 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
     return combined.includes(".mkv") || combined.includes("matroska");
   }, [rawStreamUrl, currentStreamUrl]);
 
-  const [isBlackScreenDetected, setIsBlackScreenDetected] = useState<boolean>(false);
-
-  // Reset alternative index and black screen status when movie or episode changes
+  // Reset alternative index when movie or episode changes
   useEffect(() => {
     setMediaAltIndex(0);
-    setIsBlackScreenDetected(false);
   }, [movie.id, activeEpisode?.id]);
-
-  // Monitor for black screen (typical with MKV, HEVC/H.265, or 10-bit color on mobile browsers):
-  // When playback is progressing for > 2.0 seconds but videoWidth remains 0.
-  useEffect(() => {
-    if (!isPlaying || isBlackScreenDetected || isNativeCapacitor()) return;
-
-    const interval = setInterval(() => {
-      const v = videoRef.current;
-      if (v && !v.paused && v.currentTime > 2.0) {
-        // Condition: audio/playback is moving forward, but video frame dimension is 0 (hardware decoder cannot decode video stream)
-        const isUnsupportedVideo = (v.videoWidth === 0 && v.videoHeight === 0);
-        if (isUnsupportedVideo && (isAndroidDevice() || isMkvStream)) {
-          console.warn("[MediaPlayer] Black screen detected: Video codec (HEVC/H.265/10-bit/MKV) cannot be rendered by this mobile browser.");
-          setIsBlackScreenDetected(true);
-        }
-      }
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [isPlaying, isBlackScreenDetected, isMkvStream]);
 
   // Play next episode
   const handlePlayNextEpisode = () => {
@@ -2093,13 +2070,6 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
                 setMediaAltIndex((idx) => idx + 1);
                 return;
               }
-              if (isMkvStream && isAndroidDevice() && !isNativeCapacitor()) {
-                console.warn("[MediaPlayer] Video error on MKV format in Android browser. Engaging external player action.");
-                setIsBlackScreenDetected(true);
-                setIsBuffering(false);
-                clearStreamTimers();
-                return;
-              }
               const video = videoRef.current;
               const src = video?.currentSrc || currentStreamUrl || "";
               // For non-HLS direct files (mp4, mkv, webm, etc.): check if the video
@@ -2262,63 +2232,6 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
           </div>
         )}
 
-        {/* Cinema-Grade Modal when Black Screen / Unsupported MKV is detected on Mobile Web */}
-        {isBlackScreenDetected && (
-          <div 
-            className="absolute inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-md p-5 animate-fade-in"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="max-w-md w-full bg-zinc-950 border border-amber-500/40 rounded-3xl p-6 sm:p-8 text-center space-y-4 shadow-[0_0_80px_rgba(245,158,11,0.25)] animate-in fade-in zoom-in-95 duration-200">
-              <div className="relative w-16 h-16 mx-auto">
-                <div className="absolute inset-0 rounded-2xl bg-amber-500/20 blur-xl animate-pulse" />
-                <div className="relative w-full h-full rounded-2xl bg-gradient-to-b from-amber-500/20 to-amber-950/70 border border-amber-500/40 flex items-center justify-center text-amber-400 shadow-xl">
-                  <Film className="w-8 h-8" />
-                </div>
-              </div>
-
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 text-[10px] font-black uppercase tracking-widest">
-                <span>CODEC TIDAK DIDUKUNG / LAYAR HITAM</span>
-              </div>
-
-              <h3 className="text-white font-black text-base sm:text-lg tracking-tight">
-                Layar Hitam di Browser Web HP
-              </h3>
-
-              <p className="text-xs text-zinc-300 leading-relaxed">
-                Video ini menggunakan codec (seperti <b>HEVC / H.265</b>, <b>10-bit color profile</b>, atau <b>MKV</b>) yang tidak didukung oleh browser web HP. Di laptop/PC browser bisa memutar karena memiliki software decoder bawaan.
-                <br /><br />
-                Gunakan tombol di bawah untuk langsung memutar dengan jernih & lancar di pemutar video HP Anda (VLC / MX Player):
-              </p>
-
-              <div className="flex flex-col gap-2.5 pt-2">
-                <button
-                  onClick={() => openInAndroidPlayer(currentStreamUrl, movie.title)}
-                  className="w-full py-3.5 px-4 bg-gradient-to-r from-red-600 to-amber-600 hover:from-red-500 hover:to-amber-500 text-white font-black text-sm rounded-2xl flex items-center justify-center gap-2 shadow-xl shadow-red-600/30 transition-all cursor-pointer active:scale-95"
-                >
-                  <Play className="w-4 h-4 fill-white" />
-                  <span>Buka di VLC / MX Player / Pemutar HP</span>
-                </button>
-
-                <button
-                  onClick={() => window.open(currentStreamUrl, "_blank")}
-                  className="w-full py-2.5 px-4 bg-zinc-900 hover:bg-zinc-850 text-zinc-300 font-bold text-xs rounded-xl border border-zinc-800 flex items-center justify-center gap-2 transition-all cursor-pointer"
-                >
-                  <Download className="w-4 h-4" />
-                  <span>Download File Video Langsung</span>
-                </button>
-
-                <button
-                  onClick={() => {
-                    setIsBlackScreenDetected(false);
-                  }}
-                  className="text-zinc-500 hover:text-zinc-400 text-xs py-1 transition-colors cursor-pointer"
-                >
-                  Tetap di Pemutar Web
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* Premium Glowing Glassmorphism Buffering Spinner Overlay */}
         {isBuffering && (
@@ -2498,17 +2411,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
             </div>
 
             <div className="flex items-center gap-2 sm:gap-3">
-              {/* Android External Video Player Button */}
-              {isAndroidDevice() && !isNativeCapacitor() && (
-                <button
-                  onClick={() => openInAndroidPlayer(currentStreamUrl, movie.title)}
-                  className="px-2.5 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 flex items-center gap-1.5 border border-amber-500/40 transition-colors shadow-lg cursor-pointer z-20 text-xs font-bold"
-                  title="Buka di VLC / MX Player / Pemutar Android"
-                >
-                  <ExternalLink className="w-4 h-4 text-amber-400" />
-                  <span className="hidden sm:inline">Pemutar HP</span>
-                </button>
-              )}
+
 
               {/* Aspect Ratio Mode Switcher */}
               <button
@@ -3100,16 +3003,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
                   </button>
                 )}
 
-                {/* Buka di Pemutar HP (Android Web) */}
-                {isAndroidDevice() && !isNativeCapacitor() && (
-                  <button
-                    onClick={() => openInAndroidPlayer(currentStreamUrl, movie.title)}
-                    className="text-amber-400 hover:text-amber-300 transition-colors cursor-pointer min-w-11 min-h-11 flex items-center justify-center hover:scale-105 active:scale-95"
-                    title="Buka di VLC / MX Player / Pemutar HP"
-                  >
-                    <ExternalLink className="w-5 h-5" />
-                  </button>
-                )}
+
 
                 {/* Fullscreen control */}
                 <button
