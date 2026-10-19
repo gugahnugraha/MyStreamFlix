@@ -68,18 +68,17 @@ jobs:
 
       - name: Prepare APK Output
         run: |
-          APK_DIR="android/app/build/outputs/apk/debug"
-          ls -la "$APK_DIR" || true
-          if [ -f "$APK_DIR/app-debug.apk" ]; then
-            cp "$APK_DIR/app-debug.apk" "$APK_DIR/MyStreamFlix-Mobile-v1.0.0-debug.apk"
-          fi
+          mkdir -p release-apk
+          find android/ -name "*.apk" -type f -exec cp -v {} release-apk/ \;
+          ls -la release-apk/
 
       - name: Upload Mobile Android APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: MyStreamFlix-Mobile-Android-APK
-          path: android/app/build/outputs/apk/debug/MyStreamFlix-Mobile-v1.0.0-debug.apk
+          path: release-apk/
           if-no-files-found: error
+
 
 
       - name: Upload Detailed Build Log
