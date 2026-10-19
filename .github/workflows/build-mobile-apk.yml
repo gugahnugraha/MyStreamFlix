@@ -5,7 +5,7 @@ on:
     branches: [ main, master ]
     paths:
       - 'android/**'
-      - 'capacitor.config.ts'
+      - 'capacitor.config.json'
       - 'public/**'
       - '.github/workflows/build-mobile-apk.yml'
   workflow_dispatch:
@@ -38,22 +38,32 @@ jobs:
           cache: 'npm'
 
       - name: Install Dependencies
-        run: npm ci --legacy-peer-deps || npm install --legacy-peer-deps
+        run: |
+          npm install --legacy-peer-deps
 
-      - name: Sync Capacitor Android Assets & Plugins
-        run: npx cap sync android
+      - name: Prepare Android Web Assets Directory
+        run: |
+          mkdir -p android/app/src/main/assets/public
+          cp -r public/* android/app/src/main/assets/public/ || true
+          cp capacitor.config.json android/app/src/main/assets/capacitor.config.json
+
+      - name: Sync Capacitor Android
+        run: |
+          npx --yes @capacitor/cli sync android --no-build || ./node_modules/.bin/cap sync android || true
 
       - name: Grant Execute Permission for Gradle Wrapper
-        run: chmod +x android/gradlew
+        run: |
+          chmod +x android/gradlew
 
       - name: Build Debug Android APK
         run: |
           cd android
-          ./gradlew clean assembleDebug --no-daemon --stacktrace
+          ./gradlew assembleDebug --no-daemon --stacktrace
 
       - name: Prepare APK Output
         run: |
           APK_DIR="android/app/build/outputs/apk/debug"
+          ls -la "$APK_DIR" || true
           if [ -f "$APK_DIR/app-debug.apk" ]; then
             cp "$APK_DIR/app-debug.apk" "$APK_DIR/MyStreamFlix-Mobile-v1.0.0-debug.apk"
           fi
@@ -63,8 +73,7 @@ jobs:
         with:
           name: MyStreamFlix-Mobile-Android-APK
           path: |
-            android/app/build/outputs/apk/debug/MyStreamFlix-Mobile-v1.0.0-debug.apk
-            android/app/build/outputs/apk/debug/app-debug.apk
+            android/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
 
       - name: Upload Build Logs on Failure
