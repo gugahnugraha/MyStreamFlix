@@ -114,7 +114,9 @@ export async function POST(request: NextRequest) {
     const year = body.year ? Number(body.year) : undefined;
     const tmdbId = body.tmdbId;
     const mediaType = body.mediaType || body.contentType || "movie";
-    const requestedLangs = (body.languages || "id,en").toLowerCase().split(",").map((l: string) => l.trim());
+    // Strictly constrain to Indonesian and English only to preserve API request quota
+    const ALLOWED_LANG_CODES = new Set(["id", "en"]);
+    const requestedLangs = ["id", "en"];
 
     if (!title && !body.imdbId && !tmdbId) {
       return NextResponse.json({ error: "Judul tayangan atau ID TMDB diperlukan." }, { status: 400 });
@@ -135,14 +137,20 @@ export async function POST(request: NextRequest) {
       source: string;
     }> = [];
 
-    // 2. Fetch from SubDL API (Primary High-Accuracy Subtitle Provider)
+    // Counters to cap results per language (e.g. max 3 Indonesian releases, max 2 English releases)
+    let subdlIndoCount = 0;
+    let subdlEngCount = 0;
+    const MAX_INDO = 3;
+    const MAX_ENG = 2;
+
+    // 2. Fetch from SubDL API (Primary High-Accuracy Subtitle Provider - Only 1 API request used)
     const subdlApiKey = process.env.SUBDL_API_KEY?.trim() || "subdl_o8MaESVXDcILb1ZSkocMHRoR_9TuwmP33rZT8ew1VLM";
     if (subdlApiKey) {
       try {
         const queryParams = new URLSearchParams({
           api_key: subdlApiKey,
-          languages: requestedLangs.join(","),
-          subs_per_page: "30",
+          languages: "id,en", // Only Indonesian and English
+          subs_per_page: "20",
           unpack: "1",
         });
 
@@ -177,6 +185,17 @@ export async function POST(request: NextRequest) {
               for (const uf of item.unpack_files) {
                 const langCode = (uf.language || item.language || item.lang || "").toLowerCase().trim();
                 const langMeta = normalizeLang(langCode);
+
+                // Strictly filter to 'id' and 'en' only
+                if (!ALLOWED_LANG_CODES.has(langMeta.code)) continue;
+                if (langMeta.code === "id") {
+                  if (subdlIndoCount >= MAX_INDO) continue;
+                  subdlIndoCount++;
+                } else if (langMeta.code === "en") {
+                  if (subdlEngCount >= MAX_ENG) continue;
+                  subdlEngCount++;
+                }
+
                 let fileUrl = uf.url || "";
                 if (!fileUrl.startsWith("http")) {
                   fileUrl = `https://dl.subdl.com${fileUrl.startsWith("/") ? "" : "/"}${fileUrl}`;
@@ -188,7 +207,7 @@ export async function POST(request: NextRequest) {
                 subtitlesFound.push({
                   id: `subdl-${uf.file_n_id || Math.random().toString(36).substring(2, 7)}`,
                   language: langMeta.code,
-                  label: langMeta.label,
+                  label: langMeta.code === "id" ? (subdlIndoCount === 1 ? "Bahasa Indonesia" : `Bahasa Indonesia (Sync ${subdlIndoCount})`) : (subdlEngCount === 1 ? "English" : `English (Sync ${subdlEngCount})`),
                   fileUrl,
                   fileName: uf.name || uf.release_name || item.name || `${title} (${langMeta.label})`,
                   source: "SubDL",
@@ -197,6 +216,17 @@ export async function POST(request: NextRequest) {
             } else if (item.url) {
               const langCode = (item.language || item.lang || "").toLowerCase().trim();
               const langMeta = normalizeLang(langCode);
+
+              // Strictly filter to 'id' and 'en' only
+              if (!ALLOWED_LANG_CODES.has(langMeta.code)) continue;
+              if (langMeta.code === "id") {
+                if (subdlIndoCount >= MAX_INDO) continue;
+                subdlIndoCount++;
+              } else if (langMeta.code === "en") {
+                if (subdlEngCount >= MAX_ENG) continue;
+                subdlEngCount++;
+              }
+
               let fileUrl = item.url;
               if (!fileUrl.startsWith("http")) {
                 fileUrl = `https://dl.subdl.com${fileUrl.startsWith("/") ? "" : "/"}${fileUrl}`;
@@ -208,7 +238,7 @@ export async function POST(request: NextRequest) {
               subtitlesFound.push({
                 id: `subdl-${item.sd_id || Math.random().toString(36).substring(2, 7)}`,
                 language: langMeta.code,
-                label: langMeta.label,
+                label: langMeta.code === "id" ? (subdlIndoCount === 1 ? "Bahasa Indonesia" : `Bahasa Indonesia (Sync ${subdlIndoCount})`) : (subdlEngCount === 1 ? "English" : `English (Sync ${subdlEngCount})`),
                 fileUrl,
                 fileName: item.name || item.release_name || `${title} (${langMeta.label})`,
                 source: "SubDL",
@@ -296,6 +326,7 @@ export async function POST(request: NextRequest) {
           for (const item of (data.data || [])) {
             const langCode = item.attributes?.language || "en";
             const langMeta = normalizeLang(langCode);
+            if (!ALLOWED_LANG_CODES.has(langMeta.code)) continue;
             const fileId = item.attributes?.files?.[0]?.file_id;
             if (fileId) {
               subtitlesFound.push({
@@ -314,8 +345,11 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Filter strictly to 'id' and 'en'
+    const finalSubtitles = subtitlesFound.filter(s => ALLOWED_LANG_CODES.has(s.language));
+
     // Strictly prioritize Bahasa Indonesia (#1) and English (#2) at the top of results
-    subtitlesFound.sort((a, b) => {
+    finalSubtitles.sort((a, b) => {
       const getPriority = (lang: string) => {
         const l = (lang || "").toLowerCase().trim();
         if (l === "id" || l === "ind" || l === "in") return 1;
@@ -328,20 +362,21 @@ export async function POST(request: NextRequest) {
       return a.label.localeCompare(b.label);
     });
 
-    const hasIndonesian = subtitlesFound.some(s => s.language === "id");
-    const hasEnglish = subtitlesFound.some(s => s.language === "en");
+    const hasIndonesian = finalSubtitles.some(s => s.language === "id");
+    const hasEnglish = finalSubtitles.some(s => s.language === "en");
 
     return NextResponse.json({
       success: true,
       imdbId,
       title,
-      totalFound: subtitlesFound.length,
+      totalFound: finalSubtitles.length,
       hasIndonesian,
       hasEnglish,
-      subtitles: subtitlesFound
+      subtitles: finalSubtitles
     });
   } catch (error: any) {
     console.error("[Auto-Subtitle] Handler error:", error);
     return NextResponse.json({ error: error.message || "Gagal mencari subtitle otomatis." }, { status: 500 });
   }
 }
+
