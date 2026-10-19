@@ -241,8 +241,17 @@ export default function LiveTvPage({
 
   // Sync fullscreen state
   useEffect(() => {
-    const onFs = () => setIsFullscreen(!!document.fullscreenElement);
+    const onFs = () => {
+      const isFs = !!(
+        document.fullscreenElement ||
+        (document as any).webkitFullscreenElement ||
+        (document as any).mozFullScreenElement ||
+        (document as any).msFullscreenElement
+      );
+      setIsFullscreen(isFs);
+    };
     document.addEventListener("fullscreenchange", onFs);
+    document.addEventListener("webkitfullscreenchange", onFs);
     let removeNativeListener = () => {};
     if (isNativeCapacitor()) {
       addImmersiveStateListener((data) => {
@@ -251,6 +260,7 @@ export default function LiveTvPage({
     }
     return () => {
       document.removeEventListener("fullscreenchange", onFs);
+      document.removeEventListener("webkitfullscreenchange", onFs);
       removeNativeListener();
     };
   }, []);
@@ -561,31 +571,57 @@ export default function LiveTvPage({
       return;
     }
 
-    // Browser: requestFullscreen FIRST, then lock orientation inside the
-    // fullscreenchange event so the lock request happens from within fullscreen
-    // context — required by the Screen Orientation API spec.
     const target = playerShellRef.current;
+    const video = videoRef.current;
     if (!target) return;
 
     if (targetFs) {
       try {
-        await target.requestFullscreen();
-        // Now we are in fullscreen — lock orientation
+        if (target.requestFullscreen) {
+          await target.requestFullscreen();
+        } else if ((target as any).webkitRequestFullscreen) {
+          await (target as any).webkitRequestFullscreen();
+        } else if ((target as any).mozRequestFullScreen) {
+          await (target as any).mozRequestFullScreen();
+        } else if ((target as any).msRequestFullscreen) {
+          await (target as any).msRequestFullscreen();
+        } else if (video && (video as any).webkitEnterFullscreen) {
+          (video as any).webkitEnterFullscreen();
+        }
+
         try {
-          await (screen.orientation as any).lock("landscape");
+          const orientation = (screen as any).orientation || (window.screen as any).orientation;
+          if (orientation && typeof orientation.lock === "function") {
+            await orientation.lock("landscape");
+          }
         } catch {
           // Screen Orientation lock not supported (iOS Safari, etc.) — ignore
         }
       } catch {
-        // requestFullscreen rejected — revert state
-        setIsFullscreen(false);
+        if (video && typeof (video as any).webkitEnterFullscreen === "function") {
+          try {
+            (video as any).webkitEnterFullscreen();
+          } catch {}
+        } else {
+          // requestFullscreen rejected — revert state
+          setIsFullscreen(false);
+        }
       }
     } else {
       try {
-        await document.exitFullscreen();
+        if (document.exitFullscreen) {
+          await document.exitFullscreen();
+        } else if ((document as any).webkitExitFullscreen) {
+          await (document as any).webkitExitFullscreen();
+        } else if ((document as any).mozCancelFullScreen) {
+          await (document as any).mozCancelFullScreen();
+        } else if ((document as any).msExitFullscreen) {
+          await (document as any).msExitFullscreen();
+        }
       } catch {}
       try {
-        (screen.orientation as any).unlock?.();
+        const orientation = (screen as any).orientation || (window.screen as any).orientation;
+        orientation?.unlock?.();
       } catch {}
     }
   };
@@ -1032,23 +1068,35 @@ export default function LiveTvPage({
               style={{
                 top: isFullscreen
                   ? "max(calc(env(safe-area-inset-top, 0px) + 20px), 24px)"
-                  : "18px",
+                  : "10px",
                 left: isFullscreen
                   ? "max(calc(env(safe-area-inset-left, 0px) + 20px), 24px)"
-                  : "18px",
+                  : "10px",
               }}
             >
-              <div className="bg-black/50 backdrop-blur-md px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-xl border border-white/10 shadow-lg inline-block">
-                <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse shrink-0" />
-                  <p className="text-[10px] sm:text-[11px] font-bold text-red-400 font-mono tracking-wider uppercase leading-none drop-shadow-sm">
-                    {t?.nowStreaming || "NOW STREAMING"} • {displayLiveQuality}
-                  </p>
+              {isFullscreen ? (
+                <div className="bg-black/50 backdrop-blur-md px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-xl border border-white/10 shadow-lg inline-block">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse shrink-0" />
+                    <p className="text-[10px] sm:text-[11px] font-bold text-red-400 font-mono tracking-wider uppercase leading-none drop-shadow-sm">
+                      {t?.nowStreaming || "NOW STREAMING"} • {displayLiveQuality}
+                    </p>
+                  </div>
+                  <h2 className="text-white text-xs sm:text-sm font-extrabold truncate max-w-[220px] sm:max-w-xs mt-1 drop-shadow-sm">
+                    {activeChannel?.title || "Live TV"}
+                  </h2>
                 </div>
-                <h2 className="text-white text-xs sm:text-sm font-extrabold truncate max-w-[220px] sm:max-w-xs mt-1 drop-shadow-sm">
-                  {activeChannel?.title || "Live TV"}
-                </h2>
-              </div>
+              ) : (
+                <div className="bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-lg border border-white/10 shadow-md inline-flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse shrink-0" />
+                  <span className="text-[10px] font-bold text-red-400 font-mono tracking-wider uppercase leading-none">
+                    LIVE
+                  </span>
+                  <span className="text-white text-xs font-bold truncate max-w-[150px] sm:max-w-xs">
+                    {activeChannel?.title || "Live TV"}
+                  </span>
+                </div>
+              )}
             </div>
 
             {/* Tap-to-play overlay (autoplay blocked) */}
@@ -1063,6 +1111,22 @@ export default function LiveTvPage({
                 <p className="text-xs text-zinc-300 max-w-xs">
                   {t?.tapToPlay || "Tap to start live stream"}
                 </p>
+              </div>
+            )}
+
+            {/* Paused tap-to-resume overlay */}
+            {!isPlaying && !needUserGesture && !streamError && !isBuffering && (
+              <div
+                className="absolute inset-0 bg-black/40 backdrop-blur-[2px] flex items-center justify-center z-25 cursor-pointer"
+                onClick={togglePlay}
+              >
+                <button
+                  onClick={(e) => { e.stopPropagation(); togglePlay(); }}
+                  className="w-14 h-14 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-md text-white flex items-center justify-center shadow-2xl transition-all active:scale-90 cursor-pointer"
+                  title={t?.play || "Play"}
+                >
+                  <Play className="w-7 h-7 ml-1 fill-white" />
+                </button>
               </div>
             )}
 
@@ -1096,7 +1160,7 @@ export default function LiveTvPage({
               </div>
             )}
 
-            {/* HUD Control Bar — always visible on mobile, auto-hides on desktop */}
+            {/* HUD Control Bar — clean minimal fullscreen button in non-fullscreen mode, full controls in fullscreen */}
             <div
               className={`absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/95 via-black/40 to-transparent flex items-center justify-between gap-2 px-3 sm:px-4 pt-8 transition-opacity duration-300 z-40 player-interactive ${
                 showControls ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
@@ -1104,83 +1168,87 @@ export default function LiveTvPage({
               style={hudStyle}
               onPointerDown={() => setShowFullscreenPlaylist(false)}
             >
-              {/* Left: Prev + Play/Pause + Next + Volume */}
-              <div className="flex items-center gap-1.5 sm:gap-2">
-                {/* Prev Channel Button */}
-                <button
-                  onClick={(e) => { e.stopPropagation(); handlePrevChannel(); }}
-                  className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 active:scale-95 backdrop-blur-md text-white flex items-center justify-center transition-all cursor-pointer"
-                  title="Channel Sebelumnya"
-                >
-                  <SkipBack className="w-4 h-4" />
-                </button>
+              {/* Left: Prev + Play/Pause + Next + Volume (Only shown in Fullscreen mode) */}
+              {isFullscreen ? (
+                <div className="flex items-center gap-1.5 sm:gap-2">
+                  {/* Prev Channel Button */}
+                  <button
+                    onClick={(e) => { e.stopPropagation(); handlePrevChannel(); }}
+                    className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 active:scale-95 backdrop-blur-md text-white flex items-center justify-center transition-all cursor-pointer"
+                    title="Channel Sebelumnya"
+                  >
+                    <SkipBack className="w-4 h-4" />
+                  </button>
 
-                <button
-                  onClick={(e) => { e.stopPropagation(); togglePlay(); }}
-                  className="w-11 h-11 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-md text-white flex items-center justify-center transition-all cursor-pointer"
-                >
-                  {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 ml-0.5" />}
-                </button>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); togglePlay(); }}
+                    className="w-11 h-11 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-md text-white flex items-center justify-center transition-all cursor-pointer"
+                  >
+                    {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 ml-0.5" />}
+                  </button>
 
-                {/* Next Channel Button */}
-                <button
-                  onClick={(e) => { e.stopPropagation(); handleNextChannel(); }}
-                  className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 active:scale-95 backdrop-blur-md text-white flex items-center justify-center transition-all cursor-pointer"
-                  title="Channel Berikutnya"
-                >
-                  <SkipForward className="w-4 h-4" />
-                </button>
+                  {/* Next Channel Button */}
+                  <button
+                    onClick={(e) => { e.stopPropagation(); handleNextChannel(); }}
+                    className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 active:scale-95 backdrop-blur-md text-white flex items-center justify-center transition-all cursor-pointer"
+                    title="Channel Berikutnya"
+                  >
+                    <SkipForward className="w-4 h-4" />
+                  </button>
 
-                <button
-                  onClick={(e) => { e.stopPropagation(); toggleMute(); }}
-                  className="w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-md text-white flex items-center justify-center transition-all cursor-pointer"
-                >
-                  {isMuted ? <VolumeX className="w-5 h-5 text-red-400" /> : <Volume2 className="w-5 h-5" />}
-                </button>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); toggleMute(); }}
+                    className="w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-md text-white flex items-center justify-center transition-all cursor-pointer"
+                  >
+                    {isMuted ? <VolumeX className="w-5 h-5 text-red-400" /> : <Volume2 className="w-5 h-5" />}
+                  </button>
 
-                {/* Rich Visual Volume Bar (Bekas lewatan & thumb) */}
-                <div
-                  className="hidden sm:flex relative items-center h-6 w-20 md:w-24 group cursor-pointer select-none"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  {/* Background Track (Abu-abu transparan untuk progress di depannya) */}
-                  <div className="w-full h-1.5 group-hover:h-2 bg-white/20 group-hover:bg-white/25 rounded-full overflow-hidden relative transition-all duration-150">
-                    {/* Fill Volume Track (Progress volume terisi - Biru tema) */}
+                  {/* Rich Visual Volume Bar (Bekas lewatan & thumb) */}
+                  <div
+                    className="hidden sm:flex relative items-center h-6 w-20 md:w-24 group cursor-pointer select-none"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {/* Background Track (Abu-abu transparan untuk progress di depannya) */}
+                    <div className="w-full h-1.5 group-hover:h-2 bg-white/20 group-hover:bg-white/25 rounded-full overflow-hidden relative transition-all duration-150">
+                      {/* Fill Volume Track (Progress volume terisi - Biru tema) */}
+                      <div
+                        className="absolute top-0 bottom-0 left-0 bg-gradient-to-r from-sky-600 to-cyan-400 rounded-full pointer-events-none shadow-[0_0_8px_rgba(56,189,248,0.7)]"
+                        style={{
+                          width: `${(isMuted ? 0 : volume) * 100}%`,
+                          background: brandColor && brandColor !== "#34C759" ? brandColor : "linear-gradient(90deg, #0284C7, #38BDF8)"
+                        }}
+                      />
+                    </div>
+
+                    {/* Volume Thumb Knob Bulat Putih dengan Bingkai Biru Tema */}
                     <div
-                      className="absolute top-0 bottom-0 left-0 bg-gradient-to-r from-sky-600 to-cyan-400 rounded-full pointer-events-none shadow-[0_0_8px_rgba(56,189,248,0.7)]"
+                      className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-3 h-3 group-hover:w-3.5 group-hover:h-3.5 bg-white border-2 border-sky-400 rounded-full shadow-md scale-75 group-hover:scale-110 transition-transform duration-150 pointer-events-none z-10"
                       style={{
-                        width: `${(isMuted ? 0 : volume) * 100}%`,
-                        background: brandColor && brandColor !== "#34C759" ? brandColor : "linear-gradient(90deg, #0284C7, #38BDF8)"
+                        left: `${(isMuted ? 0 : volume) * 100}%`,
+                        borderColor: brandColor && brandColor !== "#34C759" ? brandColor : "#38BDF8"
                       }}
                     />
+
+                    {/* Transparent Native Slider */}
+                    <input
+                      type="range"
+                      min={0}
+                      max={1}
+                      step={0.02}
+                      value={isMuted ? 0 : volume}
+                      onChange={handleVolumeChange}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20 m-0 p-0"
+                      title={`Volume: ${Math.round((isMuted ? 0 : volume) * 100)}%`}
+                    />
                   </div>
-
-                  {/* Volume Thumb Knob Bulat Putih dengan Bingkai Biru Tema */}
-                  <div
-                    className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-3 h-3 group-hover:w-3.5 group-hover:h-3.5 bg-white border-2 border-sky-400 rounded-full shadow-md scale-75 group-hover:scale-110 transition-transform duration-150 pointer-events-none z-10"
-                    style={{
-                      left: `${(isMuted ? 0 : volume) * 100}%`,
-                      borderColor: brandColor && brandColor !== "#34C759" ? brandColor : "#38BDF8"
-                    }}
-                  />
-
-                  {/* Transparent Native Slider */}
-                  <input
-                    type="range"
-                    min={0}
-                    max={1}
-                    step={0.02}
-                    value={isMuted ? 0 : volume}
-                    onChange={handleVolumeChange}
-                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20 m-0 p-0"
-                    title={`Volume: ${Math.round((isMuted ? 0 : volume) * 100)}%`}
-                  />
                 </div>
-              </div>
+              ) : (
+                <div />
+              )}
 
-              {/* Right: Quality + Playlist + Fullscreen */}
+              {/* Right: Quality + PiP + Fullscreen */}
               <div className="relative flex items-center gap-2">
-                {qualityLevels.length > 0 && (
+                {isFullscreen && qualityLevels.length > 0 && (
                   <div className="relative">
                     <button
                       onClick={(e) => {
@@ -1234,33 +1302,36 @@ export default function LiveTvPage({
                   </div>
                 )}
 
-                {/* Picture in Picture */}
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    try {
-                      if (document.pictureInPictureElement) {
-                        document.exitPictureInPicture();
-                      } else if (videoRef.current && document.pictureInPictureEnabled) {
-                        videoRef.current.requestPictureInPicture();
+                {/* Picture in Picture - ONLY in fullscreen mode */}
+                {isFullscreen && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      try {
+                        if (document.pictureInPictureElement) {
+                          document.exitPictureInPicture();
+                        } else if (videoRef.current && document.pictureInPictureEnabled) {
+                          videoRef.current.requestPictureInPicture();
+                        }
+                      } catch (err) {
+                        console.warn("PiP error:", err);
                       }
-                    } catch (err) {
-                      console.warn("PiP error:", err);
-                    }
-                  }}
-                  className="w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-md text-white flex items-center justify-center transition-all cursor-pointer"
-                  title="Picture-in-Picture (P)"
-                >
-                  <PictureInPicture className="w-5 h-5" />
-                </button>
+                    }}
+                    className="w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-md text-white flex items-center justify-center transition-all cursor-pointer"
+                    title="Picture-in-Picture (P)"
+                  >
+                    <PictureInPicture className="w-5 h-5" />
+                  </button>
+                )}
 
+                {/* Fullscreen Toggle Button */}
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
                     setShowFullscreenPlaylist(false);
                     toggleFullscreen();
                   }}
-                  className="w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-md text-white flex items-center justify-center transition-all cursor-pointer"
+                  className="w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 active:scale-95 backdrop-blur-md text-white flex items-center justify-center transition-all cursor-pointer shadow-lg"
                   title={isFullscreen ? (t?.exitFullscreen || "Exit Fullscreen") : (t?.fullscreen || "Fullscreen")}
                 >
                   {isFullscreen ? <Minimize className="w-5 h-5 text-red-400" /> : <Maximize className="w-5 h-5" />}

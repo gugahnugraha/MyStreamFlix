@@ -3090,13 +3090,15 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
                 )}
 
                 {/* Picture in Picture */}
-                <button
-                  onClick={togglePiP}
-                  className="text-zinc-300 hover:text-white transition-colors cursor-pointer min-w-11 min-h-11 flex items-center justify-center hover:scale-105 active:scale-95"
-                  title="Picture-in-Picture (P)"
-                >
-                  <PictureInPicture className="w-5 h-5" />
-                </button>
+                {!(movie.contentType === "livetv" && !isFullscreen) && (
+                  <button
+                    onClick={togglePiP}
+                    className="text-zinc-300 hover:text-white transition-colors cursor-pointer min-w-11 min-h-11 flex items-center justify-center hover:scale-105 active:scale-95"
+                    title="Picture-in-Picture (P)"
+                  >
+                    <PictureInPicture className="w-5 h-5" />
+                  </button>
+                )}
 
                 {/* Buka di Pemutar HP (Android Web) */}
                 {isAndroidDevice() && !isNativeCapacitor() && (
