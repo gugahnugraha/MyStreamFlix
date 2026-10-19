@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { google } from "googleapis";
+import zlib from "zlib";
 
 function extractGoogleDriveFileId(rawUrl: string): string | null {
   if (!rawUrl) return null;
@@ -71,7 +72,29 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const text = await response.text();
+    const arrayBuf = await response.arrayBuffer();
+    const buf = Buffer.from(arrayBuf);
+
+    let text = "";
+    // Check if response is a ZIP archive (starts with PK\x03\x04: 0x50 0x4B 0x03 0x04)
+    if (buf.length >= 30 && buf[0] === 0x50 && buf[1] === 0x4b && buf[2] === 0x03 && buf[3] === 0x04) {
+      try {
+        const method = buf.readUInt16LE(8);
+        const compSize = buf.readUInt32LE(18);
+        const fnLen = buf.readUInt16LE(26);
+        const extraLen = buf.readUInt16LE(28);
+        const dataStart = 30 + fnLen + extraLen;
+        const compData = buf.subarray(dataStart, dataStart + compSize);
+        const extracted = method === 8 ? zlib.inflateRawSync(compData) : compData;
+        text = extracted.toString("utf-8");
+      } catch (zipErr) {
+        console.warn("Failed to extract zip subtitle archive:", zipErr);
+        text = buf.toString("utf-8");
+      }
+    } else {
+      text = buf.toString("utf-8");
+    }
+
     return new NextResponse(text, {
       status: 200,
       headers: {

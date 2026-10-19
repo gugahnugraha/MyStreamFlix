@@ -120,17 +120,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Judul tayangan atau ID TMDB diperlukan." }, { status: 400 });
     }
 
-    // 1. Resolve IMDb ID
+    // 1. Resolve IMDb ID (jika belum ada)
     let imdbId = body.imdbId;
     if (!imdbId) {
       imdbId = await resolveImdbId(title, year, tmdbId, mediaType);
-    }
-
-    if (!imdbId) {
-      return NextResponse.json({
-        error: `Tidak dapat menemukan ID IMDb untuk "${title}". Pastikan judul sesuai atau isi ID TMDB.`,
-        subtitles: []
-      }, { status: 404 });
     }
 
     const subtitlesFound: Array<{
@@ -142,67 +135,154 @@ export async function POST(request: NextRequest) {
       source: string;
     }> = [];
 
-    // 2. Fetch from OpenSubtitles Provider (High-speed Stremio OpenSubtitles v3 addon)
-    try {
-      const stremioType = mediaType === "series" ? "series" : "movie";
-      // If series, default to S1:E1 or pass season/episode
-      const endpointId = mediaType === "series"
-        ? `${imdbId}:${body.seasonNumber || 1}:${body.episodeNumber || 1}`
-        : imdbId;
+    // 2. Fetch from SubDL API (Primary High-Accuracy Subtitle Provider)
+    const subdlApiKey = process.env.SUBDL_API_KEY?.trim() || "subdl_o8MaESVXDcILb1ZSkocMHRoR_9TuwmP33rZT8ew1VLM";
+    if (subdlApiKey) {
+      try {
+        const queryParams = new URLSearchParams({
+          api_key: subdlApiKey,
+          languages: requestedLangs.join(","),
+          subs_per_page: "30",
+          unpack: "1",
+        });
 
-      const stremioUrl = `https://opensubtitles-v3.strem.io/subtitles/${stremioType}/${endpointId}.json`;
-      const res = await fetch(stremioUrl, {
-        headers: { "User-Agent": "MyStreamFlix-Server/1.0" },
-        cache: "no-store"
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        const rawSubs = Array.isArray(data.subtitles) ? data.subtitles : [];
-
-        // 1. Prioritize Indonesian subtitle as primary goal (jika ada)
-        let indoCount = 0;
-        for (const raw of rawSubs) {
-          const rawLang = (raw.lang || "").toLowerCase().trim();
-          if (rawLang === "ind" || rawLang === "id" || rawLang === "in") {
-            indoCount++;
-            subtitlesFound.push({
-              id: `sub-auto-id-${raw.id || Math.random().toString(36).substring(2, 7)}`,
-              language: "id",
-              label: indoCount === 1 ? "Bahasa Indonesia" : `Bahasa Indonesia (Sync ${indoCount})`,
-              fileUrl: raw.url,
-              fileName: raw.subtitleFileName || raw.movieReleaseName || `${title} (Bahasa Indonesia)`,
-              source: "OpenSubtitles"
-            });
-            if (indoCount >= 2) break; // Keep up to 2 Indonesian releases
-          }
+        if (imdbId) {
+          queryParams.set("imdb_id", imdbId);
+        } else if (title) {
+          queryParams.set("film_name", cleanTitleForSearch(title));
+          if (year) queryParams.set("year", String(year));
         }
 
-        // 2. Also check English only as fallback/secondary option if requested
-        if (requestedLangs.includes("en") || requestedLangs.includes("eng")) {
-          for (const raw of rawSubs) {
-            const rawLang = (raw.lang || "").toLowerCase().trim();
-            if (rawLang === "eng" || rawLang === "en") {
+        if (mediaType === "series") {
+          queryParams.set("type", "tv");
+          if (body.seasonNumber) queryParams.set("season_number", String(body.seasonNumber));
+          if (body.episodeNumber) queryParams.set("episode_number", String(body.episodeNumber));
+        } else {
+          queryParams.set("type", "movie");
+        }
+
+        const subdlUrl = `https://api.subdl.com/api/v1/subtitles?${queryParams.toString()}`;
+        const res = await fetch(subdlUrl, {
+          headers: { "User-Agent": "MyStreamFlix-Server/1.0" },
+          cache: "no-store",
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          const rawSubs = Array.isArray(data.subtitles) ? data.subtitles : [];
+
+          for (const item of rawSubs) {
+            // Check unpack_files first for direct SRT link
+            if (Array.isArray(item.unpack_files) && item.unpack_files.length > 0) {
+              for (const uf of item.unpack_files) {
+                const langCode = (uf.language || item.language || item.lang || "").toLowerCase().trim();
+                const langMeta = normalizeLang(langCode);
+                let fileUrl = uf.url || "";
+                if (!fileUrl.startsWith("http")) {
+                  fileUrl = `https://dl.subdl.com${fileUrl.startsWith("/") ? "" : "/"}${fileUrl}`;
+                }
+                if (!fileUrl.includes("api_key")) {
+                  fileUrl += `${fileUrl.includes("?") ? "&" : "?"}api_key=${encodeURIComponent(subdlApiKey)}`;
+                }
+
+                subtitlesFound.push({
+                  id: `subdl-${uf.file_n_id || Math.random().toString(36).substring(2, 7)}`,
+                  language: langMeta.code,
+                  label: langMeta.label,
+                  fileUrl,
+                  fileName: uf.name || uf.release_name || item.name || `${title} (${langMeta.label})`,
+                  source: "SubDL",
+                });
+              }
+            } else if (item.url) {
+              const langCode = (item.language || item.lang || "").toLowerCase().trim();
+              const langMeta = normalizeLang(langCode);
+              let fileUrl = item.url;
+              if (!fileUrl.startsWith("http")) {
+                fileUrl = `https://dl.subdl.com${fileUrl.startsWith("/") ? "" : "/"}${fileUrl}`;
+              }
+              if (!fileUrl.includes("api_key")) {
+                fileUrl += `${fileUrl.includes("?") ? "&" : "?"}api_key=${encodeURIComponent(subdlApiKey)}`;
+              }
+
               subtitlesFound.push({
-                id: `sub-auto-en-${raw.id || Math.random().toString(36).substring(2, 7)}`,
-                language: "en",
-                label: "English",
-                fileUrl: raw.url,
-                fileName: raw.subtitleFileName || raw.movieReleaseName || `${title} (English)`,
-                source: "OpenSubtitles"
+                id: `subdl-${item.sd_id || Math.random().toString(36).substring(2, 7)}`,
+                language: langMeta.code,
+                label: langMeta.label,
+                fileUrl,
+                fileName: item.name || item.release_name || `${title} (${langMeta.label})`,
+                source: "SubDL",
               });
-              break;
             }
           }
         }
+      } catch (err: any) {
+        console.warn("[Auto-Subtitle] SubDL query failed:", err);
       }
-    } catch (err: any) {
-      console.warn("[Auto-Subtitle] OpenSubtitles Stremio query failed:", err);
     }
 
-    // 3. Fallback/Complementary: Official OpenSubtitles.com API if OPENSUBTITLES_API_KEY is present
+    // 3. Fallback: Fetch from OpenSubtitles Provider if SubDL returned 0 results
+    if (subtitlesFound.length === 0 && imdbId) {
+      try {
+        const stremioType = mediaType === "series" ? "series" : "movie";
+        const endpointId = mediaType === "series"
+          ? `${imdbId}:${body.seasonNumber || 1}:${body.episodeNumber || 1}`
+          : imdbId;
+
+        const stremioUrl = `https://opensubtitles-v3.strem.io/subtitles/${stremioType}/${endpointId}.json`;
+        const res = await fetch(stremioUrl, {
+          headers: { "User-Agent": "MyStreamFlix-Server/1.0" },
+          cache: "no-store"
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          const rawSubs = Array.isArray(data.subtitles) ? data.subtitles : [];
+
+          // 1. Prioritize Indonesian subtitle as primary goal (jika ada)
+          let indoCount = 0;
+          for (const raw of rawSubs) {
+            const rawLang = (raw.lang || "").toLowerCase().trim();
+            if (rawLang === "ind" || rawLang === "id" || rawLang === "in") {
+              indoCount++;
+              subtitlesFound.push({
+                id: `sub-auto-id-${raw.id || Math.random().toString(36).substring(2, 7)}`,
+                language: "id",
+                label: indoCount === 1 ? "Bahasa Indonesia" : `Bahasa Indonesia (Sync ${indoCount})`,
+                fileUrl: raw.url,
+                fileName: raw.subtitleFileName || raw.movieReleaseName || `${title} (Bahasa Indonesia)`,
+                source: "OpenSubtitles"
+              });
+              if (indoCount >= 2) break; // Keep up to 2 Indonesian releases
+            }
+          }
+
+          // 2. Also check English only as fallback/secondary option if requested
+          if (requestedLangs.includes("en") || requestedLangs.includes("eng")) {
+            for (const raw of rawSubs) {
+              const rawLang = (raw.lang || "").toLowerCase().trim();
+              if (rawLang === "eng" || rawLang === "en") {
+                subtitlesFound.push({
+                  id: `sub-auto-en-${raw.id || Math.random().toString(36).substring(2, 7)}`,
+                  language: "en",
+                  label: "English",
+                  fileUrl: raw.url,
+                  fileName: raw.subtitleFileName || raw.movieReleaseName || `${title} (English)`,
+                  source: "OpenSubtitles"
+                });
+                break;
+              }
+            }
+          }
+        }
+      } catch (err: any) {
+        console.warn("[Auto-Subtitle] OpenSubtitles Stremio query failed:", err);
+      }
+    }
+
+    // 4. Complementary: Official OpenSubtitles.com API if OPENSUBTITLES_API_KEY is present
     const openSubKey = process.env.OPENSUBTITLES_API_KEY?.trim();
-    if (subtitlesFound.length === 0 && openSubKey) {
+    if (subtitlesFound.length === 0 && openSubKey && imdbId) {
       try {
         const openSubUrl = `https://api.opensubtitles.com/api/v1/subtitles?imdb_id=${imdbId.replace("tt", "")}&languages=${requestedLangs.join(",")}`;
         const res = await fetch(openSubUrl, {
