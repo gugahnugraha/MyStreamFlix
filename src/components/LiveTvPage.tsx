@@ -1168,42 +1168,48 @@ export default function LiveTvPage({
               style={hudStyle}
               onPointerDown={() => setShowFullscreenPlaylist(false)}
             >
-              {/* Left: Prev + Play/Pause + Next + Volume (Only shown in Fullscreen mode) */}
-              {isFullscreen ? (
-                <div className="flex items-center gap-1.5 sm:gap-2">
-                  {/* Prev Channel Button */}
-                  <button
-                    onClick={(e) => { e.stopPropagation(); handlePrevChannel(); }}
-                    className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 active:scale-95 backdrop-blur-md text-white flex items-center justify-center transition-all cursor-pointer"
-                    title="Channel Sebelumnya"
-                  >
-                    <SkipBack className="w-4 h-4" />
-                  </button>
+              {/* Left: Prev + Play/Pause + Next + Volume */}
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                {isFullscreen && (
+                  <>
+                    {/* Prev Channel Button */}
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handlePrevChannel(); }}
+                      className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 active:scale-95 backdrop-blur-md text-white flex items-center justify-center transition-all cursor-pointer"
+                      title="Channel Sebelumnya"
+                    >
+                      <SkipBack className="w-4 h-4" />
+                    </button>
 
-                  <button
-                    onClick={(e) => { e.stopPropagation(); togglePlay(); }}
-                    className="w-11 h-11 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-md text-white flex items-center justify-center transition-all cursor-pointer"
-                  >
-                    {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 ml-0.5" />}
-                  </button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); togglePlay(); }}
+                      className="w-11 h-11 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-md text-white flex items-center justify-center transition-all cursor-pointer"
+                    >
+                      {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 ml-0.5" />}
+                    </button>
 
-                  {/* Next Channel Button */}
-                  <button
-                    onClick={(e) => { e.stopPropagation(); handleNextChannel(); }}
-                    className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 active:scale-95 backdrop-blur-md text-white flex items-center justify-center transition-all cursor-pointer"
-                    title="Channel Berikutnya"
-                  >
-                    <SkipForward className="w-4 h-4" />
-                  </button>
+                    {/* Next Channel Button */}
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleNextChannel(); }}
+                      className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 active:scale-95 backdrop-blur-md text-white flex items-center justify-center transition-all cursor-pointer"
+                      title="Channel Berikutnya"
+                    >
+                      <SkipForward className="w-4 h-4" />
+                    </button>
+                  </>
+                )}
 
-                  <button
-                    onClick={(e) => { e.stopPropagation(); toggleMute(); }}
-                    className="w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-md text-white flex items-center justify-center transition-all cursor-pointer"
-                  >
-                    {isMuted ? <VolumeX className="w-5 h-5 text-red-400" /> : <Volume2 className="w-5 h-5" />}
-                  </button>
+                {/* Volume Icon Button (Mute / Unmute) — available in both non-fullscreen & fullscreen */}
+                <button
+                  onClick={(e) => { e.stopPropagation(); toggleMute(); }}
+                  className="w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 active:scale-95 backdrop-blur-md text-white flex items-center justify-center transition-all cursor-pointer shadow-lg"
+                  title={isMuted ? "Unmute" : "Mute"}
+                >
+                  {isMuted ? <VolumeX className="w-5 h-5 text-red-400" /> : <Volume2 className="w-5 h-5" />}
+                </button>
 
-                  {/* Rich Visual Volume Bar (Bekas lewatan & thumb) */}
+                {/* Rich Visual Volume Bar (Bekas lewatan & thumb) — only in Fullscreen mode on desktop */}
+                {isFullscreen && (
                   <div
                     className="hidden sm:flex relative items-center h-6 w-20 md:w-24 group cursor-pointer select-none"
                     onClick={(e) => e.stopPropagation()}
@@ -1241,10 +1247,8 @@ export default function LiveTvPage({
                       title={`Volume: ${Math.round((isMuted ? 0 : volume) * 100)}%`}
                     />
                   </div>
-                </div>
-              ) : (
-                <div />
-              )}
+                )}
+              </div>
 
               {/* Right: Quality + PiP + Fullscreen */}
               <div className="relative flex items-center gap-2">
