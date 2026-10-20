@@ -112,6 +112,9 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
   const bufferTimeoutRef = useRef<number | null>(null);
   const hlsRef = useRef<Hls | null>(null);
   const dashRef = useRef<any>(null);
+  // Adaptive Bitrate Guardian refs (specifically for Movies & Series anti-buffering)
+  const stallHistoryRef = useRef<number[]>([]);
+  const isAutoCappedRef = useRef<boolean>(false);
 
   // TV Series active episode and season tracking states
   const [activeSeason, setActiveSeason] = useState(() => {
@@ -271,6 +274,70 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
     }, 400);
     return () => clearInterval(bufferInterval);
   }, [duration, currentTime, isSimulating]);
+
+  // Adaptive Buffer Guardian (HANYA untuk Movies & Series):
+  // Mencegah buffering berulang dengan memonitor sisa buffer forward dan buffer stalls secara real-time.
+  useEffect(() => {
+    const isVod = movie.contentType === "movie" || movie.contentType === "series";
+    if (!isVod) return;
+
+    const guardianInterval = setInterval(() => {
+      const video = videoRef.current;
+      const hls = hlsRef.current;
+      if (!video || !isPlaying) return;
+
+      // Hanya aktif saat penonton menggunakan mode adaptif 'Auto'
+      if (!selectedQuality.startsWith("Auto")) return;
+
+      const ct = video.currentTime;
+      const forwardBuffer = Math.max(0, bufferedEnd - ct);
+
+      // 1. Emergency Preemptive Downswitch:
+      // Jika sisa buffer menipis di bawah 6 detik saat video sedang memutar (menandakan koneksi melambat),
+      // segera minta segmen berikutnya di level bitrate yang lebih rendah agar lekas terunduh sebelum buffer habis!
+      if (forwardBuffer < 6 && forwardBuffer > 0.5) {
+        if (hls && hls.currentLevel > 0) {
+          const lowerLevel = Math.max(0, hls.currentLevel - 1);
+          if (hls.nextLoadLevel !== lowerLevel) {
+            hls.nextLoadLevel = lowerLevel;
+          }
+        }
+      }
+
+      // 2. Auto-Recovery Uncapping:
+      // Jika sebelumnya kualitas sempat di-cap karena buffering berulang, dan saat ini buffer sudah melimpah (> 45s),
+      // lepaskan pembatasan secara bertahap agar kualitas bisa naik kembali secara mulus.
+      if (isAutoCappedRef.current && forwardBuffer > 45) {
+        if (hls && hls.autoLevelCapping !== -1) {
+          hls.autoLevelCapping = -1;
+          isAutoCappedRef.current = false;
+        }
+      }
+    }, 1000);
+
+    return () => clearInterval(guardianInterval);
+  }, [movie.contentType, isPlaying, selectedQuality, bufferedEnd]);
+
+  const handleVideoWaiting = () => {
+    setIsBuffering(true);
+    const isVod = movie.contentType === "movie" || movie.contentType === "series";
+    if (!isVod) return;
+
+    const now = Date.now();
+    stallHistoryRef.current = [...stallHistoryRef.current.filter((t) => now - t < 45000), now];
+
+    // Jika mengalami buffering berulang (> 1 kali dalam 45 detik) saat mode Auto:
+    if (selectedQuality.startsWith("Auto") && stallHistoryRef.current.length >= 2) {
+      const hls = hlsRef.current;
+      if (hls && hls.levels && hls.levels.length > 1) {
+        const currentLv = hls.currentLevel >= 0 ? hls.currentLevel : hls.levels.length - 1;
+        const cappedLevel = Math.max(0, currentLv - 1);
+        hls.autoLevelCapping = cappedLevel;
+        hls.nextLoadLevel = cappedLevel;
+        isAutoCappedRef.current = true;
+      }
+    }
+  };
 
   const handleSeekbarMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -569,6 +636,8 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
 
   const stopStream = () => {
     clearStreamTimers();
+    stallHistoryRef.current = [];
+    isAutoCappedRef.current = false;
     if (hlsRef.current) {
       hlsRef.current.destroy();
       hlsRef.current = null;
@@ -654,6 +723,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
         dashRef.current = dashPlayer;
         dashPlayer.initialize(video, proxiedUrl, true);
         const isLive = movie.contentType === "livetv";
+        const isVod = movie.contentType === "movie" || movie.contentType === "series";
         dashPlayer.updateSettings({
           streaming: {
             cmcd: {
@@ -665,13 +735,14 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
             },
             buffer: {
               fastSwitchEnabled: true,
-              stableBufferTime: isLive ? 4 : 45,
-              bufferTimeAtTopQuality: isLive ? 6 : 90,
-              initialBufferTime: 3,
+              stableBufferTime: isVod ? 60 : (isLive ? 4 : 45),
+              bufferTimeAtTopQuality: isVod ? 120 : (isLive ? 6 : 90),
+              bufferTimeAtTopQualityLongForm: isVod ? 180 : (isLive ? 12 : 120),
+              initialBufferTime: isVod ? 4 : 3,
             },
             abr: {
               autoSwitchBitrate: { video: true },
-              bandwidthSafetyFactor: 0.85,
+              bandwidthSafetyFactor: isVod ? 0.70 : 0.85,
             },
             delay: {
               liveDelay: 3,
@@ -741,17 +812,29 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
     } else if (Hls.isSupported() && (currentStreamUrl.includes(".m3u8") || proxiedUrl.includes(".m3u8"))) {
       video.removeAttribute("src");
       const isLive = movie.contentType === "livetv";
+      const isVod = movie.contentType === "movie" || movie.contentType === "series";
       const hls = new Hls({
         enableWorker: true,
         lowLatencyMode: isLive,
-        maxBufferLength: isLive ? 30 : 120,
-        maxMaxBufferLength: isLive ? 60 : 600,
-        maxBufferSize: isLive ? 30 * 1000 * 1000 : 100 * 1000 * 1000,
-        backBufferLength: isLive ? 30 : 120,
+        // Buffer Forward untuk Movies & Series: tampung hingga 150-180 detik ke depan
+        maxBufferLength: isVod ? 150 : (isLive ? 30 : 120),
+        maxMaxBufferLength: isVod ? 600 : (isLive ? 60 : 300),
+        maxBufferSize: isVod ? 150 * 1000 * 1000 : (isLive ? 30 * 1000 * 1000 : 80 * 1000 * 1000),
+        backBufferLength: isVod ? 90 : (isLive ? 30 : 60),
         startLevel: -1,
-        abrEwmaDefaultEstimate: 2500000,
-        abrBandWidthFactor: 0.85,
-        abrBandWidthUpFactor: 0.70,
+        // Estimasi bandwidth awal moderat agar startup instan tanpa lag
+        abrEwmaDefaultEstimate: isVod ? 1800000 : 2500000,
+        // Headroom bandwidth 30% untuk Movies & Series (mencegah lonjakan bitrate saat koneksi fluktuatif)
+        abrBandWidthFactor: isVod ? 0.70 : 0.85,
+        // Konservatif saat menaikkan kualitas (hanya naik jika koneksi benar-benar stabil & buffer terisi)
+        abrBandWidthUpFactor: isVod ? 0.55 : 0.70,
+        // EWMA cepat: segera mendeteksi drop koneksi untuk menurunkan bitrate sebelum buffer habis
+        abrEwmaFastVoD: isVod ? 2.5 : 3.0,
+        abrEwmaSlowVoD: isVod ? 9.0 : 9.0,
+        maxBufferHole: 0.5,
+        highBufferWatchdogPeriod: 2,
+        nudgeOffset: 0.1,
+        nudgeMaxRetry: 5,
         manifestLoadingTimeOut: isLive ? 15000 : 25000,
         levelLoadingTimeOut: isLive ? 15000 : 25000,
         fragLoadingTimeOut: isLive ? 15000 : 30000,
@@ -1422,11 +1505,14 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
     const dash = dashRef.current;
 
     if (mode === "auto") {
+      stallHistoryRef.current = [];
+      isAutoCappedRef.current = false;
       if (hls) {
+        hls.autoLevelCapping = -1;
         hls.currentLevel = -1;
         hls.loadLevel = -1;
         hls.nextLevel = -1;
-        const lv = hls.levels[hls.autoLevelCapping];
+        const lv = hls.levels[hls.currentLevel >= 0 ? hls.currentLevel : 0];
         const hint = lv ? shortQualityHint(lv.height || 0, lv.bitrate || 0) : "";
         const label = `Auto${hint ? ` • ${hint}` : ""}`;
         setSelectedQuality(label);
@@ -1439,7 +1525,10 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
         setSelectedQuality("Auto");
       }
     } else if (typeof mode === "number") {
+      stallHistoryRef.current = [];
+      isAutoCappedRef.current = false;
       if (hls) {
+        hls.autoLevelCapping = -1;
         hls.currentLevel = mode;
         hls.loadLevel = mode;
         hls.nextLevel = mode;
@@ -2022,7 +2111,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
               }
             }}
             onProgress={updateBufferProgress}
-            onWaiting={() => setIsBuffering(true)}
+            onWaiting={handleVideoWaiting}
             onSeeking={() => setIsBuffering(true)}
             onCanPlay={() => {
               setIsBuffering(false);
