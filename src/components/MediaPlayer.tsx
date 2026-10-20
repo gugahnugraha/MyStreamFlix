@@ -39,7 +39,7 @@ import Hls from "hls.js";
 import * as dashjs from "dashjs";
 import { ScreenOrientation } from "@capacitor/screen-orientation";
 import { Movie, Subtitle, getLocalizedDescription } from "../types";
-import { getProxiedStreamUrl, describeQualityLabel, shortQualityHint, getAlternativeStreamUrls } from "../lib/stream-utils";
+import { getProxiedStreamUrl, describeQualityLabel, shortQualityHint, getAlternativeStreamUrls, extractGoogleDriveFileId } from "../lib/stream-utils";
 import { isNativeCapacitor, enterImmersiveMode, exitImmersiveMode, addImmersiveStateListener, isAndroidDevice } from "../lib/native-fullscreen";
 import { playWithNativeExoPlayer } from "../lib/capacitor-exoplayer";
 
@@ -702,7 +702,8 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
     }
 
     const proxiedUrl = getProxiedStreamUrl(currentStreamUrl);
-    const targetPlayUrl = (currentStreamUrl.toLowerCase().includes(".mkv") || rawStreamUrl.toLowerCase().includes(".mkv"))
+    const isGdrive = Boolean(extractGoogleDriveFileId(rawStreamUrl) || extractGoogleDriveFileId(currentStreamUrl));
+    const targetPlayUrl = (!isGdrive && (currentStreamUrl.toLowerCase().includes(".mkv") || rawStreamUrl.toLowerCase().includes(".mkv")))
       ? (rawStreamUrl || currentStreamUrl)
       : proxiedUrl;
 
