@@ -1140,13 +1140,13 @@ export default function LiveTvPage({
               </div>
             )}
 
-            {/* Center Play/Pause button in Non-Fullscreen mode (and Paused state) */}
-            {!needUserGesture && !streamError && !isBuffering && (
+            {/* Center Play/Pause button in Non-Fullscreen mode (keep exactly as is) */}
+            {!needUserGesture && !streamError && !isBuffering && !isFullscreen && (
               <div
                 className={`absolute inset-0 flex items-center justify-center z-25 transition-all duration-300 ${
                   !isPlaying
                     ? "bg-black/35 backdrop-blur-[2px] opacity-100 pointer-events-auto"
-                    : !isFullscreen && showControls
+                    : showControls
                     ? "opacity-100 pointer-events-auto"
                     : "opacity-0 pointer-events-none"
                 }`}
@@ -1175,6 +1175,73 @@ export default function LiveTvPage({
               </div>
             )}
 
+            {/* Center Channel Controls in Fullscreen Mode (Prev Channel, Play/Pause, Next Channel) */}
+            {!needUserGesture && !streamError && !isBuffering && isFullscreen && (
+              <div
+                className={`absolute inset-0 flex items-center justify-center z-25 transition-all duration-300 ${
+                  !isPlaying
+                    ? "bg-black/40 backdrop-blur-[2px] opacity-100 pointer-events-auto"
+                    : showControls
+                    ? "opacity-100 pointer-events-auto"
+                    : "opacity-0 pointer-events-none"
+                }`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  revealControls(3000);
+                }}
+              >
+                <div 
+                  className="flex items-center gap-6 sm:gap-8 md:gap-10"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {/* Prev Channel Button */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handlePrevChannel();
+                      revealControls(3000);
+                    }}
+                    className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-full bg-black/60 hover:bg-black/80 active:scale-90 border border-white/20 backdrop-blur-md text-white flex items-center justify-center shadow-[0_8px_32px_rgba(0,0,0,0.6)] transition-all duration-200 cursor-pointer group"
+                    title="Channel Sebelumnya"
+                    aria-label="Channel Sebelumnya"
+                  >
+                    <SkipBack className="w-5 h-5 sm:w-6 sm:h-6 text-white group-hover:scale-110 transition-transform" />
+                  </button>
+
+                  {/* Main Center Play/Pause Button */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      togglePlay();
+                      revealControls(3000);
+                    }}
+                    className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-full bg-black/70 hover:bg-black/90 active:scale-95 border-2 border-white/30 backdrop-blur-md text-white flex items-center justify-center shadow-[0_12px_40px_rgba(0,0,0,0.7)] transition-all duration-200 cursor-pointer group"
+                    title={isPlaying ? (t?.pause || "Pause") : (t?.play || "Play")}
+                    aria-label={isPlaying ? "Pause" : "Play"}
+                  >
+                    {isPlaying ? (
+                      <Pause className="w-8 h-8 sm:w-9 sm:h-9 md:w-11 md:h-11 fill-white text-white group-hover:scale-105 transition-transform" />
+                    ) : (
+                      <Play className="w-8 h-8 sm:w-9 sm:h-9 md:w-11 md:h-11 fill-white text-white ml-1 group-hover:scale-105 transition-transform" />
+                    )}
+                  </button>
+
+                  {/* Next Channel Button */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleNextChannel();
+                      revealControls(3000);
+                    }}
+                    className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-full bg-black/60 hover:bg-black/80 active:scale-90 border border-white/20 backdrop-blur-md text-white flex items-center justify-center shadow-[0_8px_32px_rgba(0,0,0,0.6)] transition-all duration-200 cursor-pointer group"
+                    title="Channel Berikutnya"
+                    aria-label="Channel Berikutnya"
+                  >
+                    <SkipForward className="w-5 h-5 sm:w-6 sm:h-6 text-white group-hover:scale-110 transition-transform" />
+                  </button>
+                </div>
+              </div>
+            )}
 
             {/* Buffering */}
             {isBuffering && !streamError && !needUserGesture && (
@@ -1214,36 +1281,8 @@ export default function LiveTvPage({
               style={hudStyle}
               onPointerDown={() => setShowFullscreenPlaylist(false)}
             >
-              {/* Left: Prev + Play/Pause + Next + Volume */}
+              {/* Left: Volume Icon + LIVE Sync Button + Volume Slider (Clean and spacious) */}
               <div className="flex items-center gap-1.5 sm:gap-2">
-                {isFullscreen && (
-                  <>
-                    {/* Prev Channel Button */}
-                    <button
-                      onClick={(e) => { e.stopPropagation(); handlePrevChannel(); }}
-                      className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 active:scale-95 backdrop-blur-md text-white flex items-center justify-center transition-all cursor-pointer"
-                      title="Channel Sebelumnya"
-                    >
-                      <SkipBack className="w-4 h-4" />
-                    </button>
-
-                    <button
-                      onClick={(e) => { e.stopPropagation(); togglePlay(); }}
-                      className="w-11 h-11 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-md text-white flex items-center justify-center transition-all cursor-pointer"
-                    >
-                      {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 ml-0.5" />}
-                    </button>
-
-                    {/* Next Channel Button */}
-                    <button
-                      onClick={(e) => { e.stopPropagation(); handleNextChannel(); }}
-                      className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 active:scale-95 backdrop-blur-md text-white flex items-center justify-center transition-all cursor-pointer"
-                      title="Channel Berikutnya"
-                    >
-                      <SkipForward className="w-4 h-4" />
-                    </button>
-                  </>
-                )}
 
                 {/* Volume Icon Button (Mute / Unmute) — available in both non-fullscreen & fullscreen */}
                 <button
