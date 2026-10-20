@@ -1114,21 +1114,41 @@ export default function LiveTvPage({
               </div>
             )}
 
-            {/* Paused tap-to-resume overlay */}
-            {!isPlaying && !needUserGesture && !streamError && !isBuffering && (
+            {/* Center Play/Pause button in Non-Fullscreen mode (and Paused state) */}
+            {!needUserGesture && !streamError && !isBuffering && (
               <div
-                className="absolute inset-0 bg-black/40 backdrop-blur-[2px] flex items-center justify-center z-25 cursor-pointer"
-                onClick={togglePlay}
+                className={`absolute inset-0 flex items-center justify-center z-25 transition-all duration-300 ${
+                  !isPlaying
+                    ? "bg-black/35 backdrop-blur-[2px] opacity-100 pointer-events-auto"
+                    : !isFullscreen && showControls
+                    ? "opacity-100 pointer-events-auto"
+                    : "opacity-0 pointer-events-none"
+                }`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  togglePlay();
+                  revealControls(3000);
+                }}
               >
                 <button
-                  onClick={(e) => { e.stopPropagation(); togglePlay(); }}
-                  className="w-14 h-14 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-md text-white flex items-center justify-center shadow-2xl transition-all active:scale-90 cursor-pointer"
-                  title={t?.play || "Play"}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    togglePlay();
+                    revealControls(3000);
+                  }}
+                  className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-black/60 hover:bg-black/80 active:scale-90 border border-white/20 backdrop-blur-md text-white flex items-center justify-center shadow-[0_8px_32px_rgba(0,0,0,0.6)] transition-all duration-200 cursor-pointer group"
+                  title={isPlaying ? (t?.pause || "Pause") : (t?.play || "Play")}
+                  aria-label={isPlaying ? "Pause" : "Play"}
                 >
-                  <Play className="w-7 h-7 ml-1 fill-white" />
+                  {isPlaying ? (
+                    <Pause className="w-6 h-6 sm:w-7 sm:h-7 fill-white text-white group-hover:scale-105 transition-transform" />
+                  ) : (
+                    <Play className="w-6 h-6 sm:w-7 sm:h-7 fill-white text-white ml-0.5 sm:ml-1 group-hover:scale-105 transition-transform" />
+                  )}
                 </button>
               </div>
             )}
+
 
             {/* Buffering */}
             {isBuffering && !streamError && !needUserGesture && (
