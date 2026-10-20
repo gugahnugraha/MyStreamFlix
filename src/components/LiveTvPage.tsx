@@ -76,6 +76,11 @@ export default function LiveTvPage({
   const [isLandscape, setIsLandscape] = useState(
     () => typeof window !== "undefined" && window.innerWidth > window.innerHeight
   );
+  // Layar kecil / HP detection
+  const [isMobileScreen, setIsMobileScreen] = useState<boolean>(
+    () => typeof window !== "undefined" && window.innerWidth < 768
+  );
+  const [isMobileListHidden, setIsMobileListHidden] = useState<boolean>(false);
 
   // Quality selector
   const [qualityLevels, setQualityLevels] = useState<{index: number; height: number; bitrate: number; label: string}[]>([]);
@@ -93,9 +98,12 @@ export default function LiveTvPage({
     }
   }, [channels, liveChannels, activeChannel?.id]);
 
-  // Landscape listener
+  // Landscape & screen resize listener
   useEffect(() => {
-    const handle = () => setIsLandscape(window.innerWidth > window.innerHeight);
+    const handle = () => {
+      setIsLandscape(window.innerWidth > window.innerHeight);
+      setIsMobileScreen(window.innerWidth < 768);
+    };
     window.addEventListener("orientationchange", handle);
     window.addEventListener("resize", handle);
     return () => {
@@ -114,7 +122,10 @@ export default function LiveTvPage({
 
   const revealControls = (delayMs = 3000) => {
     setShowControls(true);
-    setShowFullscreenPlaylist(true);
+    // Khusus layar kecil/HP: jangan otomatis buka paksa playlist jika ditutup oleh user
+    if (!isMobileScreen) {
+      setShowFullscreenPlaylist(true);
+    }
     scheduleControlsHide(delayMs);
   };
 
@@ -129,18 +140,22 @@ export default function LiveTvPage({
     }
 
     if (isFullscreen && showControls && !showFullscreenPlaylist) {
-      // Jika di fullscreen kontrol sedang aktif tapi playlist sedang tertutup oleh kontrol lain,
-      // tap di area kosong player akan membuka kembali playlist bar!
-      setShowFullscreenPlaylist(true);
-      setShowQualityMenu(false);
-      scheduleControlsHide(3000);
-      return;
+      // Jika di desktop kontrol sedang aktif tapi playlist sedang tertutup, tap di player membuka playlist.
+      // Di layar kecil/HP, jangan paksa membuka playlist dock yang menutupi layar!
+      if (!isMobileScreen) {
+        setShowFullscreenPlaylist(true);
+        setShowQualityMenu(false);
+        scheduleControlsHide(3000);
+        return;
+      }
     }
 
     setShowControls(prev => {
       const next = !prev;
       if (next) {
-        setShowFullscreenPlaylist(true);
+        if (!isMobileScreen) {
+          setShowFullscreenPlaylist(true);
+        }
         setShowQualityMenu(false);
         scheduleControlsHide(3000);
       } else {
@@ -1350,8 +1365,31 @@ export default function LiveTvPage({
                 )}
               </div>
 
-              {/* Right: Quality + PiP + Fullscreen */}
-              <div className="relative flex items-center gap-2">
+              {/* Right: Channels Toggle + Quality + PiP + Fullscreen */}
+              <div className="relative flex items-center gap-1.5 sm:gap-2">
+                {/* Channels Playlist Toggle Button — khusus agar mudah dibuka/tutup di HP & Desktop tanpa menutupi layar */}
+                {isFullscreen && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowFullscreenPlaylist(v => !v);
+                      revealControls(4000);
+                    }}
+                    className={`h-11 px-3 rounded-full backdrop-blur-md border text-white flex items-center gap-1.5 transition-all cursor-pointer shadow-lg select-none active:scale-95 ${
+                      showFullscreenPlaylist
+                        ? "bg-red-600/90 border-red-500 text-white shadow-red-600/30 font-bold"
+                        : "bg-white/10 hover:bg-white/20 border-white/15 text-zinc-300"
+                    }`}
+                    title={showFullscreenPlaylist ? "Sembunyikan Playlist Channel" : "Buka Playlist Channel"}
+                    aria-label="Toggle Channel Playlist"
+                  >
+                    <Tv className={`w-4 h-4 ${showFullscreenPlaylist ? "text-white" : "text-red-400"}`} />
+                    <span className="text-xs font-semibold whitespace-nowrap">
+                      {showFullscreenPlaylist ? "Tutup Saluran" : "Saluran"}
+                    </span>
+                  </button>
+                )}
+
                 {isFullscreen && qualityLevels.length > 0 && (
                   <div className="relative">
                     <button
@@ -1446,40 +1484,40 @@ export default function LiveTvPage({
             {/* Fullscreen Interactive Channel Playlist Floating Horizontal Dock Overlay */}
             {isFullscreen && (
               <div
-                className={`absolute inset-x-0 z-30 flex flex-col items-center px-3 sm:px-6 transition-all duration-300 pointer-events-none ${
+                className={`absolute inset-x-0 z-30 flex flex-col items-center px-1.5 sm:px-6 transition-all duration-300 pointer-events-none ${
                   showControls && showFullscreenPlaylist && !showQualityMenu
                     ? "opacity-100 translate-y-0"
                     : "opacity-0 translate-y-6 pointer-events-none"
                 }`}
                 style={{
-                  paddingLeft: "calc(env(safe-area-inset-left, 0px) + 12px)",
-                  paddingRight: "calc(env(safe-area-inset-right, 0px) + 12px)",
+                  paddingLeft: "calc(env(safe-area-inset-left, 0px) + 8px)",
+                  paddingRight: "calc(env(safe-area-inset-right, 0px) + 8px)",
                   bottom: isNativeApp
-                    ? (isLandscape ? "calc(env(safe-area-inset-bottom, 0px) + 84px)" : "calc(env(safe-area-inset-bottom, 0px) + 88px)")
-                    : "calc(env(safe-area-inset-bottom, 0px) + 84px)",
+                    ? (isLandscape ? "calc(env(safe-area-inset-bottom, 0px) + 72px)" : "calc(env(safe-area-inset-bottom, 0px) + 76px)")
+                    : "calc(env(safe-area-inset-bottom, 0px) + 72px)",
                 }}
               >
                 <div
-                  className="w-full max-w-5xl rounded-2xl bg-zinc-950/85 backdrop-blur-2xl border border-white/15 p-2 sm:p-2.5 shadow-[0_20px_50px_rgba(0,0,0,0.9)] pointer-events-auto player-interactive flex flex-col gap-2"
+                  className="w-full max-w-[96%] sm:max-w-5xl rounded-xl sm:rounded-2xl bg-zinc-950/90 backdrop-blur-2xl border border-white/15 p-1.5 sm:p-2.5 shadow-[0_20px_50px_rgba(0,0,0,0.9)] pointer-events-auto player-interactive flex flex-col gap-1.5 sm:gap-2"
                   onClick={(e) => e.stopPropagation()}
                 >
                   {/* Dock Header */}
-                  <div className="flex items-center justify-between gap-2 px-1">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-red-600/30 border border-red-500/40 text-red-400 text-[10px] font-black uppercase tracking-wider shrink-0">
+                  <div className="flex items-center justify-between gap-1.5 sm:gap-2 px-1">
+                    <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+                      <div className="flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded-full bg-red-600/30 border border-red-500/40 text-red-400 text-[9px] sm:text-[10px] font-black uppercase tracking-wider shrink-0">
                         <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-ping inline-block" />
-                        <span>LIVE PLAYLIST</span>
+                        <span>PLAYLIST</span>
                       </div>
-                      <span className="text-xs font-semibold text-white truncate hidden md:inline">
+                      <span className="text-[11px] sm:text-xs font-semibold text-white truncate hidden md:inline">
                         {activeChannel?.title}
                       </span>
-                      <span className="text-[10px] text-zinc-400 font-mono hidden sm:inline">
+                      <span className="text-[9px] sm:text-[10px] text-zinc-400 font-mono hidden sm:inline">
                         ({dockChannels.length} channel)
                       </span>
                     </div>
 
                     {/* Categories Filter Pills */}
-                    <div className="flex items-center gap-1 overflow-x-auto scrollbar-none py-0.5 max-w-[60%] sm:max-w-[70%]">
+                    <div className="flex items-center gap-1 overflow-x-auto scrollbar-none py-0.5 max-w-[55%] sm:max-w-[70%]">
                       {availableCategories.map(cat => {
                         const isCatActive = fullscreenCategory.toLowerCase() === cat.id.toLowerCase();
                         const count = categoryCounts[cat.id] || 0;
@@ -1491,14 +1529,14 @@ export default function LiveTvPage({
                               setFullscreenCategory(cat.id);
                               scheduleControlsHide(4500);
                             }}
-                            className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wide transition-all shrink-0 cursor-pointer flex items-center gap-1 ${
+                            className={`px-2 sm:px-2.5 py-0.5 rounded-full text-[9px] sm:text-[10px] font-bold tracking-wide transition-all shrink-0 cursor-pointer flex items-center gap-1 ${
                               isCatActive
                                 ? "bg-red-600 text-white shadow-[0_0_12px_rgba(220,38,38,0.6)]"
                                 : "bg-white/10 text-zinc-300 hover:bg-white/20 hover:text-white"
                             }`}
                           >
                             <span>{cat.label}</span>
-                            <span className={`text-[9px] px-1 rounded-full font-mono ${
+                            <span className={`text-[8px] sm:text-[9px] px-1 rounded-full font-mono ${
                               isCatActive ? "bg-black/30 text-white" : "text-zinc-400"
                             }`}>
                               {count}
@@ -1508,26 +1546,27 @@ export default function LiveTvPage({
                       })}
                     </div>
 
-                    {/* Close / Hide Dock Button */}
+                    {/* Close / Hide Dock Button (Tutup Playlist) */}
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
                         setShowFullscreenPlaylist(false);
                       }}
-                      className="w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 active:scale-95 text-zinc-400 hover:text-white flex items-center justify-center transition-all cursor-pointer shrink-0"
+                      className="h-6 sm:h-7 px-2 rounded-full bg-white/10 hover:bg-white/20 active:scale-95 text-zinc-300 hover:text-white flex items-center gap-1 transition-all cursor-pointer shrink-0 border border-white/10"
                       title="Sembunyikan Playlist"
                     >
-                      <X className="w-3.5 h-3.5" />
+                      <X className="w-3.5 h-3.5 text-red-400" />
+                      <span className="text-[10px] font-semibold hidden xs:inline sm:hidden">Tutup</span>
                     </button>
                   </div>
 
                   {/* Horizontal Channel Scroll Rail */}
                   <div
                     ref={fullscreenScrollRef}
-                    className="flex items-center gap-2 overflow-x-auto scrollbar-none py-1 px-0.5 scroll-smooth"
+                    className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto scrollbar-none py-0.5 sm:py-1 px-0.5 scroll-smooth"
                   >
                     {dockChannels.length === 0 ? (
-                      <div className="py-4 px-6 text-center text-xs text-zinc-500 w-full border border-dashed border-zinc-800 rounded-xl">
+                      <div className="py-2.5 sm:py-4 px-4 text-center text-xs text-zinc-500 w-full border border-dashed border-zinc-800 rounded-xl">
                         Tidak ada saluran di kategori ini
                       </div>
                     ) : (
@@ -1542,14 +1581,14 @@ export default function LiveTvPage({
                               handleSelectChannel(channel);
                               scheduleControlsHide(4500);
                             }}
-                            className={`shrink-0 w-40 sm:w-48 p-2 rounded-xl border text-left transition-all duration-200 flex items-center gap-2.5 cursor-pointer group ${
+                            className={`shrink-0 w-28 sm:w-48 p-1.5 sm:p-2 rounded-lg sm:rounded-xl border text-left transition-all duration-200 flex items-center gap-1.5 sm:gap-2.5 cursor-pointer group ${
                               isActive
                                 ? "bg-red-950/80 border-red-500 shadow-[0_0_20px_rgba(239,68,68,0.4)] ring-1 ring-red-500 scale-[1.02]"
                                 : "bg-zinc-900/85 hover:bg-zinc-800/90 border-white/10 hover:border-white/25 hover:scale-[1.01]"
                             }`}
                           >
                             {/* Logo / Thumbnail */}
-                            <div className="w-9 h-9 rounded-lg bg-zinc-950/90 border border-white/10 p-1 shrink-0 flex items-center justify-center overflow-hidden relative">
+                            <div className="w-7 h-7 sm:w-9 sm:h-9 rounded-md sm:rounded-lg bg-zinc-950/90 border border-white/10 p-0.5 sm:p-1 shrink-0 flex items-center justify-center overflow-hidden relative">
                               <img
                                 src={channel.posterUrl}
                                 alt={channel.title}
@@ -1560,26 +1599,26 @@ export default function LiveTvPage({
                                 }}
                               />
                               {isActive && (
-                                <span className="absolute bottom-0 right-0 w-2 h-2 rounded-full bg-red-500 ring-2 ring-zinc-950" />
+                                <span className="absolute bottom-0 right-0 w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-red-500 ring-1 sm:ring-2 ring-zinc-950" />
                               )}
                             </div>
 
                             {/* Title & Info */}
                             <div className="flex-1 min-w-0">
-                              <p className={`text-xs font-bold truncate leading-tight ${
+                              <p className={`text-[11px] sm:text-xs font-bold truncate leading-tight ${
                                 isActive ? "text-red-300 font-extrabold" : "text-white group-hover:text-red-200"
                               }`}>
                                 {channel.title}
                               </p>
-                              <div className="flex items-center gap-1.5 mt-0.5">
-                                <span className="text-[9px] text-zinc-300 flex items-center gap-0.5 shrink-0">
+                              <div className="flex items-center gap-1 sm:gap-1.5 mt-0.5">
+                                <span className="text-[8px] sm:text-[9px] text-zinc-300 flex items-center gap-0.5 shrink-0">
                                   <span>{getCountryFlag(channel.country)}</span>
                                 </span>
-                                <span className="text-[9px] text-zinc-400 truncate">
+                                <span className="text-[8px] sm:text-[9px] text-zinc-400 truncate hidden xs:inline sm:inline">
                                   {channel.genres?.slice(0, 1).join("") || "TV"}
                                 </span>
                                 {isActive && (
-                                  <span className="text-[8px] font-black uppercase text-red-400 bg-red-500/20 px-1 rounded ml-auto">
+                                  <span className="text-[7px] sm:text-[8px] font-black uppercase text-red-400 bg-red-500/20 px-1 rounded ml-auto">
                                     LIVE
                                   </span>
                                 )}
@@ -1611,21 +1650,35 @@ export default function LiveTvPage({
               </span>
             </div>
 
-            {(selectedCategory !== "All" || selectedRegion !== "All" || searchQuery) && (
+            <div className="flex items-center gap-1.5">
+              {/* Tombol Sembunyikan / Tampilkan khusus layar kecil/HP */}
               <button
-                onClick={() => {
-                  setSelectedCategory("All");
-                  setSelectedRegion("All");
-                  setSearchQuery("");
-                }}
-                className="flex items-center gap-1 text-[10px] font-bold text-zinc-400 hover:text-white px-2 py-1 rounded-lg bg-zinc-800 hover:bg-zinc-700 transition-all cursor-pointer border border-white/5"
-                title={t?.resetChannelFilter || "Reset channel filters"}
+                onClick={() => setIsMobileListHidden(prev => !prev)}
+                className="lg:hidden flex items-center gap-1 text-[10px] font-bold text-zinc-300 hover:text-white px-2 py-1 rounded-lg bg-zinc-800 hover:bg-zinc-700 transition-all cursor-pointer border border-white/10"
+                title={isMobileListHidden ? "Tampilkan daftar saluran" : "Sembunyikan daftar saluran"}
               >
-                <RotateCcw className="w-3 h-3" />
-                <span>Reset</span>
+                <span>{isMobileListHidden ? "Buka Saluran" : "Sembunyikan"}</span>
               </button>
-            )}
+
+              {(selectedCategory !== "All" || selectedRegion !== "All" || searchQuery) && (
+                <button
+                  onClick={() => {
+                    setSelectedCategory("All");
+                    setSelectedRegion("All");
+                    setSearchQuery("");
+                  }}
+                  className="flex items-center gap-1 text-[10px] font-bold text-zinc-400 hover:text-white px-2 py-1 rounded-lg bg-zinc-800 hover:bg-zinc-700 transition-all cursor-pointer border border-white/5"
+                  title={t?.resetChannelFilter || "Reset channel filters"}
+                >
+                  <RotateCcw className="w-3 h-3" />
+                  <span>Reset</span>
+                </button>
+              )}
+            </div>
           </div>
+
+          {!isMobileListHidden && (
+            <>
 
           {/* Category filter pills with count badge */}
           <div className="space-y-1">
@@ -1777,7 +1830,9 @@ export default function LiveTvPage({
               })
             )}
           </div>
-        </div>
+        </>
+      )}
+    </div>
 
       </div>
     </div>
