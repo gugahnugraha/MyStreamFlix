@@ -1296,42 +1296,27 @@ export default function LiveTvPage({
               style={hudStyle}
               onPointerDown={() => setShowFullscreenPlaylist(false)}
             >
-              {/* Left: Volume Icon + LIVE Sync Button + Volume Slider (Clean and spacious) */}
+              {/* Left: Volume Icon -> Volume Slider -> LIVE Dot Button */}
               <div className="flex items-center gap-1.5 sm:gap-2">
 
-                {/* Volume Icon Button (Mute / Unmute) — available in both non-fullscreen & fullscreen */}
+                {/* 1. Volume Icon Button (Mute / Unmute) */}
                 <button
                   onClick={(e) => { e.stopPropagation(); toggleMute(); }}
-                  className="w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 active:scale-95 backdrop-blur-md text-white flex items-center justify-center transition-all cursor-pointer shadow-lg"
+                  className="w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 active:scale-95 backdrop-blur-md text-white flex items-center justify-center transition-all cursor-pointer shadow-lg shrink-0"
                   title={isMuted ? "Unmute" : "Mute"}
                 >
                   {isMuted ? <VolumeX className="w-5 h-5 text-red-400" /> : <Volume2 className="w-5 h-5" />}
                 </button>
 
-                {/* Jump to Live Button (Pulsing Red Dot + LIVE Label) */}
-                <button
-                  onClick={(e) => { e.stopPropagation(); handleJumpToLive(); }}
-                  className="h-10 px-3 rounded-full bg-white/10 hover:bg-white/20 active:scale-95 backdrop-blur-md border border-white/15 text-white flex items-center gap-1.5 transition-all cursor-pointer shadow-lg group select-none"
-                  title="Menuju ke siaran langsung terupdate (Live)"
-                >
-                  <span className="relative flex h-2 w-2">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
-                  </span>
-                  <span className="text-[11px] font-bold tracking-wider uppercase font-mono text-white group-hover:text-red-300 transition-colors">
-                    LIVE
-                  </span>
-                </button>
-
-                {/* Rich Visual Volume Bar (Bekas lewatan & thumb) — only in Fullscreen mode on desktop */}
+                {/* 2. Rich Visual Volume Bar (Bekas lewatan & thumb) — only in Fullscreen mode on desktop */}
                 {isFullscreen && (
                   <div
-                    className="hidden sm:flex relative items-center h-6 w-20 md:w-24 group cursor-pointer select-none"
+                    className="hidden sm:flex relative items-center h-6 w-20 md:w-24 group cursor-pointer select-none shrink-0"
                     onClick={(e) => e.stopPropagation()}
                   >
-                    {/* Background Track (Abu-abu transparan untuk progress di depannya) */}
+                    {/* Background Track */}
                     <div className="w-full h-1.5 group-hover:h-2 bg-white/20 group-hover:bg-white/25 rounded-full overflow-hidden relative transition-all duration-150">
-                      {/* Fill Volume Track (Progress volume terisi - Biru tema) */}
+                      {/* Fill Volume Track */}
                       <div
                         className="absolute top-0 bottom-0 left-0 bg-gradient-to-r from-sky-600 to-cyan-400 rounded-full pointer-events-none shadow-[0_0_8px_rgba(56,189,248,0.7)]"
                         style={{
@@ -1341,7 +1326,7 @@ export default function LiveTvPage({
                       />
                     </div>
 
-                    {/* Volume Thumb Knob Bulat Putih dengan Bingkai Biru Tema */}
+                    {/* Volume Thumb Knob */}
                     <div
                       className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-3 h-3 group-hover:w-3.5 group-hover:h-3.5 bg-white border-2 border-sky-400 rounded-full shadow-md scale-75 group-hover:scale-110 transition-transform duration-150 pointer-events-none z-10"
                       style={{
@@ -1363,32 +1348,25 @@ export default function LiveTvPage({
                     />
                   </div>
                 )}
+
+                {/* 3. Jump to Live Button (Pulsing Red Dot + LIVE Label) */}
+                <button
+                  onClick={(e) => { e.stopPropagation(); handleJumpToLive(); }}
+                  className="h-10 px-3 rounded-full bg-white/10 hover:bg-white/20 active:scale-95 backdrop-blur-md border border-white/15 text-white flex items-center gap-1.5 transition-all cursor-pointer shadow-lg group select-none shrink-0"
+                  title="Menuju ke siaran langsung terupdate (Live)"
+                >
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+                  </span>
+                  <span className="text-[11px] font-bold tracking-wider uppercase font-mono text-white group-hover:text-red-300 transition-colors">
+                    LIVE
+                  </span>
+                </button>
               </div>
 
-              {/* Right: Channels Toggle + Quality + PiP + Fullscreen */}
-              <div className="relative flex items-center gap-1.5 sm:gap-2">
-                {/* Channels Playlist Toggle Button — khusus agar mudah dibuka/tutup di HP & Desktop tanpa menutupi layar */}
-                {isFullscreen && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setShowFullscreenPlaylist(v => !v);
-                      revealControls(4000);
-                    }}
-                    className={`h-11 px-3 rounded-full backdrop-blur-md border text-white flex items-center gap-1.5 transition-all cursor-pointer shadow-lg select-none active:scale-95 ${
-                      showFullscreenPlaylist
-                        ? "bg-red-600/90 border-red-500 text-white shadow-red-600/30 font-bold"
-                        : "bg-white/10 hover:bg-white/20 border-white/15 text-zinc-300"
-                    }`}
-                    title={showFullscreenPlaylist ? "Sembunyikan Playlist Channel" : "Buka Playlist Channel"}
-                    aria-label="Toggle Channel Playlist"
-                  >
-                    <Tv className={`w-4 h-4 ${showFullscreenPlaylist ? "text-white" : "text-red-400"}`} />
-                    <span className="text-xs font-semibold whitespace-nowrap">
-                      {showFullscreenPlaylist ? "Tutup Saluran" : "Saluran"}
-                    </span>
-                  </button>
-                )}
+              {/* Right: Quality + PiP + Fullscreen */}
+              <div className="relative flex items-center gap-2">
 
                 {isFullscreen && qualityLevels.length > 0 && (
                   <div className="relative">
@@ -1484,21 +1462,21 @@ export default function LiveTvPage({
             {/* Fullscreen Interactive Channel Playlist Floating Horizontal Dock Overlay */}
             {isFullscreen && (
               <div
-                className={`absolute inset-x-0 z-30 flex flex-col items-center px-1.5 sm:px-6 transition-all duration-300 pointer-events-none ${
+                className={`absolute inset-x-0 z-30 flex flex-col items-center justify-center px-3 sm:px-6 transition-all duration-300 pointer-events-none ${
                   showControls && showFullscreenPlaylist && !showQualityMenu
                     ? "opacity-100 translate-y-0"
                     : "opacity-0 translate-y-6 pointer-events-none"
                 }`}
                 style={{
-                  paddingLeft: "calc(env(safe-area-inset-left, 0px) + 8px)",
-                  paddingRight: "calc(env(safe-area-inset-right, 0px) + 8px)",
+                  paddingLeft: "calc(env(safe-area-inset-left, 0px) + 12px)",
+                  paddingRight: "calc(env(safe-area-inset-right, 0px) + 12px)",
                   bottom: isNativeApp
                     ? (isLandscape ? "calc(env(safe-area-inset-bottom, 0px) + 72px)" : "calc(env(safe-area-inset-bottom, 0px) + 76px)")
                     : "calc(env(safe-area-inset-bottom, 0px) + 72px)",
                 }}
               >
                 <div
-                  className="w-full max-w-[96%] sm:max-w-5xl rounded-xl sm:rounded-2xl bg-zinc-950/90 backdrop-blur-2xl border border-white/15 p-1.5 sm:p-2.5 shadow-[0_20px_50px_rgba(0,0,0,0.9)] pointer-events-auto player-interactive flex flex-col gap-1.5 sm:gap-2"
+                  className="w-auto max-w-[85vw] sm:max-w-lg md:max-w-xl rounded-xl sm:rounded-2xl bg-zinc-950/92 backdrop-blur-2xl border border-white/15 p-1.5 sm:p-2 shadow-[0_20px_50px_rgba(0,0,0,0.9)] pointer-events-auto player-interactive flex flex-col gap-1.5"
                   onClick={(e) => e.stopPropagation()}
                 >
                   {/* Dock Header */}
@@ -1581,7 +1559,7 @@ export default function LiveTvPage({
                               handleSelectChannel(channel);
                               scheduleControlsHide(4500);
                             }}
-                            className={`shrink-0 w-28 sm:w-48 p-1.5 sm:p-2 rounded-lg sm:rounded-xl border text-left transition-all duration-200 flex items-center gap-1.5 sm:gap-2.5 cursor-pointer group ${
+                            className={`shrink-0 w-28 sm:w-36 p-1.5 sm:p-2 rounded-lg sm:rounded-xl border text-left transition-all duration-200 flex items-center gap-1.5 sm:gap-2 cursor-pointer group ${
                               isActive
                                 ? "bg-red-950/80 border-red-500 shadow-[0_0_20px_rgba(239,68,68,0.4)] ring-1 ring-red-500 scale-[1.02]"
                                 : "bg-zinc-900/85 hover:bg-zinc-800/90 border-white/10 hover:border-white/25 hover:scale-[1.01]"
