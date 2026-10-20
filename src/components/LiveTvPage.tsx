@@ -542,6 +542,32 @@ export default function LiveTvPage({
     setIsMuted(next);
   };
 
+  const handleJumpToLive = () => {
+    setShowFullscreenPlaylist(false);
+    revealControls(2500);
+    const video = videoRef.current;
+    if (!video) return;
+
+    const hls = hlsRef.current;
+    if (hls && typeof hls.liveSyncPosition === "number" && !isNaN(hls.liveSyncPosition) && hls.liveSyncPosition > 0) {
+      video.currentTime = hls.liveSyncPosition;
+    } else if (video.seekable && video.seekable.length > 0) {
+      const liveEdge = video.seekable.end(video.seekable.length - 1);
+      video.currentTime = Math.max(0, liveEdge - 0.5);
+    } else if (video.duration && isFinite(video.duration)) {
+      video.currentTime = Math.max(0, video.duration - 0.5);
+    }
+
+    if (video.paused) {
+      video.play()
+        .then(() => {
+          setIsPlaying(true);
+          setNeedUserGesture(false);
+        })
+        .catch(() => setNeedUserGesture(true));
+    }
+  };
+
   const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setShowFullscreenPlaylist(false);
     const val = parseFloat(e.target.value);
@@ -1226,6 +1252,21 @@ export default function LiveTvPage({
                   title={isMuted ? "Unmute" : "Mute"}
                 >
                   {isMuted ? <VolumeX className="w-5 h-5 text-red-400" /> : <Volume2 className="w-5 h-5" />}
+                </button>
+
+                {/* Jump to Live Button (Pulsing Red Dot + LIVE Label) */}
+                <button
+                  onClick={(e) => { e.stopPropagation(); handleJumpToLive(); }}
+                  className="h-10 px-3 rounded-full bg-white/10 hover:bg-white/20 active:scale-95 backdrop-blur-md border border-white/15 text-white flex items-center gap-1.5 transition-all cursor-pointer shadow-lg group select-none"
+                  title="Menuju ke siaran langsung terupdate (Live)"
+                >
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+                  </span>
+                  <span className="text-[11px] font-bold tracking-wider uppercase font-mono text-white group-hover:text-red-300 transition-colors">
+                    LIVE
+                  </span>
                 </button>
 
                 {/* Rich Visual Volume Bar (Bekas lewatan & thumb) — only in Fullscreen mode on desktop */}
