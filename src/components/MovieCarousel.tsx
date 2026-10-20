@@ -4,8 +4,10 @@
  */
 
 import React, { useState, useEffect } from "react";
+import Link from "next/link";
 import { Play, Info, ChevronLeft, ChevronRight, Star, Heart } from "lucide-react";
 import { Movie, getLocalizedDescription } from "../types";
+import { getMovieUrl } from "../lib/routes";
 
 interface MovieCarouselProps {
   bannerMovies: Movie[];
@@ -156,24 +158,34 @@ export default function MovieCarousel({
 
         {/* Action Button Controls - Compact & touch optimized */}
         <div className="flex items-center gap-2 sm:gap-3 mt-3 sm:mt-6 w-full sm:w-auto">
-          <button
-            onClick={() => onSelect(activeMovie)}
-            className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 sm:gap-2 text-black text-xs md:text-sm font-bold px-4 py-2.5 sm:px-6 sm:py-3.5 rounded-xl shadow-xl transition-all cursor-pointer transform hover:scale-[1.02] active:scale-95"
+          <Link
+            href={getMovieUrl(activeMovie.id)}
+            onClick={(e) => {
+              if (e.ctrlKey || e.metaKey || e.shiftKey || e.button !== 0) return;
+              e.preventDefault();
+              onSelect(activeMovie);
+            }}
+            className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 sm:gap-2 text-black text-xs md:text-sm font-bold px-4 py-2.5 sm:px-6 sm:py-3.5 rounded-xl shadow-xl transition-all cursor-pointer transform hover:scale-[1.02] active:scale-95 no-underline"
             style={{ backgroundColor: "#00ADB5", color: "#ffffff", boxShadow: "0 0 20px rgba(0,173,181,0.4)" }}
             id="carousel-play-now"
           >
             <Play className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-white text-white ml-0.5" />
             {t?.play || "Play Now"}
-          </button>
+          </Link>
 
-          <button
-            onClick={() => onSelect(activeMovie)}
-            className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 sm:gap-2 bg-white/[0.08] hover:bg-white/[0.14] text-white text-xs md:text-sm font-bold px-4 py-2.5 sm:px-6 sm:py-3.5 rounded-xl border border-white/15 transition-all cursor-pointer backdrop-blur-md hover:scale-[1.02] active:scale-95"
+          <Link
+            href={getMovieUrl(activeMovie.id)}
+            onClick={(e) => {
+              if (e.ctrlKey || e.metaKey || e.shiftKey || e.button !== 0) return;
+              e.preventDefault();
+              onSelect(activeMovie);
+            }}
+            className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 sm:gap-2 bg-white/[0.08] hover:bg-white/[0.14] text-white text-xs md:text-sm font-bold px-4 py-2.5 sm:px-6 sm:py-3.5 rounded-xl border border-white/15 transition-all cursor-pointer backdrop-blur-md hover:scale-[1.02] active:scale-95 no-underline"
             id="carousel-more-info"
           >
             <Info className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-zinc-300" />
             {t?.moreInfo || "More Info"}
-          </button>
+          </Link>
 
           <button
             onClick={() => onToggleFavorite(activeMovie.id)}

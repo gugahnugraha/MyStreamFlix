@@ -4,8 +4,10 @@
  */
 
 import React from "react";
+import Link from "next/link";
 import { Play, Star, Clock } from "lucide-react";
 import { Movie } from "../types";
+import { getMovieUrl } from "../lib/routes";
 
 interface MovieCardProps {
   key?: React.Key;
@@ -22,10 +24,22 @@ export default function MovieCard({ movie, progress, onSelect, onPlay, t }: Movi
     ? Math.min(100, Math.round((progress.progress / progress.duration) * 100))
     : 0;
 
+  const movieUrl = getMovieUrl(movie.id);
+
+  const handleCardClick = (e: React.MouseEvent) => {
+    // If opening in new tab via middle-click or keyboard modifier (Ctrl / Cmd / Shift), let native browser navigation handle it
+    if (e.ctrlKey || e.metaKey || e.shiftKey || e.button !== 0) {
+      return;
+    }
+    e.preventDefault();
+    onSelect(movie);
+  };
+
   return (
-    <div 
-      className="group relative flex flex-col cursor-pointer transition-all duration-300"
-      onClick={() => onSelect(movie)}
+    <Link 
+      href={movieUrl}
+      className="group relative flex flex-col cursor-pointer transition-all duration-300 no-underline text-inherit"
+      onClick={handleCardClick}
       id={`movie-card-${movie.id}`}
     >
       {/* Elevated Image Container with Apple TV style styling */}
@@ -46,17 +60,17 @@ export default function MovieCard({ movie, progress, onSelect, onPlay, t }: Movi
 
         {/* Center Hover Action Play Overlay */}
         <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 z-10 bg-black/25">
-          <button
+          <div
             onClick={(e) => {
               e.stopPropagation();
-              onSelect(movie);
+              handleCardClick(e);
             }}
             className="w-11 h-11 rounded-full text-white flex items-center justify-center shadow-2xl scale-75 group-hover:scale-100 hover:!scale-110 active:!scale-95 transition-all duration-300 cursor-pointer border border-white/20"
             style={{ backgroundColor: "var(--theme-primary)", boxShadow: "0 10px 25px var(--theme-primary-40)" }}
             id={`play-btn-${movie.id}`}
           >
             <Play className="w-4 h-4 text-white fill-white ml-0.5" />
-          </button>
+          </div>
         </div>
 
         {/* Top Floating Badge Row - Glassmorphism style */}
@@ -145,6 +159,6 @@ export default function MovieCard({ movie, progress, onSelect, onPlay, t }: Movi
           </div>
         )}
       </div>
-    </div>
+    </Link>
   );
 }

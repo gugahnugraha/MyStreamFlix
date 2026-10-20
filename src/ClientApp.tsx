@@ -7,6 +7,8 @@ interface ClientAppProps {
   initialTab?: string;
   initialContentType?: ContentType;
   initialCastId?: string;
+  initialMovieId?: string;
+  initialWatchId?: string;
 }
 
 const DynamicApp = dynamic(() => import("./App"), {
@@ -19,6 +21,20 @@ const DynamicApp = dynamic(() => import("./App"), {
   ),
 });
 
-export default function ClientApp({ initialTab, initialContentType, initialCastId }: ClientAppProps) {
-  return <DynamicApp initialTab={initialTab} initialContentType={initialContentType} initialCastId={initialCastId} />;
+export default function ClientApp({
+  initialTab,
+  initialContentType,
+  initialCastId,
+  initialMovieId,
+  initialWatchId,
+}: ClientAppProps) {
+  return (
+    <DynamicApp
+      initialTab={initialTab}
+      initialContentType={initialContentType}
+      initialCastId={initialCastId}
+      initialMovieId={initialMovieId}
+      initialWatchId={initialWatchId}
+    />
+  );
 }

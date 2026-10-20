@@ -31,9 +31,11 @@ export interface AppProps {
   initialTab?: string;
   initialContentType?: ContentType;
   initialCastId?: string;
+  initialMovieId?: string;
+  initialWatchId?: string;
 }
 
-export default function App({ initialTab, initialContentType, initialCastId }: AppProps = {}) {
+export default function App({ initialTab, initialContentType, initialCastId, initialMovieId, initialWatchId }: AppProps = {}) {
   // Language Localization State
   // This state holds the currently selected language for the UI (e.g., "en", "id", "es").
   const [currentLanguage, setCurrentLanguage] = useState<LanguageCode>("en");
@@ -87,6 +89,22 @@ export default function App({ initialTab, initialContentType, initialCastId }: A
     if (initialCastId) return initialCastId;
     if (typeof window !== "undefined") {
       return parseRoute(window.location.pathname).castId || null;
+    }
+    return null;
+  });
+
+  const [targetMovieId, setTargetMovieId] = useState<string | null>(() => {
+    if (initialMovieId) return initialMovieId;
+    if (typeof window !== "undefined") {
+      return parseRoute(window.location.pathname).movieId || null;
+    }
+    return null;
+  });
+
+  const [targetWatchId, setTargetWatchId] = useState<string | null>(() => {
+    if (initialWatchId) return initialWatchId;
+    if (typeof window !== "undefined") {
+      return parseRoute(window.location.pathname).watchId || null;
     }
     return null;
   });
@@ -146,17 +164,49 @@ export default function App({ initialTab, initialContentType, initialCastId }: A
   const isPopStateRef = useRef(false);
   const isInitialMountRef = useRef(true);
 
-  // Sync browser URL whenever activeTab, selectedContentType, or selectedCastId changes
+  // Auto-open movie modal or player if targetMovieId or targetWatchId is present
+  useEffect(() => {
+    if (!targetMovieId && !targetWatchId) return;
+    if (allMovies.length === 0) return;
+
+    if (targetWatchId) {
+      const match = allMovies.find((m) => m.id === targetWatchId);
+      if (match) {
+        setActiveStream(match);
+        setSelectedMovie(null);
+        return;
+      }
+    }
+
+    if (targetMovieId) {
+      const match = allMovies.find((m) => m.id === targetMovieId);
+      if (match) {
+        setSelectedMovie(match);
+      }
+    }
+  }, [allMovies, targetMovieId, targetWatchId]);
+
+  // Sync browser URL whenever activeTab, selectedContentType, selectedCastId, selectedMovie, or activeStream changes
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    const currentUrl = getRouteUrl(activeTab, selectedContentType, selectedCastId || undefined);
+    const currentUrl = getRouteUrl(
+      activeTab,
+      selectedContentType,
+      selectedCastId || undefined,
+      selectedMovie?.id,
+      activeStream?.id
+    );
 
     if (isInitialMountRef.current) {
       isInitialMountRef.current = false;
       // Replace state on initial mount to ensure valid history entry
       if (window.location.pathname !== currentUrl) {
-        window.history.replaceState({ tab: activeTab, contentType: selectedContentType, castId: selectedCastId }, "", currentUrl);
+        window.history.replaceState(
+          { tab: activeTab, contentType: selectedContentType, castId: selectedCastId, movieId: selectedMovie?.id, watchId: activeStream?.id },
+          "",
+          currentUrl
+        );
       }
       return;
     }
@@ -167,32 +217,53 @@ export default function App({ initialTab, initialContentType, initialCastId }: A
     }
 
     if (window.location.pathname !== currentUrl) {
-      window.history.pushState({ tab: activeTab, contentType: selectedContentType, castId: selectedCastId }, "", currentUrl);
+      window.history.pushState(
+        { tab: activeTab, contentType: selectedContentType, castId: selectedCastId, movieId: selectedMovie?.id, watchId: activeStream?.id },
+        "",
+        currentUrl
+      );
     }
-  }, [activeTab, selectedContentType, selectedCastId]);
+  }, [activeTab, selectedContentType, selectedCastId, selectedMovie?.id, activeStream?.id]);
 
   // Handle browser Back / Forward buttons
   useEffect(() => {
     if (typeof window === "undefined") return;
 
     const handlePopState = () => {
-      const { tab, contentType, castId } = parseRoute(window.location.pathname);
+      const { tab, contentType, castId, movieId, watchId } = parseRoute(window.location.pathname);
       isPopStateRef.current = true;
       setActiveTab(tab);
       setSelectedContentType(contentType);
       setSelectedCastId(castId || null);
       setSearchQuery("");
+
+      if (watchId) {
+        const match = allMovies.find((m) => m.id === watchId);
+        setActiveStream(match || null);
+        setSelectedMovie(null);
+      } else if (movieId) {
+        const match = allMovies.find((m) => m.id === movieId);
+        setSelectedMovie(match || null);
+        setActiveStream(null);
+      } else {
+        setSelectedMovie(null);
+        setActiveStream(null);
+      }
     };
 
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
-  }, []);
+  }, [allMovies]);
 
   // Dynamic document title matching active view
   useEffect(() => {
     if (typeof document === "undefined") return;
     const siteTitle = settings.siteName || "MyStreamFlix";
-    if (activeTab === "cast") {
+    if (activeStream) {
+      document.title = `Watch ${activeStream.title} | ${siteTitle}`;
+    } else if (selectedMovie) {
+      document.title = `${selectedMovie.title} (${selectedMovie.releaseYear}) | ${siteTitle}`;
+    } else if (activeTab === "cast") {
       document.title = `Cast Profile | ${siteTitle}`;
     } else if (activeTab === "admin") {
       document.title = `Admin Dashboard | ${siteTitle}`;
@@ -207,7 +278,7 @@ export default function App({ initialTab, initialContentType, initialCastId }: A
     } else {
       document.title = `${siteTitle} - Movies, Series, and Live TV`;
     }
-  }, [activeTab, selectedContentType, selectedCastId, settings.siteName, t]);
+  }, [activeTab, selectedContentType, selectedCastId, selectedMovie, activeStream, settings.siteName, t]);
 
   // Auto-scroll to top on navigation tab or content type filter switch
   useEffect(() => {

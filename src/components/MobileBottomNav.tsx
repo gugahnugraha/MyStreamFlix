@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import Link from "next/link";
 import { 
   Home, Film, Tv, Heart, Menu, UserRound, LayoutDashboard, 
   Crown, Sparkles, LogOut, LogIn, Settings, X, Globe, ChevronRight 
@@ -58,6 +59,7 @@ export default function MobileBottomNav({
       id: "home-all",
       label: t?.home || "Home",
       icon: Home,
+      href: "/",
       isActive: activeTab === "home" && selectedContentType === "all",
       action: () => handleAction(() => {
         setActiveTab("home");
@@ -68,6 +70,7 @@ export default function MobileBottomNav({
       id: "home-movies",
       label: t?.movies || "Movies",
       icon: Film,
+      href: "/movies",
       isActive: activeTab === "home" && selectedContentType === "movie",
       action: () => handleAction(() => {
         setActiveTab("home");
@@ -78,6 +81,7 @@ export default function MobileBottomNav({
       id: "home-livetv",
       label: t?.liveTv || "Live TV",
       icon: Tv,
+      href: "/livetv",
       isActive: activeTab === "home" && selectedContentType === "livetv",
       action: () => handleAction(() => {
         setActiveTab("home");
@@ -88,6 +92,7 @@ export default function MobileBottomNav({
       id: "favorites",
       label: t?.myList || "My List",
       icon: Heart,
+      href: "/favorites",
       badge: favoritesCount > 0 ? favoritesCount : undefined,
       isActive: activeTab === "favorites",
       action: () => handleAction(() => {
@@ -107,10 +112,6 @@ export default function MobileBottomNav({
     }
   ];
 
-  const primaryNavItems = navItems.map((item) =>
-    item.id === "menu" ? { ...item, label: t?.menu || "Menu" } : item
-  );
-
   return (
     <div 
       className="fixed bottom-0 left-0 right-0 z-50 sm:hidden bg-zinc-950/95 backdrop-blur-2xl border-t border-zinc-800/80 pb-[calc(0.5rem+env(safe-area-inset-bottom,0px))] shadow-[0_-10px_30px_rgba(0,0,0,0.8)] transition-all duration-300 select-none"
@@ -122,15 +123,8 @@ export default function MobileBottomNav({
           const isActive = item.isActive;
           const isLang = item.id === "language";
 
-          return (
-            <button
-              key={item.id}
-              onClick={item.action}
-              className={`flex flex-col items-center justify-center flex-1 h-full relative py-1.5 rounded-lg transition-all duration-150 active:scale-90 active:bg-white/10 touch-manipulation cursor-pointer ${
-                isActive ? "text-white font-bold" : "text-zinc-400 hover:text-zinc-200"
-              }`}
-              style={{ WebkitTapHighlightColor: "transparent" }}
-            >
+          const content = (
+            <>
               {/* Active Indicator Bar */}
               {isActive && (
                 <div
@@ -170,6 +164,39 @@ export default function MobileBottomNav({
               >
                 {item.label}
               </span>
+            </>
+          );
+
+          if (item.href) {
+            return (
+              <Link
+                key={item.id}
+                href={item.href}
+                onClick={(e) => {
+                  if (e.ctrlKey || e.metaKey || e.shiftKey || e.button !== 0) return;
+                  e.preventDefault();
+                  item.action();
+                }}
+                className={`flex flex-col items-center justify-center flex-1 h-full relative py-1.5 rounded-lg transition-all duration-150 active:scale-90 active:bg-white/10 touch-manipulation cursor-pointer no-underline ${
+                  isActive ? "text-white font-bold" : "text-zinc-400 hover:text-zinc-200"
+                }`}
+                style={{ WebkitTapHighlightColor: "transparent" }}
+              >
+                {content}
+              </Link>
+            );
+          }
+
+          return (
+            <button
+              key={item.id}
+              onClick={item.action}
+              className={`flex flex-col items-center justify-center flex-1 h-full relative py-1.5 rounded-lg transition-all duration-150 active:scale-90 active:bg-white/10 touch-manipulation cursor-pointer ${
+                isActive ? "text-white font-bold" : "text-zinc-400 hover:text-zinc-200"
+              }`}
+              style={{ WebkitTapHighlightColor: "transparent" }}
+            >
+              {content}
             </button>
           );
         })}

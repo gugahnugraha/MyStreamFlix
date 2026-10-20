@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { Film, Heart, LayoutDashboard, LogIn, LogOut, Search, Crown, Sparkles, Users, Globe, Clapperboard, Tv, UserRound, ChevronDown, X } from "lucide-react";
 import { User, CMSSettings } from "../types";
 
@@ -179,12 +180,16 @@ export default function Header({
   return (
     <header className="fixed top-0 left-0 right-0 z-40 bg-[#070708]/75 backdrop-blur-xl border-b border-white/[0.06] px-4 md:px-8 pt-[calc(0.875rem+env(safe-area-inset-top,0px))] pb-3.5 flex items-center justify-between shadow-[0_12px_40px_rgba(0,0,0,0.4)] transition-all duration-300">
       {/* Brand Logo */}
-      <div
-        className="flex items-center gap-2 cursor-pointer group"
-        onClick={() => {
+      <Link
+        href="/"
+        onClick={(e) => {
+          if (e.ctrlKey || e.metaKey || e.shiftKey || e.button !== 0) return;
+          e.preventDefault();
           setActiveTab("home");
+          onSelectContentType("all");
           setSearchQuery("");
         }}
+        className="flex items-center gap-2 cursor-pointer group no-underline text-inherit"
         id="header-brand-logo"
       >
         <div className="w-9 h-9 rounded-lg flex items-center justify-center shadow-lg group-hover:scale-110 transition-all duration-300 ring-1 ring-white/10" style={{ backgroundColor: brandColor, boxShadow: `0 12px 28px ${brandColor}38` }}>
@@ -206,69 +211,84 @@ export default function Header({
             </span>
           )}
         </span>
-      </div>
+      </Link>
 
       {/* Main Navigation */}
       <nav className="hidden md:flex items-center gap-2 text-sm font-medium text-zinc-400 bg-white/[0.03] border border-white/10 rounded-lg p-1" id="header-nav">
-        <button
-          onClick={() => {
+        <Link
+          href="/"
+          onClick={(e) => {
+            if (e.ctrlKey || e.metaKey || e.shiftKey || e.button !== 0) return;
+            e.preventDefault();
             setActiveTab("home");
             onSelectContentType("all");
             setSearchQuery("");
           }}
-          className={`relative px-3 py-1.5 rounded-md transition-all cursor-pointer group ${activeTab === "home" && selectedContentType === "all" ? "text-white font-semibold" : "hover:bg-white/[0.04]"
+          className={`relative px-3 py-1.5 rounded-md transition-all cursor-pointer group no-underline ${activeTab === "home" && selectedContentType === "all" ? "text-white font-semibold" : "text-zinc-400 hover:bg-white/[0.04]"
             }`}
           style={activeTab === "home" && selectedContentType === "all" ? { backgroundColor: `${brandColor}18`, color: brandColor } : {}}
           id="nav-home"
         >
           {t.browse}
-        </button>
-        <button
-          onClick={() => {
+        </Link>
+        <Link
+          href="/movies"
+          onClick={(e) => {
+            if (e.ctrlKey || e.metaKey || e.shiftKey || e.button !== 0) return;
+            e.preventDefault();
             setActiveTab("home");
             onSelectContentType("movie");
             setSearchQuery("");
           }}
-          className={`relative px-3 py-1.5 rounded-md transition-all cursor-pointer group ${activeTab === "home" && selectedContentType === "movie" ? "text-white font-semibold" : "hover:bg-white/[0.04]"
+          className={`relative px-3 py-1.5 rounded-md transition-all cursor-pointer group no-underline ${activeTab === "home" && selectedContentType === "movie" ? "text-white font-semibold" : "text-zinc-400 hover:bg-white/[0.04]"
             }`}
           style={activeTab === "home" && selectedContentType === "movie" ? { backgroundColor: `${brandColor}18`, color: brandColor } : {}}
           id="nav-movies"
         >
           {t.movies || "Movies"}
-        </button>
-        <button
-          onClick={() => {
+        </Link>
+        <Link
+          href="/series"
+          onClick={(e) => {
+            if (e.ctrlKey || e.metaKey || e.shiftKey || e.button !== 0) return;
+            e.preventDefault();
             setActiveTab("home");
             onSelectContentType("series");
             setSearchQuery("");
           }}
-          className={`relative px-3 py-1.5 rounded-md transition-all cursor-pointer group ${activeTab === "home" && selectedContentType === "series" ? "text-white font-semibold" : "hover:bg-white/[0.04]"
+          className={`relative px-3 py-1.5 rounded-md transition-all cursor-pointer group no-underline ${activeTab === "home" && selectedContentType === "series" ? "text-white font-semibold" : "text-zinc-400 hover:bg-white/[0.04]"
             }`}
           style={activeTab === "home" && selectedContentType === "series" ? { backgroundColor: `${brandColor}18`, color: brandColor } : {}}
           id="nav-series"
         >
           {t.tvSeries || "Series"}
-        </button>
-        <button
-          onClick={() => {
+        </Link>
+        <Link
+          href="/livetv"
+          onClick={(e) => {
+            if (e.ctrlKey || e.metaKey || e.shiftKey || e.button !== 0) return;
+            e.preventDefault();
             setActiveTab("home");
             onSelectContentType("livetv");
             setSearchQuery("");
           }}
-          className={`relative px-3 py-1.5 rounded-md transition-all cursor-pointer group ${activeTab === "home" && selectedContentType === "livetv" ? "text-white font-semibold" : "hover:bg-white/[0.04]"
+          className={`relative px-3 py-1.5 rounded-md transition-all cursor-pointer group no-underline ${activeTab === "home" && selectedContentType === "livetv" ? "text-white font-semibold" : "text-zinc-400 hover:bg-white/[0.04]"
             }`}
           style={activeTab === "home" && selectedContentType === "livetv" ? { backgroundColor: `${brandColor}18`, color: brandColor } : {}}
           id="nav-livetv"
         >
           {t.liveTv || "Live TV"}
-        </button>
+        </Link>
         {currentUser && (
-          <button
-            onClick={() => {
+          <Link
+            href="/favorites"
+            onClick={(e) => {
+              if (e.ctrlKey || e.metaKey || e.shiftKey || e.button !== 0) return;
+              e.preventDefault();
               setActiveTab("favorites");
               setSearchQuery("");
             }}
-            className={`relative px-3 py-1.5 rounded-md transition-all cursor-pointer flex items-center gap-1.5 group ${activeTab === "favorites" ? "text-white font-semibold" : "hover:bg-white/[0.04]"
+            className={`relative px-3 py-1.5 rounded-md transition-all cursor-pointer flex items-center gap-1.5 group no-underline ${activeTab === "favorites" ? "text-white font-semibold" : "text-zinc-400 hover:bg-white/[0.04]"
               }`}
             style={activeTab === "favorites" ? { backgroundColor: `${brandColor}18`, color: brandColor } : {}}
             id="nav-favorites"
@@ -278,7 +298,7 @@ export default function Header({
               style={activeTab === "favorites" ? { color: brandColor } : {}}
             />
             {t.myList}
-          </button>
+          </Link>
         )}
 
       </nav>
@@ -491,14 +511,20 @@ export default function Header({
                 {/* Admin Dashboard Section */}
                 {currentUser.role === "admin" && (
                   <div className="py-1 border-b border-zinc-900">
-                    <button
-                      onClick={() => { setActiveTab("admin"); setShowProfileMenu(false); }}
-                      className="w-full text-left px-3 py-1.5 text-xs text-zinc-300 hover:text-white hover:bg-zinc-900 rounded-md flex items-center gap-2 transition-colors cursor-pointer"
+                    <Link
+                      href="/admin"
+                      onClick={(e) => {
+                        if (e.ctrlKey || e.metaKey || e.shiftKey || e.button !== 0) return;
+                        e.preventDefault();
+                        setActiveTab("admin");
+                        setShowProfileMenu(false);
+                      }}
+                      className="w-full text-left px-3 py-1.5 text-xs text-zinc-300 hover:text-white hover:bg-zinc-900 rounded-md flex items-center gap-2 transition-colors cursor-pointer no-underline"
                       id="dropdown-admin-btn"
                     >
                       <LayoutDashboard className="w-3.5 h-3.5" style={{ color: brandColor }} />
                       {t.adminDashboard}
-                    </button>
+                    </Link>
                   </div>
                 )}
 
