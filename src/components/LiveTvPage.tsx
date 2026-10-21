@@ -280,6 +280,13 @@ export default function LiveTvPage({
       document.removeEventListener("fullscreenchange", onFs);
       document.removeEventListener("webkitfullscreenchange", onFs);
       removeNativeListener();
+      if (isNativeCapacitor()) {
+        ScreenOrientation.unlock().catch(() => {});
+      }
+      try {
+        const orientation = (screen as any).orientation || (window.screen as any).orientation;
+        orientation?.unlock?.();
+      } catch {}
     };
   }, []);
 
