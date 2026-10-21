@@ -2092,7 +2092,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
 
         {/* Watermark Overlay */}
         <div
-          className="pointer-events-none absolute top-4 right-4 z-20 flex flex-col items-center select-none"
+          className="pointer-events-none absolute top-10 right-8 z-20 flex flex-col items-center select-none"
           style={{ opacity: 0.2 }}
         >
           <span
