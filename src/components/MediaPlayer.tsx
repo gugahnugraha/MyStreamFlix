@@ -159,7 +159,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
 
   // Player Experience Enhancements
   const [isScreenLocked, setIsScreenLocked] = useState(false);
-  const [qualityLevels, setQualityLevels] = useState<{index: number; height: number; bitrate: number; label: string}[]>([]);
+  const [qualityLevels, setQualityLevels] = useState<{ index: number; height: number; bitrate: number; label: string }[]>([]);
   const [selectedQuality, setSelectedQuality] = useState<string>("Auto");
   const [showQualityMenu, setShowQualityMenu] = useState(false);
 
@@ -260,7 +260,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
           }
         }
         setBufferedEnd(maxBuffered);
-      } catch {}
+      } catch { }
     } else if (isSimulating && duration > 0) {
       // Saat simulasi, berikan buffer putih yang mendahului titik menit berjalan sekitar 15-20%
       setBufferedEnd(Math.min(duration, currentTime + Math.max(20, duration * 0.15)));
@@ -454,7 +454,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
       setIsNextEpisodeDismissed(false);
       if (!isSimulating && videoRef.current) {
         videoRef.current.currentTime = 0;
-        videoRef.current.play().catch(() => {});
+        videoRef.current.play().catch(() => { });
       }
     }
   };
@@ -469,7 +469,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
       setIsNextEpisodeDismissed(false);
       if (!isSimulating && videoRef.current) {
         videoRef.current.currentTime = 0;
-        videoRef.current.play().catch(() => {});
+        videoRef.current.play().catch(() => { });
       }
     }
   };
@@ -645,14 +645,14 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
     if (dashRef.current) {
       try {
         dashRef.current.reset();
-      } catch {}
+      } catch { }
       dashRef.current = null;
     }
     const video = videoRef.current;
     if (video) {
       try {
         video.pause();
-      } catch {}
+      } catch { }
       video.removeAttribute("src");
       video.load();
     }
@@ -998,7 +998,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
         if (Math.abs(video.volume - newVol) > 0.001) video.volume = newVol;
       }
       if (video.muted !== Boolean(isMuted)) video.muted = Boolean(isMuted);
-    } catch {}
+    } catch { }
   }, [volume, isMuted, isSimulating, currentStreamUrl]);
 
   // Auto-hide controls overlay & mouse cursor after 3s of inactivity
@@ -1092,10 +1092,10 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
           } else if ((screen as any).msLockOrientation) {
             (screen as any).msLockOrientation("landscape");
           }
-        } catch (e) {}
+        } catch (e) { }
       } else {
         // Keluar fullscreen: buka kunci orientasi agar kembali ke orientasi potret/normal
-        ScreenOrientation.unlock().catch(() => {});
+        ScreenOrientation.unlock().catch(() => { });
         try {
           const orientation = (screen as any).orientation || (window.screen as any).orientation;
           if (orientation && typeof orientation.unlock === "function") {
@@ -1103,7 +1103,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
           } else if ((screen as any).unlockOrientation) {
             (screen as any).unlockOrientation();
           }
-        } catch (e) {}
+        } catch (e) { }
       }
     };
 
@@ -1122,15 +1122,15 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
     }
 
     // Native Capacitor immersive fullscreen events (Android APK)
-    let removeNativeListener = () => {};
+    let removeNativeListener = () => { };
     if (isNativeCapacitor()) {
       addImmersiveStateListener((data) => {
         const isFs = !!data.isFullscreen;
         setIsFullscreen(isFs);
         if (isFs) {
-          ScreenOrientation.lock({ orientation: "landscape" }).catch(() => {});
+          ScreenOrientation.lock({ orientation: "landscape" }).catch(() => { });
         } else {
-          ScreenOrientation.unlock().catch(() => {});
+          ScreenOrientation.unlock().catch(() => { });
         }
       }).then((unsub) => {
         removeNativeListener = unsub;
@@ -1147,7 +1147,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
         video.removeEventListener("webkitendfullscreen", handleWebkitEnd);
       }
       removeNativeListener();
-      ScreenOrientation.unlock().catch(() => {});
+      ScreenOrientation.unlock().catch(() => { });
       try {
         const orientation = (screen as any).orientation || (window.screen as any).orientation;
         if (orientation && typeof orientation.unlock === "function") {
@@ -1155,7 +1155,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
         } else if ((screen as any).unlockOrientation) {
           (screen as any).unlockOrientation();
         }
-      } catch (e) {}
+      } catch (e) { }
     };
   }, []);
 
@@ -1520,7 +1520,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
       } else if (dash) {
         try {
           dash.updateSettings({ streaming: { abr: { autoSwitchBitrate: { video: true } } } });
-        } catch {}
+        } catch { }
         setSelectedQuality("Auto");
       } else {
         setSelectedQuality("Auto");
@@ -1545,7 +1545,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
           const b = bitrates[mode];
           const label = b ? (describeQualityLabel(b.height || 0, b.bitrate || 0) || (b.height ? `${b.height}p` : `Level ${mode + 1}`)) : `Level ${mode + 1}`;
           setSelectedQuality(label);
-        } catch {}
+        } catch { }
       } else {
         const lv = qualityLevels.find((l) => l.index === mode);
         const label = lv?.label || "Auto";
@@ -1635,7 +1635,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
         if (video && typeof (video as any).webkitEnterFullscreen === "function") {
           try {
             (video as any).webkitEnterFullscreen();
-          } catch {}
+          } catch { }
         } else {
           setIsFullscreen(false);
         }
@@ -1653,7 +1653,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
             await (document as any).msExitFullscreen();
           }
         }
-      } catch (e) {}
+      } catch (e) { }
 
       try {
         const orientation = (screen as any).orientation || (window.screen as any).orientation;
@@ -1662,7 +1662,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
         } else if ((screen as any).unlockOrientation) {
           (screen as any).unlockOrientation();
         }
-      } catch (e) {}
+      } catch (e) { }
     }
   };
 
@@ -1671,11 +1671,11 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
     if (isNativeCapacitor()) {
       try {
         await exitImmersiveMode();
-      } catch (e) {}
+      } catch (e) { }
     }
     try {
       await ScreenOrientation.unlock();
-    } catch (e) {}
+    } catch (e) { }
     try {
       const orientation = (screen as any).orientation || (window.screen as any).orientation;
       if (orientation && typeof orientation.unlock === "function") {
@@ -1683,7 +1683,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
       } else if ((screen as any).unlockOrientation) {
         (screen as any).unlockOrientation();
       }
-    } catch (err) {}
+    } catch (err) { }
 
     try {
       if (document.fullscreenElement || (document as any).webkitFullscreenElement) {
@@ -1693,7 +1693,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
           await (document as any).webkitExitFullscreen();
         }
       }
-    } catch (e) {}
+    } catch (e) { }
     onClose();
   };
 
@@ -2012,44 +2012,43 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
   //   Provides explicit minimum fallbacks so badges and controls never stick to the screen bezels/notches.
   const hudStyle: React.CSSProperties = isNativeCapacitor()
     ? {
-        paddingTop:
-          isFullscreen || isLandscape
-            ? "max(calc(env(safe-area-inset-top, 0px) + 20px), 24px)"
-            : "max(calc(env(safe-area-inset-top, 0px) + 16px), 20px)",
-        paddingBottom:
-          isFullscreen || isLandscape
-            ? "max(calc(env(safe-area-inset-bottom, 0px) + 16px), 20px)"
-            : "max(calc(env(safe-area-inset-bottom, 0px) + 24px), 28px)",
-        paddingLeft:
-          isFullscreen || isLandscape
-            ? "max(calc(env(safe-area-inset-left, 0px) + 20px), 24px)"
-            : "max(calc(env(safe-area-inset-left, 0px) + 16px), 20px)",
-        paddingRight:
-          isFullscreen || isLandscape
-            ? "max(calc(env(safe-area-inset-right, 0px) + 20px), 24px)"
-            : "max(calc(env(safe-area-inset-right, 0px) + 16px), 20px)",
-      }
-    : {
-        // Mobile web: provide explicit safe margins
-        paddingTop: isFullscreen
+      paddingTop:
+        isFullscreen || isLandscape
           ? "max(calc(env(safe-area-inset-top, 0px) + 20px), 24px)"
           : "max(calc(env(safe-area-inset-top, 0px) + 16px), 20px)",
-        paddingBottom: isFullscreen
+      paddingBottom:
+        isFullscreen || isLandscape
           ? "max(calc(env(safe-area-inset-bottom, 0px) + 16px), 20px)"
-          : "max(calc(env(safe-area-inset-bottom, 0px) + 72px), 76px)",
-        paddingLeft: isFullscreen
+          : "max(calc(env(safe-area-inset-bottom, 0px) + 24px), 28px)",
+      paddingLeft:
+        isFullscreen || isLandscape
           ? "max(calc(env(safe-area-inset-left, 0px) + 20px), 24px)"
           : "max(calc(env(safe-area-inset-left, 0px) + 16px), 20px)",
-        paddingRight: isFullscreen
+      paddingRight:
+        isFullscreen || isLandscape
           ? "max(calc(env(safe-area-inset-right, 0px) + 20px), 24px)"
           : "max(calc(env(safe-area-inset-right, 0px) + 16px), 20px)",
-      };
+    }
+    : {
+      // Mobile web: provide explicit safe margins
+      paddingTop: isFullscreen
+        ? "max(calc(env(safe-area-inset-top, 0px) + 20px), 24px)"
+        : "max(calc(env(safe-area-inset-top, 0px) + 16px), 20px)",
+      paddingBottom: isFullscreen
+        ? "max(calc(env(safe-area-inset-bottom, 0px) + 16px), 20px)"
+        : "max(calc(env(safe-area-inset-bottom, 0px) + 72px), 76px)",
+      paddingLeft: isFullscreen
+        ? "max(calc(env(safe-area-inset-left, 0px) + 20px), 24px)"
+        : "max(calc(env(safe-area-inset-left, 0px) + 16px), 20px)",
+      paddingRight: isFullscreen
+        ? "max(calc(env(safe-area-inset-right, 0px) + 20px), 24px)"
+        : "max(calc(env(safe-area-inset-right, 0px) + 16px), 20px)",
+    };
 
   return (
     <div
-      className={`fixed inset-0 z-[100] bg-black flex flex-col md:flex-row landscape:flex-row justify-between overflow-hidden ${
-        !showControls && isPlaying ? "cursor-none" : "cursor-default"
-      }`}
+      className={`fixed inset-0 z-[100] bg-black flex flex-col md:flex-row landscape:flex-row justify-between overflow-hidden ${!showControls && isPlaying ? "cursor-none" : "cursor-default"
+        }`}
       id="media-player-root"
     >
       {((isScreenLocked || isBuffering) || (!showControls && !isPlaying)) && (
@@ -2073,13 +2072,12 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
           text-shadow: 0px 2px 4px rgba(0, 0, 0, 0.9), 0px 1px 2px rgba(0, 0, 0, 0.9);
         }
       `}</style>
-      
+
       {/* Primary Video Screen Area */}
       <div
         ref={containerRef}
-        className={`relative flex-1 min-h-0 bg-black flex items-center justify-center overflow-hidden touch-none select-none ${
-          !showControls && isPlaying ? "cursor-none" : "cursor-default"
-        }`}
+        className={`relative flex-1 min-h-0 bg-black flex items-center justify-center overflow-hidden touch-none select-none ${!showControls && isPlaying ? "cursor-none" : "cursor-default"
+          }`}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
@@ -2092,7 +2090,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
 
         {/* Watermark Overlay */}
         <div
-          className="pointer-events-none absolute top-10 right-8 z-20 flex flex-col items-center select-none"
+          className="pointer-events-none absolute top-20 right-16 z-20 flex flex-col items-center select-none"
           style={{ opacity: 0.2 }}
         >
           <span
@@ -2236,7 +2234,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
         ) : (
           /* High-fidelity Simulation Display */
           <div
-          className="relative w-full h-full min-h-[100svh] md:min-h-0 flex items-center justify-center bg-zinc-950"
+            className="relative w-full h-full min-h-[100svh] md:min-h-0 flex items-center justify-center bg-zinc-950"
             onClick={handleScreenClick}
             id="simulation-display"
           >
@@ -2382,11 +2380,10 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
         {/* Styled Caption Subtitle Overlay */}
         {currentCaption && (
           <div
-            className={`absolute left-1/2 -translate-x-1/2 text-center max-w-[90%] md:max-w-4xl font-bold select-none pointer-events-none transition-all duration-300 z-20 ${
-              showControls && !isScreenLocked
+            className={`absolute left-1/2 -translate-x-1/2 text-center max-w-[90%] md:max-w-4xl font-bold select-none pointer-events-none transition-all duration-300 z-20 ${showControls && !isScreenLocked
                 ? "bottom-24 sm:bottom-28 md:bottom-32"
                 : "bottom-5 sm:bottom-7 md:bottom-8"
-            } ${getSubtitleStyleClasses()}`}
+              } ${getSubtitleStyleClasses()}`}
             style={{
               paddingBottom: "env(safe-area-inset-bottom, 0px)",
             }}
@@ -2506,9 +2503,8 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
 
         {/* HUD CONTROLLER OVERLAY SCREEN */}
         <div
-          className={`absolute inset-0 bg-linear-to-t from-black/90 via-black/20 to-black/80 flex flex-col justify-between p-5 sm:p-6 md:p-8 lg:p-10 transition-opacity duration-300 ${
-            showControls && !isScreenLocked ? "opacity-100" : "opacity-0 pointer-events-none"
-          }`}
+          className={`absolute inset-0 bg-linear-to-t from-black/90 via-black/20 to-black/80 flex flex-col justify-between p-5 sm:p-6 md:p-8 lg:p-10 transition-opacity duration-300 ${showControls && !isScreenLocked ? "opacity-100" : "opacity-0 pointer-events-none"
+            }`}
           id="media-player-hud"
           style={hudStyle}
           onClick={(e) => {
@@ -2591,9 +2587,8 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
                   handlePlayPrevEpisode();
                 }}
                 title="Previous Episode"
-                className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-black/60 backdrop-blur-md border border-white/20 text-white flex items-center justify-center shadow-xl pointer-events-auto transition-all duration-300 transform active:scale-90 hover:bg-white/20 ${
-                  showControls ? "opacity-100 scale-100" : "opacity-0 scale-75 pointer-events-none"
-                }`}
+                className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-black/60 backdrop-blur-md border border-white/20 text-white flex items-center justify-center shadow-xl pointer-events-auto transition-all duration-300 transform active:scale-90 hover:bg-white/20 ${showControls ? "opacity-100 scale-100" : "opacity-0 scale-75 pointer-events-none"
+                  }`}
               >
                 <SkipBack className="w-5 h-5 text-white" />
               </button>
@@ -2605,9 +2600,8 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
                 handleSkip(-10);
               }}
               title={t.rewind10s || "Rewind 10s"}
-              className={`w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-black/60 backdrop-blur-md border border-white/20 text-white flex items-center justify-center shadow-xl pointer-events-auto transition-all duration-300 transform active:scale-90 hover:bg-white/20 ${
-                showControls ? "opacity-100 scale-100" : "opacity-0 scale-75 pointer-events-none"
-              }`}
+              className={`w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-black/60 backdrop-blur-md border border-white/20 text-white flex items-center justify-center shadow-xl pointer-events-auto transition-all duration-300 transform active:scale-90 hover:bg-white/20 ${showControls ? "opacity-100 scale-100" : "opacity-0 scale-75 pointer-events-none"
+                }`}
             >
               <RotateCcw className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
             </button>
@@ -2617,9 +2611,8 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
                 e.stopPropagation();
                 handlePlayPause();
               }}
-              className={`w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-black/70 backdrop-blur-md border border-white/30 text-white flex items-center justify-center shadow-2xl pointer-events-auto transition-all duration-300 transform active:scale-90 hover:bg-white/20 ${
-                showControls ? "opacity-100 scale-100" : "opacity-0 scale-75 pointer-events-none"
-              }`}
+              className={`w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-black/70 backdrop-blur-md border border-white/30 text-white flex items-center justify-center shadow-2xl pointer-events-auto transition-all duration-300 transform active:scale-90 hover:bg-white/20 ${showControls ? "opacity-100 scale-100" : "opacity-0 scale-75 pointer-events-none"
+                }`}
             >
               {isPlaying ? (
                 <Pause className="w-8 h-8 sm:w-10 sm:h-10 text-white fill-white" />
@@ -2634,9 +2627,8 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
                 handleSkip(10);
               }}
               title={t.forward10s || "Forward 10s"}
-              className={`w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-black/60 backdrop-blur-md border border-white/20 text-white flex items-center justify-center shadow-xl pointer-events-auto transition-all duration-300 transform active:scale-90 hover:bg-white/20 ${
-                showControls ? "opacity-100 scale-100" : "opacity-0 scale-75 pointer-events-none"
-              }`}
+              className={`w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-black/60 backdrop-blur-md border border-white/20 text-white flex items-center justify-center shadow-xl pointer-events-auto transition-all duration-300 transform active:scale-90 hover:bg-white/20 ${showControls ? "opacity-100 scale-100" : "opacity-0 scale-75 pointer-events-none"
+                }`}
             >
               <RotateCw className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
             </button>
@@ -2649,9 +2641,8 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
                   handlePlayNextEpisode();
                 }}
                 title="Next Episode"
-                className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-black/60 backdrop-blur-md border border-white/20 text-white flex items-center justify-center shadow-xl pointer-events-auto transition-all duration-300 transform active:scale-90 hover:bg-white/20 ${
-                  showControls ? "opacity-100 scale-100" : "opacity-0 scale-75 pointer-events-none"
-                }`}
+                className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-black/60 backdrop-blur-md border border-white/20 text-white flex items-center justify-center shadow-xl pointer-events-auto transition-all duration-300 transform active:scale-90 hover:bg-white/20 ${showControls ? "opacity-100 scale-100" : "opacity-0 scale-75 pointer-events-none"
+                  }`}
               >
                 <SkipForward className="w-5 h-5 text-white" />
               </button>
@@ -2659,7 +2650,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
           </div>
 
           {/* Bottom Playback HUD panel */}
-            <div className="relative z-20 space-y-3 sm:space-y-4" id="media-player-bottom-hud">
+          <div className="relative z-20 space-y-3 sm:space-y-4" id="media-player-bottom-hud">
             {/* Progress Timeline Scrubber or Live Stream Indicator */}
             {movie.contentType === "livetv" ? (
               <div className="flex items-center justify-between w-full px-3 py-1.5 bg-red-950/40 border border-red-600/30 rounded-xl backdrop-blur-md">
@@ -2920,9 +2911,8 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
                         <button
                           key={r}
                           onClick={() => handleSpeedSelect(r)}
-                          className={`text-left text-xs px-2.5 py-1.5 rounded-md hover:bg-zinc-900 transition-colors ${
-                            playbackRate === r ? "text-red-500 font-bold bg-red-500/10" : "text-zinc-400"
-                          }`}
+                          className={`text-left text-xs px-2.5 py-1.5 rounded-md hover:bg-zinc-900 transition-colors ${playbackRate === r ? "text-red-500 font-bold bg-red-500/10" : "text-zinc-400"
+                            }`}
                         >
                           {r}x
                         </button>
@@ -2945,11 +2935,10 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
                           setShowSubtitleCustomizer(false);
                         }
                       }}
-                      className={`player-menu-btn flex items-center gap-1.5 text-xs font-semibold px-2.5 py-2 sm:py-1 border rounded-lg transition-colors cursor-pointer min-h-11 ${
-                        activeSubtitle !== "off"
+                      className={`player-menu-btn flex items-center gap-1.5 text-xs font-semibold px-2.5 py-2 sm:py-1 border rounded-lg transition-colors cursor-pointer min-h-11 ${activeSubtitle !== "off"
                           ? "bg-red-600/10 border-red-500 text-red-400 font-bold"
                           : "bg-zinc-900/80 border-zinc-800 text-zinc-300 hover:text-white"
-                      }`}
+                        }`}
                       title={t.toggleCaptions || "Toggle Captions"}
                     >
                       <Subtitles className="w-3.5 h-3.5" />
@@ -2975,9 +2964,8 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
                       <div className="player-menu-popover absolute bottom-10 right-0 w-36 bg-zinc-950 border border-zinc-800 p-1.5 rounded-xl shadow-2xl flex flex-col gap-0.5 z-50">
                         <button
                           onClick={() => handleSubtitleSelect("off")}
-                          className={`text-left text-xs px-2.5 py-1.5 rounded-md hover:bg-zinc-900 transition-colors ${
-                            activeSubtitle === "off" ? "text-red-500 font-bold bg-red-500/10" : "text-zinc-400"
-                          }`}
+                          className={`text-left text-xs px-2.5 py-1.5 rounded-md hover:bg-zinc-900 transition-colors ${activeSubtitle === "off" ? "text-red-500 font-bold bg-red-500/10" : "text-zinc-400"
+                            }`}
                         >
                           {t.noneOff || "Off (None)"}
                         </button>
@@ -2985,9 +2973,8 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
                           <button
                             key={sub.id}
                             onClick={() => handleSubtitleSelect(sub.language)}
-                            className={`text-left text-xs px-2.5 py-1.5 rounded-md hover:bg-zinc-900 transition-colors ${
-                              activeSubtitle === sub.language ? "text-red-500 font-bold bg-red-500/10" : "text-zinc-400"
-                            }`}
+                            className={`text-left text-xs px-2.5 py-1.5 rounded-md hover:bg-zinc-900 transition-colors ${activeSubtitle === sub.language ? "text-red-500 font-bold bg-red-500/10" : "text-zinc-400"
+                              }`}
                           >
                             {sub.label}
                           </button>
@@ -3073,11 +3060,10 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
                               <button
                                 key={sz.id}
                                 onClick={() => setSubtitleSize(sz.id as any)}
-                                className={`text-[11px] py-1.5 rounded-lg border font-bold transition-all cursor-pointer ${
-                                  subtitleSize === sz.id
+                                className={`text-[11px] py-1.5 rounded-lg border font-bold transition-all cursor-pointer ${subtitleSize === sz.id
                                     ? "text-white shadow-md font-black"
                                     : "bg-zinc-900/60 border-white/10 text-zinc-400 hover:text-white hover:bg-zinc-800"
-                                }`}
+                                  }`}
                                 style={subtitleSize === sz.id ? { backgroundColor: brandColor, borderColor: brandColor, boxShadow: `0 0 12px ${brandColor}40` } : {}}
                               >
                                 {sz.label}
@@ -3100,11 +3086,10 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
                               <button
                                 key={st.id}
                                 onClick={() => setSubtitleStyle(st.id as any)}
-                                className={`text-[10px] py-1.5 rounded-md border font-medium transition-colors cursor-pointer ${
-                                  subtitleStyle === st.id
+                                className={`text-[10px] py-1.5 rounded-md border font-medium transition-colors cursor-pointer ${subtitleStyle === st.id
                                     ? "bg-white/10 border-white/30 text-white font-bold"
                                     : "bg-zinc-900/60 border-white/5 text-zinc-400 hover:text-white"
-                                }`}
+                                  }`}
                               >
                                 {st.label}
                               </button>
@@ -3216,11 +3201,10 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
                           setCurrentTime(0);
                           setActiveMobileSheet("none");
                         }}
-                        className={`w-full text-left p-3.5 rounded-xl border transition-all flex flex-col gap-1 ${
-                          isCurrent
+                        className={`w-full text-left p-3.5 rounded-xl border transition-all flex flex-col gap-1 ${isCurrent
                             ? "bg-red-600/15 border-red-600 shadow-md"
                             : "bg-zinc-900/60 border-zinc-900 hover:bg-zinc-900"
-                        }`}
+                          }`}
                       >
                         <div className="flex items-center justify-between">
                           <span className="text-[10px] font-bold text-red-500 font-mono">
@@ -3246,11 +3230,10 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
                     handleQualitySelect("auto");
                     setActiveMobileSheet("none");
                   }}
-                  className={`w-full flex items-center justify-between p-3.5 rounded-xl text-xs font-bold ${
-                    selectedQuality.startsWith("Auto")
+                  className={`w-full flex items-center justify-between p-3.5 rounded-xl text-xs font-bold ${selectedQuality.startsWith("Auto")
                       ? "bg-cyan-500/20 text-cyan-400 border border-cyan-500/40"
                       : "bg-zinc-900/60 text-zinc-300"
-                  }`}
+                    }`}
                 >
                   <div className="flex flex-col text-left">
                     <span>Auto (Rekomendasi)</span>
@@ -3269,11 +3252,10 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
                         handleQualitySelect(qualityLevels.length > 0 ? lv.index : lv.label);
                         setActiveMobileSheet("none");
                       }}
-                      className={`w-full flex items-center justify-between p-3.5 rounded-xl text-xs font-bold ${
-                        active
+                      className={`w-full flex items-center justify-between p-3.5 rounded-xl text-xs font-bold ${active
                           ? "bg-cyan-500/20 text-cyan-400 border border-cyan-500/40"
                           : "bg-zinc-900/60 text-zinc-300"
-                      }`}
+                        }`}
                     >
                       <div className="flex items-center gap-2">
                         <span>{lv.label}</span>
@@ -3300,11 +3282,10 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
                       handleSpeedSelect(r);
                       setActiveMobileSheet("none");
                     }}
-                    className={`py-3.5 rounded-xl text-xs font-bold border transition-all ${
-                      playbackRate === r
+                    className={`py-3.5 rounded-xl text-xs font-bold border transition-all ${playbackRate === r
                         ? "bg-emerald-500/20 border-emerald-500 text-emerald-400"
                         : "bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-white"
-                    }`}
+                      }`}
                   >
                     {r}x
                   </button>
@@ -3321,11 +3302,10 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
                       handleSubtitleSelect("off");
                       setActiveMobileSheet("none");
                     }}
-                    className={`w-full flex items-center justify-between p-3.5 rounded-xl text-xs font-bold ${
-                      activeSubtitle === "off"
+                    className={`w-full flex items-center justify-between p-3.5 rounded-xl text-xs font-bold ${activeSubtitle === "off"
                         ? "bg-red-600/20 text-red-400 border border-red-500/40"
                         : "bg-zinc-900/60 text-zinc-300"
-                    }`}
+                      }`}
                   >
                     <span>{t.noneOff || "Off (None)"}</span>
                     {activeSubtitle === "off" && <Check className="w-4 h-4 text-red-400" />}
@@ -3337,11 +3317,10 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
                         handleSubtitleSelect(sub.language);
                         setActiveMobileSheet("none");
                       }}
-                      className={`w-full flex items-center justify-between p-3.5 rounded-xl text-xs font-bold ${
-                        activeSubtitle === sub.language
+                      className={`w-full flex items-center justify-between p-3.5 rounded-xl text-xs font-bold ${activeSubtitle === sub.language
                           ? "bg-red-600/20 text-red-400 border border-red-500/40"
                           : "bg-zinc-900/60 text-zinc-300"
-                      }`}
+                        }`}
                     >
                       <span>{sub.label}</span>
                       {activeSubtitle === sub.language && <Check className="w-4 h-4 text-red-400" />}
@@ -3403,11 +3382,10 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
                       <button
                         key={sz.id}
                         onClick={() => setSubtitleSize(sz.id as any)}
-                        className={`py-2.5 rounded-xl text-xs font-bold border transition-colors ${
-                          subtitleSize === sz.id
+                        className={`py-2.5 rounded-xl text-xs font-bold border transition-colors ${subtitleSize === sz.id
                             ? "text-white"
                             : "bg-zinc-900 border-zinc-800 text-zinc-400"
-                        }`}
+                          }`}
                         style={subtitleSize === sz.id ? { backgroundColor: brandColor, borderColor: brandColor } : {}}
                       >
                         {sz.label}
@@ -3466,11 +3444,10 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
                     setActiveEpisode(ep);
                     setCurrentTime(0);
                   }}
-                  className={`w-full text-left p-3 rounded-lg border transition-all flex flex-col gap-1 cursor-pointer ${
-                    isCurrent
+                  className={`w-full text-left p-3 rounded-lg border transition-all flex flex-col gap-1 cursor-pointer ${isCurrent
                       ? "bg-red-600/10 border-red-600 shadow-[0_0_15px_rgba(220,38,38,0.15)]"
                       : "bg-zinc-900/40 border-zinc-900 hover:bg-zinc-900 hover:border-zinc-800"
-                  }`}
+                    }`}
                 >
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] font-bold text-red-500">
