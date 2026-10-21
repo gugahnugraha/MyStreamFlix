@@ -11,7 +11,6 @@ def cordovaVarsFile = file("../capacitor-cordova-android-plugins/cordova.variabl
 if (cordovaVarsFile.exists()) {
     apply from: cordovaVarsFile
 }
-
 dependencies {
     implementation project(':capacitor-screen-orientation')
     implementation project(':capacitor-video-player')
