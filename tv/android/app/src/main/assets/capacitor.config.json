@@ -1,0 +1,17 @@
+{
+	"appId": "com.mystreamflix.tv",
+	"appName": "MyStreamFlix TV",
+	"webDir": "dist",
+	"bundledWebRuntime": false,
+	"server": {
+		"cleartext": true,
+		"allowNavigation": [
+			"*"
+		]
+	},
+	"android": {
+		"backgroundColor": "#0A0A0C",
+		"allowMixedContent": true,
+		"webContentsDebuggingEnabled": true
+	}
+}

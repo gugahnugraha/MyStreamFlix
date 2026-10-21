@@ -1,0 +1,1029 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>MyStreamFlix TV - 4K Ultra HD Streaming</title>
+  <link rel="stylesheet" href="tv-styles.css">
+  <!-- HLS and DASH Engines for Full TV Streaming -->
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@1.6.17/dist/hls.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dashjs@5.2.0/dist/dash.all.min.js"></script>
+  <style>
+    /* Modern Glassmorphic TV Components */
+    .tv-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-bottom: 2.5vh;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      margin-bottom: 3vh;
+    }
+    .tv-brand {
+      display: flex;
+      align-items: center;
+      gap: 1.2vw;
+      font-size: 1.7rem;
+      font-weight: 900;
+      letter-spacing: -0.5px;
+    }
+    .tv-brand span.highlight {
+      color: var(--tv-brand-color);
+    }
+    .tv-badge-tv {
+      background: linear-gradient(135deg, #00ADB5, #007780);
+      color: #000;
+      font-size: 0.75rem;
+      font-weight: 900;
+      padding: 3px 8px;
+      border-radius: 6px;
+      letter-spacing: 1px;
+    }
+    .tv-nav {
+      display: flex;
+      align-items: center;
+      gap: 1vw;
+    }
+    .tv-nav-item {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: rgba(255, 255, 255, 0.75);
+      padding: 1vh 1.8vw;
+      border-radius: 9999px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 0.6vw;
+      text-decoration: none;
+    }
+    .tv-nav-item.active {
+      background: var(--tv-brand-color);
+      color: #000;
+      border-color: var(--tv-brand-color);
+      font-weight: 800;
+    }
+
+    /* Hero Banner */
+    .tv-hero {
+      position: relative;
+      width: 100%;
+      height: 48vh;
+      border-radius: 24px;
+      overflow: hidden;
+      margin-bottom: 4vh;
+      display: flex;
+      align-items: flex-end;
+      padding: 4vh 4vw;
+      box-sizing: border-box;
+      background-size: cover;
+      background-position: center 20%;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .tv-hero-overlay {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to top, #0A0A0C 10%, rgba(10, 10, 12, 0.75) 45%, rgba(10, 10, 12, 0.2) 100%),
+                  linear-gradient(to right, #0A0A0C 20%, transparent 65%);
+      pointer-events: none;
+    }
+    .tv-hero-content {
+      position: relative;
+      z-index: 2;
+      max-width: 58vw;
+    }
+    .tv-hero-title {
+      font-size: 2.8rem;
+      font-weight: 900;
+      margin: 0 0 1vh 0;
+      line-height: 1.1;
+      text-shadow: 0 4px 20px rgba(0, 0, 0, 0.9);
+    }
+    .tv-hero-meta {
+      display: flex;
+      align-items: center;
+      gap: 1.2vw;
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: #D1D5DB;
+      margin-bottom: 1.5vh;
+    }
+    .tv-hero-badge {
+      background: rgba(255, 255, 255, 0.15);
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      font-weight: bold;
+    }
+    .tv-hero-desc {
+      font-size: 1rem;
+      line-height: 1.5;
+      color: rgba(255, 255, 255, 0.8);
+      margin-bottom: 2.5vh;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .tv-hero-actions {
+      display: flex;
+      align-items: center;
+      gap: 1.2vw;
+    }
+    .tv-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.8vw;
+      padding: 1.2vh 2.4vw;
+      border-radius: 14px;
+      font-size: 1.05rem;
+      font-weight: 700;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      background: rgba(255, 255, 255, 0.1);
+      color: #FFFFFF;
+    }
+    .tv-btn-primary {
+      background: var(--tv-brand-color);
+      color: #000000;
+      border-color: var(--tv-brand-color);
+      box-shadow: 0 8px 30px rgba(0, 173, 181, 0.4);
+    }
+
+    /* Rail Section */
+    .tv-section {
+      margin-bottom: 4vh;
+    }
+    .tv-section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1.5vh;
+    }
+    .tv-section-title {
+      font-size: 1.45rem;
+      font-weight: 800;
+      margin: 0;
+      display: flex;
+      align-items: center;
+      gap: 0.8vw;
+    }
+    .tv-section-indicator {
+      width: 4px;
+      height: 1.3rem;
+      background: var(--tv-brand-color);
+      border-radius: 2px;
+      box-shadow: 0 0 10px var(--tv-brand-color);
+    }
+
+    /* Movie & Channel Cards */
+    .tv-card {
+      position: relative;
+      flex: 0 0 13.8vw;
+      height: 34vh;
+      border-radius: 16px;
+      overflow: hidden;
+      background: var(--tv-card-bg);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    }
+    .tv-card-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .tv-card-overlay {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to top, rgba(0, 0, 0, 0.95) 0%, rgba(0, 0, 0, 0.3) 50%, transparent 100%);
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      padding: 1.5vh 1vw;
+      box-sizing: border-box;
+    }
+    .tv-card-title {
+      font-size: 0.95rem;
+      font-weight: 700;
+      margin: 0 0 0.5vh 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .tv-card-info {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.78rem;
+      color: #9CA3AF;
+      font-weight: 600;
+    }
+    .tv-card-badge {
+      position: absolute;
+      top: 1vh;
+      right: 0.8vw;
+      background: rgba(0, 0, 0, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 0.7rem;
+      font-weight: 800;
+      backdrop-filter: blur(10px);
+    }
+
+    /* Live Channel Landscape Cards */
+    .tv-card-live {
+      flex: 0 0 19vw;
+      height: 22vh;
+    }
+
+    /* Fullscreen TV Player Modal */
+    .tv-player-modal {
+      position: fixed;
+      inset: 0;
+      background: #000000;
+      z-index: 9999;
+      display: none;
+      flex-direction: column;
+    }
+    .tv-player-modal.active {
+      display: flex;
+    }
+    .tv-player-video {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+    .tv-player-hud {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      padding: 3vh 4vw 4vh 4vw;
+      background: linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.7) 60%, transparent 100%);
+      display: flex;
+      flex-direction: column;
+      gap: 1.5vh;
+      transition: opacity 0.3s ease;
+    }
+    .tv-player-hud.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+    .tv-player-info {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .tv-player-title {
+      font-size: 1.6rem;
+      font-weight: 900;
+      margin: 0;
+    }
+    .tv-player-controls {
+      display: flex;
+      align-items: center;
+      gap: 1vw;
+    }
+  </style>
+</head>
+<body>
+  <div class="tv-safe-area" id="tv-app-root">
+    <!-- Top TV Navigation Header -->
+    <header class="tv-header">
+      <div class="tv-brand">
+        <span>MyStream<span class="highlight">Flix</span></span>
+        <span class="tv-badge-tv">ANDROID TV 4K</span>
+      </div>
+
+      <nav class="tv-nav">
+        <a href="#home" class="tv-nav-item tv-focusable active" id="tv-nav-home" onclick="showTab('home')">
+          <span>🏠</span> Beranda
+        </a>
+        <a href="#movies" class="tv-nav-item tv-focusable" id="tv-nav-movies" onclick="showTab('movies')">
+          <span>🎬</span> Film
+        </a>
+        <a href="#series" class="tv-nav-item tv-focusable" id="tv-nav-series" onclick="showTab('series')">
+          <span>📺</span> Serial TV
+        </a>
+        <a href="#livetv" class="tv-nav-item tv-focusable" id="tv-nav-livetv" onclick="showTab('livetv')">
+          <span>📡</span> Live TV
+        </a>
+        <a href="#settings" class="tv-nav-item tv-focusable" id="tv-nav-settings" onclick="openSettingsModal()">
+          <span>⚙️</span> Server & Akun
+        </a>
+      </nav>
+
+      <div style="font-size: 1.1rem; font-weight: 700; color: #9CA3AF; font-mono;" id="tv-clock">
+        18:45
+      </div>
+    </header>
+
+    <!-- Hero Spotlight Section -->
+    <section class="tv-hero" id="tv-hero-banner" style="background-image: url('https://image.tmdb.org/t/p/w1280/rZfmzpixLKLR3Hg2u0WgC7XLFl8.jpg');">
+      <div class="tv-hero-overlay"></div>
+      <div class="tv-hero-content">
+        <div class="tv-hero-meta">
+          <span class="tv-hero-badge" style="background: var(--tv-brand-color); color: #000;">4K ULTRA HD</span>
+          <span class="tv-hero-badge">HDR10+</span>
+          <span>⭐ 8.9</span>
+          <span>2026</span>
+          <span>109 Menit</span>
+          <span>Horror / Thriller</span>
+        </div>
+        <h1 class="tv-hero-title" id="tv-hero-title">Obsession (2026)</h1>
+        <p class="tv-hero-desc" id="tv-hero-desc">
+          Setelah menemukan "One Wish Willow" misterius untuk memenangkan hati pujaan hatinya, ia segera menyadari bahwa beberapa keinginan datang dengan harga gelap yang mematikan.
+        </p>
+        <div class="tv-hero-actions">
+          <button class="tv-btn tv-btn-primary tv-focusable tv-default-focus" id="tv-hero-play-btn" onclick="playCurrentHero()">
+            <span>▶</span> Putar Sekarang
+          </button>
+          <button class="tv-btn tv-focusable" id="tv-hero-info-btn" onclick="openHeroDetails()">
+            <span>ℹ️</span> Info Lengkap
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Main Content Rails Viewport -->
+    <main id="tv-rails-container">
+      <!-- Rail 1: Sedang Tren -->
+      <section class="tv-section">
+        <div class="tv-section-header">
+          <h2 class="tv-section-title">
+            <span class="tv-section-indicator"></span>
+            Sedang Tren di MyStreamFlix
+          </h2>
+        </div>
+        <div class="tv-horizontal-rail" id="rail-trending"></div>
+      </section>
+
+      <!-- Rail 2: Siaran Langsung TV (Live TV Highlights) -->
+      <section class="tv-section">
+        <div class="tv-section-header">
+          <h2 class="tv-section-title">
+            <span class="tv-section-indicator"></span>
+            Siaran Langsung TV Terpopuler
+          </h2>
+        </div>
+        <div class="tv-horizontal-rail" id="rail-livetv"></div>
+      </section>
+
+      <!-- Rail 3: Film Pilihan 4K -->
+      <section class="tv-section">
+        <div class="tv-section-header">
+          <h2 class="tv-section-title">
+            <span class="tv-section-indicator"></span>
+            Film Bioskop & Box Office
+          </h2>
+        </div>
+        <div class="tv-horizontal-rail" id="rail-movies"></div>
+      </section>
+    </main>
+
+    <!-- TV Remote D-Pad Navigation Hint Bar -->
+    <footer class="tv-remote-hints">
+      <div><span class="tv-key-badge">▲ ▼ ◄ ►</span> Navigasi</div>
+      <div><span class="tv-key-badge">OK</span> Pilih</div>
+      <div><span class="tv-key-badge">KEMBALI</span> Kembali / Keluar</div>
+    </footer>
+  </div>
+
+  <!-- Fullscreen TV Player Modal -->
+  <div class="tv-player-modal" id="tv-player-modal">
+    <video class="tv-player-video" id="tv-video-element" playsinline></video>
+
+    <!-- Watermark Overlay (MyStreamFlix Indonesia) -->
+    <div style="position: absolute; top: 4.5vh; right: 4.5vw; z-index: 15; display: flex; flex-direction: column; align-items: center; opacity: 0.22; pointer-events: none; user-select: none;">
+      <span style="color: #ffffff; font-size: 1.6rem; font-weight: 800; letter-spacing: 0.05em; line-height: 1.1; text-shadow: 0 2px 6px rgba(0,0,0,0.8); font-family: system-ui, sans-serif;">MyStreamFlix</span>
+      <span style="color: #ffffff; font-size: 0.75rem; font-weight: 600; letter-spacing: 0.15em; text-transform: uppercase; text-shadow: 0 1px 4px rgba(0,0,0,0.8); font-family: system-ui, sans-serif; margin-top: 2px;">Indonesia</span>
+    </div>
+    <div class="tv-player-hud" id="tv-player-hud">
+      <div class="tv-player-info">
+        <div>
+          <h2 class="tv-player-title" id="tv-player-title">Judul Tayangan</h2>
+          <span style="font-size: 0.9rem; color: #9CA3AF;" id="tv-player-subtitle">Direct Stream 4K</span>
+        </div>
+        <div style="display: flex; gap: 1vw;">
+          <button class="tv-btn tv-focusable" id="tv-player-server-btn" onclick="switchPlayerServer()">
+            <span>🌐</span> <span id="tv-player-server-label">Server 1/2</span>
+          </button>
+          <button class="tv-btn tv-focusable" id="tv-player-quality-btn" onclick="cyclePlayerQuality()">
+            <span>⚙️</span> <span id="tv-player-quality-label">Kualitas: Auto</span>
+          </button>
+        </div>
+      </div>
+      <!-- TV Player Timeline Seekbar (Progress Biru Tema & Ahead Abu-abu/Putih) -->
+      <div id="tv-player-seekbar-wrap" style="display: flex; align-items: center; gap: 1.2vw; margin-bottom: 2vh; width: 100%;">
+        <span id="tv-time-current" style="font-family: monospace; font-size: 0.95rem; font-weight: 700; color: #E5E7EB; min-width: 50px;">00:00</span>
+        <div id="tv-seekbar-track" style="flex: 1; height: 8px; background: rgba(75,85,99,0.7); border-radius: 9999px; position: relative; overflow: visible;">
+          <!-- Buffered Preload Bar (PUTIH TERANG NYATA - Menit yang sudah didownload mendahului point dot) -->
+          <div id="tv-seekbar-buffered" style="position: absolute; left: 0; top: 0; bottom: 0; width: 0%; background: rgba(255,255,255,0.9); border-radius: 9999px; box-shadow: 0 0 6px rgba(255,255,255,0.8); transition: width 0.2s;"></div>
+          <!-- Played Track Bar (Progress yang sudah dilewati - Biru Tema) -->
+          <div id="tv-seekbar-played" style="position: absolute; left: 0; top: 0; bottom: 0; width: 0%; background: linear-gradient(90deg, #0284C7, #38BDF8); border-radius: 9999px; box-shadow: 0 0 10px rgba(56,189,248,0.8);"></div>
+          <!-- Scrubber Pin / Poin (Thumb) Bulat Putih dengan Bingkai Biru Tema -->
+          <div id="tv-seekbar-thumb" style="position: absolute; top: 50%; transform: translate(-50%, -50%); left: 0%; width: 14px; height: 14px; background: #FFFFFF; border: 2px solid #38BDF8; border-radius: 9999px; box-shadow: 0 2px 6px rgba(0,0,0,0.8); pointer-events: none;"></div>
+        </div>
+        <span id="tv-time-duration" style="font-family: monospace; font-size: 0.95rem; font-weight: 700; color: #9CA3AF; min-width: 50px;">00:00</span>
+      </div>
+
+      <div class="tv-player-controls">
+        <button class="tv-btn tv-focusable" id="hud-play-btn" onclick="togglePlayerPlay()">
+          <span id="tv-play-icon">⏸ Jeda</span>
+        </button>
+        <button class="tv-btn tv-focusable" onclick="seekPlayer(-10)">
+          <span>⏪ -10s</span>
+        </button>
+        <button class="tv-btn tv-focusable" onclick="seekPlayer(10)">
+          <span>⏩ +10s</span>
+        </button>
+        <button class="tv-btn tv-focusable" id="tv-player-close-btn" onclick="closePlayerModal()">
+          <span>✕ Tutup</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Spatial Navigation Engine Script -->
+  <script src="tv-spatial-nav.js"></script>
+
+  <script>
+    // ==========================================
+    // MyStreamFlix TV Core Application Script
+    // ==========================================
+    let activePlayerHls = null;
+    let activePlayerDash = null;
+    let activeStreamCandidates = [];
+    let activeStreamIndex = 0;
+    let hudHideTimeout = null;
+
+    // Rich Built-in Media Catalog with HLS, MPEG-DASH & R2 Direct Play
+    const TV_CATALOG = {
+      hero: {
+        id: "mov-1",
+        title: "Obsession (2026)",
+        desc: "Setelah menemukan 'One Wish Willow' misterius untuk memenangkan hati pujaan hatinya, ia segera menyadari bahwa beberapa keinginan datang dengan harga gelap yang mematikan.",
+        backdropUrl: "https://image.tmdb.org/t/p/w1280/rZfmzpixLKLR3Hg2u0WgC7XLFl8.jpg",
+        posterUrl: "https://image.tmdb.org/t/p/w500/bRwnj8WEKBCvmfeUNOukJPwB43K.jpg",
+        videoUrl: "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8",
+        backupUrls: ["https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"],
+        quality: "4K"
+      },
+      trending: [
+        {
+          id: "mov-spiderman",
+          title: "Spider-Man: Brand New Day",
+          year: "2026",
+          rating: "9.2",
+          quality: "4K",
+          posterUrl: "https://image.tmdb.org/t/p/w500/1E5baAaEse26fej7uHcjOgEE2t2.jpg",
+          videoUrl: "https://pub-d1e784a9023646d7bed4a938475a3731.r2.dev/Spider-Man%20Brand%20New%20Day%20(2026)%20%5B1080p%5D%20%5BWEBRip%5D%20%5B5.1%5D%20%5BYTS.GG%20-%20YTS.BZ%5D/Spider-Man.Brand.New.Day.2026.1080p.WEBRip.x264.AAC5.1-%5BYTS.GG%20-%20YTS.BZ%5D.mp4",
+          backupUrls: ["https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"]
+        },
+        {
+          id: "mov-dune",
+          title: "Dune: Part Two",
+          year: "2024",
+          rating: "8.8",
+          quality: "4K",
+          posterUrl: "https://image.tmdb.org/t/p/w500/8b8R8l88Qje9dn9OE8PY05Nxl1X.jpg",
+          videoUrl: "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8"
+        },
+        {
+          id: "mov-oppenheimer",
+          title: "Oppenheimer",
+          year: "2023",
+          rating: "8.9",
+          quality: "4K",
+          posterUrl: "https://image.tmdb.org/t/p/w500/ptpr0kGAckfQkJeJIt8st5dglvd.jpg",
+          videoUrl: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4"
+        },
+        {
+          id: "mov-interstellar",
+          title: "Interstellar",
+          year: "2014",
+          rating: "8.7",
+          quality: "4K",
+          posterUrl: "https://image.tmdb.org/t/p/w500/gEU2QniE6E77NI6lCU6MxlNBvIx.jpg",
+          videoUrl: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4"
+        },
+        {
+          id: "mov-avatar",
+          title: "Avatar: The Way of Water",
+          year: "2022",
+          rating: "7.8",
+          quality: "4K",
+          posterUrl: "https://image.tmdb.org/t/p/w500/t6HIqrRAclMCA60NsSmeqe9RmNV.jpg",
+          videoUrl: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4"
+        }
+      ],
+      liveChannels: [
+        {
+          id: "tv-rcti",
+          title: "RCTI Live",
+          desc: "Kebanggaan Bersama Milik Bangsa",
+          badge: "LIVE",
+          posterUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/0/07/RCTI_logo_2015.svg/500px-RCTI_logo_2015.svg.png",
+          videoUrl: "http://202.150.172.59/RCTIHD/index.m3u8",
+          backupUrls: ["http://202.150.172.59/MNCTV/tracks-v1a1/mono.m3u8", "http://202.150.172.59/GTVHD/index.m3u8"]
+        },
+        {
+          id: "tv-sctv",
+          title: "SCTV Live",
+          desc: "Satu Untuk Semua",
+          badge: "LIVE",
+          posterUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e8/SCTV_2005.svg/500px-SCTV_2005.svg.png",
+          videoUrl: "http://202.150.172.59/SCTV/tracks-v1a1/mono.m3u8",
+          backupUrls: ["http://202.150.172.59/Indosiar/index.m3u8"]
+        },
+        {
+          id: "tv-indosiar",
+          title: "Indosiar Live",
+          desc: "Luar Biasa",
+          badge: "LIVE",
+          posterUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c8/Indosiar_2015.svg/500px-Indosiar_2015.svg.png",
+          videoUrl: "http://202.150.172.59/Indosiar/index.m3u8",
+          backupUrls: ["http://202.150.172.59/SCTV/tracks-v1a1/mono.m3u8"]
+        },
+        {
+          id: "tv-mnctv",
+          title: "MNCTV Live",
+          desc: "Selalu di Hati",
+          badge: "LIVE",
+          posterUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/c/cf/MNCTV_2015.svg/500px-MNCTV_2015.svg.png",
+          videoUrl: "http://202.150.172.59/MNCTV/tracks-v1a1/mono.m3u8",
+          backupUrls: ["http://202.150.172.59/RCTIHD/index.m3u8"]
+        },
+        {
+          id: "tv-gtv",
+          title: "GTV Live",
+          desc: "Pilihan Terbaik Keluarga",
+          badge: "LIVE",
+          posterUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c5/GTV_%28Indonesia%29_logo_2017.svg/500px-GTV_%28Indonesia%29_logo_2017.svg.png",
+          videoUrl: "http://202.150.172.59/GTVHD/index.m3u8",
+          backupUrls: ["http://202.150.172.59/RCTIHD/index.m3u8"]
+        },
+        {
+          id: "tv-inews",
+          title: "iNews Live",
+          desc: "Inspirasi & Informasi Terpercaya",
+          badge: "LIVE",
+          posterUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/2/29/INews_2015.svg/500px-INews_2015.svg.png",
+          videoUrl: "http://202.150.172.59/iNews/index.m3u8",
+          backupUrls: ["http://202.150.172.59/RCTIHD/index.m3u8"]
+        },
+        {
+          id: "tv-net",
+          title: "NET TV Live",
+          desc: "Televisi Masa Kini",
+          badge: "LIVE",
+          posterUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/0/02/NET._logo_2013.svg/500px-NET._logo_2013.svg.png",
+          videoUrl: "http://202.150.172.59/NetTV/index.m3u8",
+          backupUrls: ["http://202.150.172.59/RCTIHD/index.m3u8"]
+        },
+        {
+          id: "tv-tvri",
+          title: "TVRI Nasional",
+          desc: "Saluran Pemersatu Bangsa",
+          badge: "LIVE",
+          posterUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/e/eb/TVRILogo2019.svg/500px-TVRILogo2019.svg.png",
+          videoUrl: "https://ott-balancer.tvri.go.id/live/eds/Nasional/hls/Nasional.m3u8",
+          backupUrls: ["http://202.150.172.59/TVRISport/index.m3u8"]
+        },
+        {
+          id: "tv-tvri-sport",
+          title: "TVRI Sport",
+          desc: "Pesta Olahraga Nusantara & Dunia",
+          badge: "LIVE",
+          posterUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/e/eb/TVRILogo2019.svg/500px-TVRILogo2019.svg.png",
+          videoUrl: "http://202.150.172.59/TVRISport/index.m3u8",
+          backupUrls: ["https://ott-balancer.tvri.go.id/live/eds/Nasional/hls/Nasional.m3u8"]
+        },
+        {
+          id: "tv-metro",
+          title: "Metro TV",
+          desc: "Knowledge to Elevate",
+          badge: "LIVE",
+          posterUrl: "https://i.imgur.com/QnU70NI.png",
+          videoUrl: "https://edge.medcom.id/live-edge/smil:metro.smil/playlist.m3u8",
+          backupUrls: ["https://edge.medcom.id/live-edge/smil:magna.smil/playlist.m3u8"]
+        },
+        {
+          id: "tv-magna",
+          title: "Magna Channel",
+          desc: "Inspirasi & Edukasi Cerdas",
+          badge: "LIVE",
+          posterUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/c/cd/Magna_Channel.png/500px-Magna_Channel.png",
+          videoUrl: "https://edge.medcom.id/live-edge/smil:magna.smil/playlist.m3u8",
+          backupUrls: ["https://edge.medcom.id/live-edge/smil:metro.smil/playlist.m3u8"]
+        },
+        {
+          id: "tv-cnn",
+          title: "CNN Indonesia",
+          desc: "Berita Terkini & Analisis Terpercaya",
+          badge: "LIVE",
+          posterUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f6/CNN_Indonesia_2015.svg/500px-CNN_Indonesia_2015.svg.png",
+          videoUrl: "https://video.detik.com/livecnn/smil:cnntv/playlist.m3u8",
+          backupUrls: ["https://video.detik.com/livecnbc/smil:cnbctv/playlist.m3u8"]
+        },
+        {
+          id: "tv-cnbc",
+          title: "CNBC Indonesia",
+          desc: "Pasar Saham, Finansial & Bisnis",
+          badge: "LIVE",
+          posterUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/5/51/CNBC_Indonesia_2025.svg/500px-CNBC_Indonesia_2025.svg.png",
+          videoUrl: "https://video.detik.com/livecnbc/smil:cnbctv/playlist.m3u8",
+          backupUrls: ["https://video.detik.com/livecnn/smil:cnntv/playlist.m3u8"]
+        },
+        {
+          id: "tv-nusantara",
+          title: "Nusantara TV",
+          desc: "Sahabat Nusantara",
+          badge: "LIVE",
+          posterUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/6/69/Nusantara_TV_logo_2021.svg/500px-Nusantara_TV_logo_2021.svg.png",
+          videoUrl: "https://nusantaratv.siar.us/nusantaratv/live/playlist.m3u8",
+          backupUrls: ["https://edge.medcom.id/live-edge/smil:metro.smil/playlist.m3u8"]
+        },
+        {
+          id: "tv-aljazeera",
+          title: "Al Jazeera English",
+          desc: "Global News Broadcast",
+          badge: "LIVE",
+          posterUrl: "https://upload.wikimedia.org/wikipedia/en/thumb/f/f2/Al_Jazeera_English_logo.svg/500px-Al_Jazeera_English_logo.svg.png",
+          videoUrl: "https://live-hls-apps-aje-fa.getaj.net/AJE/index.m3u8",
+          backupUrls: ["https://live.france24.com/hls/live/2037218-b/F24_EN_HI_HLS/master_5000.m3u8"]
+        }
+      ]
+    };
+
+    // Render TV Rails
+    function renderRails() {
+      // 1. Trending Rail
+      const trendingContainer = document.getElementById("rail-trending");
+      trendingContainer.innerHTML = TV_CATALOG.trending.map(item => `
+        <div class="tv-card tv-focusable" onclick="playMedia('${item.id}', '${item.title}', '${item.videoUrl}', ${JSON.stringify(item.backupUrls || [])})">
+          <span class="tv-card-badge">${item.quality || 'HD'}</span>
+          <img class="tv-card-img" src="${item.posterUrl}" alt="${item.title}" loading="lazy">
+          <div class="tv-card-overlay">
+            <h3 class="tv-card-title">${item.title}</h3>
+            <div class="tv-card-info">
+              <span>⭐ ${item.rating}</span>
+              <span>${item.year}</span>
+            </div>
+          </div>
+        </div>
+      `).join("");
+
+      // 2. Live TV Rail
+      const liveContainer = document.getElementById("rail-livetv");
+      liveContainer.innerHTML = TV_CATALOG.liveChannels.map(item => `
+        <div class="tv-card tv-card-live tv-focusable" onclick="playMedia('${item.id}', '${item.title}', '${item.videoUrl}', ${JSON.stringify(item.backupUrls || [])})">
+          <span class="tv-card-badge" style="background: #EF4444; color: #FFF;">${item.badge}</span>
+          <img class="tv-card-img" src="${item.posterUrl}" alt="${item.title}" style="object-fit: contain; padding: 2vh 2vw;" loading="lazy">
+          <div class="tv-card-overlay">
+            <h3 class="tv-card-title">${item.title}</h3>
+            <div class="tv-card-info">
+              <span>${item.desc}</span>
+            </div>
+          </div>
+        </div>
+      `).join("");
+
+      // 3. Movies Rail
+      const moviesContainer = document.getElementById("rail-movies");
+      moviesContainer.innerHTML = TV_CATALOG.trending.slice().reverse().map(item => `
+        <div class="tv-card tv-focusable" onclick="playMedia('${item.id}', '${item.title}', '${item.videoUrl}', ${JSON.stringify(item.backupUrls || [])})">
+          <span class="tv-card-badge">${item.quality || 'HD'}</span>
+          <img class="tv-card-img" src="${item.posterUrl}" alt="${item.title}" loading="lazy">
+          <div class="tv-card-overlay">
+            <h3 class="tv-card-title">${item.title}</h3>
+            <div class="tv-card-info">
+              <span>⭐ ${item.rating}</span>
+              <span>${item.year}</span>
+            </div>
+          </div>
+        </div>
+      `).join("");
+    }
+
+    // Media Playback Controller (Dash.js + Hls.js + MP4 direct play)
+    function playMedia(id, title, primaryUrl, backups = []) {
+      const modal = document.getElementById("tv-player-modal");
+      const video = document.getElementById("tv-video-element");
+      const titleEl = document.getElementById("tv-player-title");
+
+      titleEl.innerText = title;
+      modal.classList.add("active");
+
+      activeStreamCandidates = [primaryUrl, ...backups].filter(Boolean);
+      activeStreamIndex = 0;
+
+      updateServerLabel();
+      loadStreamIntoVideo(activeStreamCandidates[0]);
+      showHud();
+
+      // Focus close or play button inside player
+      setTimeout(() => {
+        const playBtn = document.getElementById("hud-play-btn");
+        if (playBtn && window.TVNav) window.TVNav.setFocus(playBtn);
+      }, 300);
+    }
+
+    function loadStreamIntoVideo(streamUrl) {
+      const video = document.getElementById("tv-video-element");
+      destroyCurrentEngines();
+
+      if (streamUrl.includes(".mpd")) {
+        // MPEG-DASH playback
+        try {
+          const dash = dashjs.MediaPlayer().create();
+          dash.initialize(video, streamUrl, true);
+          dash.updateSettings({
+            streaming: {
+              abr: { autoSwitchBitrate: { video: true } }
+            }
+          });
+          activePlayerDash = dash;
+          video.play().catch(() => {});
+        } catch (err) {
+          console.error("DASH init failed, trying next candidate:", err);
+          tryNextAlternative();
+        }
+      } else if (Hls.isSupported() && streamUrl.includes(".m3u8")) {
+        // HLS playback
+        const hls = new Hls({
+          enableWorker: true,
+          lowLatencyMode: true
+        });
+        hls.loadSource(streamUrl);
+        hls.attachMedia(video);
+        hls.on(Hls.Events.MANIFEST_PARSED, () => {
+          video.play().catch(() => {});
+        });
+        hls.on(Hls.Events.ERROR, (_e, data) => {
+          if (data.fatal) {
+            console.warn("HLS fatal error, switching server:", data);
+            tryNextAlternative();
+          }
+        });
+        activePlayerHls = hls;
+      } else {
+        // Direct MP4 / WebM / Cloudflare R2
+        video.src = streamUrl;
+        video.load();
+        video.play().catch(() => {});
+      }
+    }
+
+    function tryNextAlternative() {
+      if (activeStreamIndex + 1 < activeStreamCandidates.length) {
+        activeStreamIndex++;
+        updateServerLabel();
+        loadStreamIntoVideo(activeStreamCandidates[activeStreamIndex]);
+        if (window.TVNav) window.TVNav.showToast(`Beralih ke Server Cadangan (${activeStreamIndex + 1}/${activeStreamCandidates.length})`);
+      } else {
+        if (window.TVNav) window.TVNav.showToast("Gagal memutar siaran di semua server.");
+      }
+    }
+
+    function switchPlayerServer() {
+      if (activeStreamCandidates.length > 1) {
+        activeStreamIndex = (activeStreamIndex + 1) % activeStreamCandidates.length;
+        updateServerLabel();
+        loadStreamIntoVideo(activeStreamCandidates[activeStreamIndex]);
+        if (window.TVNav) window.TVNav.showToast(`Mengganti ke Server ${activeStreamIndex + 1}`);
+      } else {
+        if (window.TVNav) window.TVNav.showToast("Hanya tersedia 1 server untuk tayangan ini.");
+      }
+    }
+
+    function updateServerLabel() {
+      const label = document.getElementById("tv-player-server-label");
+      if (label) label.innerText = `Server ${activeStreamIndex + 1}/${Math.max(1, activeStreamCandidates.length)}`;
+    }
+
+    function togglePlayerPlay() {
+      const video = document.getElementById("tv-video-element");
+      const icon = document.getElementById("tv-play-icon");
+      if (video.paused) {
+        video.play();
+        icon.innerText = "⏸ Jeda";
+      } else {
+        video.pause();
+        icon.innerText = "▶ Putar";
+      }
+      showHud();
+    }
+
+    function seekPlayer(seconds) {
+      const video = document.getElementById("tv-video-element");
+      video.currentTime = Math.max(0, video.currentTime + seconds);
+      if (window.TVNav) window.TVNav.showToast(`${seconds > 0 ? '+' : ''}${seconds}s`);
+      showHud();
+      if (video.duration && !isNaN(video.duration)) {
+        const pct = Math.min(100, Math.max(0, (video.currentTime / video.duration) * 100));
+        const playedEl = document.getElementById("tv-seekbar-played");
+        const thumbEl = document.getElementById("tv-seekbar-thumb");
+        if (playedEl) playedEl.style.width = pct + "%";
+        if (thumbEl) thumbEl.style.left = pct + "%";
+        const curEl = document.getElementById("tv-time-current");
+        if (curEl) curEl.innerText = formatTvSeconds(video.currentTime);
+      }
+    }
+
+    function destroyCurrentEngines() {
+      if (activePlayerHls) {
+        try { activePlayerHls.destroy(); } catch {}
+        activePlayerHls = null;
+      }
+      if (activePlayerDash) {
+        try { activePlayerDash.reset(); } catch {}
+        activePlayerDash = null;
+      }
+      const video = document.getElementById("tv-video-element");
+      if (video) {
+        try { video.pause(); } catch {}
+        video.removeAttribute("src");
+      }
+    }
+
+    function closePlayerModal() {
+      destroyCurrentEngines();
+      document.getElementById("tv-player-modal").classList.remove("active");
+      if (window.TVNav) window.TVNav.focusDefault();
+    }
+
+    function showHud() {
+      const hud = document.getElementById("tv-player-hud");
+      hud.classList.remove("hidden");
+      clearTimeout(hudHideTimeout);
+      hudHideTimeout = setTimeout(() => {
+        const video = document.getElementById("tv-video-element");
+        if (!video.paused) hud.classList.add("hidden");
+      }, 5000);
+    }
+
+    function playCurrentHero() {
+      playMedia(TV_CATALOG.hero.id, TV_CATALOG.hero.title, TV_CATALOG.hero.videoUrl, TV_CATALOG.hero.backupUrls);
+    }
+
+    function openHeroDetails() {
+      if (window.TVNav) window.TVNav.showToast("Obsession (2026) • 4K HDR • Audio 5.1 Dolby Atmos");
+    }
+
+    function openSettingsModal() {
+      if (window.TVNav) window.TVNav.showToast("MyStreamFlix TV v1.0.0 • Siap memutar HLS, DASH, dan Cloudflare R2");
+    }
+
+    function showTab(tab) {
+      document.querySelectorAll(".tv-nav-item").forEach(el => el.classList.remove("active"));
+      const target = document.getElementById(`tv-nav-${tab}`);
+      if (target) target.classList.add("active");
+      if (window.TVNav) window.TVNav.showToast(`Membuka tab: ${tab.toUpperCase()}`);
+    }
+
+    // Clock updater
+    setInterval(() => {
+      const d = new Date();
+      const clockEl = document.getElementById("tv-clock");
+      if (clockEl) {
+        clockEl.innerText = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+      }
+    }, 1000);
+
+    function formatTvSeconds(sec) {
+      if (isNaN(sec) || sec <= 0) return "00:00";
+      const h = Math.floor(sec / 3600);
+      const m = Math.floor((sec % 3600) / 60);
+      const s = Math.floor(sec % 60);
+      if (h > 0) {
+        return `${h}:${m < 10 ? '0' : ''}${m}:${s < 10 ? '0' : ''}${s}`;
+      }
+      return `${m < 10 ? '0' : ''}${m}:${s < 10 ? '0' : ''}${s}`;
+    }
+
+    // Video Seekbar Realtime Timeline Updater
+    const tvVideo = document.getElementById("tv-video-element");
+    tvVideo.addEventListener("timeupdate", () => {
+      const cur = tvVideo.currentTime || 0;
+      const dur = tvVideo.duration;
+      const playedEl = document.getElementById("tv-seekbar-played");
+      const thumbEl = document.getElementById("tv-seekbar-thumb");
+      const curEl = document.getElementById("tv-time-current");
+      const durEl = document.getElementById("tv-time-duration");
+      const bufEl = document.getElementById("tv-seekbar-buffered");
+
+      if (!dur || isNaN(dur) || !isFinite(dur)) {
+        // Live stream mode
+        if (curEl) curEl.innerText = "LIVE";
+        if (durEl) durEl.innerText = "REAL-TIME";
+        if (playedEl) playedEl.style.width = "100%";
+        if (bufEl) bufEl.style.width = "100%";
+        if (thumbEl) thumbEl.style.display = "none";
+        return;
+      }
+
+      if (thumbEl) thumbEl.style.display = "block";
+      const pct = Math.min(100, Math.max(0, (cur / dur) * 100));
+      if (playedEl) playedEl.style.width = pct + "%";
+      if (thumbEl) thumbEl.style.left = pct + "%";
+      if (curEl) curEl.innerText = formatTvSeconds(cur);
+      if (durEl) durEl.innerText = formatTvSeconds(dur);
+
+      if (tvVideo.buffered && tvVideo.buffered.length > 0 && bufEl) {
+        try {
+          const ct = cur;
+          let maxBuf = ct;
+          for (let i = 0; i < tvVideo.buffered.length; i++) {
+            const start = tvVideo.buffered.start(i);
+            const end = tvVideo.buffered.end(i);
+            if (start <= ct + 1.5 && end >= ct) {
+              maxBuf = Math.max(maxBuf, end);
+            }
+          }
+          if (maxBuf === ct) {
+            for (let i = 0; i < tvVideo.buffered.length; i++) {
+              const end = tvVideo.buffered.end(i);
+              if (end > maxBuf) maxBuf = end;
+            }
+          }
+          const bufPct = Math.min(100, Math.max(0, (maxBuf / dur) * 100));
+          bufEl.style.width = bufPct + "%";
+        } catch {}
+      }
+    });
+
+    async function syncRemoteCatalog() {
+      try {
+        const res = await fetch("https://mystreamflix.biz.id/api/movies");
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data) && data.length > 0) {
+            const live = data.filter(m => m.contentType === "livetv");
+            const movies = data.filter(m => m.contentType !== "livetv");
+
+            if (movies.length > 0) {
+              TV_CATALOG.trending = movies.map(m => ({
+                id: m.id,
+                title: m.title,
+                year: m.releaseYear || 2026,
+                rating: m.rating || 8.0,
+                quality: m.quality || "4K",
+                posterUrl: m.posterUrl,
+                videoUrl: m.videoUrl,
+                backupUrls: m.backupUrls || []
+              }));
+              const featured = movies.find(m => m.isFeatured || m.isBanner) || movies[0];
+              if (featured) {
+                TV_CATALOG.hero = {
+                  id: featured.id,
+                  title: featured.title,
+                  desc: featured.description,
+                  backdropUrl: featured.backdropUrl,
+                  posterUrl: featured.posterUrl,
+                  videoUrl: featured.videoUrl,
+                  backupUrls: featured.backupUrls || [],
+                  quality: featured.quality || "4K"
+                };
+                const heroBanner = document.getElementById("tv-hero-banner");
+                const heroTitle = document.getElementById("tv-hero-title");
+                const heroDesc = document.getElementById("tv-hero-desc");
+                if (heroBanner && featured.backdropUrl) {
+                  heroBanner.style.backgroundImage = `url('${featured.backdropUrl}')`;
+                }
+                if (heroTitle) heroTitle.innerText = featured.title;
+                if (heroDesc) heroDesc.innerText = featured.description;
+              }
+            }
+
+            if (live.length > 0) {
+              TV_CATALOG.liveChannels = live.map(ch => ({
+                id: ch.id,
+                title: ch.title,
+                desc: ch.description || "Live TV Broadcast",
+                badge: "LIVE",
+                posterUrl: ch.posterUrl,
+                videoUrl: ch.videoUrl,
+                backupUrls: ch.backupUrls || []
+              }));
+            }
+
+            renderRails();
+            if (window.TVNav) {
+              setTimeout(() => window.TVNav.refresh(), 300);
+            }
+          }
+        }
+      } catch (err) {
+        console.warn("Using offline TV catalog fallback:", err);
+      }
+    }
+
+    // Initial Render
+    document.addEventListener("DOMContentLoaded", () => {
+      renderRails();
+      syncRemoteCatalog();
+    });
+  </script>
+</body>
+</html>

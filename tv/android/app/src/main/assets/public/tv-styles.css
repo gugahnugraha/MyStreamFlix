@@ -1,0 +1,165 @@
+/* ============================================================
+   MyStreamFlix Android TV - 10-Foot UI & Spatial Navigation CSS
+   ============================================================ */
+
+:root {
+  --tv-brand-color: #00ADB5;
+  --tv-brand-glow: rgba(0, 173, 181, 0.65);
+  --tv-focus-scale: 1.08;
+  --tv-bg: #0A0A0C;
+  --tv-card-bg: #141419;
+}
+
+/* Base TV Display Optimization (Overscan Protection for TV Screens) */
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  background-color: var(--tv-bg);
+  color: #FFFFFF;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+}
+
+/* TV Safe Area / Overscan Margins */
+.tv-safe-area {
+  box-sizing: border-box;
+  padding: 3.5vh 4.5vw;
+  width: 100%;
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scroll-behavior: smooth;
+}
+
+/* Hide scrollbars on TV but allow scrolling */
+.tv-safe-area::-webkit-scrollbar,
+.tv-horizontal-rail::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+.tv-safe-area,
+.tv-horizontal-rail {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* ============================================================
+   ULTRA-PREMIUM D-PAD FOCUS HIGHLIGHT
+   Whenever an element receives spatial navigation focus:
+   - Elevated scale (1.08x)
+   - Neon glowing cyan border
+   - High z-index so it floats above neighbor cards
+   ============================================================ */
+.tv-focusable {
+  outline: none !important;
+  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), 
+              box-shadow 0.22s cubic-bezier(0.16, 1, 0.3, 1), 
+              border-color 0.22s cubic-bezier(0.16, 1, 0.3, 1),
+              background-color 0.22s ease !important;
+  cursor: pointer;
+  position: relative;
+}
+
+.tv-focusable:focus,
+.tv-focusable.tv-focused {
+  transform: scale(var(--tv-focus-scale)) translateZ(0) !important;
+  box-shadow: 0 0 0 3.5px var(--tv-brand-color),
+              0 12px 35px var(--tv-brand-glow),
+              0 0 50px rgba(0, 173, 181, 0.3) !important;
+  border-color: var(--tv-brand-color) !important;
+  z-index: 99 !important;
+}
+
+/* Button & Nav Focus Specifics */
+.tv-btn.tv-focused,
+.tv-btn:focus {
+  background-color: var(--tv-brand-color) !important;
+  color: #000000 !important;
+  font-weight: 700 !important;
+}
+
+/* Nav Item Focus */
+.tv-nav-item.tv-focused,
+.tv-nav-item:focus {
+  background-color: rgba(0, 173, 181, 0.2) !important;
+  border-color: var(--tv-brand-color) !important;
+  color: #FFFFFF !important;
+}
+
+/* TV Card Glow Badge */
+.tv-card.tv-focused .tv-card-badge {
+  background-color: var(--tv-brand-color) !important;
+  color: #000000 !important;
+}
+
+/* Horizontal Scrolling Rails */
+.tv-horizontal-rail {
+  display: flex;
+  flex-direction: row;
+  gap: 1.5vw;
+  overflow-x: auto;
+  overflow-y: visible;
+  padding: 1.5vh 0.5vw 3vh 0.5vw;
+  scroll-behavior: smooth;
+}
+
+/* TV Status & Notification Toasts */
+.tv-toast {
+  position: fixed;
+  bottom: 5vh;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(20, 20, 25, 0.95);
+  border: 1px solid rgba(0, 173, 181, 0.4);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(20px);
+  padding: 1.2vh 2.5vw;
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  gap: 1vw;
+  font-size: 1.1rem;
+  font-weight: 600;
+  z-index: 9999;
+  animation: tvToastFade 0.3s ease-out;
+}
+
+@keyframes tvToastFade {
+  from { opacity: 0; transform: translate(-50%, 20px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+
+/* TV Remote Key Hint Overlay (Bottom bar) */
+.tv-remote-hints {
+  position: fixed;
+  bottom: 1.5vh;
+  right: 3vw;
+  display: flex;
+  align-items: center;
+  gap: 1.8vw;
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.55);
+  z-index: 100;
+  pointer-events: none;
+}
+
+.tv-key-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  font-family: monospace;
+  font-weight: bold;
+  color: #FFFFFF;
+  margin-right: 5px;
+}
