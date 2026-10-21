@@ -257,6 +257,9 @@ export default function LiveTvPage({
   // Sync fullscreen state
   useEffect(() => {
     const onFs = () => {
+      // In native Android APK, fullscreen is controlled by React state & native ScreenOrientation.
+      // Android WebView fires null for document.fullscreenElement which would falsely reset state.
+      if (isNativeCapacitor()) return;
       const isFs = !!(
         document.fullscreenElement ||
         (document as any).webkitFullscreenElement ||
@@ -599,25 +602,36 @@ export default function LiveTvPage({
     const targetFs = !isFullscreen;
     setIsFullscreen(targetFs);
 
-    if (targetFs) {
+    if (isNativeApp || isNativeCapacitor()) {
+      // NATIVE ANDROID APK:
+      // Controlled purely via native ScreenOrientation & Immersive mode.
+      // Do NOT request DOM fullscreen in WebView to avoid false exit events.
       try {
-        await ScreenOrientation.lock({ orientation: "landscape" });
-      } catch {}
+        if (targetFs) {
+          await ScreenOrientation.lock({ orientation: "landscape" });
+          await enterImmersiveMode();
+        } else {
+          await exitImmersiveMode();
+          await ScreenOrientation.unlock();
+        }
+      } catch (err) {
+        console.warn("ScreenOrientation lock failed:", err);
+      }
+      return;
+    }
 
+    // MOBILE WEB & DESKTOP BROWSER:
+    if (targetFs) {
       try {
         const orientation = (screen as any).orientation || (window.screen as any).orientation;
         if (orientation && typeof orientation.lock === "function") {
           await orientation.lock("landscape").catch(async () => {
             await orientation.lock("landscape-primary").catch(() => {});
           });
+        } else if ((screen as any).lockOrientation) {
+          (screen as any).lockOrientation("landscape");
         }
       } catch {}
-
-      if (isNativeApp) {
-        try {
-          await enterImmersiveMode();
-        } catch {}
-      }
 
       const target = playerShellRef.current || document.documentElement;
       const video = videoRef.current;
@@ -644,19 +658,9 @@ export default function LiveTvPage({
       }
     } else {
       try {
-        await ScreenOrientation.unlock();
-      } catch {}
-
-      try {
         const orientation = (screen as any).orientation || (window.screen as any).orientation;
         orientation?.unlock?.();
       } catch {}
-
-      if (isNativeApp) {
-        try {
-          await exitImmersiveMode();
-        } catch {}
-      }
 
       try {
         if (document.exitFullscreen) {
@@ -1075,10 +1079,33 @@ export default function LiveTvPage({
             className={`bg-black overflow-hidden shadow-2xl border border-white/10 transition-all ${
               !showControls && isPlaying ? "cursor-none" : "cursor-default"
             } ${
-              isFullscreen && isNativeApp
+              isFullscreen
                 ? "fixed inset-0 z-50 rounded-none border-0 w-full h-full"
                 : "relative aspect-video rounded-xl sm:rounded-2xl fullscreen:rounded-none fullscreen:border-0"
             }`}
+            style={
+              !isNativeApp && isFullscreen && !isLandscape
+                ? {
+                    position: "fixed",
+                    top: "50%",
+                    left: "50%",
+                    width: "100vh",
+                    height: "100vw",
+                    transform: "translate(-50%, -50%) rotate(90deg)",
+                    transformOrigin: "center center",
+                    zIndex: 100,
+                  }
+                : isFullscreen
+                ? {
+                    position: "fixed",
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    zIndex: 100,
+                  }
+                : {}
+            }
           >
             <video
               ref={videoRef}
@@ -1105,6 +1132,40 @@ export default function LiveTvPage({
                 clearStreamTimers();
               }}
             />
+
+            {/* Watermark Overlay (MyStreamFlix Indonesia) */}
+            <div
+              className="pointer-events-none absolute top-4 sm:top-6 right-4 sm:right-6 z-20 flex flex-col items-center select-none"
+              style={{ opacity: 0.2 }}
+            >
+              <span
+                style={{
+                  color: '#ffffff',
+                  fontSize: '1.1rem',
+                  fontWeight: 800,
+                  letterSpacing: '0.05em',
+                  lineHeight: 1.1,
+                  textShadow: '0 1px 4px rgba(0,0,0,0.5)',
+                  fontFamily: 'Inter, system-ui, sans-serif',
+                }}
+              >
+                MyStreamFlix
+              </span>
+              <span
+                style={{
+                  color: '#ffffff',
+                  fontSize: '0.55rem',
+                  fontWeight: 600,
+                  letterSpacing: '0.15em',
+                  textTransform: 'uppercase' as const,
+                  textShadow: '0 1px 3px rgba(0,0,0,0.5)',
+                  fontFamily: 'Inter, system-ui, sans-serif',
+                  marginTop: '1px',
+                }}
+              >
+                Indonesia
+              </span>
+            </div>
 
             {/* NOW STREAMING badge — dynamic quality, safe margin from edges */}
             <div
