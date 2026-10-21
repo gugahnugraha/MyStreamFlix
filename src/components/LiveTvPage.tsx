@@ -599,56 +599,65 @@ export default function LiveTvPage({
     const targetFs = !isFullscreen;
     setIsFullscreen(targetFs);
 
-    if (isNativeApp) {
-      try {
-        if (targetFs) {
-          await ScreenOrientation.lock({ orientation: "landscape" });
-          await enterImmersiveMode();
-        } else {
-          await exitImmersiveMode();
-          await ScreenOrientation.unlock();
-        }
-      } catch {}
-      return;
-    }
-
-    const target = playerShellRef.current;
-    const video = videoRef.current;
-    if (!target) return;
-
     if (targetFs) {
       try {
-        if (target.requestFullscreen) {
-          await target.requestFullscreen();
-        } else if ((target as any).webkitRequestFullscreen) {
-          await (target as any).webkitRequestFullscreen();
-        } else if ((target as any).mozRequestFullScreen) {
-          await (target as any).mozRequestFullScreen();
-        } else if ((target as any).msRequestFullscreen) {
-          await (target as any).msRequestFullscreen();
-        } else if (video && (video as any).webkitEnterFullscreen) {
-          (video as any).webkitEnterFullscreen();
-        }
+        await ScreenOrientation.lock({ orientation: "landscape" });
+      } catch {}
 
+      try {
+        const orientation = (screen as any).orientation || (window.screen as any).orientation;
+        if (orientation && typeof orientation.lock === "function") {
+          await orientation.lock("landscape").catch(async () => {
+            await orientation.lock("landscape-primary").catch(() => {});
+          });
+        }
+      } catch {}
+
+      if (isNativeApp) {
         try {
-          const orientation = (screen as any).orientation || (window.screen as any).orientation;
-          if (orientation && typeof orientation.lock === "function") {
-            await orientation.lock("landscape");
+          await enterImmersiveMode();
+        } catch {}
+      }
+
+      const target = playerShellRef.current || document.documentElement;
+      const video = videoRef.current;
+      if (target) {
+        try {
+          if (target.requestFullscreen) {
+            await target.requestFullscreen();
+          } else if ((target as any).webkitRequestFullscreen) {
+            await (target as any).webkitRequestFullscreen();
+          } else if ((target as any).mozRequestFullScreen) {
+            await (target as any).mozRequestFullScreen();
+          } else if ((target as any).msRequestFullscreen) {
+            await (target as any).msRequestFullscreen();
+          } else if (video && (video as any).webkitEnterFullscreen) {
+            (video as any).webkitEnterFullscreen();
           }
         } catch {
-          // Screen Orientation lock not supported (iOS Safari, etc.) — ignore
-        }
-      } catch {
-        if (video && typeof (video as any).webkitEnterFullscreen === "function") {
-          try {
-            (video as any).webkitEnterFullscreen();
-          } catch {}
-        } else {
-          // requestFullscreen rejected — revert state
-          setIsFullscreen(false);
+          if (video && typeof (video as any).webkitEnterFullscreen === "function") {
+            try {
+              (video as any).webkitEnterFullscreen();
+            } catch {}
+          }
         }
       }
     } else {
+      try {
+        await ScreenOrientation.unlock();
+      } catch {}
+
+      try {
+        const orientation = (screen as any).orientation || (window.screen as any).orientation;
+        orientation?.unlock?.();
+      } catch {}
+
+      if (isNativeApp) {
+        try {
+          await exitImmersiveMode();
+        } catch {}
+      }
+
       try {
         if (document.exitFullscreen) {
           await document.exitFullscreen();
@@ -659,10 +668,6 @@ export default function LiveTvPage({
         } else if ((document as any).msExitFullscreen) {
           await (document as any).msExitFullscreen();
         }
-      } catch {}
-      try {
-        const orientation = (screen as any).orientation || (window.screen as any).orientation;
-        orientation?.unlock?.();
       } catch {}
     }
   };

@@ -1579,68 +1579,88 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
     const targetFs = !isFullscreen;
     setIsFullscreen(targetFs);
 
-    // 1. Native Capacitor ScreenOrientation locking (APK only)
-    if (isNativeCapacitor()) {
-      try {
-        if (targetFs) {
-          await ScreenOrientation.lock({ orientation: "landscape" });
-          await enterImmersiveMode();
-        } else {
-          await exitImmersiveMode();
-          await ScreenOrientation.unlock();
-        }
-      } catch (err) {
-        // Ignore — orientation lock is best-effort on APK
-      }
-      return;
-    }
-
-    // 2. Browser: requestFullscreen FIRST, then lock orientation inside the
-    // fullscreen context — required by the Screen Orientation API spec.
-    const container = containerRef.current;
-    const video = videoRef.current;
-    if (!container) return;
-
     if (targetFs) {
+      // 1. Kunci orientasi ke landscape melalui native Capacitor ScreenOrientation (Android APK)
       try {
-        if (container.requestFullscreen) {
-          await container.requestFullscreen();
-        } else if ((container as any).webkitRequestFullscreen) {
-          await (container as any).webkitRequestFullscreen();
-        } else if ((container as any).mozRequestFullScreen) {
-          await (container as any).mozRequestFullScreen();
-        } else if ((container as any).msRequestFullscreen) {
-          await (container as any).msRequestFullscreen();
-        } else if (video && (video as any).webkitEnterFullscreen) {
-          (video as any).webkitEnterFullscreen();
-        }
+        await ScreenOrientation.lock({ orientation: "landscape" });
+      } catch (err) { }
 
-        // Sekarang kita sudah resmi di mode fullscreen — kunci orientasi ke landscape
-        try {
-          const orientation = (screen as any).orientation || (window.screen as any).orientation;
-          if (orientation && typeof orientation.lock === "function") {
-            await orientation.lock("landscape");
-          } else if ((screen as any).lockOrientation) {
-            (screen as any).lockOrientation("landscape");
-          } else if ((screen as any).mozLockOrientation) {
-            (screen as any).mozLockOrientation("landscape");
-          } else if ((screen as any).msLockOrientation) {
-            (screen as any).msLockOrientation("landscape");
-          }
-        } catch (e) {
-          // Screen Orientation lock not supported (iOS Safari, etc.) — ignore
+      // 2. Kunci orientasi ke landscape melalui Web Screen Orientation API (Browser HP)
+      try {
+        const orientation = (screen as any).orientation || (window.screen as any).orientation;
+        if (orientation && typeof orientation.lock === "function") {
+          await orientation.lock("landscape").catch(async () => {
+            await orientation.lock("landscape-primary").catch(() => { });
+          });
+        } else if ((screen as any).lockOrientation) {
+          (screen as any).lockOrientation("landscape");
+        } else if ((screen as any).mozLockOrientation) {
+          (screen as any).mozLockOrientation("landscape");
+        } else if ((screen as any).msLockOrientation) {
+          (screen as any).msLockOrientation("landscape");
         }
-      } catch (err) {
-        // Fallback for iOS Safari which throws on element.requestFullscreen
-        if (video && typeof (video as any).webkitEnterFullscreen === "function") {
-          try {
+      } catch (e) { }
+
+      // 3. Masuk mode immersive di native Android APK
+      if (isNativeCapacitor()) {
+        try {
+          await enterImmersiveMode();
+        } catch (e) { }
+      }
+
+      // 4. Request HTML5 Fullscreen pada container
+      const container = containerRef.current || document.documentElement;
+      const video = videoRef.current;
+      if (container) {
+        try {
+          if (container.requestFullscreen) {
+            await container.requestFullscreen();
+          } else if ((container as any).webkitRequestFullscreen) {
+            await (container as any).webkitRequestFullscreen();
+          } else if ((container as any).mozRequestFullScreen) {
+            await (container as any).mozRequestFullScreen();
+          } else if ((container as any).msRequestFullscreen) {
+            await (container as any).msRequestFullscreen();
+          } else if (video && (video as any).webkitEnterFullscreen) {
             (video as any).webkitEnterFullscreen();
-          } catch { }
-        } else {
-          setIsFullscreen(false);
+          }
+
+          // Coba kunci orientasi lagi setelah container resmi fullscreen (requirement Chrome)
+          try {
+            const orientation = (screen as any).orientation || (window.screen as any).orientation;
+            if (orientation && typeof orientation.lock === "function") {
+              await orientation.lock("landscape").catch(() => { });
+            }
+          } catch (e) { }
+        } catch (err) {
+          if (video && typeof (video as any).webkitEnterFullscreen === "function") {
+            try {
+              (video as any).webkitEnterFullscreen();
+            } catch { }
+          }
         }
       }
     } else {
+      // Keluar dari mode fullscreen: pulihkan orientasi ke normal / buka kunci orientasi
+      try {
+        await ScreenOrientation.unlock();
+      } catch (err) { }
+
+      try {
+        const orientation = (screen as any).orientation || (window.screen as any).orientation;
+        if (orientation && typeof orientation.unlock === "function") {
+          orientation.unlock();
+        } else if ((screen as any).unlockOrientation) {
+          (screen as any).unlockOrientation();
+        }
+      } catch (e) { }
+
+      if (isNativeCapacitor()) {
+        try {
+          await exitImmersiveMode();
+        } catch (e) { }
+      }
+
       try {
         if (document.fullscreenElement || (document as any).webkitFullscreenElement) {
           if (document.exitFullscreen) {
@@ -1652,15 +1672,6 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
           } else if ((document as any).msExitFullscreen) {
             await (document as any).msExitFullscreen();
           }
-        }
-      } catch (e) { }
-
-      try {
-        const orientation = (screen as any).orientation || (window.screen as any).orientation;
-        if (orientation && typeof orientation.unlock === "function") {
-          orientation.unlock();
-        } else if ((screen as any).unlockOrientation) {
-          (screen as any).unlockOrientation();
         }
       } catch (e) { }
     }
@@ -2045,10 +2056,30 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
         : "max(calc(env(safe-area-inset-right, 0px) + 16px), 20px)",
     };
 
+  const isPortraitFullscreen = isFullscreen && !isLandscape;
+
   return (
     <div
-      className={`fixed inset-0 z-[100] bg-black flex flex-col md:flex-row landscape:flex-row justify-between overflow-hidden ${!showControls && isPlaying ? "cursor-none" : "cursor-default"
+      className={`fixed z-[100] bg-black flex flex-col md:flex-row landscape:flex-row justify-between overflow-hidden transition-all duration-300 ${!showControls && isPlaying ? "cursor-none" : "cursor-default"
         }`}
+      style={
+        isPortraitFullscreen
+          ? {
+              position: "fixed",
+              top: "50%",
+              left: "50%",
+              width: "100vh",
+              height: "100vw",
+              transform: "translate(-50%, -50%) rotate(90deg)",
+              transformOrigin: "center center",
+            }
+          : {
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+            }
+      }
       id="media-player-root"
     >
       {((isScreenLocked || isBuffering) || (!showControls && !isPlaying)) && (
