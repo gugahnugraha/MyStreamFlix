@@ -2090,6 +2090,40 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
           style={{ opacity: Math.max(0, 1 - brightness) }}
         />
 
+        {/* Watermark Overlay */}
+        <div
+          className="pointer-events-none absolute top-4 right-4 z-20 flex flex-col items-center select-none"
+          style={{ opacity: 0.2 }}
+        >
+          <span
+            style={{
+              color: '#ffffff',
+              fontSize: '1.1rem',
+              fontWeight: 800,
+              letterSpacing: '0.05em',
+              lineHeight: 1.1,
+              textShadow: '0 1px 4px rgba(0,0,0,0.5)',
+              fontFamily: 'Inter, system-ui, sans-serif',
+            }}
+          >
+            MyStreamFlix
+          </span>
+          <span
+            style={{
+              color: '#ffffff',
+              fontSize: '0.55rem',
+              fontWeight: 600,
+              letterSpacing: '0.15em',
+              textTransform: 'uppercase' as const,
+              textShadow: '0 1px 3px rgba(0,0,0,0.5)',
+              fontFamily: 'Inter, system-ui, sans-serif',
+              marginTop: '1px',
+            }}
+          >
+            Indonesia
+          </span>
+        </div>
+
         {/* HTML5 Video Layer */}
         {!isSimulating ? (
           <video
