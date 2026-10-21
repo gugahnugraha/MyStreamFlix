@@ -1637,15 +1637,16 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
         }
       } catch (e) { }
 
-      // 3. Request HTML5 Fullscreen HANYA pada desktop browser (menghindari issue WebView di HP)
-      if (!isMobile) {
+      // 3. Request HTML5 Fullscreen with navigationUI: "hide" (hides browser bars on mobile web & desktop)
+      if (!isNativeCapacitor()) {
         const container = containerRef.current || document.documentElement;
         if (container) {
           try {
+            const fsOpts = { navigationUI: "hide" } as FullscreenOptions;
             if (container.requestFullscreen) {
-              await container.requestFullscreen();
+              await container.requestFullscreen(fsOpts);
             } else if ((container as any).webkitRequestFullscreen) {
-              await (container as any).webkitRequestFullscreen();
+              await (container as any).webkitRequestFullscreen(fsOpts);
             } else if ((container as any).mozRequestFullScreen) {
               await (container as any).mozRequestFullScreen();
             } else if ((container as any).msRequestFullscreen) {
@@ -1670,7 +1671,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
         }
       } catch (e) { }
 
-      if (!isMobile) {
+      if (!isNativeCapacitor()) {
         try {
           if (document.fullscreenElement || (document as any).webkitFullscreenElement) {
             if (document.exitFullscreen) {
@@ -2079,16 +2080,23 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
               position: "fixed",
               top: "50%",
               left: "50%",
-              width: "100vh",
-              height: "100vw",
+              width: "100dvh",
+              height: "100dvw",
+              minWidth: "100vh",
+              minHeight: "100vw",
               transform: "translate(-50%, -50%) rotate(90deg)",
               transformOrigin: "center center",
+              zIndex: 999999,
             }
           : {
+              position: "fixed",
               top: 0,
               left: 0,
               right: 0,
               bottom: 0,
+              width: "100vw",
+              height: "100vh",
+              zIndex: isFullscreen ? 999999 : 100,
             }
       }
       id="media-player-root"

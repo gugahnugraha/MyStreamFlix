@@ -657,15 +657,16 @@ export default function LiveTvPage({
         }
       } catch {}
 
-      // 3. Request HTML5 Fullscreen HANYA pada desktop browser (menghindari issue WebView di HP)
-      if (!isMobile) {
+      // 3. Request HTML5 Fullscreen with navigationUI: "hide" (hides browser bars on mobile web & desktop)
+      if (!isNativeCapacitor()) {
         const target = playerShellRef.current || document.documentElement;
         if (target) {
           try {
+            const fsOpts = { navigationUI: "hide" } as FullscreenOptions;
             if (target.requestFullscreen) {
-              await target.requestFullscreen();
+              await target.requestFullscreen(fsOpts);
             } else if ((target as any).webkitRequestFullscreen) {
-              await (target as any).webkitRequestFullscreen();
+              await (target as any).webkitRequestFullscreen(fsOpts);
             } else if ((target as any).mozRequestFullScreen) {
               await (target as any).mozRequestFullScreen();
             } else if ((target as any).msRequestFullscreen) {
@@ -686,7 +687,7 @@ export default function LiveTvPage({
         orientation?.unlock?.();
       } catch {}
 
-      if (!isMobile) {
+      if (!isNativeCapacitor()) {
         try {
           if (document.exitFullscreen) {
             await document.exitFullscreen();
@@ -1115,11 +1116,13 @@ export default function LiveTvPage({
                     position: "fixed",
                     top: "50%",
                     left: "50%",
-                    width: "100vh",
-                    height: "100vw",
+                    width: "100dvh",
+                    height: "100dvw",
+                    minWidth: "100vh",
+                    minHeight: "100vw",
                     transform: "translate(-50%, -50%) rotate(90deg)",
                     transformOrigin: "center center",
-                    zIndex: 100,
+                    zIndex: 999999,
                   }
                 : isFullscreen
                 ? {
@@ -1128,7 +1131,9 @@ export default function LiveTvPage({
                     left: 0,
                     right: 0,
                     bottom: 0,
-                    zIndex: 100,
+                    width: "100vw",
+                    height: "100vh",
+                    zIndex: 999999,
                   }
                 : {}
             }

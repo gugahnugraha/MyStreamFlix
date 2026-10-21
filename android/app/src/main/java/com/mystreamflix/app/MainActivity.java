@@ -8,6 +8,7 @@ public class MainActivity extends BridgeActivity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         registerPlugin(ScreenOrientationPlugin.class);
+        registerPlugin(ImmersiveModePlugin.class);
         super.onCreate(savedInstanceState);
     }
 }

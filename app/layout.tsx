@@ -38,7 +38,12 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: "/favicon.ico"
-  }
+  },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "MyStreamFlix",
+  },
 };
 
 export const viewport: Viewport = {
