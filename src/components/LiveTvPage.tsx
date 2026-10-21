@@ -98,7 +98,7 @@ export default function LiveTvPage({
     }
   }, [channels, liveChannels, activeChannel?.id]);
 
-  // Landscape & screen resize listener
+  // Landscape & screen resize listener (Android APK & Browser)
   useEffect(() => {
     const handle = () => {
       setIsLandscape(window.innerWidth > window.innerHeight);
@@ -106,9 +106,26 @@ export default function LiveTvPage({
     };
     window.addEventListener("orientationchange", handle);
     window.addEventListener("resize", handle);
+    try {
+      (screen as any)?.orientation?.addEventListener?.("change", handle);
+    } catch {}
+
+    let removeScreenListener = () => {};
+    try {
+      ScreenOrientation.addListener("screenOrientationChange", (res) => {
+        setIsLandscape(res.type.startsWith("landscape"));
+      }).then((handle) => {
+        removeScreenListener = () => handle.remove();
+      }).catch(() => {});
+    } catch {}
+
     return () => {
       window.removeEventListener("orientationchange", handle);
       window.removeEventListener("resize", handle);
+      try {
+        (screen as any)?.orientation?.removeEventListener?.("change", handle);
+      } catch {}
+      removeScreenListener();
     };
   }, []);
 
@@ -257,9 +274,15 @@ export default function LiveTvPage({
   // Sync fullscreen state
   useEffect(() => {
     const onFs = () => {
-      // In native Android APK, fullscreen is controlled by React state & native ScreenOrientation.
-      // Android WebView fires null for document.fullscreenElement which would falsely reset state.
-      if (isNativeCapacitor()) return;
+      // On mobile devices & native APK, fullscreen is purely state-driven (controlled by user toggle button).
+      // Mobile browsers & Android WebView fire false-positive exit events (document.fullscreenElement === null)
+      // which would bounce the player back to portrait.
+      const isMobile = typeof window !== "undefined" && (
+        window.innerWidth < 768 ||
+        /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+        isNativeCapacitor()
+      );
+      if (isMobile) return;
       const isFs = !!(
         document.fullscreenElement ||
         (document as any).webkitFullscreenElement ||
@@ -609,26 +632,20 @@ export default function LiveTvPage({
     const targetFs = !isFullscreen;
     setIsFullscreen(targetFs);
 
-    if (isNativeApp || isNativeCapacitor()) {
-      // NATIVE ANDROID APK:
-      // Controlled purely via native ScreenOrientation & Immersive mode.
-      // Do NOT request DOM fullscreen in WebView to avoid false exit events.
-      try {
-        if (targetFs) {
-          await ScreenOrientation.lock({ orientation: "landscape" });
-          await enterImmersiveMode();
-        } else {
-          await exitImmersiveMode();
-          await ScreenOrientation.unlock();
-        }
-      } catch (err) {
-        console.warn("ScreenOrientation lock failed:", err);
-      }
-      return;
-    }
+    const isMobile = typeof window !== "undefined" && (
+      window.innerWidth < 768 ||
+      /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+      isNativeCapacitor()
+    );
 
-    // MOBILE WEB & DESKTOP BROWSER:
     if (targetFs) {
+      // 1. Force landscape orientation via Capacitor native plugin (APK)
+      try {
+        await ScreenOrientation.lock({ orientation: "landscape" });
+        await enterImmersiveMode();
+      } catch (err) { }
+
+      // 2. Force landscape orientation via Web Screen Orientation API (Browser)
       try {
         const orientation = (screen as any).orientation || (window.screen as any).orientation;
         if (orientation && typeof orientation.lock === "function") {
@@ -640,46 +657,48 @@ export default function LiveTvPage({
         }
       } catch {}
 
-      const target = playerShellRef.current || document.documentElement;
-      const video = videoRef.current;
-      if (target) {
-        try {
-          if (target.requestFullscreen) {
-            await target.requestFullscreen();
-          } else if ((target as any).webkitRequestFullscreen) {
-            await (target as any).webkitRequestFullscreen();
-          } else if ((target as any).mozRequestFullScreen) {
-            await (target as any).mozRequestFullScreen();
-          } else if ((target as any).msRequestFullscreen) {
-            await (target as any).msRequestFullscreen();
-          } else if (video && (video as any).webkitEnterFullscreen) {
-            (video as any).webkitEnterFullscreen();
-          }
-        } catch {
-          if (video && typeof (video as any).webkitEnterFullscreen === "function") {
-            try {
-              (video as any).webkitEnterFullscreen();
-            } catch {}
-          }
+      // 3. Request HTML5 Fullscreen HANYA pada desktop browser (menghindari issue WebView di HP)
+      if (!isMobile) {
+        const target = playerShellRef.current || document.documentElement;
+        if (target) {
+          try {
+            if (target.requestFullscreen) {
+              await target.requestFullscreen();
+            } else if ((target as any).webkitRequestFullscreen) {
+              await (target as any).webkitRequestFullscreen();
+            } else if ((target as any).mozRequestFullScreen) {
+              await (target as any).mozRequestFullScreen();
+            } else if ((target as any).msRequestFullscreen) {
+              await (target as any).msRequestFullscreen();
+            }
+          } catch {}
         }
       }
     } else {
+      // Keluar dari mode fullscreen: pulihkan orientasi ke normal
+      try {
+        await exitImmersiveMode();
+        await ScreenOrientation.unlock();
+      } catch {}
+
       try {
         const orientation = (screen as any).orientation || (window.screen as any).orientation;
         orientation?.unlock?.();
       } catch {}
 
-      try {
-        if (document.exitFullscreen) {
-          await document.exitFullscreen();
-        } else if ((document as any).webkitExitFullscreen) {
-          await (document as any).webkitExitFullscreen();
-        } else if ((document as any).mozCancelFullScreen) {
-          await (document as any).mozCancelFullScreen();
-        } else if ((document as any).msExitFullscreen) {
-          await (document as any).msExitFullscreen();
-        }
-      } catch {}
+      if (!isMobile) {
+        try {
+          if (document.exitFullscreen) {
+            await document.exitFullscreen();
+          } else if ((document as any).webkitExitFullscreen) {
+            await (document as any).webkitExitFullscreen();
+          } else if ((document as any).mozCancelFullScreen) {
+            await (document as any).mozCancelFullScreen();
+          } else if ((document as any).msExitFullscreen) {
+            await (document as any).msExitFullscreen();
+          }
+        } catch {}
+      }
     }
   };
 
@@ -1091,7 +1110,7 @@ export default function LiveTvPage({
                 : "relative aspect-video rounded-xl sm:rounded-2xl fullscreen:rounded-none fullscreen:border-0"
             }`}
             style={
-              !isNativeApp && isFullscreen && !isLandscape
+              isFullscreen && !isLandscape
                 ? {
                     position: "fixed",
                     top: "50%",

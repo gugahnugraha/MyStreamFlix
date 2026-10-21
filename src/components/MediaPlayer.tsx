@@ -1071,10 +1071,15 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
   // Listen to fullscreen changes & handle screen orientation
   useEffect(() => {
     const handleFullscreenChange = async () => {
-      // In Native Android APK, the player state is managed by React & native ScreenOrientation.
-      // Android WebView does not manage DOM fullscreen elements and would falsely fire null
-      // which would incorrectly unlock orientation and reset state.
-      if (isNativeCapacitor()) return;
+      // On mobile devices & native APK, fullscreen is purely state-driven (controlled by user toggle button).
+      // Mobile browsers & Android WebView fire false-positive exit events (document.fullscreenElement === null)
+      // which would bounce the player back to portrait.
+      const isMobile = typeof window !== "undefined" && (
+        window.innerWidth < 768 ||
+        /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+        isNativeCapacitor()
+      );
+      if (isMobile) return;
 
       const isFs = !!(
         document.fullscreenElement ||
@@ -1166,16 +1171,33 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
     };
   }, []);
 
-  // Landscape orientation listener — updates isLandscape on device rotation (Android APK)
+  // Landscape orientation listener — updates isLandscape on device rotation (Android APK & Browser)
   useEffect(() => {
     const handleOrientationChange = () => {
       setIsLandscape(window.innerWidth > window.innerHeight);
     };
     window.addEventListener("orientationchange", handleOrientationChange);
     window.addEventListener("resize", handleOrientationChange);
+    try {
+      (screen as any)?.orientation?.addEventListener?.("change", handleOrientationChange);
+    } catch {}
+
+    let removeScreenListener = () => {};
+    try {
+      ScreenOrientation.addListener("screenOrientationChange", (res) => {
+        setIsLandscape(res.type.startsWith("landscape"));
+      }).then((handle) => {
+        removeScreenListener = () => handle.remove();
+      }).catch(() => {});
+    } catch {}
+
     return () => {
       window.removeEventListener("orientationchange", handleOrientationChange);
       window.removeEventListener("resize", handleOrientationChange);
+      try {
+        (screen as any)?.orientation?.removeEventListener?.("change", handleOrientationChange);
+      } catch {}
+      removeScreenListener();
     };
   }, []);
 
@@ -1586,27 +1608,20 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
     const targetFs = !isFullscreen;
     setIsFullscreen(targetFs);
 
-    if (isNativeCapacitor()) {
-      // NATIVE ANDROID APK:
-      // Controlled purely via native ScreenOrientation & Immersive mode.
-      // Do NOT request DOM fullscreen in WebView to avoid false exit events.
-      try {
-        if (targetFs) {
-          await ScreenOrientation.lock({ orientation: "landscape" });
-          await enterImmersiveMode();
-        } else {
-          await exitImmersiveMode();
-          await ScreenOrientation.unlock();
-        }
-      } catch (err) {
-        console.warn("Native ScreenOrientation lock error:", err);
-      }
-      return;
-    }
+    const isMobile = typeof window !== "undefined" && (
+      window.innerWidth < 768 ||
+      /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+      isNativeCapacitor()
+    );
 
-    // MOBILE WEB & DESKTOP BROWSER:
     if (targetFs) {
-      // 1. Kunci orientasi ke landscape melalui Web Screen Orientation API (Browser HP)
+      // 1. Force landscape orientation via Capacitor native plugin (APK)
+      try {
+        await ScreenOrientation.lock({ orientation: "landscape" });
+        await enterImmersiveMode();
+      } catch (err) { }
+
+      // 2. Force landscape orientation via Web Screen Orientation API (Browser)
       try {
         const orientation = (screen as any).orientation || (window.screen as any).orientation;
         if (orientation && typeof orientation.lock === "function") {
@@ -1622,40 +1637,30 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
         }
       } catch (e) { }
 
-      // 2. Request HTML5 Fullscreen pada container
-      const container = containerRef.current || document.documentElement;
-      const video = videoRef.current;
-      if (container) {
-        try {
-          if (container.requestFullscreen) {
-            await container.requestFullscreen();
-          } else if ((container as any).webkitRequestFullscreen) {
-            await (container as any).webkitRequestFullscreen();
-          } else if ((container as any).mozRequestFullScreen) {
-            await (container as any).mozRequestFullScreen();
-          } else if ((container as any).msRequestFullscreen) {
-            await (container as any).msRequestFullscreen();
-          } else if (video && (video as any).webkitEnterFullscreen) {
-            (video as any).webkitEnterFullscreen();
-          }
-
-          // Coba kunci orientasi lagi setelah container resmi fullscreen (requirement Chrome)
+      // 3. Request HTML5 Fullscreen HANYA pada desktop browser (menghindari issue WebView di HP)
+      if (!isMobile) {
+        const container = containerRef.current || document.documentElement;
+        if (container) {
           try {
-            const orientation = (screen as any).orientation || (window.screen as any).orientation;
-            if (orientation && typeof orientation.lock === "function") {
-              await orientation.lock("landscape").catch(() => { });
+            if (container.requestFullscreen) {
+              await container.requestFullscreen();
+            } else if ((container as any).webkitRequestFullscreen) {
+              await (container as any).webkitRequestFullscreen();
+            } else if ((container as any).mozRequestFullScreen) {
+              await (container as any).mozRequestFullScreen();
+            } else if ((container as any).msRequestFullscreen) {
+              await (container as any).msRequestFullscreen();
             }
-          } catch (e) { }
-        } catch (err) {
-          if (video && typeof (video as any).webkitEnterFullscreen === "function") {
-            try {
-              (video as any).webkitEnterFullscreen();
-            } catch { }
-          }
+          } catch (err) { }
         }
       }
     } else {
-      // Keluar dari mode fullscreen: pulihkan orientasi ke normal / buka kunci orientasi
+      // Keluar dari mode fullscreen: pulihkan orientasi ke normal
+      try {
+        await exitImmersiveMode();
+        await ScreenOrientation.unlock();
+      } catch (e) { }
+
       try {
         const orientation = (screen as any).orientation || (window.screen as any).orientation;
         if (orientation && typeof orientation.unlock === "function") {
@@ -1665,19 +1670,21 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
         }
       } catch (e) { }
 
-      try {
-        if (document.fullscreenElement || (document as any).webkitFullscreenElement) {
-          if (document.exitFullscreen) {
-            await document.exitFullscreen();
-          } else if ((document as any).webkitExitFullscreen) {
-            await (document as any).webkitExitFullscreen();
-          } else if ((document as any).mozCancelFullScreen) {
-            await (document as any).mozCancelFullScreen();
-          } else if ((document as any).msExitFullscreen) {
-            await (document as any).msExitFullscreen();
+      if (!isMobile) {
+        try {
+          if (document.fullscreenElement || (document as any).webkitFullscreenElement) {
+            if (document.exitFullscreen) {
+              await document.exitFullscreen();
+            } else if ((document as any).webkitExitFullscreen) {
+              await (document as any).webkitExitFullscreen();
+            } else if ((document as any).mozCancelFullScreen) {
+              await (document as any).mozCancelFullScreen();
+            } else if ((document as any).msExitFullscreen) {
+              await (document as any).msExitFullscreen();
+            }
           }
-        }
-      } catch (e) { }
+        } catch (e) { }
+      }
     }
   };
 
@@ -2060,7 +2067,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
         : "max(calc(env(safe-area-inset-right, 0px) + 16px), 20px)",
     };
 
-  const isPortraitFullscreen = !isNativeCapacitor() && isFullscreen && !isLandscape;
+  const isPortraitFullscreen = isFullscreen && !isLandscape;
 
   return (
     <div
