@@ -1009,10 +1009,17 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
     const scheduleHide = () => {
       clearTimeout(timeout);
       timeout = window.setTimeout(() => {
-        if (isPlaying && !showQualityMenu && !showSpeedMenu && !showSubtitleMenu && !showSubtitleCustomizer) {
+        if (isPlaying) {
           setShowControls(false);
+          // Auto-hide drawer / sidebar and menus on inactivity to keep video immersive on mobile & APK
+          setShowDesktopSidebar(false);
+          setActiveMobileSheet("none");
+          setShowQualityMenu(false);
+          setShowSpeedMenu(false);
+          setShowSubtitleMenu(false);
+          setShowSubtitleCustomizer(false);
         }
-      }, 3000); // 3s inactivity timeout
+      }, 3500); // 3.5s inactivity timeout
     };
 
     const resetTimer = () => {
@@ -1589,15 +1596,25 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
 
   const handleScreenClick = () => {
     if (isScreenLocked) return;
+
+    // Auto-hide any open episode drawer/sidebar, mobile sheet, or menu popovers when tapped
+    if (showDesktopSidebar || activeMobileSheet !== "none" || showQualityMenu || showSpeedMenu || showSubtitleMenu || showSubtitleCustomizer) {
+      setShowDesktopSidebar(false);
+      setActiveMobileSheet("none");
+      setShowQualityMenu(false);
+      setShowSpeedMenu(false);
+      setShowSubtitleMenu(false);
+      setShowSubtitleCustomizer(false);
+      return;
+    }
+
     if (!showControls) {
-      // Controls are hidden — first tap always reveals them; the auto-hide timer
-      // (set by touchstart/click listener) will schedule them to hide again.
       setShowControls(true);
     } else if (!isPlaying) {
-      // Controls visible and paused — tap toggles play
       handlePlayPause();
+    } else {
+      setShowControls(false);
     }
-    // Controls visible + playing: do nothing here; auto-hide timer is already running.
   };
 
   const handleSubtitleSelect = (lang: string) => {
@@ -2594,19 +2611,21 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
                 <span className="hidden sm:inline uppercase">{aspectRatio}</span>
               </button>
 
-              {/* Episodes Drawer Toggle (Series Only) */}
+              {/* Episodes Drawer Toggle (Series Only) - Auto-hide supported */}
               {movie.contentType === "series" && (
                 <button
-                  onClick={() => {
-                    // On mobile: open bottom sheet. On desktop: toggle sidebar overlay.
-                    if (window.innerWidth < 768) {
-                      setActiveMobileSheet("episodes");
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (!isLandscape && typeof window !== "undefined" && window.innerWidth < 768) {
+                      setActiveMobileSheet((prev) => (prev === "episodes" ? "none" : "episodes"));
                     } else {
                       setShowDesktopSidebar((prev) => !prev);
                     }
                   }}
                   className={`px-2.5 py-1.5 rounded-xl hover:bg-zinc-800 text-white flex items-center gap-1.5 border transition-colors shadow-lg cursor-pointer z-20 text-xs font-bold ${
-                    showDesktopSidebar ? "bg-red-600/30 border-red-600/50" : "bg-zinc-900/80 border-zinc-800"
+                    showDesktopSidebar || activeMobileSheet === "episodes"
+                      ? "bg-red-600/30 border-red-600/50"
+                      : "bg-zinc-900/80 border-zinc-800"
                   }`}
                   title="Episodes"
                 >
@@ -3175,15 +3194,16 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
                 {/* Series Seasons & Episodes Toggle Button */}
                 {movie.contentType === "series" && movie.seasons && movie.seasons.length > 0 && (
                   <button
-                    onClick={() => {
-                      if (window.innerWidth < 768) {
-                        setActiveMobileSheet("episodes");
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (!isLandscape && typeof window !== "undefined" && window.innerWidth < 768) {
+                        setActiveMobileSheet((prev) => (prev === "episodes" ? "none" : "episodes"));
                       } else {
                         setShowDesktopSidebar((prev) => !prev);
                       }
                     }}
                     className={`transition-colors cursor-pointer min-w-11 min-h-11 flex items-center justify-center hover:scale-105 active:scale-95 ${
-                      showDesktopSidebar ? "text-red-500" : "text-zinc-300 hover:text-white"
+                      showDesktopSidebar || activeMobileSheet === "episodes" ? "text-red-500" : "text-zinc-300 hover:text-white"
                     }`}
                     title={t.seasonsAndEpisodes || "Seasons & Episodes"}
                   >
@@ -3481,14 +3501,19 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
         <>
           {/* Backdrop overlay */}
           <div
-            className="fixed inset-0 z-[110] bg-black/60 backdrop-blur-sm"
+            className="fixed inset-0 z-[110] bg-black/60 backdrop-blur-xs"
             style={{ animation: "fadeIn 0.2s ease-out forwards" }}
             onClick={() => setShowDesktopSidebar(false)}
           />
-          {/* Sidebar panel */}
+          {/* Sidebar panel with safe area insets for Android notch */}
           <div
-            className="fixed top-0 right-0 h-full w-80 sm:w-96 z-[120] bg-zinc-950/98 border-l border-zinc-800 flex flex-col text-white select-none shadow-2xl shadow-black/50"
-            style={{ animation: "slideInFromRight 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards" }}
+            className="fixed top-0 right-0 h-full w-72 sm:w-80 md:w-96 max-w-[85vw] z-[120] bg-zinc-950/98 border-l border-zinc-800 flex flex-col text-white select-none shadow-2xl shadow-black/50"
+            style={{
+              animation: "slideInFromRight 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards",
+              paddingRight: "max(calc(env(safe-area-inset-right, 0px)), 0px)",
+              paddingTop: "max(calc(env(safe-area-inset-top, 0px)), 0px)",
+              paddingBottom: "max(calc(env(safe-area-inset-bottom, 0px)), 0px)",
+            }}
             id="episodes-sidebar"
           >
             {/* Header */}
