@@ -220,6 +220,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
   const [showControls, setShowControls] = useState(true);
   const [showSpeedMenu, setShowSpeedMenu] = useState(false);
   const [showSubtitleMenu, setShowSubtitleMenu] = useState(false);
+  const [showDesktopSidebar, setShowDesktopSidebar] = useState(false);
 
   // Custom mock caption display text
   const [currentCaption, setCurrentCaption] = useState("");
@@ -2072,7 +2073,7 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
 
   return (
     <div
-      className={`fixed z-[100] bg-black flex flex-col md:flex-row landscape:flex-row justify-between overflow-hidden transition-all duration-300 ${!showControls && isPlaying ? "cursor-none" : "cursor-default"
+      className={`fixed z-[100] bg-black flex flex-col justify-between overflow-hidden transition-all duration-300 ${!showControls && isPlaying ? "cursor-none" : "cursor-default"
         }`}
       style={
         isPortraitFullscreen
@@ -2593,12 +2594,21 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
                 <span className="hidden sm:inline uppercase">{aspectRatio}</span>
               </button>
 
-              {/* Mobile Episodes Drawer Toggle (Series Only) */}
+              {/* Episodes Drawer Toggle (Series Only) */}
               {movie.contentType === "series" && (
                 <button
-                  onClick={() => setActiveMobileSheet("episodes")}
-                  className="md:hidden px-2.5 py-1.5 rounded-xl bg-zinc-900/80 hover:bg-zinc-800 text-white flex items-center gap-1.5 border border-zinc-800 transition-colors shadow-lg cursor-pointer z-20 text-xs font-bold"
-                  title="Episodes Drawer"
+                  onClick={() => {
+                    // On mobile: open bottom sheet. On desktop: toggle sidebar overlay.
+                    if (window.innerWidth < 768) {
+                      setActiveMobileSheet("episodes");
+                    } else {
+                      setShowDesktopSidebar((prev) => !prev);
+                    }
+                  }}
+                  className={`px-2.5 py-1.5 rounded-xl hover:bg-zinc-800 text-white flex items-center gap-1.5 border transition-colors shadow-lg cursor-pointer z-20 text-xs font-bold ${
+                    showDesktopSidebar ? "bg-red-600/30 border-red-600/50" : "bg-zinc-900/80 border-zinc-800"
+                  }`}
+                  title="Episodes"
                 >
                   <Tv2 className="w-4 h-4 text-red-400" />
                   <span>Episodes</span>
@@ -3162,7 +3172,24 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
                   </button>
                 )}
 
-
+                {/* Series Seasons & Episodes Toggle Button */}
+                {movie.contentType === "series" && movie.seasons && movie.seasons.length > 0 && (
+                  <button
+                    onClick={() => {
+                      if (window.innerWidth < 768) {
+                        setActiveMobileSheet("episodes");
+                      } else {
+                        setShowDesktopSidebar((prev) => !prev);
+                      }
+                    }}
+                    className={`transition-colors cursor-pointer min-w-11 min-h-11 flex items-center justify-center hover:scale-105 active:scale-95 ${
+                      showDesktopSidebar ? "text-red-500" : "text-zinc-300 hover:text-white"
+                    }`}
+                    title={t.seasonsAndEpisodes || "Seasons & Episodes"}
+                  >
+                    <Tv2 className="w-5 h-5" />
+                  </button>
+                )}
 
                 {/* Fullscreen control */}
                 <button
@@ -3449,77 +3476,99 @@ export default function MediaPlayer({ movie, initialProgress = 0, onClose, t = {
         </div>
       )}
 
-      {/* Desktop Seasons / Episodes sidebar for TV Series */}
-      {movie.contentType === "series" && movie.seasons && movie.seasons.length > 0 && (
-        <div
-          className="hidden md:flex w-80 shrink-0 border-l border-zinc-900 bg-zinc-950/95 flex-col h-full z-10 text-white select-none relative"
-          id="episodes-sidebar"
-        >
-          {/* Header */}
-          <div className="p-4 border-b border-zinc-900 bg-black/40">
-            <h3 className="text-sm font-extrabold tracking-wide uppercase text-zinc-400 mb-2">
-              {t.seasonsAndEpisodes || "Seasons & Episodes"}
-            </h3>
-            {/* Season dropdown selector */}
-            <select
-              value={activeSeason?.id}
-              onChange={(e) => {
-                const season = movie.seasons?.find((s) => s.id === e.target.value);
-                if (season) {
-                  setActiveSeason(season);
-                  if (season.episodes.length > 0) {
-                    setActiveEpisode(season.episodes[0]);
-                    setCurrentTime(0);
-                  }
-                }
-              }}
-              className="w-full bg-zinc-900 border border-zinc-800 text-xs font-bold rounded-md px-3 py-2 text-white focus:outline-hidden focus:border-red-500"
-            >
-              {movie.seasons.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.title} ({s.episodes.length} {t.episodesTab || "Episodes"})
-                </option>
-              ))}
-            </select>
-          </div>
+      {/* Desktop Seasons / Episodes Slide-in Overlay Sidebar for TV Series */}
+      {movie.contentType === "series" && movie.seasons && movie.seasons.length > 0 && showDesktopSidebar && (
+        <>
+          {/* Backdrop overlay */}
+          <div
+            className="fixed inset-0 z-[110] bg-black/60 backdrop-blur-sm"
+            style={{ animation: "fadeIn 0.2s ease-out forwards" }}
+            onClick={() => setShowDesktopSidebar(false)}
+          />
+          {/* Sidebar panel */}
+          <div
+            className="fixed top-0 right-0 h-full w-80 sm:w-96 z-[120] bg-zinc-950/98 border-l border-zinc-800 flex flex-col text-white select-none shadow-2xl shadow-black/50"
+            style={{ animation: "slideInFromRight 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards" }}
+            id="episodes-sidebar"
+          >
+            {/* Header */}
+            <div className="p-4 border-b border-zinc-800 bg-black/60 flex items-center justify-between">
+              <h3 className="text-sm font-extrabold tracking-wide uppercase text-zinc-300 flex items-center gap-2">
+                <Tv2 className="w-4 h-4 text-red-500" />
+                {t.seasonsAndEpisodes || "Seasons & Episodes"}
+              </h3>
+              <button
+                onClick={() => setShowDesktopSidebar(false)}
+                className="w-8 h-8 rounded-full bg-zinc-900 hover:bg-red-600 flex items-center justify-center text-zinc-400 hover:text-white transition-colors cursor-pointer"
+                title="Close"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
 
-          {/* Episode List */}
-          <div className="flex-1 overflow-y-auto p-3 space-y-2 scrollbar-thin scrollbar-thumb-zinc-900 scrollbar-track-transparent">
-            {activeSeason?.episodes.map((ep) => {
-              const isCurrent = activeEpisode?.id === ep.id;
-              return (
-                <button
-                  key={ep.id}
-                  onClick={() => {
-                    setActiveEpisode(ep);
-                    setCurrentTime(0);
-                  }}
-                  className={`w-full text-left p-3 rounded-lg border transition-all flex flex-col gap-1 cursor-pointer ${isCurrent
-                      ? "bg-red-600/10 border-red-600 shadow-[0_0_15px_rgba(220,38,38,0.15)]"
-                      : "bg-zinc-900/40 border-zinc-900 hover:bg-zinc-900 hover:border-zinc-800"
-                    }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-bold text-red-500">
-                      {t.episodeLabel || "EPISODE"} {ep.episodeNumber}
-                    </span>
-                    <span className="text-[10px] text-zinc-500 font-mono">
-                      {ep.duration}m
-                    </span>
-                  </div>
-                  <h4 className={`text-xs font-bold transition-colors ${isCurrent ? "text-red-400" : "text-white"}`}>
-                    {ep.title}
-                  </h4>
-                  {ep.description && (
-                    <p className="text-[11px] text-zinc-400 line-clamp-2 leading-normal mt-0.5">
-                      {ep.description}
-                    </p>
-                  )}
-                </button>
-              );
-            })}
+            {/* Season dropdown selector */}
+            <div className="px-4 py-3 border-b border-zinc-900">
+              <select
+                value={activeSeason?.id}
+                onChange={(e) => {
+                  const season = movie.seasons?.find((s) => s.id === e.target.value);
+                  if (season) {
+                    setActiveSeason(season);
+                    if (season.episodes.length > 0) {
+                      setActiveEpisode(season.episodes[0]);
+                      setCurrentTime(0);
+                    }
+                  }
+                }}
+                className="w-full bg-zinc-900 border border-zinc-800 text-xs font-bold rounded-xl px-3.5 py-2.5 text-white focus:outline-hidden focus:border-red-500 transition-colors"
+              >
+                {movie.seasons.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.title} ({s.episodes.length} {t.episodesTab || "Episodes"})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Episode List */}
+            <div className="flex-1 overflow-y-auto p-3 space-y-2 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent">
+              {activeSeason?.episodes.map((ep) => {
+                const isCurrent = activeEpisode?.id === ep.id;
+                return (
+                  <button
+                    key={ep.id}
+                    onClick={() => {
+                      setActiveEpisode(ep);
+                      setCurrentTime(0);
+                      setShowDesktopSidebar(false);
+                    }}
+                    className={`w-full text-left p-3.5 rounded-xl border transition-all flex flex-col gap-1 cursor-pointer ${isCurrent
+                        ? "bg-red-600/15 border-red-600 shadow-[0_0_15px_rgba(220,38,38,0.15)]"
+                        : "bg-zinc-900/40 border-zinc-900 hover:bg-zinc-900 hover:border-zinc-700"
+                      }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-bold text-red-500">
+                        {t.episodeLabel || "EPISODE"} {ep.episodeNumber}
+                      </span>
+                      <span className="text-[10px] text-zinc-500 font-mono">
+                        {ep.duration}m
+                      </span>
+                    </div>
+                    <h4 className={`text-xs font-bold transition-colors ${isCurrent ? "text-red-400" : "text-white"}`}>
+                      {ep.title}
+                    </h4>
+                    {ep.description && (
+                      <p className="text-[11px] text-zinc-400 line-clamp-2 leading-normal mt-0.5">
+                        {ep.description}
+                      </p>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
           </div>
-        </div>
+        </>
       )}
     </div>
   );
